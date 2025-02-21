@@ -1,19 +1,19 @@
-import mongoose, { Connection } from "mongoose";
+import mongoose from "mongoose";
 
-let cachedConnection: Connection | null = null;
+const MONGODB_URI = process.env.MONGODB_URI as string;
 
-export async function connectToMongoDB() {
-  if (cachedConnection) {
-    console.log("Using cached db connection");
-    return cachedConnection;
-  }
+if (!MONGODB_URI) {
+  throw new Error("Please define the MONGODB_URI environment variable");
+}
+
+export const connectToDatabase = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+
   try {
-    const cnx = await mongoose.connect(process.env.MONGODB_URI!);
-    cachedConnection = cnx.connection;
-    console.log("New mongodb connection established");
-    return cachedConnection;
+    await mongoose.connect(MONGODB_URI);
+    console.log("Connected to MongoDB");
   } catch (error) {
-    console.log(error);
+    console.error("MongoDB connection error:", error);
     throw error;
   }
-}
+};
