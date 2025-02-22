@@ -1,0 +1,8 @@
+.input {
+  all: unset;
+  box-shadow: var(--shadow);
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: var(--default);
+  font-size: 16px;
+}

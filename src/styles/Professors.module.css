@@ -1,0 +1,83 @@
+.professors {
+  display: flex;
+  flex-direction: column;
+  gap: 50px;
+}
+
+.arrow:nth-last-child(2) button {
+  margin: auto;
+}
+
+.professors th p {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--accent);
+}
+
+.arrow button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.arrow button svg {
+  background: var(--accent);
+  border-radius: 100%;
+  transition: rotate 200ms ease-in-out;
+}
+
+.arrow.selected button svg {
+  rotate: -180deg;
+}
+
+.modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(1px);
+  z-index: 100;
+  animation: modal 200ms ease-in-out;
+}
+
+@keyframes modal {
+  from {
+    backdrop-filter: blur(0px);
+    background: rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes content {
+  from {
+    transform: translateY(80px) scale(0.8);
+  }
+}
+
+.content {
+  animation: content 200ms ease-in-out;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 30px;
+  background: var(--background);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.courses button {
+  margin-left: auto;
+}
+
+.arrow.courses button svg {
+  rotate: 45deg;
+}
+
+.arrow.courses.selected button svg {
+  rotate: -90deg;
+}

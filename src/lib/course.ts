@@ -7,11 +7,13 @@ export const getCourses = async () => {
   await connectToDatabase();
   try {
     const courses = await Course.find();
-    return courses.map(({ _id, name, code }) => ({
-      id: _id.toString(),
-      name,
-      code,
-    }));
+    return {
+      courses: courses.map(({ _id, name, code }) => ({
+        id: _id.toString(),
+        name,
+        code,
+      })),
+    };
   } catch (error) {
     console.log(error);
     return { message: `error getting courses` };

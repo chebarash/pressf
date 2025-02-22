@@ -1,0 +1,39 @@
+.course {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 16px;
+  border-radius: 20px;
+  background: var(--default);
+  box-shadow: var(--shadow);
+  transition: all 200ms ease-in-out;
+}
+
+.course p {
+  font-size: 16px;
+  color: var(--foreground);
+}
+
+.course.selected {
+  background: var(--accent);
+  box-shadow: var(--shadow-accent);
+}
+
+.course.selected p {
+  font-size: 16px;
+  color: var(--default);
+}
+
+.course svg {
+  margin-left: -10px;
+  width: 0;
+  height: 0;
+  transition: all 200ms ease-in-out;
+}
+
+.course.selected svg {
+  width: 16px;
+  height: 16px;
+  rotate: 90deg;
+  margin-left: 0;
+}
