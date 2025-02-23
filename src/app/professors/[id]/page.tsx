@@ -1,38 +1,28 @@
 import { getProfessor } from "@/lib/professor";
-import { Params } from "next/dist/server/request/params";
-import Image from "next/image";
+import Form from "@/components/Form";
+import Profile from "@/components/Profile";
 
 export default async function Page({ params }: { params: any }) {
-  const { professor } = await getProfessor((await params).id);
+  const { professor, feedback } = await getProfessor((await params).id);
   if (!professor) return <div>Professor not found</div>;
   return (
     <main>
-      <Image
-        src={professor.image || `/pfp.png`}
-        alt={professor.name}
-        width={600}
-        height={600}
-      />
+      <Profile {...professor} />
       <section>
-        <h1>{professor.name}</h1>
-        <a href={`mailto:${professor.email}`}>{professor.email}</a>
-        <span>
-          <p>{professor.rating}</p>
-          <p>average rating</p>
-        </span>
+        {feedback?.length ? (
+          <ul>
+            {feedback.map(({ id, rate, text }) => (
+              <li key={id}>
+                <h1>{rate.toFixed(1)}</h1>
+                <p>{text}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div>No feedback yet</div>
+        )}
       </section>
-      <section>
-        <h2>Courses</h2>
-        <ul>
-          {professor.courses.map(({ id, name }) => (
-            <li key={id}>{name}</li>
-          ))}
-        </ul>
-      </section>
-      <section>
-        <h2>Info</h2>
-        <p>{professor.info}</p>
-      </section>
+      <Form {...professor} />
     </main>
   );
 }

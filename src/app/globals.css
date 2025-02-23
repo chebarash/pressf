@@ -15,15 +15,14 @@ h4,
 h5,
 h6 {
   font-family: var(--six-caps), sans-serif;
-  font-weight: 400;
 }
 
 h3 {
-  font-size: 64px;
+  font-size: 48px;
 }
 
 h2 {
-  font-size: 48px;
+  font-size: 64px;
 }
 
 h1 {
@@ -55,6 +54,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 150px 50px;
+  gap: 100px;
+}
+
 footer {
   display: flex;
   align-items: center;
@@ -62,8 +71,16 @@ footer {
   padding: 20px;
 }
 
+b {
+  font-weight: 500;
+  color: var(--accent);
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  font-size: 20px;
+  font-weight: 400;
+  user-select: none;
 }

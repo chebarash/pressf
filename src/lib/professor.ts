@@ -4,8 +4,9 @@ import { connectToDatabase } from "./db";
 import Professor from "@/models/professor";
 import Feedback from "@/models/feedback";
 import { ProfessorType } from "@/types/types";
-import Course from "@/models/course";
 import { getCourses } from "./course";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 const toResponse = ({
   _id,
@@ -54,11 +55,47 @@ export const getProfessor = async (id: string) => {
   try {
     const professor = await Professor.findById(id).populate(`courses`).lean();
     if (!professor) return { message: `professor not found` };
-    const feedback = await Feedback.find({ professor: id }).populate(`courses`);
+    const feedback = await Feedback.find({
+      professor: id,
+      text: { $ne: null },
+    }).populate(`courses`);
     return { professor: toResponse(professor), feedback };
   } catch (error) {
     console.log(error);
     return { message: `error getting professor` };
+  }
+};
+
+export const rateProfessor = async (formData: FormData) => {
+  const session = await getServerSession(authOptions);
+  if (!session) return { message: `Unauthorized` };
+  await connectToDatabase();
+  const rate = Number(formData.get("rate"));
+  const text = formData.get("text");
+  const author = session.user.id;
+  const professor = formData.get("professor");
+  const courses = formData.getAll("courses");
+  try {
+    await Feedback.updateOne(
+      { author, professor },
+      {
+        rate,
+        text: text?.toString().length ? text : undefined,
+        courses,
+        author,
+        professor,
+      },
+      { upsert: true }
+    );
+    revalidatePath(`/professor/${professor}`);
+    const feedback = await Feedback.find({ professor });
+    const average =
+      feedback.reduce((acc, { rate }) => acc + rate, 0) / feedback.length;
+    await Professor.findByIdAndUpdate(professor, { rating: average });
+    return { message: `feedback created` };
+  } catch (error) {
+    console.log(error);
+    return { message: `error creating feedback` };
   }
 };
 

@@ -9,6 +9,7 @@ export default function Course({
 }: CourseType & { onClick: () => any; selected?: boolean }) {
   return (
     <button
+      type="button"
       className={[styles.course, selected ? styles.selected : ``].join(` `)}
       onClick={onClick}
       disabled={!onClick}

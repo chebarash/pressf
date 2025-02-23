@@ -1,0 +1,48 @@
+.profile {
+  display: grid;
+  grid-template-columns: 4fr 7fr;
+  gap: 80px 50px;
+}
+
+.profile section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile span {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  width: min-content;
+  line-height: 1;
+}
+
+.profile span p {
+  margin: 5px 0;
+}
+
+.image {
+  display: flex;
+  align-items: center;
+}
+
+.image div {
+  display: flex;
+  position: relative;
+  width: calc(100% + 100px);
+  aspect-ratio: 1/1;
+  margin: -50px;
+}
+
+.coursesBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.info {
+  display: flex;
+  justify-content: center;
+}

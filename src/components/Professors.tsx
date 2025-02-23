@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import styles from "@/styles/Professors.module.css";
 import Input from "./Input";
 import Course from "./Course";
+import Modal from "./Modal";
 
 const Arrow = ({
   name,
@@ -29,26 +30,6 @@ const Arrow = ({
         />
       </svg>
     </button>
-  </div>
-);
-
-const Modal = ({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: any;
-  onClose: () => any;
-}) => (
-  <div
-    className={styles.modal}
-    onClick={(e) => e.target === e.currentTarget && onClose()}
-  >
-    <div className={styles.content}>
-      <h2>{title}</h2>
-      {children}
-    </div>
   </div>
 );
 
@@ -124,7 +105,7 @@ export default function Professors({
     <section className={styles.professors}>
       {modal && (
         <Modal title="Choose course" onClose={() => setModal(false)}>
-          <div className={styles.coursesBox}>
+          <div className={[styles.coursesBox, styles.modalCourses].join(` `)}>
             {courses.map(({ id, name }) => (
               <Course
                 key={id}
@@ -166,12 +147,12 @@ export default function Professors({
         />
         {sortedProfessors.flatMap(
           ({ id, name, rating, image, courses, unvisible }) => [
-            <h3
+            <h2
               className={unvisible ? styles.unvisible : ``}
               key={`${id}-rating`}
             >
               {rating.toFixed(1)}
-            </h3>,
+            </h2>,
             <span
               key={`${id}-pfp`}
               className={unvisible ? styles.unvisible : ``}
@@ -179,16 +160,16 @@ export default function Professors({
               <Image
                 src={image || "/pfp.png"}
                 alt={name}
-                width={80}
-                height={80}
+                width={100}
+                height={100}
               />
             </span>,
-            <h2
+            <h3
               className={unvisible ? styles.unvisible : ``}
               key={`${id}-name`}
             >
               <Link href={`professors/${id}`}>{name}</Link>
-            </h2>,
+            </h3>,
             <div
               className={[
                 styles.coursesBox,
