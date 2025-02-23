@@ -2,9 +2,10 @@ import Professors from "@/components/Professors";
 import styles from "./page.module.css";
 import { getProfessors } from "@/lib/professor";
 import Image from "next/image";
+import Temp from "@/components/Temp";
 
 export default async function Home() {
-  const { professors } = await getProfessors();
+  const { professors, courses } = await getProfessors();
   return (
     <main className={styles.main}>
       <div className={styles.bg}>
@@ -23,8 +24,8 @@ export default async function Home() {
           real, anonymous student reviews.
         </p>
       </section>
-      {professors ? (
-        <Professors professors={professors} />
+      {professors && courses ? (
+        <Professors professors={professors} courses={courses} />
       ) : (
         <div className={styles.error}>Error loading professors</div>
       )}

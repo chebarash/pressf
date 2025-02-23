@@ -4,6 +4,8 @@ import { connectToDatabase } from "./db";
 import Professor from "@/models/professor";
 import Feedback from "@/models/feedback";
 import { ProfessorType } from "@/types/types";
+import Course from "@/models/course";
+import { getCourses } from "./course";
 
 const toResponse = ({
   _id,
@@ -24,9 +26,8 @@ const toResponse = ({
   rating,
   history,
   info,
-  courses: courses.map(({ _id, code, name }) => ({
+  courses: courses.map(({ _id, name }) => ({
     id: _id!.toString(),
-    code,
     name,
   })),
   createdAt,
@@ -36,8 +37,12 @@ const toResponse = ({
 export const getProfessors = async () => {
   await connectToDatabase();
   try {
+    const { courses } = await getCourses();
     const professors = await Professor.find().populate("courses").lean();
-    return { professors: professors.map((professor) => toResponse(professor)) };
+    return {
+      courses,
+      professors: professors.map((professor) => toResponse(professor)),
+    };
   } catch (error) {
     console.log(error);
     return { message: `error getting professors` };

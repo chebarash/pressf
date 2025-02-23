@@ -1,6 +1,6 @@
 "use client";
 
-import { ProfessorType } from "@/types/types";
+import { CourseType, ProfessorType } from "@/types/types";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -17,7 +17,7 @@ const Arrow = ({
   selected?: boolean;
   onClick: () => any;
 }) => (
-  <th className={[styles.arrow, selected ? styles.selected : ``].join(` `)}>
+  <div className={[styles.arrow, selected ? styles.selected : ``].join(` `)}>
     <button onClick={onClick}>
       <p>{name}</p>
       <svg width="28" height="28" viewBox="0 0 40 41" fill="none">
@@ -29,7 +29,7 @@ const Arrow = ({
         />
       </svg>
     </button>
-  </th>
+  </div>
 );
 
 const Modal = ({
@@ -59,7 +59,7 @@ const Courses = ({
   filter: string;
   onClick: () => any;
 }) => (
-  <th
+  <div
     className={[
       styles.arrow,
       styles.courses,
@@ -78,13 +78,15 @@ const Courses = ({
         />
       </svg>
     </button>
-  </th>
+  </div>
 );
 
 export default function Professors({
   professors,
+  courses,
 }: {
   professors: ProfessorType[];
+  courses: CourseType[];
 }) {
   const [modal, setModal] = useState<boolean>(false);
 
@@ -93,18 +95,19 @@ export default function Professors({
   const [nameAscending, setNameAscending] = useState<boolean>(false);
   const [courseFilter, setCourseFilter] = useState<string>("");
 
-  const [sortedProfessors, setSortedProfessors] = useState<ProfessorType[]>([]);
+  const [sortedProfessors, setSortedProfessors] = useState<
+    (ProfessorType & { unvisible?: boolean })[]
+  >([]);
 
   useEffect(() => {
-    const filteredByCourse = courseFilter.length
-      ? professors.filter(({ courses }) =>
-          courses.some(({ name }) => courseFilter === name)
-        )
-      : professors;
-
-    const filteredProfessors = filteredByCourse.filter(({ name }) =>
-      name.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredProfessors = professors.map((professor) => ({
+      ...professor,
+      unvisible:
+        !(
+          !courseFilter.length ||
+          professor.courses.some(({ name }) => name === courseFilter)
+        ) || !professor.name.toLowerCase().includes(search.toLowerCase()),
+    }));
 
     filteredProfessors.sort((a, b) =>
       ratingAscending ? a.rating - b.rating : b.rating - a.rating
@@ -121,20 +124,19 @@ export default function Professors({
     <section className={styles.professors}>
       {modal && (
         <Modal title="Choose course" onClose={() => setModal(false)}>
-          {professors
-            .flatMap(({ courses }) => courses)
-            .map(({ id, name, code }) => (
+          <div className={styles.coursesBox}>
+            {courses.map(({ id, name }) => (
               <Course
                 key={id}
                 id={id}
                 name={name}
-                code={code}
                 onClick={() => {
                   setCourseFilter(name);
                   setModal(false);
                 }}
               />
             ))}
+          </div>
         </Modal>
       )}
       <Input
@@ -145,61 +147,71 @@ export default function Professors({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
-      <table>
-        <thead>
-          <tr>
-            <Arrow
-              name="Rating"
-              selected={ratingAscending}
-              onClick={() => setRatingAscending(!ratingAscending)}
-            />
-            <th></th>
-            <Arrow
-              name="Name"
-              selected={nameAscending}
-              onClick={() => setNameAscending(!nameAscending)}
-            />
-            <Courses
-              filter={courseFilter}
-              onClick={() =>
-                courseFilter.length ? setCourseFilter("") : setModal(true)
-              }
-            />
-          </tr>
-        </thead>
-        <tbody>
-          {sortedProfessors.map(({ id, name, rating, image, courses }) => (
-            <tr key={id}>
-              <td>{rating}</td>
-              <td>
-                <Image
-                  src={image || "/pfp.png"}
-                  alt={name}
-                  width={50}
-                  height={50}
+      <div className={styles.table}>
+        <Arrow
+          name="Rating"
+          selected={ratingAscending}
+          onClick={() => setRatingAscending(!ratingAscending)}
+        />
+        <Arrow
+          name="Name"
+          selected={nameAscending}
+          onClick={() => setNameAscending(!nameAscending)}
+        />
+        <Courses
+          filter={courseFilter}
+          onClick={() =>
+            courseFilter.length ? setCourseFilter("") : setModal(true)
+          }
+        />
+        {sortedProfessors.flatMap(
+          ({ id, name, rating, image, courses, unvisible }) => [
+            <h3
+              className={unvisible ? styles.unvisible : ``}
+              key={`${id}-rating`}
+            >
+              {rating.toFixed(1)}
+            </h3>,
+            <span
+              key={`${id}-pfp`}
+              className={unvisible ? styles.unvisible : ``}
+            >
+              <Image
+                src={image || "/pfp.png"}
+                alt={name}
+                width={80}
+                height={80}
+              />
+            </span>,
+            <h2
+              className={unvisible ? styles.unvisible : ``}
+              key={`${id}-name`}
+            >
+              <Link href={`professors/${id}`}>{name}</Link>
+            </h2>,
+            <div
+              className={[
+                styles.coursesBox,
+                unvisible ? styles.unvisible : ``,
+              ].join(` `)}
+              key={`${id}-courses`}
+            >
+              {courses.map((course) => (
+                <Course
+                  key={course.id}
+                  {...course}
+                  selected={courseFilter === course.name}
+                  onClick={() =>
+                    setCourseFilter((old) =>
+                      old == course.name ? `` : course.name
+                    )
+                  }
                 />
-              </td>
-              <td>
-                <Link href={`professors/${id}`}>{name}</Link>
-              </td>
-              <td>
-                {courses.map((course) => (
-                  <Course
-                    key={course.id}
-                    {...course}
-                    selected={courseFilter === course.name}
-                    onClick={() =>
-                      setCourseFilter((old) =>
-                        old == course.name ? `` : course.name
-                      )
-                    }
-                  />
-                ))}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              ))}
+            </div>,
+          ]
+        )}
+      </div>
     </section>
   );
 }

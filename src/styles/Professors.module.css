@@ -4,14 +4,24 @@
   gap: 50px;
 }
 
-.arrow:nth-last-child(2) button {
-  margin: auto;
+.table * {
+  transition: all 200ms ease-in-out;
 }
 
-.professors th p {
+.table > * {
+  transition: all 200ms ease-in-out;
+  margin: 30px 0;
+}
+
+.table p {
   font-size: 16px;
   font-weight: 400;
   color: var(--accent);
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
 }
 
 .arrow button {
@@ -25,10 +35,11 @@
   background: var(--accent);
   border-radius: 100%;
   transition: rotate 200ms ease-in-out;
+  rotate: -180deg;
 }
 
 .arrow.selected button svg {
-  rotate: -180deg;
+  rotate: 0deg;
 }
 
 .modal {
@@ -68,6 +79,7 @@
   background: var(--background);
   border-radius: 20px;
   box-shadow: var(--shadow);
+  max-width: 80vw;
 }
 
 .courses button {
@@ -80,4 +92,44 @@
 
 .arrow.courses.selected button svg {
   rotate: -90deg;
+}
+
+.arrow:nth-of-type(1) {
+  grid-column: 1/3;
+}
+
+.arrow:nth-of-type(2) {
+  justify-content: center;
+}
+
+.table {
+  display: grid;
+  grid-template-columns: 50px 80px 1fr auto;
+  align-items: center;
+  gap: 0 40px;
+}
+
+.table h2 {
+  text-wrap: nowrap;
+  text-align: center;
+}
+
+.coursesBox {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 20px;
+}
+
+.content .coursesBox {
+  justify-content: flex-start;
+}
+
+.unvisible {
+  opacity: 0;
+  margin: 0;
+  height: 0;
+  user-select: none;
+  pointer-events: none;
 }

@@ -8,10 +8,9 @@ export const getCourses = async () => {
   try {
     const courses = await Course.find();
     return {
-      courses: courses.map(({ _id, name, code }) => ({
+      courses: courses.map(({ _id, name }) => ({
         id: _id.toString(),
         name,
-        code,
       })),
     };
   } catch (error) {
@@ -34,13 +33,11 @@ export const getCourse = async (id: string) => {
 export const createCourse = async (formData: FormData) => {
   await connectToDatabase();
   const name = formData.get("name");
-  const code = formData.get("code");
-  console.log({ name, code });
   try {
-    const newCourse = await Course.create({ name, code });
+    const newCourse = await Course.create({ name });
     newCourse.save();
     revalidatePath(`/`);
-    return { id: newCourse._id.toString(), name, code };
+    return { id: newCourse._id.toString(), name };
   } catch (error) {
     console.log(error);
     return { message: `error creating course` };

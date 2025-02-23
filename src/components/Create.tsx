@@ -41,8 +41,6 @@ export default function Crate({ courses }: { courses: CourseType[] }) {
       >
         <label htmlFor="name">Name</label>
         <input type="text" name="name" />
-        <label htmlFor="code">Code</label>
-        <input type="text" name="code" />
         <button type="submit">Submit</button>
       </form>
     </div>

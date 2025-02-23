@@ -3,7 +3,6 @@ import { ObjectId } from "mongoose";
 export type CourseType = {
   _id?: ObjectId;
   id: string;
-  code: string;
   name: string;
 };
 

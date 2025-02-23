@@ -5,6 +5,7 @@ import AuthProvider from "@/components/SessionProvider";
 import { getServerSession } from "next-auth";
 import { authOptions } from "./api/auth/[...nextauth]/route";
 import { connectToDatabase } from "@/lib/db";
+import Footer from "@/components/Footer";
 
 const sixCaps = Six_Caps({ weight: "400", variable: "--six-caps" });
 const geologica = Geologica({ weight: "variable", variable: "--geologica" });
@@ -25,6 +26,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className={`${sixCaps.variable} ${geologica.variable}`}>
         <AuthProvider session={session}>{children}</AuthProvider>
+        <Footer />
       </body>
     </html>
   );

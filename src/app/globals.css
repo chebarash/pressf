@@ -15,9 +15,23 @@ h4,
 h5,
 h6 {
   font-family: var(--six-caps), sans-serif;
+  font-weight: 400;
 }
 
-button {
+h3 {
+  font-size: 64px;
+}
+
+h2 {
+  font-size: 48px;
+}
+
+h1 {
+  font-size: 128px;
+}
+
+button,
+a {
   all: unset;
   cursor: pointer;
   box-sizing: border-box;
@@ -39,6 +53,13 @@ body {
   font-family: var(--geologica), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
 
 * {
