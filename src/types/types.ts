@@ -35,7 +35,7 @@ export type FeedbackType = {
   text: string;
   createdAt: Date;
   updatedAt: Date;
-  professor: ProfessorType;
-  author: UserType;
+  professor: ProfessorType | string;
+  author: UserType | string;
   courses: CourseType[];
 };

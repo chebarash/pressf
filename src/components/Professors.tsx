@@ -74,6 +74,7 @@ export default function Professors({
   const [search, setSearch] = useState<string>("");
   const [ratingAscending, setRatingAscending] = useState<boolean>(false);
   const [nameAscending, setNameAscending] = useState<boolean>(false);
+  const [lastFilter, setLastFilter] = useState<`rating` | `name`>(`rating`);
   const [courseFilter, setCourseFilter] = useState<string>("");
 
   const [sortedProfessors, setSortedProfessors] = useState<
@@ -90,14 +91,17 @@ export default function Professors({
         ) || !professor.name.toLowerCase().includes(search.toLowerCase()),
     }));
 
-    filteredProfessors.sort((a, b) =>
-      ratingAscending ? a.rating - b.rating : b.rating - a.rating
-    );
-    filteredProfessors.sort((a, b) =>
-      nameAscending
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name)
-    );
+    if (lastFilter === `rating`)
+      filteredProfessors.sort((a, b) =>
+        ratingAscending ? a.rating - b.rating : b.rating - a.rating
+      );
+    else if (lastFilter === `name`)
+      filteredProfessors.sort((a, b) =>
+        nameAscending
+          ? b.name.localeCompare(a.name)
+          : a.name.localeCompare(b.name)
+      );
+
     setSortedProfessors(filteredProfessors);
   }, [search, ratingAscending, nameAscending, courseFilter, professors]);
 
@@ -132,12 +136,18 @@ export default function Professors({
         <Arrow
           name="Rating"
           selected={ratingAscending}
-          onClick={() => setRatingAscending(!ratingAscending)}
+          onClick={() => {
+            setRatingAscending(!ratingAscending);
+            setLastFilter(`rating`);
+          }}
         />
         <Arrow
           name="Name"
           selected={nameAscending}
-          onClick={() => setNameAscending(!nameAscending)}
+          onClick={() => {
+            setNameAscending(!nameAscending);
+            setLastFilter(`name`);
+          }}
         />
         <Courses
           filter={courseFilter}

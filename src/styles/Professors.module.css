@@ -33,11 +33,10 @@
   background: var(--accent);
   border-radius: 100%;
   transition: rotate 200ms ease-in-out;
-  rotate: -180deg;
 }
 
 .arrow.selected button svg {
-  rotate: 0deg;
+  rotate: -180deg;
 }
 
 .courses button {

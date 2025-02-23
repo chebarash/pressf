@@ -55,11 +55,27 @@ export const getProfessor = async (id: string) => {
   try {
     const professor = await Professor.findById(id).populate(`courses`).lean();
     if (!professor) return { message: `professor not found` };
-    const feedback = await Feedback.find({
-      professor: id,
-      text: { $ne: null },
-    }).populate(`courses`);
-    return { professor: toResponse(professor), feedback };
+    const feedbacks = (
+      await Feedback.find({
+        professor: id,
+        text: { $ne: null },
+      })
+        .populate(`courses`)
+        .lean()
+    ).map(({ _id, rate, text, createdAt, updatedAt, courses, professor }) => ({
+      id: _id!.toString(),
+      rate,
+      text,
+      createdAt,
+      updatedAt,
+      professor: `${professor}`,
+      courses: courses.map(({ _id, name }) => ({
+        id: _id!.toString(),
+        name,
+      })),
+      author: `Tefdffd fsdfdsfds`,
+    }));
+    return { professor: toResponse(professor), feedbacks };
   } catch (error) {
     console.log(error);
     return { message: `error getting professor` };

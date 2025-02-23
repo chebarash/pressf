@@ -40,13 +40,16 @@ export default function Form({ courses, id }: ProfessorType) {
     formData.append("rate", rate);
     formData.append("text", text || ``);
     formData.append(`professor`, id);
-    ref.current?.reset();
     rateProfessor(formData).then(() => {
       router.replace(`/professors/${id}`, {
         scroll: false,
       });
+      ref.current?.reset();
+      setCourses([]);
+      setRate(0);
+      setText("");
     });
-  }, [id, router, searchParams, session]);
+  }, [id, router, searchParams, session, ref]);
 
   return (
     <>
@@ -70,11 +73,16 @@ export default function Form({ courses, id }: ProfessorType) {
         className={styles.form}
         ref={ref}
         action={async (FormData) => {
-          router.replace(`/professors/${id}?${formDataToUrl(FormData)}`, {
-            scroll: false,
-          });
-          if (!session) return setShowModal(true);
+          if (!session) {
+            router.replace(`/professors/${id}?${formDataToUrl(FormData)}`, {
+              scroll: false,
+            });
+            return setShowModal(true);
+          }
           ref.current?.reset();
+          setCourses([]);
+          setRate(0);
+          setText("");
           FormData.append(`professor`, id);
           await rateProfessor(FormData);
         }}
