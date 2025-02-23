@@ -16,7 +16,7 @@ const Arrow = ({
 }: {
   name: string;
   selected?: boolean;
-  onClick: () => any;
+  onClick: () => void;
 }) => (
   <div className={[styles.arrow, selected ? styles.selected : ``].join(` `)}>
     <button onClick={onClick}>
@@ -38,7 +38,7 @@ const Courses = ({
   onClick,
 }: {
   filter: string;
-  onClick: () => any;
+  onClick: () => void;
 }) => (
   <div
     className={[

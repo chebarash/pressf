@@ -2,7 +2,11 @@ import { getProfessor } from "@/lib/professor";
 import Form from "@/components/Form";
 import Profile from "@/components/Profile";
 
-export default async function Page({ params }: { params: any }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { professor, feedback } = await getProfessor((await params).id);
   if (!professor) return <div>Professor not found</div>;
   return (

@@ -46,7 +46,7 @@ export default function Form({ courses, id }: ProfessorType) {
         scroll: false,
       });
     });
-  }, []);
+  }, [id, router, searchParams, session]);
 
   return (
     <>

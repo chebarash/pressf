@@ -3,12 +3,20 @@ import { Geologica, Six_Caps } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/SessionProvider";
 import { getServerSession } from "next-auth";
-import { authOptions } from "./api/auth/[...nextauth]/route";
 import { connectToDatabase } from "@/lib/db";
 import Footer from "@/components/Footer";
+import { authOptions } from "./api/auth/[...nextauth]/authOptions";
 
-const sixCaps = Six_Caps({ weight: "400", variable: "--six-caps" });
-const geologica = Geologica({ weight: "variable", variable: "--geologica" });
+const sixCaps = Six_Caps({
+  weight: "400",
+  variable: "--six-caps",
+  subsets: ["latin-ext"],
+});
+const geologica = Geologica({
+  weight: "variable",
+  variable: "--geologica",
+  subsets: ["latin-ext"],
+});
 
 export const metadata: Metadata = {
   title: "Press F",

@@ -1,6 +1,5 @@
 import Professors from "@/components/Professors";
 import { getProfessors } from "@/lib/professor";
-import Temp from "@/components/Temp";
 import Header from "@/components/Header";
 
 export default async function Home() {

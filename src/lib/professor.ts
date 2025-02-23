@@ -6,7 +6,7 @@ import Feedback from "@/models/feedback";
 import { ProfessorType } from "@/types/types";
 import { getCourses } from "./course";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 
 const toResponse = ({
   _id,

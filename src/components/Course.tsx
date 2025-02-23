@@ -2,11 +2,10 @@ import { CourseType } from "@/types/types";
 import styles from "@/styles/Course.module.css";
 
 export default function Course({
-  id,
   name,
   selected,
   onClick,
-}: CourseType & { onClick: () => any; selected?: boolean }) {
+}: CourseType & { onClick: () => void; selected?: boolean }) {
   return (
     <button
       type="button"

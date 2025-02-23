@@ -1,4 +1,5 @@
 import styles from "@/styles/Modal.module.css";
+import { ReactNode } from "react";
 
 export default function Modal({
   title,
@@ -6,8 +7,8 @@ export default function Modal({
   onClose,
 }: {
   title: string;
-  children: any;
-  onClose: () => any;
+  children: ReactNode;
+  onClose: () => void;
 }) {
   return (
     <div

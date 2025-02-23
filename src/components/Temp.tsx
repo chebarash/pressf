@@ -1,4 +1,4 @@
-import { createProfessor, getProfessors } from "@/lib/professor";
+import { getProfessors } from "@/lib/professor";
 import Crate from "./Create";
 import { getCourses } from "@/lib/course";
 import Image from "next/image";
