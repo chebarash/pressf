@@ -1,0 +1,111 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 50px;
+}
+
+.form section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.required {
+  color: var(--accent);
+}
+
+.form label {
+  position: relative;
+  display: flex;
+}
+
+.form section > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.form input[type="checkbox"],
+.form input[type="radio"] {
+  opacity: 0;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+}
+
+.star {
+  position: relative;
+}
+
+.star::after {
+  content: "*";
+  position: absolute;
+  top: 0px;
+  right: -16px;
+  color: var(--accent);
+  font-family: var(--geologica);
+  font-size: 24px;
+}
+
+.rate:hover path {
+  transition: all 200ms ease-in-out;
+  fill: var(--hover);
+}
+
+.rate.selected svg path {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.form textarea {
+  all: unset;
+  height: min-content;
+  box-sizing: border-box;
+  box-shadow: var(--shadow);
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: var(--default);
+  width: 100%;
+  height: 53px;
+  transition: all 200ms ease-in-out;
+  overflow: hidden;
+}
+
+.form textarea:hover {
+  background: var(--hover);
+}
+
+.form button[type="submit"],
+.singin {
+  display: flex;
+  align-items: center;
+  box-shadow: var(--shadow-accent);
+  padding: 12px 18px;
+  border-radius: 18px;
+  background: var(--accent);
+  font-size: 20px;
+  width: max-content;
+  gap: 15px;
+  color: var(--default);
+  transition: all 200ms ease-in-out;
+}
+
+.form button[type="submit"] path {
+  stroke: var(--background);
+}
+
+.form:invalid button[type="submit"] {
+  box-shadow: var(--shadow);
+  background: var(--default);
+  color: var(--foreground);
+}
+
+.form:invalid button[type="submit"] path {
+  stroke: var(--foreground);
+}
+
+.form:invalid button[type="submit"]:hover {
+  background: var(--hover);
+}

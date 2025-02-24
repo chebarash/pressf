@@ -1,0 +1,51 @@
+.feedback {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 40px;
+  transition: all 200ms ease-in-out;
+}
+
+.feedback h1 {
+  line-height: 0.9;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.author {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+
+.author > p {
+  font-size: 32px;
+}
+
+.author > div {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.text {
+  font-weight: 300;
+  white-space: pre-line;
+}
+
+.date {
+  opacity: 0.4;
+  font-size: 16px;
+}
+
+.hidden {
+  opacity: 0;
+  margin: 0;
+  height: 0;
+  user-select: none;
+  pointer-events: none;
+}
