@@ -50,6 +50,34 @@ export const getProfessors = async () => {
   }
 };
 
+const firstNames = [
+  "Alice",
+  "Bob",
+  "Charlie",
+  "David",
+  "Emma",
+  "Fiona",
+  "George",
+  "Hannah",
+];
+
+const lastNames = [
+  "Smith",
+  "Johnson",
+  "Brown",
+  "Williams",
+  "Jones",
+  "Garcia",
+  "Miller",
+  "Davis",
+];
+
+const getRandomElement = (arr: string[]): string =>
+  arr[Math.floor(Math.random() * arr.length)];
+
+const generateRandomName = () =>
+  `${getRandomElement(firstNames)} ${getRandomElement(lastNames)}`;
+
 export const getProfessor = async (id: string) => {
   await connectToDatabase();
   try {
@@ -73,7 +101,7 @@ export const getProfessor = async (id: string) => {
         id: _id!.toString(),
         name,
       })),
-      author: `Tefdffd fsdfdsfds`,
+      author: generateRandomName(),
     }));
     return { professor: toResponse(professor), feedbacks };
   } catch (error) {
