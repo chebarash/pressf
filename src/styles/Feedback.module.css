@@ -2,6 +2,7 @@
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 40px;
+  transition: all 200ms ease-in-out;
 }
 
 .feedback h1 {
@@ -39,4 +40,12 @@
 .date {
   opacity: 0.4;
   font-size: 16px;
+}
+
+.hidden {
+  opacity: 0;
+  margin: 0;
+  height: 0;
+  user-select: none;
+  pointer-events: none;
 }

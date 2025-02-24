@@ -103,7 +103,14 @@ export default function Professors({
       );
 
     setSortedProfessors(filteredProfessors);
-  }, [search, ratingAscending, nameAscending, courseFilter, professors]);
+  }, [
+    search,
+    ratingAscending,
+    nameAscending,
+    courseFilter,
+    lastFilter,
+    professors,
+  ]);
 
   return (
     <section className={styles.professors}>

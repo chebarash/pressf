@@ -12,7 +12,12 @@ export default function Profile({
   courses,
   rating,
   info,
-}: ProfessorType) {
+  courseFilter,
+  setCourseFilter,
+}: ProfessorType & {
+  courseFilter: string;
+  setCourseFilter: (course: string) => void;
+}) {
   return (
     <div className={styles.profile}>
       <div className={styles.image}>
@@ -32,7 +37,14 @@ export default function Profile({
         <h2>Courses</h2>
         <div className={styles.coursesBox}>
           {courses.map((course) => (
-            <Course key={course.id} {...course} onClick={() => true} />
+            <Course
+              key={course.id}
+              {...course}
+              selected={courseFilter === course.id}
+              onClick={() =>
+                setCourseFilter(course.id === courseFilter ? `` : course.id)
+              }
+            />
           ))}
         </div>
       </section>

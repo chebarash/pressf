@@ -71,6 +71,15 @@ footer {
   padding: 20px;
 }
 
+header {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  width: 100%;
+}
+
 b {
   font-weight: 500;
   color: var(--accent);

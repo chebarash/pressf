@@ -1,7 +1,7 @@
 import { getProfessor } from "@/lib/professor";
 import Form from "@/components/Form";
-import Profile from "@/components/Profile";
-import Feedback from "@/components/Feedback";
+import Professor from "@/components/Professor";
+import Link from "next/link";
 
 export default async function Page({
   params,
@@ -11,26 +11,16 @@ export default async function Page({
   const { professor, feedbacks } = await getProfessor((await params).id);
   if (!professor) return <div>Professor not found</div>;
   return (
-    <main>
-      <Profile {...professor} />
-      <section>
-        {feedbacks?.length ? (
-          <ul style={{ display: `flex`, flexDirection: `column`, gap: `80px` }}>
-            {feedbacks.map((feedback) => (
-              <Feedback key={feedback.id} {...feedback} />
-            ))}
-            {feedbacks.map((feedback) => (
-              <Feedback key={feedback.id} {...feedback} />
-            ))}
-            {feedbacks.map((feedback) => (
-              <Feedback key={feedback.id} {...feedback} />
-            ))}
-          </ul>
-        ) : (
-          <div>No feedback yet</div>
-        )}
-      </section>
-      <Form {...professor} />
-    </main>
+    <>
+      <header>
+        <h3>
+          <Link href="/">Press F</Link>
+        </h3>
+      </header>
+      <main>
+        <Professor professor={professor} feedbacks={feedbacks} />
+        <Form {...professor} />
+      </main>
+    </>
   );
 }

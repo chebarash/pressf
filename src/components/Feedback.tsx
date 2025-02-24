@@ -10,17 +10,35 @@ export default function Feedback({
   updatedAt,
   courses,
   text,
-}: FeedbackType) {
-  console.log(rate, author, updatedAt, courses, text);
+  courseFilter,
+  setCourseFilter,
+}: FeedbackType & {
+  courseFilter: string;
+  setCourseFilter: (course: string) => void;
+}) {
   return (
-    <li className={styles.feedback}>
+    <li
+      className={[
+        styles.feedback,
+        courseFilter == `` || courses.some(({ id }) => id == courseFilter)
+          ? ``
+          : styles.hidden,
+      ].join(` `)}
+    >
       <h1>{rate.toFixed(1)}</h1>
       <div className={styles.content}>
         <div className={styles.author}>
           <p>{typeof author == `string` ? author : ``}</p>
           <div>
             {courses.map((course) => (
-              <Course key={course.id} {...course} onClick={() => {}} />
+              <Course
+                key={course.id}
+                {...course}
+                selected={courseFilter === course.id}
+                onClick={() =>
+                  setCourseFilter(course.id === courseFilter ? `` : course.id)
+                }
+              />
             ))}
           </div>
         </div>

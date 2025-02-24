@@ -116,6 +116,10 @@ export const rateProfessor = async (formData: FormData) => {
 };
 
 export const createProfessor = async (formData: FormData) => {
+  const session = await getServerSession(authOptions);
+  if (!session) return { message: `Unauthorized` };
+  if (session.user.email != process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+    return { message: `Only admin can create courses` };
   await connectToDatabase();
   const name = formData.get("name");
   const email = formData.get("email");
