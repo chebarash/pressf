@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PressF
 
-## Getting Started
+## Overview
+PressF is a Next.js-based web application designed to provide a structured platform for managing courses, professors, and user interactions. It integrates authentication, feedback, and profile management features. Thia project is adapted specifically for our university.
 
-First, run the development server:
+## Features
+- User Profiles – Users can create and manage their profiles.
+- Course Management – View and interact with available courses.
+- Professor Listings – Browse and manage professor profiles.
+- Feedback System – Submit and view feedback for courses or professors.
+- Authentication – Secure login system with potential OAuth support.
+- Admin Dashboard – Admin users can manage content and users.
+- Interactive UI – Forms and modals enhance user interactions.
 
-```bash
+## Prerequisites
+Ensure you have the following installed before setting up the project:
+- Node.js (Latest LTS version recommended)
+- npm (Comes with Node.js) or yarn
+- Git (Optional but recommended)
+
+## Installation
+
+1. Clone the repository:
+   
+   git clone https://github.com/your-repo/pressf.git
+   cd pressf
+   
+2. Install dependencies:
+   
+   npm install
+   
+   Or, if using yarn:
+   
+   yarn install
+   
+## Usage
+
+### Running in Development Mode
+Start the development server with:
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Visit http://localhost:3000/ in your browser.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Building and Running for Production
+To build the project:
+npm run build
+To start the production server:
+npm run start
+## Environment Variables
+Create a .env.local file in the root directory and add required environment variables.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available Scripts
+- npm run dev - Start the development server
+- npm run build - Build the project for production
+- npm run start - Start the production server
+- npm run lint - Run linting checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+We welcome contributions! Follow these steps:
+1. Fork the repository
+2. Create a new branch
+3. Make changes and commit them
+4. Open a pull request
