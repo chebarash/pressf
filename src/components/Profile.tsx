@@ -6,7 +6,7 @@ import styles from "@/styles/Profile.module.css";
 import Course from "./Course";
 
 export default function Profile({
-  image,
+  id,
   name,
   email,
   courses,
@@ -22,7 +22,7 @@ export default function Profile({
     <div className={styles.profile}>
       <div className={styles.image}>
         <div>
-          <Image src={image || `/pfp.png`} alt={name} fill />
+          <Image src={`/${id}.png`} alt={name} fill />
         </div>
       </div>
       <section className={styles.info}>
