@@ -31,7 +31,8 @@ export default function Header() {
               or avoid the worst
             </div>
           </span>{" "}
-          professor in NUU with real, anonymous student reviews.
+          professor in New Uzbekistan University with real, anonymous student
+          reviews.
         </div>
       </section>
     </>

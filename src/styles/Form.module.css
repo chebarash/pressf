@@ -69,7 +69,7 @@
   background: var(--default);
   width: 100%;
   height: 53px;
-  transition: all 200ms ease-in-out;
+  transition: all 200ms ease-in-out, height 0ms ease-in-out;
   overflow: hidden;
 }
 

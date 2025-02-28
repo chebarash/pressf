@@ -22,7 +22,12 @@ export default function Professor({
         setCourseFilter={setCourseFilter}
       />
       <section>
-        {feedbacks?.length ? (
+        {(courseFilter.length
+          ? feedbacks.filter(({ courses }) =>
+              courses.some(({ id }) => id == courseFilter)
+            )
+          : feedbacks
+        ).length ? (
           <ul style={{ display: `flex`, flexDirection: `column`, gap: `80px` }}>
             {feedbacks.map((feedback) => (
               <Feedback
