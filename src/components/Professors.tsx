@@ -1,13 +1,13 @@
 "use client";
 
 import { CourseType, ProfessorType } from "@/types/types";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import styles from "@/styles/Professors.module.css";
 import Input from "./Input";
 import Course from "./Course";
 import Modal from "./Modal";
+import ProfileImage from "./ProfileImage";
 
 const Arrow = ({
   name,
@@ -174,7 +174,7 @@ export default function Professors({
               key={`${id}-pfp`}
               className={unvisible ? styles.unvisible : ``}
             >
-              <Image src={`/${id}.png`} alt={name} width={100} height={100} />
+              <ProfileImage id={id} name={name} />
             </span>,
             <h3
               className={unvisible ? styles.unvisible : ``}

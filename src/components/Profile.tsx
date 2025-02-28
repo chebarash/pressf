@@ -1,9 +1,9 @@
 "use client";
 
 import { ProfessorType } from "@/types/types";
-import Image from "next/image";
 import styles from "@/styles/Profile.module.css";
 import Course from "./Course";
+import ProfileImage from "./ProfileImage";
 
 export default function Profile({
   id,
@@ -22,7 +22,7 @@ export default function Profile({
     <div className={styles.profile}>
       <div className={styles.image}>
         <div>
-          <Image src={`/${id}.png`} alt={name} fill />
+          <ProfileImage id={id} name={name} fill />
         </div>
       </div>
       <section className={styles.info}>
