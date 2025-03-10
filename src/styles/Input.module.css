@@ -11,3 +11,9 @@
 .input:hover {
   background: var(--hover);
 }
+
+@media (max-width: 1000px) {
+  .input {
+    padding: 12px 16px;
+  }
+}

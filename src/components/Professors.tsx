@@ -180,7 +180,9 @@ export default function Professors({
               className={unvisible ? styles.unvisible : ``}
               key={`${id}-name`}
             >
-              <Link href={`professors/${id}`}>{name}</Link>
+              <Link prefetch href={`professors/${id}`}>
+                {name}
+              </Link>
             </h3>,
             <div
               className={[

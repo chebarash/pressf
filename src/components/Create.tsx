@@ -8,6 +8,7 @@ import styles from "@/styles/Form.module.css";
 import Course from "./Course";
 import Input from "./Input";
 import { signIn, useSession } from "next-auth/react";
+import Modal from "./Modal";
 
 export default function Create({ courses }: { courses: CourseType[] }) {
   const ref = useRef<HTMLFormElement>(null);
@@ -17,12 +18,20 @@ export default function Create({ courses }: { courses: CourseType[] }) {
 
   if (!session)
     return (
-      <div>
-        Sign in to create a professor or course
-        <button className={styles.singin} onClick={() => signIn("google")}>
+      <Modal title="Admin" onClose={() => {}}>
+        <p>Sign in to create a professor or course</p>
+        <button className={styles.signin} onClick={() => signIn("google")}>
           Sign in with Google
+          <svg width="12" viewBox="0 0 13 21" fill="none">
+            <path
+              d="M2 18.5L10 10.5L2 2.5"
+              stroke="var(--background)"
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
+          </svg>
         </button>
-      </div>
+      </Modal>
     );
 
   if (session.user.email != process.env.NEXT_PUBLIC_ADMIN_EMAIL)

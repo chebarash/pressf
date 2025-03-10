@@ -46,3 +46,18 @@
   display: flex;
   justify-content: center;
 }
+
+@media (max-width: 1000px) {
+  .profile {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .coursesBox {
+    gap: 16px;
+  }
+
+  .profile section {
+    gap: 16px;
+  }
+}

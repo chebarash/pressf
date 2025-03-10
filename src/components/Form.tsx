@@ -56,16 +56,26 @@ export default function Form({ courses, id }: ProfessorType) {
       {showModal && (
         <Modal title="Sign in" onClose={() => setShowModal(false)}>
           <p>
-            You need to sign in to leave a review. Don’t worry—your{" "}
-            <b>review will be anonymous</b>, and your name will be{" "}
-            <b>replaced with a randomly generated</b> one.
+            You need to sign in to leave a review.
+            <br />
+            <br />
+            Don’t worry—your <b>review will be anonymous</b>, and your name will
+            be <b>replaced with a randomly generated one</b>.
             <br />
             <br />
             Sign in needed only to prevent spam and ensure the quality of
             reviews.
           </p>
-          <button className={styles.singin} onClick={() => signIn("google")}>
+          <button className={styles.signin} onClick={() => signIn("google")}>
             Sign in with Google
+            <svg width="12" viewBox="0 0 13 21" fill="none">
+              <path
+                d="M2 18.5L10 10.5L2 2.5"
+                stroke="var(--background)"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
         </Modal>
       )}

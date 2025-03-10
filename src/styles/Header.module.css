@@ -1,18 +1,25 @@
-.bg {
+.bgBox {
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.bg {
   margin: auto;
   width: 100%;
+  max-width: 100vw;
   min-height: 500px;
   min-width: calc(500px * 1728 / 1007);
-  z-index: -1;
   aspect-ratio: 1728 / 1007;
   mask-image: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 1) 70%,
     rgba(0, 0, 0, 0)
   );
+  overflow: hidden;
 }
 
 @media screen and (max-width: calc(500px * 1728 / 1007)) {

@@ -58,7 +58,7 @@ main {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 1300px;
+  max-width: min(1300px, 100vw);
   margin: 0 auto;
   padding: 150px 50px;
   gap: 100px;
@@ -78,6 +78,7 @@ header {
   justify-content: center;
   padding: 20px;
   width: 100%;
+  z-index: 100;
 }
 
 b {
@@ -92,4 +93,27 @@ b {
   font-size: 20px;
   font-weight: 400;
   user-select: none;
+}
+
+@media (max-width: 1000px) {
+  * {
+    font-size: 16px;
+  }
+
+  h3 {
+    font-size: 32px;
+  }
+
+  h2 {
+    font-size: 48px;
+  }
+
+  h1 {
+    font-size: 64px;
+  }
+
+  main {
+    padding: 100px 30px;
+    gap: 50px;
+  }
 }

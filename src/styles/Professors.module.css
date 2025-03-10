@@ -85,8 +85,38 @@
 
 .unvisible {
   opacity: 0;
-  margin: 0;
+  margin: 0 !important;
   height: 0;
   user-select: none;
   pointer-events: none;
+}
+
+@media (max-width: 1000px) {
+  .professors {
+    gap: 30px;
+  }
+
+  .arrow {
+    display: none;
+  }
+
+  .table {
+    grid-template-columns: 50px 100px 1fr;
+    gap: 0;
+  }
+
+  .table > * {
+    margin: 5px 0;
+  }
+
+  .table h3 {
+    text-wrap: wrap;
+    text-align: start;
+  }
+
+  .coursesBox {
+    grid-column: 1/4;
+    justify-content: flex-start;
+    margin-bottom: 40px;
+  }
 }

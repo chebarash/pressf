@@ -4,8 +4,10 @@ import styles from "@/styles/Header.module.css";
 export default function Header() {
   return (
     <>
-      <div className={styles.bg}>
-        <Image src="/cover.png" alt="Backgroud>" fill priority />
+      <div className={styles.bgBox}>
+        <div className={styles.bg}>
+          <Image src="/cover.png" alt="Backgroud>" fill priority />
+        </div>
       </div>
       <section>
         <h1>Press F to pay respects</h1>

@@ -11,7 +11,9 @@ export default async function Admin() {
     <>
       <header>
         <h3>
-          <Link href="/">Press F</Link>
+          <Link prefetch href="/">
+            Press F
+          </Link>
         </h3>
       </header>
       <main>
