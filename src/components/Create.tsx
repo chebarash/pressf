@@ -63,6 +63,15 @@ export default function Create({ courses }: { courses: CourseType[] }) {
           />
         </section>
         <section>
+          <h3>Image</h3>
+          <Input
+            name="image"
+            type="file"
+            accept="image/*"
+            style={{ width: `100%` }}
+          />
+        </section>
+        <section>
           <h3 className={styles.star}>Email</h3>
           <Input
             name="email"
@@ -144,7 +153,13 @@ export default function Create({ courses }: { courses: CourseType[] }) {
         </section>
         <section>
           <h3 className={styles.star}>Name</h3>
-          <Input name="name" type="text" required placeholder="Course name" />
+          <Input
+            name="name"
+            type="text"
+            required
+            placeholder="Course name"
+            style={{ width: `100%` }}
+          />
         </section>
         <button type="submit">Submit</button>
       </form>

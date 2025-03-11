@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.7.4",
+    "@vercel/blob": "^0.27.2",
     "dotenv": "^16.4.7",
     "mongoose": "^8.10.1",
     "next": "15.1.7",

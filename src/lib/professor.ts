@@ -7,6 +7,7 @@ import { ProfessorType } from "@/types/types";
 import { getCourses } from "./course";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import { put } from "@vercel/blob";
 
 const toResponse = ({
   _id,
@@ -149,18 +150,23 @@ export const createProfessor = async (formData: FormData) => {
   if (session.user.email != process.env.NEXT_PUBLIC_ADMIN_EMAIL)
     return { message: `Only admin can create courses` };
   await connectToDatabase();
-  const name = formData.get("name");
-  const email = formData.get("email");
-  const image = formData.get("image");
-  const info = formData.get("info");
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const imageFile = formData.get("image") as File;
+  const info = formData.get("info") as string;
   const courses = formData.getAll("courses");
+  const blob = imageFile
+    ? await put(`/pfp/${email.split(`@`)[0]}`, imageFile, {
+        access: "public",
+      })
+    : undefined;
   try {
     const newProfessor = await Professor.create({
       name,
       email,
-      image,
       info,
       courses,
+      image: blob?.url,
     });
     newProfessor.save();
     revalidatePath(`/`);

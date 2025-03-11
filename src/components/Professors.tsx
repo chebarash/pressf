@@ -163,7 +163,7 @@ export default function Professors({
           }
         />
         {sortedProfessors.flatMap(
-          ({ id, name, rating, courses, unvisible }) => [
+          ({ id, image, name, rating, courses, unvisible }) => [
             <h2
               className={unvisible ? styles.unvisible : ``}
               key={`${id}-rating`}
@@ -174,7 +174,7 @@ export default function Professors({
               key={`${id}-pfp`}
               className={unvisible ? styles.unvisible : ``}
             >
-              <ProfileImage id={id} name={name} />
+              <ProfileImage image={image} name={name} />
             </span>,
             <h3
               className={unvisible ? styles.unvisible : ``}

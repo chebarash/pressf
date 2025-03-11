@@ -52,6 +52,7 @@
 
   .feedback h1 {
     grid-row: unset;
+    padding: 4px 0;
   }
 
   .text,

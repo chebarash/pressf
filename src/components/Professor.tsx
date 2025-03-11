@@ -21,13 +21,14 @@ export default function Professor({
         courseFilter={courseFilter}
         setCourseFilter={setCourseFilter}
       />
-      <section>
-        {(courseFilter.length
+      {!!(
+        courseFilter.length
           ? feedbacks.filter(({ courses }) =>
               courses.some(({ id }) => id == courseFilter)
             )
           : feedbacks
-        ).length ? (
+      ).length && (
+        <section>
           <ul style={{ display: `flex`, flexDirection: `column`, gap: `80px` }}>
             {feedbacks.map((feedback) => (
               <Feedback
@@ -38,10 +39,8 @@ export default function Professor({
               />
             ))}
           </ul>
-        ) : (
-          <div>No feedback yet</div>
-        )}
-      </section>
+        </section>
+      )}
     </>
   );
 }
