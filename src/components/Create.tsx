@@ -144,7 +144,16 @@ export default function Create({ courses }: { courses: CourseType[] }) {
         className={styles.form}
         action={async (FormData) => {
           ref2.current?.reset();
-          await createCourse(FormData);
+          // await createCourse(FormData);
+          await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/courses`, {
+            method: `POST`,
+            body: JSON.stringify({
+              name: FormData.get("name"),
+            }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
         }}
       >
         <section>
