@@ -29,7 +29,7 @@ export default function Profile({
         <h1>{name}</h1>
         <a href={`mailto:${email}`}>{email}</a>
         <span>
-          <h1>{rating.toFixed(1)}</h1>
+          <h1>{rating.overall.toFixed(1)}</h1>
           <p>average rating</p>
         </span>
       </section>

@@ -109,7 +109,7 @@ export default function Form({ courses, id }: ProfessorType) {
         <section>
           <h3 className={styles.star}>Select courses taught</h3>
           <div>
-            {courses.map(({ id, name }) => (
+            {courses.map(({ id, name, code }) => (
               <label key={id}>
                 <input
                   required={selectedCourses.length === 0}
@@ -129,6 +129,7 @@ export default function Form({ courses, id }: ProfessorType) {
                 <Course
                   id={id}
                   name={name}
+                  code={code}
                   selected={selectedCourses.includes(id)}
                   onClick={() => {
                     if (selectedCourses.includes(id))

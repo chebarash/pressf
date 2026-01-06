@@ -4,6 +4,17 @@ export type CourseType = {
   _id?: ObjectId;
   id: string;
   name: string;
+  code: string;
+  syllabus?: string;
+};
+
+export type RatingType = {
+  overall: number;
+  clarity: number;
+  organization: number;
+  expertise: number;
+  fairGrading: number;
+  engagement: number;
 };
 
 export type ProfessorType = {
@@ -13,8 +24,8 @@ export type ProfessorType = {
   email: string;
   image?: string;
   info: string;
-  rating: number;
-  history: { rate: number; date: Date }[];
+  rating: RatingType;
+  history: { rate: RatingType; date: Date }[];
   courses: CourseType[];
   createdAt: Date;
   updatedAt: Date;
@@ -31,7 +42,7 @@ export type UserType = {
 export type FeedbackType = {
   _id?: ObjectId;
   id: string;
-  rate: number;
+  rating: RatingType;
   text: string;
   createdAt: Date;
   updatedAt: Date;

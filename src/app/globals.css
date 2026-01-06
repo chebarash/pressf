@@ -92,7 +92,11 @@ b {
   margin: 0;
   font-size: 20px;
   font-weight: 400;
-  user-select: none;
+}
+
+*::selection {
+  background: var(--foreground);
+  color: var(--background);
 }
 
 @media (max-width: 1000px) {

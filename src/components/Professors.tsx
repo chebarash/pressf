@@ -48,7 +48,7 @@ const Courses = ({
     ].join(` `)}
   >
     <button onClick={onClick}>
-      <p>Courses</p>
+      <p>{filter || "Courses"}</p>
       <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
         <path
           d="M28 12L12 28M28 28L12 12"
@@ -93,7 +93,9 @@ export default function Professors({
 
     if (lastFilter === `rating`)
       filteredProfessors.sort((a, b) =>
-        ratingAscending ? a.rating - b.rating : b.rating - a.rating
+        ratingAscending
+          ? a.rating.overall - b.rating.overall
+          : b.rating.overall - a.rating.overall
       );
     else if (lastFilter === `name`)
       filteredProfessors.sort((a, b) =>
@@ -117,17 +119,20 @@ export default function Professors({
       {modal && (
         <Modal title="Choose course" onClose={() => setModal(false)}>
           <div className={[styles.coursesBox, styles.modalCourses].join(` `)}>
-            {courses.map(({ id, name }) => (
-              <Course
-                key={id}
-                id={id}
-                name={name}
-                onClick={() => {
-                  setCourseFilter(name);
-                  setModal(false);
-                }}
-              />
-            ))}
+            {courses
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map(({ id, name, code }) => (
+                <Course
+                  key={id}
+                  id={id}
+                  name={name}
+                  code={code}
+                  onClick={() => {
+                    setCourseFilter(name);
+                    setModal(false);
+                  }}
+                />
+              ))}
           </div>
         </Modal>
       )}
@@ -168,7 +173,7 @@ export default function Professors({
               className={unvisible ? styles.unvisible : ``}
               key={`${id}-rating`}
             >
-              {rating.toFixed(1)}
+              {rating.overall.toFixed(1)}
             </h2>,
             <span
               key={`${id}-pfp`}

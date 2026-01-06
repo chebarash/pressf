@@ -5,7 +5,7 @@ import Course from "./Course";
 import styles from "@/styles/Feedback.module.css";
 
 export default function Feedback({
-  rate,
+  rating,
   author,
   updatedAt,
   courses,
@@ -25,7 +25,7 @@ export default function Feedback({
           : styles.hidden,
       ].join(` `)}
     >
-      <h1>{rate.toFixed(1)}</h1>
+      <h1>{rating.overall.toFixed(1)}</h1>
       <div className={styles.author}>
         <p>{typeof author == `string` ? author : ``}</p>
         <div>

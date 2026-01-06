@@ -3,7 +3,14 @@ import mongoose, { Model } from "mongoose";
 
 const feedbackSchema = new mongoose.Schema<FeedbackType>(
   {
-    rate: { type: Number, required: true },
+    rating: {
+      overall: { type: Number, required: true, min: 1, max: 5 },
+      clarity: { type: Number, required: true, min: 1, max: 5 },
+      organization: { type: Number, required: true, min: 1, max: 5 },
+      expertise: { type: Number, required: true, min: 1, max: 5 },
+      fairGrading: { type: Number, required: true, min: 1, max: 5 },
+      engagement: { type: Number, required: true, min: 1, max: 5 },
+    },
     text: { type: String, required: true },
     author: {
       type: mongoose.Schema.Types.ObjectId,

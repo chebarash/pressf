@@ -10,9 +10,11 @@ export const getCourses = async () => {
   try {
     const courses = await Course.find();
     return {
-      courses: courses.map(({ _id, name }) => ({
+      courses: courses.map(({ _id, name, code, syllabus }) => ({
         id: _id.toString(),
         name,
+        code,
+        syllabus,
       })),
     };
   } catch (error) {
@@ -28,6 +30,14 @@ export const createCourse = async (formData: FormData) => {
     return { message: `Only admin can create courses` };
   await connectToDatabase();
   const name = formData.get("name");
+  const code = formData.get("code");
+
+  if (typeof name !== "string" || name.length === 0)
+    return { message: `Course name is required` };
+
+  if (typeof code !== "string" || code.length === 0)
+    return { message: `Course code is required` };
+
   try {
     const newCourse = await Course.create({ name });
     newCourse.save();

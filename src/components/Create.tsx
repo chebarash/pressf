@@ -94,7 +94,7 @@ export default function Create({ courses }: { courses: CourseType[] }) {
         <section>
           <h3 className={styles.star}>Courses</h3>
           <div>
-            {courses.map(({ id, name }) => (
+            {courses.map(({ id, name, code }) => (
               <label key={id}>
                 <input
                   required={selectedCourses.length === 0}
@@ -114,6 +114,7 @@ export default function Create({ courses }: { courses: CourseType[] }) {
                 <Course
                   id={id}
                   name={name}
+                  code={code}
                   selected={selectedCourses.includes(id)}
                   onClick={() => {
                     if (selectedCourses.includes(id))

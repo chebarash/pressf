@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { connectToDatabase } from "./db";
 import Professor from "@/models/professor";
 import Feedback from "@/models/feedback";
-import { ProfessorType } from "@/types/types";
+import { ProfessorType, RatingType } from "@/types/types";
 import { getCourses } from "./course";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
@@ -28,9 +28,10 @@ const toResponse = ({
   rating,
   history,
   info,
-  courses: courses.map(({ _id, name }) => ({
+  courses: courses.map(({ _id, name, code }) => ({
     id: _id!.toString(),
     name,
+    code,
   })),
   createdAt,
   updatedAt,
@@ -91,19 +92,22 @@ export const getProfessor = async (id: string) => {
       })
         .populate(`courses`)
         .lean()
-    ).map(({ _id, rate, text, createdAt, updatedAt, courses, professor }) => ({
-      id: _id!.toString(),
-      rate,
-      text,
-      createdAt,
-      updatedAt,
-      professor: `${professor}`,
-      courses: courses.map(({ _id, name }) => ({
+    ).map(
+      ({ _id, rating, text, createdAt, updatedAt, courses, professor }) => ({
         id: _id!.toString(),
-        name,
-      })),
-      author: generateRandomName(),
-    }));
+        rating,
+        text,
+        createdAt,
+        updatedAt,
+        professor: `${professor}`,
+        courses: courses.map(({ _id, name, code }) => ({
+          id: _id!.toString(),
+          name,
+          code,
+        })),
+        author: generateRandomName(),
+      })
+    );
     return { professor: toResponse(professor), feedbacks };
   } catch (error) {
     console.log(error);
@@ -115,7 +119,21 @@ export const rateProfessor = async (formData: FormData) => {
   const session = await getServerSession(authOptions);
   if (!session) return { message: `Unauthorized` };
   await connectToDatabase();
-  const rate = Number(formData.get("rate"));
+  const clarity = Number(formData.get("clarity"));
+  const organization = Number(formData.get("organization"));
+  const expertise = Number(formData.get("expertise"));
+  const fairGrading = Number(formData.get("fairGrading"));
+  const engagement = Number(formData.get("engagement"));
+  const rate =
+    (clarity + organization + expertise + fairGrading + engagement) / 5;
+  const rating: RatingType = {
+    overall: rate,
+    clarity: Number(formData.get("clarity")),
+    organization: Number(formData.get("organization")),
+    expertise: Number(formData.get("expertise")),
+    fairGrading: Number(formData.get("fairGrading")),
+    engagement: Number(formData.get("engagement")),
+  };
   const text = formData.get("text");
   const author = session.user.id;
   const professor = formData.get("professor");
@@ -124,7 +142,7 @@ export const rateProfessor = async (formData: FormData) => {
     await Feedback.updateOne(
       { author, professor },
       {
-        rate,
+        rating,
         text: text?.toString().length ? text : undefined,
         courses,
         author,
@@ -134,8 +152,37 @@ export const rateProfessor = async (formData: FormData) => {
     );
     revalidatePath(`/professor/${professor}`);
     const feedback = await Feedback.find({ professor });
-    const average =
-      feedback.reduce((acc, { rate }) => acc + rate, 0) / feedback.length;
+    const totalRatings = feedback.length;
+    const sumRatings = feedback.reduce(
+      (acc, curr) => {
+        const r = curr.rating || ({} as RatingType);
+        acc.overall += r.overall ?? 0;
+        acc.clarity += r.clarity ?? 0;
+        acc.organization += r.organization ?? 0;
+        acc.expertise += r.expertise ?? 0;
+        acc.fairGrading += r.fairGrading ?? 0;
+        acc.engagement += r.engagement ?? 0;
+        return acc;
+      },
+      {
+        overall: 0,
+        clarity: 0,
+        organization: 0,
+        expertise: 0,
+        fairGrading: 0,
+        engagement: 0,
+      }
+    );
+
+    const average: RatingType = {
+      overall: sumRatings.overall / totalRatings,
+      clarity: sumRatings.clarity / totalRatings,
+      organization: sumRatings.organization / totalRatings,
+      expertise: sumRatings.expertise / totalRatings,
+      fairGrading: sumRatings.fairGrading / totalRatings,
+      engagement: sumRatings.engagement / totalRatings,
+    };
+
     await Professor.findByIdAndUpdate(professor, { rating: average });
     return { message: `feedback created` };
   } catch (error) {

@@ -3,11 +3,13 @@ import styles from "@/styles/Course.module.css";
 
 export default function Course({
   name,
+  code,
   selected,
   onClick,
 }: CourseType & { onClick: () => void; selected?: boolean }) {
   return (
     <button
+      title={code}
       type="button"
       className={[styles.course, selected ? styles.selected : ``].join(` `)}
       onClick={onClick}
