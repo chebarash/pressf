@@ -56,7 +56,7 @@ export default function Form({ courses, id }: ProfessorType) {
 
   useEffect(() => {
     const courses = searchParams.getAll("courses");
-    const clearity = searchParams.get("clearity");
+    const clarity = searchParams.get("clarity");
     const engagement = searchParams.get("engagement");
     const organization = searchParams.get("organization");
     const expertise = searchParams.get("expertise");
@@ -65,7 +65,7 @@ export default function Form({ courses, id }: ProfessorType) {
     if (courses.length < 1 || !rate || !session) return;
     const formData = new FormData();
     courses.forEach((course) => formData.append("courses", course));
-    formData.append("clearity", clearity || `0`);
+    formData.append("clarity", clarity || `0`);
     formData.append("engagement", engagement || `0`);
     formData.append("organization", organization || `0`);
     formData.append("expertise", expertise || `0`);
