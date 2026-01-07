@@ -198,10 +198,26 @@ export const rateProfessor = async (formData: FormData) => {
       engagement: sumRatings.engagement / totalRatings,
     };
 
-    await Professor.findByIdAndUpdate(professor, {
+    const d = await Professor.findByIdAndUpdate(professor, {
       rating: average,
       numberOfRatings: totalRatings,
     });
+
+    await fetch(
+      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_id: process.env.TELEGRAM_CHAT_ID,
+          text: `New professor rating:\nProfessor ID: ${
+            d?.name
+          }\nRating: ${rate.toFixed(2)}\nText: ${text ? text : "N/A"}`,
+        }),
+      }
+    );
     return { message: `feedback created` };
   } catch (error) {
     console.log(error);
