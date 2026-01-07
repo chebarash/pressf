@@ -8,6 +8,15 @@ export default function Footer() {
           made with love by chebarash
         </Link>
       </h3>
+      <p>
+        In case of any issues or suggestions,
+        <br />
+        feel free to reach out via{" "}
+        <Link href="https://chebarash.t.me" target="_blank">
+          Telegram
+        </Link>
+        .
+      </p>
     </footer>
   );
 }
