@@ -31,7 +31,7 @@ export default async function Page({
     <>
       <header>
         <h3>
-          <Link prefetch href="/">
+          <Link prefetch href="..">
             Press F
           </Link>
         </h3>

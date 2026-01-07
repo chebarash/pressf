@@ -22,6 +22,31 @@
   margin: 5px 0;
 }
 
+.rating {
+  display: flex;
+  gap: 50px;
+  align-items: flex-end;
+}
+
+.rating ul {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  width: 100%;
+}
+
+.profile li {
+  display: flex;
+  gap: 3px;
+}
+
+.profile .filler {
+  flex: 1;
+  border-bottom: 2px dotted var(--foreground);
+  transform: translateY(-5px);
+  opacity: 0.4;
+}
+
 .image {
   display: flex;
   align-items: center;

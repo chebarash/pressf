@@ -15,6 +15,7 @@ const toResponse = ({
   email,
   image,
   rating,
+  numberOfRatings,
   history,
   info,
   courses,
@@ -26,6 +27,7 @@ const toResponse = ({
   email,
   image,
   rating,
+  numberOfRatings,
   history,
   info,
   courses: courses.map(({ _id, name, code }) => ({
@@ -41,10 +43,23 @@ export const getProfessors = async () => {
   await connectToDatabase();
   try {
     const { courses } = await getCourses();
-    const professors = await Professor.find().populate("courses").lean();
+    const professors = await Professor.find({ courses: { $ne: [] } })
+      .populate("courses")
+      .lean();
+    const taughtCourseIds = new Set<string>();
+    professors.forEach((professor) => {
+      professor.courses.forEach((course) => {
+        taughtCourseIds.add(course._id!.toString());
+      });
+    });
+    const filteredCourses = courses!.filter((course) =>
+      taughtCourseIds.has(course.id)
+    );
     return {
-      courses,
-      professors: professors.map((professor) => toResponse(professor)),
+      courses: filteredCourses,
+      professors: professors
+        .map((professor) => toResponse(professor))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     };
   } catch (error) {
     console.log(error);
@@ -183,7 +198,10 @@ export const rateProfessor = async (formData: FormData) => {
       engagement: sumRatings.engagement / totalRatings,
     };
 
-    await Professor.findByIdAndUpdate(professor, { rating: average });
+    await Professor.findByIdAndUpdate(professor, {
+      rating: average,
+      numberOfRatings: totalRatings,
+    });
     return { message: `feedback created` };
   } catch (error) {
     console.log(error);

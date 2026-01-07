@@ -49,16 +49,6 @@
   font-size: 24px;
 }
 
-.rate:hover path {
-  transition: all 200ms ease-in-out;
-  fill: var(--hover);
-}
-
-.rate.selected svg path {
-  fill: var(--accent);
-  stroke: var(--accent);
-}
-
 .form textarea {
   all: unset;
   height: min-content;
@@ -113,11 +103,6 @@
 @media (max-width: 1000px) {
   .form {
     gap: 30px;
-  }
-
-  .rate svg {
-    width: 50px;
-    height: 50px;
   }
 
   .form section > div {

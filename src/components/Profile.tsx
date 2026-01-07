@@ -11,6 +11,7 @@ export default function Profile({
   email,
   courses,
   rating,
+  numberOfRatings,
   info,
   courseFilter,
   setCourseFilter,
@@ -28,10 +29,40 @@ export default function Profile({
       <section className={styles.info}>
         <h1>{name}</h1>
         <a href={`mailto:${email}`}>{email}</a>
-        <span>
-          <h1>{rating.overall.toFixed(1)}</h1>
-          <p>average rating</p>
-        </span>
+        <p>{numberOfRatings} ratings</p>
+        <div className={styles.rating}>
+          <span>
+            <h1>{rating.overall.toFixed(1)}</h1>
+            <p>average rating</p>
+          </span>
+          <ul>
+            <li>
+              <p>Clarity</p>
+              <span className={styles.filler}></span>
+              <p>{rating.clarity.toFixed(1)}</p>
+            </li>
+            <li>
+              <p>Engagement</p>
+              <span className={styles.filler}></span>
+              <p>{rating.engagement.toFixed(1)}</p>
+            </li>
+            <li>
+              <p>Organization</p>
+              <span className={styles.filler}></span>
+              <p>{rating.organization.toFixed(1)}</p>
+            </li>
+            <li>
+              <p>Expertise</p>
+              <span className={styles.filler}></span>
+              <p>{rating.expertise.toFixed(1)}</p>
+            </li>
+            <li>
+              <p>Fair Grading</p>
+              <span className={styles.filler}></span>
+              <p>{rating.fairGrading.toFixed(1)}</p>
+            </li>
+          </ul>
+        </div>
       </section>
       <section>
         <h2>Courses</h2>

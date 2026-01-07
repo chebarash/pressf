@@ -41,7 +41,14 @@ export default function Feedback({
           ))}
         </div>
       </div>
-      <p className={styles.text}>{text}</p>
+      <p className={styles.text}>
+        {text}
+        <br />
+        {rating.clarity.toFixed(1)} Clearity, {rating.engagement.toFixed(1)}{" "}
+        Engagement, {rating.organization.toFixed(1)} Organization,{" "}
+        {rating.expertise.toFixed(1)} Expertise, {rating.fairGrading.toFixed(1)}{" "}
+        Fair Grading
+      </p>
       <p className={styles.date}>
         {new Date(updatedAt).toLocaleDateString("en-US", {
           year: "numeric",

@@ -14,6 +14,7 @@ const professorSchema = new mongoose.Schema<ProfessorType>(
       fairGrading: { type: Number, default: 0, min: 0, max: 5 },
       engagement: { type: Number, default: 0, min: 0, max: 5 },
     },
+    numberOfRatings: { type: Number, default: 0, min: 0 },
     history: [
       {
         rate: {

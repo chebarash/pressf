@@ -25,6 +25,7 @@ export type ProfessorType = {
   image?: string;
   info: string;
   rating: RatingType;
+  numberOfRatings: number;
   history: { rate: RatingType; date: Date }[];
   courses: CourseType[];
   createdAt: Date;
