@@ -285,3 +285,7 @@ section[id] { scroll-margin-top: 136px; }
 .select.on select { background: var(--accent); color: var(--on-accent); }
 .select.on::after { color: var(--on-accent); }
 .tile.off { opacity: .55; box-shadow: none; border-style: dashed; }
+.pdf-viewer { position: fixed; inset: 0; z-index: 60; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--sunken); padding: calc(var(--tg-top, 0px) + 8px) 0 calc(var(--tg-bottom, 0px) + 72px); display: grid; gap: 8px; align-content: start; }
+.pdf-page { width: 100%; background: #FFFFFF; }
+.pdf-page canvas { display: block; width: 100%; height: 100%; }
+.pdf-loading { padding: 48px 16px; text-align: center; }

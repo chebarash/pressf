@@ -67,7 +67,10 @@ test("inside Telegram the page behaves like an app", async ({ page }) => {
     window.Telegram = { WebApp: { initData: "", colorScheme: "dark", safeAreaInset: { top: 20, bottom: 30 }, contentSafeAreaInset: { top: 40, bottom: 0 },
       ready: log("ready"), expand: log("expand"), disableVerticalSwipes: log("swipes"), isVersionAtLeast: () => true,
       setHeaderColor: log("header"), setBackgroundColor: log("background"), setBottomBarColor: log("bottom"), onEvent: log("event"),
-      openLink: log("openLink"), openTelegramLink: log("openTelegramLink"),
+      openLink: log("openLink"), openTelegramLink: log("openTelegramLink"), platform: "ios", requestFullscreen: log("fullscreen"),
+      initDataUnsafe: { start_param: "" },
+      MainButton: { setText: log("mainText"), show: log("mainShow"), hide: log("mainHide"), onClick: log("mainClick"), offClick: log("mainOff"), showProgress: log("progress"), hideProgress: log("progressOff") },
+      SettingsButton: { show: log("settingsShow"), onClick: log("settingsClick") },
       BackButton: { show: log("backShow"), hide: log("backHide"), onClick: (fn) => { window.goBack = fn; } },
       HapticFeedback: { impactOccurred: log("haptic") } } };` }));
   await page.goto("/courses/MATH111#tgWebAppData=x");
@@ -78,7 +81,8 @@ test("inside Telegram the page behaves like an app", async ({ page }) => {
   await expect.poll(calls).toEqual(expect.arrayContaining(["ready", "expand", "swipes", "header", "backShow"]));
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--tg-top"))).toBe("60px");
   await page.getByRole("link", { name: "Open", exact: true }).first().click();
-  await expect.poll(calls).toEqual(expect.arrayContaining(["openLink", "haptic"]));
+  await expect.poll(calls).toEqual(expect.arrayContaining(["fullscreen", "settingsShow", "mainText", "mainShow", "haptic"]));
+  expect(await calls()).not.toContain("openLink");
 });
 
 test("course page shows syllabus data, files and mentions", async ({ page }) => {

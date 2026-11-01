@@ -1,3 +1,4 @@
+import { startPath } from "@/components/TelegramApp";
 import { groupByCourse, shortTitle } from "@/lib/files";
 import { pageList } from "@/components/Pager";
 import { standardName } from "@/lib/telegram/store";
@@ -83,5 +84,16 @@ describe("shortTitle", () => {
   it("drops the course the group already shows", () => expect(shortTitle("Calculus 1 Final Fall 2024", "Calculus 1")).toBe("Final Fall 2024"));
   it("does not cut a longer course name", () => expect(shortTitle("Calculus 10 Final", "Calculus 1")).toBe("Calculus 10 Final"));
   it("keeps other titles", () => expect(shortTitle("Random notes", "Calculus 1")).toBe("Random notes"));
+});
+
+describe("startPath", () => {
+  it("opens courses and professors", () => {
+    expect(startPath("course_MATH111")).toBe("/courses/MATH111");
+    expect(startPath("professor_g-pinto")).toBe("/professors/g-pinto");
+  });
+  it("ignores anything else", () => {
+    expect(startPath("evil_../admin")).toBeNull();
+    expect(startPath(undefined)).toBeNull();
+  });
 });
 
