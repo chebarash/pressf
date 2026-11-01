@@ -1,0 +1,23 @@
+name: Nightly sync
+
+# The bot rebuilds its data at 02:00 UTC for about 7 minutes.
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Copy the catalog into the site
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          result=$(curl --fail --silent --show-error --max-time 280 -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/sync")
+          echo "$result"
+          test "$(echo "$result" | jq '.failed | length')" = 0
