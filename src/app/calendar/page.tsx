@@ -69,7 +69,7 @@ export default async function CalendarPage({ searchParams }: Props) {
             <span className="label-sm soft">{label}</span>
             {event ? (
               <>
-                <div className="d-sm">{when(event, now)}</div>
+                <div className="d-sm serif">{when(event, now)}</div>
                 <div><div className="label">{event.title}</div><div className="small soft">{span(event.starts, event.ends)}</div></div>
                 {event.href && <Link className="ghost" href={event.href}>{event.href.startsWith("/files") ? "Past papers" : "What is next"}<Arrow /></Link>}
               </>

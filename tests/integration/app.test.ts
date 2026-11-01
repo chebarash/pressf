@@ -109,7 +109,7 @@ describe("respects", () => {
 describe("group", () => {
   const form = (group: string) => { const f = new FormData(); f.set("group", group); return f; };
   it("saves a real group and goes to My semester", async () => {
-    await expect(chooseGroup(form("FCS 1"))).rejects.toThrow("REDIRECT /me");
+    await expect(chooseGroup(form("FCS 1"))).rejects.toThrow("REDIRECT /");
     expect(jar.values.get("group")).toBe("FCS 1");
     expect((await db().select().from(users))[0].group).toBe("FCS 1");
   });

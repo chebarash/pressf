@@ -3,13 +3,9 @@ import { cache } from "react";
 import { db } from "@/lib/db";
 import { ratings, respects } from "@/lib/db/schema";
 
-export { CRITERIA } from "./criteria";
+export { CRITERIA, tierOf, type Tier } from "./criteria";
 
 export type Rating = { overall: number; clarity: number; engagement: number; organization: number; expertise: number; fairGrading: number; count: number };
-export type Tier = "High" | "Mid" | "Low" | "None";
-
-export const tierOf = (score: number | null | undefined): Tier =>
-  score == null ? "None" : score >= 3.7 ? "High" : score >= 3 ? "Mid" : "Low";
 
 const fields = {
   overall: avg(ratings.overall), clarity: avg(ratings.clarity), engagement: avg(ratings.engagement),
@@ -32,6 +28,17 @@ export const courseRatings = cache(async () => {
   const rows = await db().select({ id: ratings.courseCode, ...fields }).from(ratings).groupBy(ratings.courseCode);
   return new Map(rows.map((row) => [row.id, parse(row)]));
 });
+
+export const respectCounts = cache(async () => {
+  const rows = await db().select({ id: respects.teacherId, value: count() }).from(respects).groupBy(respects.teacherId);
+  return new Map(rows.map((row) => [row.id, row.value]));
+});
+
+const STRENGTHS: Array<[keyof Rating, string]> = [["clarity", "Clear"], ["engagement", "Engaging"], ["organization", "Organized"], ["expertise", "Expert"], ["fairGrading", "Fair grading"]];
+
+/** A teacher's two best criteria, shown only when students rate them highly. */
+export const strengths = (rating?: Rating) =>
+  rating ? STRENGTHS.filter(([key]) => rating[key] >= 4).sort((a, b) => rating[b[0]] - rating[a[0]]).slice(0, 2).map(([, label]) => label) : [];
 
 export const respectCount = cache(async (teacherId: string) => {
   const [row] = await db().select({ value: count() }).from(respects).where(eq(respects.teacherId, teacherId));

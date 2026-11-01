@@ -28,18 +28,19 @@ const label = (date: string) =>
   new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
 /** One hint at a time: exams come before registration. */
-export function calendarHint(now = new Date()): Hint | null {
+/** `grouped` narrows the exam link to the courses of the student's group. */
+export function calendarHint(now = new Date(), grouped = false): Hint | null {
   const week = currentWeek(now);
   const midterm = upcoming("midterm", 7, now);
   const final = upcoming("final", 7, now);
   const resit = upcoming("resit_registration", 7, now);
   const register = upcoming("registration", 14, now);
-  const files = { action: "Open files", href: "/files" };
+  const papers = (type: string) => ({ action: "Open files", href: `/files?type=${type}${grouped ? "&mine=1" : ""}` });
   if (week?.kind === "midterm" || week?.kind === "final") {
-    return { tone: "Warning", text: `${week.kind === "midterm" ? "Midterm" : "Final"} exams are on this week. Past papers are ready.`, ...files };
+    return { tone: "Warning", text: `${week.kind === "midterm" ? "Midterm" : "Final"} exams are on this week. Past papers are ready.`, ...papers(week.kind) };
   }
-  if (midterm) return { tone: "Warning", text: `Midterm week starts ${label(midterm.starts)}. Past exams and mocks are ready.`, ...files };
-  if (final) return { tone: "Warning", text: `Final exams start ${label(final.starts)}. Past exams are ready.`, ...files };
+  if (midterm) return { tone: "Warning", text: `Midterm week starts ${label(midterm.starts)}. Past exams and mocks are ready.`, ...papers("midterm") };
+  if (final) return { tone: "Warning", text: `Final exams start ${label(final.starts)}. Past exams are ready.`, ...papers("final") };
   if (resit) return { tone: "Info", text: `Resit registration opens ${label(resit.starts)}.`, action: "See calendar", href: "/calendar" };
   if (week?.kind === "registration") return { tone: "Info", text: "Course registration is open.", action: "See next semester", href: "/next-semester" };
   if (register) return { tone: "Info", text: `Course registration opens ${label(register.starts)}.`, action: "See next semester", href: "/next-semester" };

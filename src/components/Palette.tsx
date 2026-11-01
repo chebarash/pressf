@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Icons } from "./ui";
 
 type Result = { kind: string; id: string; title: string; subtitle: string; href: string };
 
@@ -23,6 +24,8 @@ export function Palette({ variant }: { variant?: "bar" }) {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key.toLowerCase() === "f" || event.key.toLowerCase() === "а") {
         event.preventDefault();
+        const pageSearch = document.querySelector<HTMLInputElement>("[data-page-search]");
+        if (pageSearch) { pageSearch.focus(); pageSearch.select(); return; }
         setDown(true);
         setTimeout(() => { setDown(false); setOpen(true); }, 80);
       }
@@ -63,11 +66,13 @@ export function Palette({ variant }: { variant?: "bar" }) {
     <>
       {variant === "bar" ? (
         <button className="search" onClick={() => setOpen(true)}>
+          {Icons.search(24)}
           <span className="grow">Find a course, professor or file</span>
+          <span className="small soft hide-sm">press</span>
           <span className="key cap sm" aria-hidden="true" style={{ marginBottom: 0 }}>F</span>
         </button>
       ) : (
-        <button className={`key cap sm ${down ? "down" : ""}`} onClick={() => setOpen(true)} aria-label="Search">F</button>
+        <span className="row nav-search"><span className="small soft hide-sm">Search</span><button className={`key cap sm ${down ? "down" : ""}`} onClick={() => setOpen(true)} aria-label="Search">F</button></span>
       )}
       {open && (
         <div className="scrim" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>

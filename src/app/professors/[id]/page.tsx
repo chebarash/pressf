@@ -5,7 +5,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { MentionCard } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
 import { RateButton, RespectButton } from "@/components/RatePanel";
-import { Arrow, Face, SectionHead } from "@/components/ui";
+import { Arrow, Crumbs, Face, Icons, SectionHead } from "@/components/ui";
 import { getUser } from "@/lib/auth";
 import { findTeacher, getCatalog } from "@/lib/catalog";
 import { faceMap, mentionsFor } from "@/lib/content";
@@ -45,14 +45,15 @@ export default async function ProfessorPage({ params }: Props) {
   return (
     <>
       <div className="wrap section">
+        <Crumbs items={[["Professors", "/professors"], [teacher.display_name]]} />
         <div className="row prof-head">
           <ViewTransition name={`face-${id}`}><Face name={teacher.display_name} src={faces.get(id)} size={240} className="face-lg" /></ViewTransition>
           <div className="stack grow" style={{ flexBasis: 320 }}>
             <ViewTransition name={`name-${id}`}><h1 className="d-title">{teacher.display_name}</h1></ViewTransition>
             <div className="stack" style={{ "--gap": "4px" } as React.CSSProperties}>
               {(teacher.department ?? teacher.position) && <div className="label">{teacher.department ?? teacher.position}</div>}
-              {teacher.email && <div className="soft">{teacher.email}</div>}
-              {office && <div className="soft">Office {office}</div>}
+              {teacher.email && <div className="row soft" style={{ "--gap": "8px" } as React.CSSProperties}>{Icons.mail()}{teacher.email}</div>}
+              {office && <div className="row soft" style={{ "--gap": "8px" } as React.CSSProperties}>{Icons.pin()}Office {office}</div>}
               {fromSyllabus && isStated(fromSyllabus.office_hours) && <div className="small soft">Office hours by syllabus: {fromSyllabus.office_hours}</div>}
             </div>
             <div className="row" style={{ "--gap": "32px" } as React.CSSProperties}>
@@ -62,7 +63,7 @@ export default async function ProfessorPage({ params }: Props) {
           </div>
         </div>
       </div>
-      <div className="wrap grid-2" style={{ paddingBottom: 64 }}>
+      <div className="wrap grid-2" style={{ paddingBottom: 64, alignItems: "start" }}>
         <RatingPanel rating={ratings.get(id)} />
         <div className="stack" style={{ "--gap": "48px" } as React.CSSProperties}>
           {courses.length > 0 && <div className="stack"><h2 className="d-sm">Courses</h2><div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>{courses.map((c) => <Link key={c.code} className="chip" href={`/courses/${c.code}`}>{c.subject}</Link>)}</div></div>}
@@ -72,7 +73,7 @@ export default async function ProfessorPage({ params }: Props) {
       {mentioned.length > 0 && (
         <div className="band"><section className="wrap section">
           <div className="stack" style={{ "--gap": "8px" } as React.CSSProperties}><SectionHead title="What Anonymous says" /><p className="soft">Anonymous posts, unverified. Press F never edits them and every card links to the original.</p></div>
-          <div className="grid-3">{mentioned.slice(0, 3).map((m) => <MentionCard key={m.postId} mention={m} />)}</div>
+          <div className="grid-3">{mentioned.slice(0, 3).map((m) => <MentionCard key={m.postId} mention={m} matched="Teacher" />)}</div>
           <Link className="ghost" href={`/posts?professor=${encodeURIComponent(id)}`}>{mentioned.length === 1 ? "Read the full post" : `All ${mentioned.length} posts`}<Arrow /></Link>
         </section></div>
       )}

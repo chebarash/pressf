@@ -15,9 +15,8 @@ export function Nav({ user, group }: { user: CurrentUser | null; group: string |
           <Link className="link" href="/courses">Courses</Link>
           <Link className="link" href="/professors">Professors</Link>
           <Link className="link" href="/files">Files</Link>
-          <Link className="link" href="/posts">Posts</Link>
           <Link className="link" href="/calendar">Calendar</Link>
-          {group && <Link className="link accent" href="/me">My semester</Link>}
+          {group && <Link className="link accent" href="/">My semester</Link>}
         </nav>
         <div className="row nav-tools">
           <Palette />
@@ -40,8 +39,8 @@ export async function StaleNotice() {
 export function Footer() {
   return (
     <footer className="wrap footer row between">
-      <span className="label">Made with love by chebarash</span>
-      <span className="small soft">Issues or ideas? Reach out on Telegram.</span>
+      <span className="d-xs serif">Made with love by chebarash</span>
+      <span className="small soft">Issues or ideas? Reach out on Telegram.<br />Data refreshes daily from the university timetable.</span>
     </footer>
   );
 }

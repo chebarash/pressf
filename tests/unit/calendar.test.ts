@@ -51,6 +51,14 @@ describe("calendarHint", () => {
   it("stays quiet in ordinary weeks", () => expect(calendarHint(at("2026-10-06"))).toBeNull());
 });
 
+describe("exam links", () => {
+  it("opens the right kind of paper", () => {
+    expect(calendarHint(at("2026-11-01"))?.href).toBe("/files?type=midterm");
+    expect(calendarHint(at("2027-01-06"))?.href).toBe("/files?type=final");
+  });
+  it("narrows to the group's courses when it is known", () => expect(calendarHint(at("2026-11-03"), true)?.href).toBe("/files?type=midterm&mine=1"));
+});
+
 describe("calendar page data", () => {
   it("tells where the semester is", () => {
     expect(semesterProgress(at("2026-10-28"))).toEqual({ term: "fall", week: 7, total: 16 });
