@@ -16,13 +16,13 @@ export default async function Home() {
   const hint = calendarHint();
   return (
     <>
-      <div style={{ background: "linear-gradient(color-mix(in srgb, var(--page) 78%, transparent), color-mix(in srgb, var(--page) 90%, transparent) 62%, var(--page)), url(/cover.png) center/cover" }}>
+      <div style={{ background: "linear-gradient(color-mix(in srgb, var(--page) 35%, transparent), color-mix(in srgb, var(--page) 72%, transparent) 62%, var(--page)), url(/cover.png) center/cover" }}>
         <section className="wrap section" style={{ paddingTop: 16 }}>
           <h1 className="d-hero">
             <span className="row" style={{ "--gap": ".18em" } as React.CSSProperties}>Press <span className="key cap lg" aria-hidden="true" style={{ cursor: "default" }}>F</span> to pay</span>
             <em className="accent" style={{ display: "block" }}>respects</em>
           </h1>
-          <p className="body-lg" style={{ maxWidth: "52ch" }}>Not all heroes wear capes… Some just teach really well. Everything about NUU courses, from the people who took them.</p>
+          <p className="body-lg" style={{ maxWidth: "52ch" }}>Not all heroes wear capes… Some just teach really well. Everything about NewUU courses, from the people who took them.</p>
           <div style={{ maxWidth: 800 }}><Palette variant="bar" /></div>
           {hint && <div style={{ maxWidth: 800 }}><Banner tone={hint.tone} href={hint.href} action={hint.action}>{hint.text}</Banner></div>}
           <div className="row" style={{ "--gap": "48px" } as React.CSSProperties}>

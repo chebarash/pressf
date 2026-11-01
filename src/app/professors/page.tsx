@@ -27,7 +27,7 @@ export default async function Professors({ searchParams }: Props) {
   return (
     <div className="wrap section">
       <h1 className="d-title">Professors</h1>
-      <p className="body-lg soft">Everyone teaching at NUU this term. Rated by students, anonymously.</p>
+      <p className="body-lg soft">Everyone teaching at NewUU this term. Rated by students, anonymously.</p>
       <form className="search" style={{ cursor: "text" }}><input id="teacher-search" name="q" defaultValue={q} placeholder="Search by name" aria-label="Search professors" /></form>
       <div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
         {[["best", "Best first"], ["worst", "Worst first"], ["az", "A to Z"]].map(([key, label]) => <Link key={key} className={`tab ${sort === key ? "on" : ""}`} href={`/professors?sort=${key}`}>{label}</Link>)}

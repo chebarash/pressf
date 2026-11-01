@@ -33,8 +33,8 @@ async function main() {
   const { REVIEW_GUIDE } = await import("../src/lib/telegram/bot");
 
   await call("setMyName", { name: "Press F" });
-  await call("setMyShortDescription", { short_description: "Send past exams and syllabi. Press F shares them with every NUU student." });
-  await call("setMyDescription", { description: "Press F to share files.\n\nSend a syllabus, past exam, mock or notes as a file. We check it and add it to the course page for every NUU student." });
+  await call("setMyShortDescription", { short_description: "Send past exams and syllabi. Press F shares them with every NewUU student." });
+  await call("setMyDescription", { description: "Press F to share files.\n\nSend a syllabus, past exam, mock or notes as a file. We check it and add it to the course page for every NewUU student." });
   await call("setMyCommands", { commands: [{ command: "start", description: "How to share a file" }] });
   await upload("setMyProfilePhoto", { photo: JSON.stringify({ type: "static", photo: "attach://file" }) }, "file", "public/bot/avatar.png");
 
