@@ -16,7 +16,7 @@ export default async function Home() {
   const hint = calendarHint();
   return (
     <>
-      <div style={{ background: "linear-gradient(color-mix(in srgb, var(--page) 35%, transparent), color-mix(in srgb, var(--page) 72%, transparent) 62%, var(--page)), url(/cover.png) center/cover" }}>
+      <div className="hero-cover">
         <section className="wrap section" style={{ paddingTop: 16 }}>
           <h1 className="d-hero">
             <span className="row" style={{ "--gap": ".18em" } as React.CSSProperties}>Press <span className="key cap lg" aria-hidden="true" style={{ cursor: "default" }}>F</span> to pay</span>
