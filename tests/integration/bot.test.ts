@@ -15,6 +15,7 @@ import { resetDb, seedCatalog } from "../fixtures/db";
 
 type Sent = { method: string; body: Record<string, unknown> };
 let sent: Sent[];
+let mainApp = true;
 const methods = () => sent.map((item) => item.method);
 
 function stubTelegram() {
@@ -25,6 +26,7 @@ function stubTelegram() {
     const body = init?.body instanceof FormData ? Object.fromEntries(init.body.entries()) : JSON.parse(String(init?.body ?? "{}"));
     sent.push({ method, body });
     if (method === "getFile") return Response.json({ ok: true, result: { file_path: "a.pdf" } });
+    if (method === "getMe") return Response.json({ ok: true, result: { has_main_web_app: mainApp } });
     return Response.json({ ok: true, result: { message_id: 500, chat: { id: 1, type: "private" } } });
   }));
 }
@@ -243,12 +245,23 @@ describe("inline search", () => {
     expect(answer().results).toHaveLength(5);
     expect(answer().next_offset).toBe("");
   });
+  it("goes through the bot while the Main Mini App is off", async () => {
+    mainApp = false;
+    await ask("calculus");
+    mainApp = true;
+    expect(answer().results.find((r) => r.title === "Calculus 1")!.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pupressfbot?start=course_MATH111");
+  });
+  it("answers such a link with a button to the page", async () => {
+    await post({ message: { message_id: 1, chat: { id: 7, type: "private" }, text: "/start course_MATH111" } });
+    const button = JSON.parse(JSON.stringify(sent.at(-1)!.body.reply_markup)).inline_keyboard[0][0];
+    expect(button.web_app.url).toMatch(/\/courses\/MATH111$/);
+  });
   it("never offers a plain site link on a button", async () => {
     await publish();
     await ask("calculus");
     const links = answer().results.flatMap((r) => r.reply_markup.inline_keyboard.flat().map((b: { url?: string }) => b.url)).filter(Boolean);
     expect(links.length).toBeGreaterThan(0);
-    expect(links.every((url: string) => url.startsWith("https://t.me/pupressfbot?startapp"))).toBe(true);
+    expect(links.every((url: string) => url.startsWith("https://t.me/pupressfbot?start"))).toBe(true);
   });
   it("says so when nothing matches", async () => {
     await ask("zzzzz");

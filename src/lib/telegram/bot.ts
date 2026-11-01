@@ -9,6 +9,7 @@ import { answerCallback, downloadFile, editCaption, sendDocument, sendMessage, s
 import { classify, KnownCourse } from "./classify";
 import { handleInline } from "./inline";
 import { appButton } from "./links";
+import { startPath } from "./start";
 import { standardName, storeMaterial } from "./store";
 
 export const MAX_FILE_SIZE = 20 * 1024 * 1024; // Bot API download limit
@@ -203,6 +204,9 @@ export async function handleUpdate(update: TelegramUpdate) {
   if (message.chat.type !== "private") return;
   if (message.document) return handleDocument(message);
   if (message.photo) return sendMessage(message.chat.id, TEXT.wrongType);
+  // Inline buttons land here with a page to open when the Main Mini App is not set.
+  const page = startPath(message.text?.match(/^\/start (\S+)$/)?.[1]);
+  if (page) return sendMessage(message.chat.id, "Here it is.", { inline_keyboard: [[appButton("Open in Press F", page)]] });
   const open = { inline_keyboard: [[appButton("Open Press F")], [{ text: "Search", switch_inline_query_current_chat: "" }]] };
   // A failed picture must not leave the sender without an answer.
   return sendPhoto(message.chat.id, `${site()}/bot/welcome.png`, TEXT.start, open).catch(() => sendMessage(message.chat.id, TEXT.start, open));

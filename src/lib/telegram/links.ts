@@ -1,20 +1,18 @@
 import { env } from "@/lib/env";
+import { startParam } from "./start";
 
 const BOT = "https://t.me/pupressfbot";
 const site = () => env().NEXTAUTH_URL.replace(/\/$/, "");
 
-/** What `startapp` carries for a page. Telegram allows only letters, digits, _ and -. */
-export function startParam(path: string) {
-  const [, kind, id, hash] = decodeURIComponent(path).match(/^\/(courses|professors|files)\/([\w-]+)(#files)?$/) ?? [];
-  if (!kind) return "";
-  if (kind === "courses") return `${hash ? "files" : "course"}_${id}`;
-  return `${kind === "professors" ? "professor" : "file"}_${id}`;
-}
-
-/** Opens the mini app on a page. The only link inline messages can carry, since they cannot hold web app buttons. */
-export function deepLink(path = "") {
+/**
+ * The link an inline message can carry, since it cannot hold web app buttons.
+ * `startapp` opens the app directly but needs the Main Mini App set in BotFather.
+ * Without it the link opens the bot, which answers with a button to the page.
+ */
+export function deepLink(path: string, hasMainApp: boolean) {
   const param = startParam(path);
-  return param ? `${BOT}?startapp=${param}` : `${BOT}?startapp`;
+  if (hasMainApp) return param ? `${BOT}?startapp=${param}` : `${BOT}?startapp`;
+  return param ? `${BOT}?start=${param}` : BOT;
 }
 
 /** Opens the mini app in place. Telegram allows these buttons in private chats only. */

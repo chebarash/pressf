@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { startPath } from "@/lib/telegram/start";
 import { FileViewer } from "./FileViewer";
 
 type Insets = { top: number; bottom: number };
@@ -72,17 +73,6 @@ function onClick(app: WebApp, event: MouseEvent) {
   } else if (url.protocol.startsWith("http") && url.origin !== location.origin) { event.preventDefault(); app.openLink(url.href, { try_instant_view: true }); }
 }
 
-/** Turns a `startapp` value into a page: course_MATH111, files_MATH111, professor_g-pinto. */
-export function startPath(param?: string) {
-  const [, kind, id] = param?.match(/^(course|files|professor)_([\w-]+)$/) ?? [];
-  if (!kind) return null;
-  if (kind === "professor") return `/professors/${id}`;
-  return `/courses/${id}${kind === "files" ? "#files" : ""}`;
-}
-
-/** A `file_<id>` start opens that file on top of the files page. */
-export const startFile = (param?: string) => param?.match(/^file_([0-9a-f-]{36})$/)?.[1] ?? null;
-
 export function TelegramApp({ signedIn }: { signedIn: boolean }) {
   const router = useRouter();
   const path = usePathname();
@@ -100,10 +90,9 @@ export function TelegramApp({ signedIn }: { signedIn: boolean }) {
       if (app.isVersionAtLeast("7.7")) app.disableVerticalSwipes?.();
       if (app.isVersionAtLeast("8.0") && (app.platform === "ios" || app.platform === "android")) app.requestFullscreen?.();
       if (app.isVersionAtLeast("7.0")) { app.SettingsButton?.onClick(() => router.push("/me/ratings")); app.SettingsButton?.show(); }
-      const param = app.initDataUnsafe?.start_param;
-      const start = startPath(param);
+      const start = startPath(app.initDataUnsafe?.start_param);
       if (start) router.replace(start);
-      const file = startFile(param);
+      const file = new URLSearchParams(location.search).get("open");
       if (file) document.dispatchEvent(new CustomEvent("tg-file", { detail: { id: file, name: "Press F file.pdf" } }));
       paint(app);
       fitInsets(app);

@@ -74,6 +74,8 @@ export const answerInlineQuery = (id: string, results: object[], nextOffset: str
     button: { text: buttonText, web_app: { url: site } },
   });
 
+export const getMe = () => call<{ has_main_web_app?: boolean }>("getMe", {});
+
 export const answerCallback = (id: string, text?: string) =>
   call<boolean>("answerCallbackQuery", {
     callback_query_id: id,
