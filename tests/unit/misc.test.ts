@@ -1,3 +1,4 @@
+import { groupByCourse, shortTitle } from "@/lib/files";
 import { pageList } from "@/components/Pager";
 import { standardName } from "@/lib/telegram/store";
 import { describe, expect, it } from "vitest";
@@ -64,5 +65,23 @@ describe("pageList", () => {
   it("keeps both ends and the neighbours", () => expect(pageList(8, 20)).toEqual([1, "gap", 7, 8, 9, "gap", 20]));
   it("fills a gap of one page instead of hiding it", () => expect(pageList(3, 20)).toEqual([1, 2, 3, 4, "gap", 20]));
   it("works at the last page", () => expect(pageList(20, 20)).toEqual([1, "gap", 19, 20]));
+});
+
+describe("groupByCourse", () => {
+  const file = (courseCode: string | null, term: string | null = null, courseName: string | null = courseCode) => ({ courseCode, courseName, term });
+  it("puts newest files first", () => {
+    const [group] = groupByCourse([file("A", "Spring 2024"), file("A", "Fall 2025"), file("A", "Spring 2025")]);
+    expect(group.files.map((f) => f.term)).toEqual(["Fall 2025", "Spring 2025", "Spring 2024"]);
+  });
+  it("orders my courses, then the fullest, then files with no course", () => {
+    const groups = groupByCourse([file(null), file("B"), file("C"), file("C"), file("A")], new Set(["A"]));
+    expect(groups.map((g) => g.code)).toEqual(["A", "C", "B", null]);
+  });
+});
+
+describe("shortTitle", () => {
+  it("drops the course the group already shows", () => expect(shortTitle("Calculus 1 Final Fall 2024", "Calculus 1")).toBe("Final Fall 2024"));
+  it("does not cut a longer course name", () => expect(shortTitle("Calculus 10 Final", "Calculus 1")).toBe("Calculus 10 Final"));
+  it("keeps other titles", () => expect(shortTitle("Random notes", "Calculus 1")).toBe("Random notes"));
 });
 
