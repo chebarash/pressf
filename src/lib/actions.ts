@@ -47,6 +47,13 @@ export async function chooseGroup(formData: FormData) {
   redirect("/");
 }
 
+export async function removeGroup() {
+  (await cookies()).delete("group");
+  const user = await getUser();
+  if (user) await db().update(users).set({ group: null }).where(eq(users.id, user.id));
+  redirect("/");
+}
+
 export async function deleteRating(teacherId: string, courseCode: string) {
   const user = await getUser();
   if (!user) return;

@@ -9,7 +9,7 @@ vi.mock("@/lib/auth", async (original) => ({
   requireAdmin: async () => { if (!user.current?.isAdmin) throw new Error("Not allowed"); return user.current; },
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("next/headers", () => ({ cookies: async () => ({ get: (k: string) => (jar.values.has(k) ? { value: jar.values.get(k) } : undefined), set: (k: string, v: string) => jar.values.set(k, v) }) }));
+vi.mock("next/headers", () => ({ cookies: async () => ({ get: (k: string) => (jar.values.has(k) ? { value: jar.values.get(k) } : undefined), delete: (k: string) => jar.values.delete(k), set: (k: string, v: string) => jar.values.set(k, v) }) }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`REDIRECT ${url}`); } }));
 vi.mock("@/lib/storage", () => ({ signedUrl: async () => "https://files.test/signed" }));
 
@@ -17,7 +17,7 @@ import { POST as cron } from "@/app/api/cron/sync/route";
 import { GET as openFile } from "@/app/files/[id]/route";
 import { GET as health } from "@/app/api/health/route";
 import { GET as search, POST as track } from "@/app/api/search/route";
-import { chooseGroup, deleteRating, payRespect, rateTeacher, saveOverride } from "@/lib/actions";
+import { chooseGroup, deleteRating, payRespect, rateTeacher, removeGroup, saveOverride } from "@/lib/actions";
 import { getCatalog } from "@/lib/catalog";
 import { authOptions } from "@/lib/auth";
 import type { Teacher } from "@/lib/catalog";
@@ -121,6 +121,12 @@ describe("group", () => {
     await expect(chooseGroup(form("FCS 1"))).rejects.toThrow("REDIRECT /");
     expect(jar.values.get("group")).toBe("FCS 1");
     expect((await db().select().from(users))[0].group).toBe("FCS 1");
+  });
+  it("removes the group from the account and the cookie", async () => {
+    await expect(chooseGroup(form("FCS 1"))).rejects.toThrow("REDIRECT");
+    await expect(removeGroup()).rejects.toThrow("REDIRECT /");
+    expect(jar.values.has("group")).toBe(false);
+    expect((await db().select().from(users))[0].group).toBeNull();
   });
   it("ignores an unknown group", async () => {
     await chooseGroup(form("HACK"));
