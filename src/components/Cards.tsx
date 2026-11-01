@@ -1,5 +1,6 @@
 import { ViewTransition } from "react";
 import Link from "next/link";
+import { shortTitle } from "@/lib/files";
 import type { Certainty } from "@/lib/mention-match";
 import { Arrow, Face, Icons, Score, Tag, tags, viewName } from "./ui";
 
@@ -61,19 +62,20 @@ export type FileItem = { id: string; fileName: string; type: string | null; term
 
 const fileTitle = (name: string) => name.replace(/(\.(pdf|docx|pptx))+$/i, "").replace(/_+/g, " ").replace(/\bNUU\b/g, "NewUU").trim();
 
-export function FileRow({ file }: { file: FileItem }) {
+export function FileRow({ file, short }: { file: FileItem; short?: boolean }) {
+  const title = fileTitle(file.fileName);
   const details = [file.term, file.courseName, file.author && `by ${file.author}`].filter(Boolean).join(" · ");
   return (
     <div className="file">
       {file.type && <Tag tone={tags[file.type]}>{file.type}</Tag>}
       <div className="grow">
-        <div className="name">{fileTitle(file.fileName)}</div>
+        <div className="name">{short ? shortTitle(title, file.courseName) : title}</div>
         <div className="small soft only-sm">{details}</div>
         {file.author && <div className="small soft hide-sm">by {file.author}</div>}
       </div>
       <span className="row hide-sm" style={{ "--gap": "8px", justifyContent: "end" } as React.CSSProperties}>
         {file.hasSolutions && <Tag tone="warm">Solutions</Tag>}
-        {file.courseCode && <Link className="chip small-chip" href={`/courses/${file.courseCode}`}>{file.courseName ?? file.courseCode}</Link>}
+        {!short && file.courseCode && <Link className="chip small-chip" href={`/courses/${file.courseCode}`}>{file.courseName ?? file.courseCode}</Link>}
         {file.term && <Link className="chip small-chip" href={`/files?term=${encodeURIComponent(file.term)}`}>{file.term}</Link>}
       </span>
       <a className="key btn sm" href={`/files/${file.id}`} target="_blank" rel="noreferrer">Open</a>
