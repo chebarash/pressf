@@ -25,7 +25,7 @@ export function TeacherRow({ id, name, meta, face, score }: { id: string; name: 
 
 export type FileItem = { id: string; fileName: string; type: string | null; term: string | null; courseName: string | null; author: string | null; hasSolutions: boolean };
 
-const fileTitle = (name: string) => name.replace(/(\.(pdf|docx|pptx))+$/i, "").replace(/_+/g, " ").trim();
+const fileTitle = (name: string) => name.replace(/(\.(pdf|docx|pptx))+$/i, "").replace(/_+/g, " ").replace(/\bNUU\b/g, "NewUU").trim();
 
 export function FileRow({ file }: { file: FileItem }) {
   const meta = [file.courseName, file.term, file.author && `by ${file.author}`].filter(Boolean).join(" · ");
