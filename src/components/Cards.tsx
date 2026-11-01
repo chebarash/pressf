@@ -78,7 +78,7 @@ export function FileRow({ file, short }: { file: FileItem; short?: boolean }) {
         {!short && file.courseCode && <Link className="chip small-chip" href={`/courses/${file.courseCode}`}>{file.courseName ?? file.courseCode}</Link>}
         {file.term && <Link className="chip small-chip" href={`/files?term=${encodeURIComponent(file.term)}`}>{file.term}</Link>}
       </span>
-      <a className="key btn sm" href={`/files/${file.id}`} target="_blank" rel="noreferrer">Open</a>
+      <a className="key btn sm" href={`/files/${file.id}`} data-name={file.fileName} target="_blank" rel="noreferrer">Open</a>
     </div>
   );
 }

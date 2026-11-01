@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/storage", () => ({ putObject: vi.fn(async (key: string) => key), signedUrl: vi.fn(async () => "https://files.test/x") }));
 vi.mock("@/lib/syllabus", async (original) => ({ ...(await original<typeof import("@/lib/syllabus")>()), extractSyllabus: vi.fn() }));
 
+import { createHmac } from "node:crypto";
+import { POST as sendFile } from "@/app/api/telegram/send-file/route";
 import { POST } from "@/app/api/telegram/files/route";
 import { db } from "@/lib/db";
 import { materials, syllabi } from "@/lib/db/schema";
@@ -248,6 +250,36 @@ describe("inline search", () => {
   it("gives each result an id Telegram accepts", async () => {
     await ask("calculus");
     for (const result of answer().results) expect(Buffer.byteLength(result.id)).toBeLessThanOrEqual(64);
+  });
+});
+
+describe("sending a file to the mini app user", () => {
+  const signed = (id: number) => {
+    const fields = { auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id }) };
+    const check = Object.entries(fields).map(([key, value]) => `${key}=${value}`).sort().join("\n");
+    const secret = createHmac("sha256", "WebAppData").update("tg-token").digest();
+    return new URLSearchParams({ ...fields, hash: createHmac("sha256", secret).update(check).digest("hex") }).toString();
+  };
+  const ask = (id: string, initData: string) => sendFile(new Request("https://x/api/telegram/send-file", { method: "POST", body: JSON.stringify({ id, initData }) }));
+  const publish = async (extra: object = {}) => (await db().insert(materials).values({ status: "approved", courseCode: "MATH111", fileName: "Calculus 1 Final.pdf", mimeType: "application/pdf", size: 1000, storageKey: "materials/a.pdf", ...extra }).returning())[0];
+
+  it("refuses forged launch data", async () => {
+    const file = await publish();
+    expect((await ask(file.id, "user=1&hash=00")).status).toBe(401);
+    expect(sent).toEqual([]);
+  });
+  it("sends a published file to the signed user", async () => {
+    const file = await publish();
+    expect((await ask(file.id, signed(77))).status).toBe(200);
+    expect(sent[0]).toMatchObject({ method: "sendDocument", body: { chat_id: "77", document: "https://files.test/x" } });
+  });
+  it("hides files under review", async () => {
+    const file = await publish({ status: "pending" });
+    expect((await ask(file.id, signed(77))).status).toBe(404);
+  });
+  it("says when a file is too big for a bot", async () => {
+    const file = await publish({ size: 60 * 1024 * 1024 });
+    expect(await (await ask(file.id, signed(77))).json()).toEqual({ error: "too_big" });
   });
 });
 

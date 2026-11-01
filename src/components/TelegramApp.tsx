@@ -3,15 +3,22 @@
 import { signIn } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { FileViewer } from "./FileViewer";
 
 type Insets = { top: number; bottom: number };
+type NativeButton = { setText(text: string): void; show(): void; hide(): void; onClick(handler: () => void): void; offClick(handler: () => void): void; showProgress(leaveActive: boolean): void; hideProgress(): void };
 export type WebApp = {
-  initData: string; colorScheme: "light" | "dark"; safeAreaInset?: Insets; contentSafeAreaInset?: Insets;
+  initData: string; colorScheme: "light" | "dark"; platform?: string; isFullscreen?: boolean; safeAreaInset?: Insets; contentSafeAreaInset?: Insets;
+  initDataUnsafe?: { start_param?: string };
+  requestFullscreen?(): void; requestWriteAccess?(callback: (allowed: boolean) => void): void; downloadFile?(params: { url: string; file_name: string }): void;
+  switchInlineQuery?(query: string, chats: string[]): void; showAlert?(message: string): void;
+  addToHomeScreen?(): void; checkHomeScreenStatus?(callback: (status: string) => void): void;
+  MainButton?: NativeButton; SettingsButton?: { show(): void; onClick(handler: () => void): void };
   ready(): void; expand(): void; disableVerticalSwipes?(): void; isVersionAtLeast(version: string): boolean;
   setHeaderColor(color: string): void; setBackgroundColor(color: string): void; setBottomBarColor?(color: string): void;
-  onEvent(name: string, handler: () => void): void; openLink(url: string): void; openTelegramLink(url: string): void;
+  onEvent(name: string, handler: () => void): void; openLink(url: string, options?: { try_instant_view: boolean }): void; openTelegramLink(url: string): void;
   BackButton: { show(): void; hide(): void; onClick(handler: () => void): void };
-  HapticFeedback?: { impactOccurred(style: "light"): void };
+  HapticFeedback?: { impactOccurred(style: "light"): void; notificationOccurred(type: "success" | "error" | "warning"): void; selectionChanged(): void };
 };
 
 declare global { interface Window { Telegram?: { WebApp: WebApp } } }
@@ -51,7 +58,7 @@ function fitInsets(app: WebApp) {
   style.setProperty("--tg-bottom", `${app.safeAreaInset?.bottom ?? 0}px`);
 }
 
-/** Links leave through Telegram, because a mini app cannot show files or other sites itself. */
+/** Files stay in the app, Telegram links open in Telegram and other sites leave through it. */
 function onClick(app: WebApp, event: MouseEvent) {
   const target = event.target as HTMLElement;
   if (target.closest(".key, .chip, .tab, .tabbar a")) app.HapticFeedback?.impactOccurred("light");
@@ -59,7 +66,17 @@ function onClick(app: WebApp, event: MouseEvent) {
   if (!link) return;
   const url = new URL(link.href);
   if (url.hostname === "t.me") { event.preventDefault(); app.openTelegramLink(url.href); }
-  else if (url.origin !== location.origin || url.pathname.startsWith("/files/")) { event.preventDefault(); app.openLink(url.href); }
+  else if (url.origin === location.origin && /^\/files\/[0-9a-f-]{36}$/.test(url.pathname)) {
+    event.preventDefault();
+    document.dispatchEvent(new CustomEvent("tg-file", { detail: { id: url.pathname.split("/")[2], name: link.dataset.name ?? "file.pdf" } }));
+  } else if (url.protocol.startsWith("http") && url.origin !== location.origin) { event.preventDefault(); app.openLink(url.href, { try_instant_view: true }); }
+}
+
+/** Turns a `startapp` value into a page: course_MATH111, professor_g-pinto. */
+export function startPath(param?: string) {
+  const [, kind, id] = param?.match(/^(course|professor)_([\w-]+)$/) ?? [];
+  if (!kind) return null;
+  return `/${kind === "course" ? "courses" : "professors"}/${id}`;
 }
 
 export function TelegramApp({ signedIn }: { signedIn: boolean }) {
@@ -77,11 +94,16 @@ export function TelegramApp({ signedIn }: { signedIn: boolean }) {
       app.ready();
       app.expand();
       if (app.isVersionAtLeast("7.7")) app.disableVerticalSwipes?.();
+      if (app.isVersionAtLeast("8.0") && (app.platform === "ios" || app.platform === "android")) app.requestFullscreen?.();
+      if (app.isVersionAtLeast("7.0")) { app.SettingsButton?.onClick(() => router.push("/me/ratings")); app.SettingsButton?.show(); }
+      const start = startPath(app.initDataUnsafe?.start_param);
+      if (start) router.replace(start);
       paint(app);
       fitInsets(app);
       app.onEvent("themeChanged", () => paint(app));
       app.onEvent("safeAreaChanged", () => fitInsets(app));
       app.onEvent("contentSafeAreaChanged", () => fitInsets(app));
+      app.onEvent("fullscreenChanged", () => fitInsets(app));
       app.BackButton.onClick(() => back.current());
       document.addEventListener("click", (event) => onClick(app, event), true);
       if (!signedIn && app.initData) {
@@ -104,5 +126,5 @@ export function TelegramApp({ signedIn }: { signedIn: boolean }) {
     return () => document.removeEventListener("tg-ready", show);
   }, [path]);
 
-  return null;
+  return <FileViewer />;
 }

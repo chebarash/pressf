@@ -5,6 +5,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { MentionCard } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
 import { RateButton, RespectButton } from "@/components/RatePanel";
+import { ShareButton } from "@/components/ShareButton";
 import { Arrow, Crumbs, Face, Icons, SectionHead } from "@/components/ui";
 import { getUser } from "@/lib/auth";
 import { findTeacher, getCatalog } from "@/lib/catalog";
@@ -64,6 +65,7 @@ export default async function ProfessorPage({ params }: Props) {
             <div className="row" style={{ "--gap": "32px" } as React.CSSProperties}>
               <RespectButton teacherId={id} count={respects} signedIn={!!user} />
               <RateButton title={`Rate ${teacher.display_name}`} pick="Which course did you take?" signedIn={!!user} label="Rate this professor" options={courses.map((c) => ({ teacherId: id, courseCode: c.code, label: c.subject, given: own.find((row) => row.courseCode === c.code) ? pickScores(own.find((row) => row.courseCode === c.code)!) : undefined }))} />
+              <ShareButton query={teacher.display_name} title={teacher.display_name} />
             </div>
           </div>
         </div>

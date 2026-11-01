@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { payRespect, rateTeacher } from "@/lib/actions";
 import { CRITERIA } from "@/lib/criteria";
+import { webApp } from "./TelegramApp";
 import { Face } from "./ui";
 
 export type RateOption = { teacherId: string; courseCode: string; label: string; face?: string | null; given?: Partial<Record<(typeof CRITERIA)[number][0], number>> };
@@ -32,6 +33,7 @@ export function RateButton({ title, subtitle, pick, options, signedIn, label }: 
 
   const pick1to5 = (index: number, n: number) => {
     setValues((v) => ({ ...v, [CRITERIA[index][0]]: n }));
+    webApp()?.HapticFeedback?.selectionChanged();
     setStep(index);
     setTimeout(() => {
       const next = Math.min(index + 1, CRITERIA.length - 1);
@@ -52,7 +54,7 @@ export function RateButton({ title, subtitle, pick, options, signedIn, label }: 
 
   const submit = () => start(async () => {
     const result = await rateTeacher({ teacherId: option.teacherId, courseCode: option.courseCode, ...values });
-    if ("ok" in result) setDone(true);
+    if ("ok" in result) { setDone(true); webApp()?.HapticFeedback?.notificationOccurred("success"); }
   });
 
   if (!options.length) return <span className="small soft">Not in the timetable this term</span>;

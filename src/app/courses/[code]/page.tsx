@@ -4,6 +4,7 @@ import { ViewTransition } from "react";
 import { FileRow, MentionCard, TeacherCard } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
 import { RateButton } from "@/components/RatePanel";
+import { ShareButton } from "@/components/ShareButton";
 import { WeekList } from "@/components/WeekList";
 import { SectionTabs } from "@/components/SectionTabs";
 import { Arrow, Crumbs, Empty, SectionHead, Stat, Tag, viewName } from "@/components/ui";
@@ -75,7 +76,8 @@ export default async function CoursePage({ params, searchParams }: Props) {
             <ViewTransition name={`course-${viewName(code)}`}><h1 className="d-title">{course.subject}</h1></ViewTransition>
             <div className="row" style={{ "--gap": "12px" } as React.CSSProperties}>
               <RateButton title={`Rate ${course.subject}`} subtitle={teachers.length === 1 ? `With ${teachers[0].display_name}. Other students never see who rated.` : undefined} pick="Who taught you?" signedIn={!!user} label="Rate this course" options={teachers.map((t) => { const given = own.find((row) => row.teacherId === t.id); return { teacherId: t.id, courseCode: code, label: t.display_name, face: faces.get(t.id) ?? null, given: given ? pickScores(given) : undefined }; })} />
-              {syllabusFile && <a className="key btn" href={`/files/${syllabusFile.id}`} target="_blank" rel="noreferrer">Syllabus</a>}
+              {syllabusFile && <a className="key btn" href={`/files/${syllabusFile.id}`} data-name={syllabusFile.fileName} target="_blank" rel="noreferrer">Syllabus</a>}
+              <ShareButton query={course.code} title={course.subject} />
             </div>
             {data?.description && <p className="body-lg" style={{ maxWidth: "62ch", display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{data.description}</p>}
           </div>
