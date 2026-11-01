@@ -158,7 +158,7 @@ test("admin reaches syllabi and faces", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Faces" })).toBeVisible();
 });
 
-test("calendar and theme work", async ({ page }) => {
+test("calendar and theme work", async ({ page, isMobile }) => {
   await page.goto("/calendar");
   await expect(page.getByText("Midterm exams").first()).toBeVisible();
   await page.getByRole("link", { name: "Spring", exact: true }).click();
@@ -167,6 +167,7 @@ test("calendar and theme work", async ({ page }) => {
   expect(await noSideScroll(page)).toBe(true);
   const ics = await page.request.get("/calendar.ics");
   expect(ics.headers()["content-type"]).toContain("text/calendar");
+  test.skip(isMobile, "The phone header has no theme button");
   await page.getByRole("button", { name: "Switch theme" }).click();
   const before = await page.evaluate(() => document.documentElement.dataset.theme);
   await page.reload();
@@ -261,7 +262,7 @@ test("the course tabs follow the page and show counts apart from labels", async 
 
 test("files filter by semester, and by the group's courses once it is known", async ({ page, isMobile }) => {
   await page.goto("/files");
-  await page.getByRole("link", { name: "Fall 2023", exact: true }).click();
+  await page.getByRole("link", { name: "Fall 2023", exact: true }).first().click();
   await expect(page).toHaveURL(/term=Fall/);
   await expect(page.locator(".file")).toHaveCount(1);
   await expect(page.getByRole("link", { name: "My courses" })).toHaveCount(0);

@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Icons } from "./ui";
+import { Arrow, Face, Icons, Score } from "./ui";
 
-type Result = { kind: string; id: string; title: string; subtitle: string; href: string };
+type Result = { kind: string; id: string; title: string; subtitle: string; href: string; score?: number | null; face?: string | null };
+
+const SECTIONS: Array<[string, string]> = [["Course", "Courses"], ["Professor", "People"], ["File", "Files"]];
 
 export function Palette({ variant }: { variant?: "bar" }) {
   const [open, setOpen] = useState(false);
@@ -67,7 +69,7 @@ export function Palette({ variant }: { variant?: "bar" }) {
       {variant === "bar" ? (
         <button className="search" onClick={() => setOpen(true)}>
           {Icons.search(24)}
-          <span className="grow">Find a course, professor or file</span>
+          <span className="grow search-hint">Find a course, professor or file</span>
           <span className="small soft hide-sm">press</span>
           <span className="key cap sm" aria-hidden="true" style={{ marginBottom: 0 }}>F</span>
         </button>
@@ -76,17 +78,33 @@ export function Palette({ variant }: { variant?: "bar" }) {
       )}
       {open && (
         <div className="scrim" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
-          <div className="panel" role="dialog" aria-modal="true" aria-label="Search" onKeyDown={onKeyDown}>
-            <div className="search" style={{ cursor: "text", boxShadow: "none", borderColor: "var(--accent)", marginBottom: 0 }}>
+          <div className="panel palette" role="dialog" aria-modal="true" aria-label="Search" onKeyDown={onKeyDown}>
+            <div className="search focused" style={{ cursor: "text" }}>
+              {Icons.search(24)}
               <input ref={input} id="palette-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a course, professor or file" aria-label="Search" autoComplete="off" />
+              <span className="small soft hide-sm">press</span>
+              <span className="key cap sm hide-sm" aria-hidden="true" style={{ marginBottom: 0 }}>F</span>
             </div>
-            {results.map((result, index) => (
-              <button key={result.href} className={`result ${index === active ? "on" : ""}`} onClick={() => go(result)} onMouseEnter={() => setActive(index)} style={{ border: 0, background: index === active ? undefined : "none", textAlign: "left", width: "100%", cursor: "pointer" }}>
-                <span className="tag">{result.kind}</span>
-                <span className="grow"><span className="t" style={{ display: "block" }}>{result.title}</span><span className="small soft">{result.subtitle}</span></span>
-              </button>
-            ))}
+            {SECTIONS.map(([kind, title]) => {
+              const items = results.filter((result) => result.kind === kind);
+              return items.length > 0 && (
+                <div key={kind} className="palette-group">
+                  <span className="caps soft">{title}</span>
+                  {items.map((result) => {
+                    const index = results.indexOf(result);
+                    return (
+                      <button key={result.href} className={`result ${index === active ? "on" : ""}`} onClick={() => go(result)} onMouseEnter={() => setActive(index)}>
+                        {kind === "Course" ? <Score value={result.score} /> : kind === "Professor" ? <Face name="" src={result.face} size={48} /> : <span className="result-file">{Icons.file(20)}</span>}
+                        <span className="grow"><span className="t" style={{ display: "block" }}>{result.title}</span><span className="small soft">{result.subtitle}</span></span>
+                        {index === active && <Arrow />}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
             {!results.length && query && <p className="soft" style={{ padding: 12 }}>Nothing found. Try a course code like MATH111 or a last name.</p>}
+            <div className="palette-hints small soft hide-sm"><span>↑↓ move</span><span>↵ open</span><span>esc close</span></div>
           </div>
         </div>
       )}
