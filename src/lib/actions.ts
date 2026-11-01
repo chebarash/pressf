@@ -42,7 +42,7 @@ export async function chooseGroup(formData: FormData) {
   (await cookies()).set("group", group, { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", path: "/" });
   const user = await getUser();
   if (user) await db().update(users).set({ group }).where(eq(users.id, user.id));
-  redirect("/me");
+  redirect("/");
 }
 
 export async function deleteRating(teacherId: string) {

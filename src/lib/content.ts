@@ -2,6 +2,7 @@ import { and, desc, eq, gte, count, ilike } from "drizzle-orm";
 import { cache } from "react";
 import { getCatalog, normalizeCode, type Catalog, type Course, type Teacher } from "@/lib/catalog";
 import { courseCertainty, teacherCertainty } from "@/lib/mention-match";
+import { courseRatings } from "@/lib/ratings";
 import { db } from "@/lib/db";
 import { courseOverrides, faces, materials, mentionLinks, mentions, searchEvents, syllabi, type SyllabusData } from "@/lib/db/schema";
 import { termRank, titleKey } from "@/lib/syllabus";
@@ -26,9 +27,33 @@ export const faceMap = cache(async () => {
   return new Map(rows.map((row) => [row.teacherId, `/faces/${row.teacherId}`]));
 });
 
+export const fileCounts = cache(async () => {
+  const rows = await db().select({ code: materials.courseCode, value: count() }).from(materials).where(eq(materials.status, "approved")).groupBy(materials.courseCode);
+  return new Map(rows.map((row) => [row.code, row.value]));
+});
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** What a course card shows: who teaches it and how much there is to read. */
+export async function courseCards(list: Course[], catalog: Catalog) {
+  const [scores, counts, photos] = await Promise.all([courseRatings(), fileCounts(), faceMap()]);
+  const names = new Map(catalog.teachers.map((t) => [t.id, t.display_name]));
+  return list.map((course) => {
+    const files = counts.get(course.code) ?? 0;
+    return {
+      code: course.code, name: course.subject, score: scores.get(course.code)?.overall,
+      meta: [course.teachers.length ? plural(course.teachers.length, "teacher") : "Not in this term's timetable", files ? plural(files, "file") : null].filter(Boolean).join(" · "),
+      faces: course.teachers.slice(0, 2).map((id) => ({ name: names.get(id) ?? "", src: photos.get(id) })),
+    };
+  });
+}
+
+export const teacherCourses = (teacher: Teacher, catalog: Catalog) =>
+  teacher.teaches.flatMap((code) => catalog.courses.find((course) => course.code === code)?.subject ?? []).slice(0, 3);
+
 export const publishedFiles = cache(async (code?: string) => {
   const where = code ? and(eq(materials.status, "approved"), eq(materials.courseCode, code)) : eq(materials.status, "approved");
-  return db().select().from(materials).where(where).orderBy(desc(materials.publishedAt)).limit(code ? 200 : 100);
+  return db().select().from(materials).where(where).orderBy(desc(materials.publishedAt)).limit(500);
 });
 
 /** A file anyone may download: approved, and stored. */

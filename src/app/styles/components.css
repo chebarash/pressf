@@ -17,8 +17,9 @@
 .tag.accent-tag { background: var(--accent-soft); }
 .tag.warm { background: var(--s-management); }
 .tag.dark { background: var(--inverse); color: var(--text-inv); }
-.score { display: inline-grid; place-items: center; flex: none; border: 2px solid var(--line); border-radius: 14px; box-shadow: 0 5px 0 var(--edge); font-family: var(--serif); font-variant-numeric: tabular-nums; width: 52px; height: 52px; font-size: 32px; margin-bottom: 5px; }
+.score { line-height: 1; display: inline-grid; place-items: center; flex: none; border: 2px solid var(--line); border-radius: 14px; box-shadow: 0 5px 0 var(--edge); font-family: var(--serif); font-variant-numeric: tabular-nums; width: 52px; height: 52px; font-size: 34px; margin-bottom: 5px; }
 .score.md { width: 72px; height: 72px; font-size: 48px; }
+.score.lg { width: 144px; height: 144px; font-size: 96px; border-radius: 32px; }
 .score.High { background: var(--high); color: var(--on-accent); }
 .score.Mid { background: var(--mid); color: var(--on-warm); }
 .score.Low { background: var(--low); color: var(--on-accent); }
@@ -98,7 +99,7 @@ a.card:active { transform: translateY(5px); box-shadow: none; }
 .class { display: flex; gap: 16px; align-items: center; padding: 12px 16px; border: 2px solid var(--subtle); border-radius: 14px; background: var(--surface); width: 100%; text-align: left; cursor: pointer; }
 .class.next { border-color: var(--accent); background: var(--accent-soft); }
 .hide-sm { display: none; }
-@media (min-width: 768px) { .hide-sm { display: revert; } .only-sm { display: none; } }
+@media (min-width: 768px) { .hide-sm { display: revert; } .row.hide-sm { display: flex; } .only-sm { display: none; } }
 .field { display: grid; gap: 4px; padding: 12px 16px; background: var(--surface); border: 2px solid var(--subtle); border-radius: 14px; }
 .field.check { border-color: var(--mid); }
 .input { width: 100%; padding: 10px 12px; border: 2px solid var(--line); border-radius: 12px; background: var(--page); }
@@ -167,3 +168,57 @@ a.card:active { transform: translateY(5px); box-shadow: none; }
 .tab { transition: background var(--dur-fast) ease, color var(--dur-fast) ease; }
 section[id] { scroll-margin-top: 136px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Parts of the design that lists and profiles share. */
+.crumbs { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-2); }
+.crumbs a:hover { color: var(--text-accent); }
+.crumbs a::after { content: "/"; margin-left: 8px; color: var(--text-2); }
+.crumbs [aria-current] { color: var(--text); }
+.grid-4 { display: grid; gap: 24px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+.chip.small-chip { min-height: 30px; padding: 0 12px; font-size: 13px; }
+.faces { display: inline-flex; flex: none; }
+.search { min-height: 80px; padding: 0 24px; gap: 16px; font-size: 20px; }
+.search input { font-size: 20px; }
+.nav-search { --gap: 8px; flex-wrap: nowrap; }
+.card.course-card { padding: 24px; gap: 24px; min-height: 248px; }
+.card.mention-card { padding: 24px; align-content: space-between; }
+.card.teacher-card { display: flex; gap: 24px; padding: 24px; align-items: start; }
+.card.professor-card { justify-items: center; text-align: center; padding: 24px; }
+.card.rating-panel { padding: 32px; gap: 24px; align-content: start; flex: 1; min-width: min(100%, 320px); max-width: 520px; }
+.rating-panel .bar-row { grid-template-columns: 120px 1fr 32px; gap: 16px; font-size: 15px; }
+.line-row.teacher-row { gap: 24px; padding: 16px 0; }
+.line-row.teacher-row:hover { padding-inline: 12px; }
+.teacher-name { font-size: 34px; line-height: 1.1; }
+.file { gap: 16px; padding: 16px 24px; }
+.file .name { margin-top: 0; }
+.tile { min-height: 116px; }
+.year { background: var(--sunken); border-radius: 20px; padding: 16px 24px; }
+.year summary { display: flex; align-items: center; gap: 16px; cursor: pointer; list-style: none; }
+.year[open] summary { margin-bottom: 16px; }
+.dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); }
+.dot.elective { background: var(--page); border-color: var(--subtle); }
+.dot.selected { background: var(--accent-soft); border-color: var(--accent); }
+.dot.linked { border-color: var(--accent); }
+.cur-grid { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.cur-panel { position: sticky; top: 88px; align-content: start; padding: 24px; }
+@media (min-width: 1000px) { .cur-grid { grid-template-columns: minmax(0, 1fr) 392px; } }
+@media (max-width: 767px) {
+  .search { min-height: 64px; padding: 0 16px; gap: 12px; font-size: 16px; }
+  .search input { font-size: 16px; }
+  .score.lg { width: 96px; height: 96px; font-size: 64px; border-radius: 24px; }
+  .rating-panel { padding: 16px; }
+  .card.rating-panel { padding: 16px; }
+  .card.course-card { min-height: 0; padding: 16px; gap: 16px; }
+  .card.teacher-card { padding: 16px; gap: 16px; }
+  .card.mention-card { padding: 16px; }
+  .line-row.teacher-row { gap: 12px; padding: 8px 0; }
+  .line-row.teacher-row .score { width: 52px; height: 52px; font-size: 34px; }
+  .line-row.teacher-row .face { width: 56px; height: 56px; }
+  .teacher-name { font-size: 24px; }
+  .teacher-card .face { width: 64px; height: 64px; }
+  .file { flex-wrap: wrap; padding: 12px 16px; gap: 8px 12px; }
+  .file .grow { order: 3; flex-basis: 100%; }
+  .file .key { order: 2; margin-left: auto; }
+  .year { padding: 12px 16px; }
+  .cur-panel { position: static; }
+}

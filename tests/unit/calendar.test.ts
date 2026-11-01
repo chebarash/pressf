@@ -50,3 +50,12 @@ describe("calendarHint", () => {
   it("mentions resit registration", () => expect(calendarHint(at("2027-01-20"))?.text).toMatch(/Resit registration/));
   it("stays quiet in ordinary weeks", () => expect(calendarHint(at("2026-10-06"))).toBeNull());
 });
+
+describe("exam links", () => {
+  it("opens the right kind of paper", () => {
+    expect(calendarHint(at("2026-11-01"))?.href).toBe("/files?type=midterm");
+    expect(calendarHint(at("2027-01-06"))?.href).toBe("/files?type=final");
+  });
+  it("narrows to the group's courses when it is known", () => expect(calendarHint(at("2026-11-03"), true)?.href).toBe("/files?type=midterm&mine=1"));
+});
+

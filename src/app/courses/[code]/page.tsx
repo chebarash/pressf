@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ViewTransition } from "react";
-import { FileRow, MentionCard, TeacherRow } from "@/components/Cards";
+import { FileRow, MentionCard, TeacherCard } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
 import { WeekList } from "@/components/WeekList";
 import { SectionTabs } from "@/components/SectionTabs";
-import { Arrow, Banner, Empty, SectionHead, Stat, Tag, viewName } from "@/components/ui";
+import { Arrow, Crumbs, Empty, SectionHead, Stat, Tag, viewName } from "@/components/ui";
 import { currentWeek } from "@/lib/calendar";
 import { findCourse, getCatalog, normalizeCode } from "@/lib/catalog";
-import { courseDetails, faceMap, mentionsFor, programsWith, publishedFiles, resolveRequirement, teacherLine, unlocks } from "@/lib/content";
-import { courseRatings, teacherRatings } from "@/lib/ratings";
+import { courseDetails, faceMap, mentionsFor, programsWith, publishedFiles, resolveRequirement, schoolOfCourse, unlocks } from "@/lib/content";
+import { courseRatings, strengths, teacherRatings } from "@/lib/ratings";
 import { isStated } from "@/lib/syllabus";
 
-type Props = { params: Promise<{ code: string }> };
+type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ files?: string }> };
+const DAY = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export async function generateMetadata({ params }: Props) {
   const { code } = await params;
@@ -22,8 +23,9 @@ export async function generateMetadata({ params }: Props) {
 
 const COLORS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"];
 
-export default async function CoursePage({ params }: Props) {
+export default async function CoursePage({ params, searchParams }: Props) {
   const { code: raw } = await params;
+  const { files: kind } = await searchParams;
   const catalog = await getCatalog();
   const course = findCourse(catalog, raw);
   if (!course) notFound();
@@ -43,6 +45,12 @@ export default async function CoursePage({ params }: Props) {
   const work = (data?.workload ?? []).filter((item) => item.hours > 0);
   const workTotal = work.reduce((a, b) => a + b.hours, 0);
   const requirements = data?.prerequisites.groups.map((group) => group.any_of.map((item) => resolveRequirement(item, catalog.courses))) ?? [];
+  const school = schoolOfCourse(code, catalog)[0];
+  const exams = data?.assessment.filter((item) => /exam|midterm|final/i.test(item.name)).length ?? 0;
+  const syllabusFile = files.find((file) => file.type === "syllabus");
+  const shownFiles = files.filter((file) => !kind || file.type === kind);
+  const kinds = [...new Set(files.flatMap((file) => file.type ?? []))];
+  const lessonsOf = (id: string) => catalog.timetable.filter((lesson) => lesson.code === code && lesson.teacher === id);
   const instructors = new Map((data?.instructors ?? []).map((item) => [item.email.toLowerCase(), item]));
 
   return (
@@ -50,11 +58,13 @@ export default async function CoursePage({ params }: Props) {
       <div className="wrap section" style={{ paddingBottom: 32 }}>
         <div className="row" style={{ "--gap": "32px", alignItems: "start", justifyContent: "space-between" } as React.CSSProperties}>
           <div className="stack grow" style={{ flexBasis: 420 }}>
+            <Crumbs items={[["Courses", "/courses"], ...(school ? [[school.name.replace(/^School of /, "").split(",")[0], `/schools/${school.slug}`] as [string, string]] : []), [course.subject]]} />
             <div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
               <Tag tone="accent-tag">{code}</Tag>
               {programs.length > 0 && <Tag>{programs.length} {programs.length === 1 ? "program" : "programs"}</Tag>}
             </div>
             <ViewTransition name={`course-${viewName(code)}`}><h1 className="d-title">{course.subject}</h1></ViewTransition>
+            {syllabusFile && <div><a className="key btn sm" href={`/files/${syllabusFile.id}`} target="_blank" rel="noreferrer">Syllabus</a></div>}
             {data?.description && <p className="body-lg" style={{ maxWidth: "62ch", display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{data.description}</p>}
           </div>
           <RatingPanel rating={ratings.get(code)} label="Rate a teacher to start" />
@@ -64,6 +74,7 @@ export default async function CoursePage({ params }: Props) {
             {ects && <Stat value={ects} label="ECTS" />}
             {data?.total_hours && <Stat value={data.total_hours} label="hours in a term" />}
             {contact > 0 && <Stat value={contact} label="class hours a week" />}
+            {exams > 0 && <Stat value={exams} label="exams" />}
             {data && <span className="small soft" style={{ marginLeft: "auto" }}>From the {/\d{4}/.test(data.term) ? data.term : [data.term, data.academic_year].filter(Boolean).join(" ")} syllabus</span>}
           </div>
         )}
@@ -85,7 +96,7 @@ export default async function CoursePage({ params }: Props) {
               <div className="grid-2">
                 {data.learning_outcomes.length > 0 && (
                   <div className="stack"><h2 className="d-sm">What you will learn</h2>
-                    <ul className="stack" style={{ "--gap": "10px" } as React.CSSProperties}>{data.learning_outcomes.slice(0, 5).map((item) => <li key={item} className="row" style={{ alignItems: "start", flexWrap: "nowrap", "--gap": "10px" } as React.CSSProperties}><span className="accent">•</span><span>{item}</span></li>)}</ul>
+                    <ul className="stack" style={{ "--gap": "10px" } as React.CSSProperties}>{data.learning_outcomes.slice(0, 4).map((item) => <li key={item} className="row" style={{ alignItems: "start", flexWrap: "nowrap", "--gap": "10px" } as React.CSSProperties}><span className="accent">•</span><span>{item}</span></li>)}</ul>
                   </div>
                 )}
                 {data.assessment.length > 0 && (
@@ -131,23 +142,29 @@ export default async function CoursePage({ params }: Props) {
 
         <section id="teachers" className="section">
           <h2 className="d-md">Who teaches it</h2>
-          {teachers.length === 0 ? <p className="soft">Not in the timetable this term.</p> : teachers.map((t) => {
+          {teachers.length === 0 ? <p className="soft">Not in the timetable this term.</p> : <div className="grid-2" style={{ gap: 24 }}>{teachers.map((t) => {
             const info = t.email ? instructors.get(t.email.toLowerCase()) : undefined;
             const office = [isStated(info?.office) && `Office ${info!.office}`, isStated(info?.office_hours) && info!.office_hours].filter(Boolean).join(", ");
-            return <TeacherRow key={t.id} id={t.id} name={t.display_name} face={faces.get(t.id)} score={teacherScores.get(t.id)?.overall} meta={office || teacherLine(t)} />;
-          })}
+            const lessons = lessonsOf(t.id);
+            const days = [...new Set(lessons.map((l) => l.day))].sort().map((d) => DAY[d]).join(", ");
+            return <TeacherCard key={t.id} id={t.id} name={t.display_name} face={faces.get(t.id)} score={teacherScores.get(t.id)?.overall} office={office} groups={[...new Set(lessons.map((l) => l.class))].slice(0, 3)} time={lessons[0] ? `${days} ${lessons[0].starts}–${lessons[0].ends}` : undefined} room={lessons[0]?.room} styles={strengths(teacherScores.get(t.id))} />;
+          })}</div>}
         </section>
 
         <section id="files" className="section">
-          <h2 className="d-md">Files</h2>
-          {files.length === 0 ? <Empty title="No files yet" action={<a className="key btn" href="https://t.me/pupressfbot" target="_blank" rel="noreferrer">Send on Telegram</a>}>Got past exams or notes? Send them to our bot.</Empty> : <div className="stack" style={{ "--gap": "12px" } as React.CSSProperties}>{files.map((file) => <FileRow key={file.id} file={file} />)}</div>}
+          <SectionHead title="Files" href={files.length > 5 ? `/files?q=${code}` : undefined} action={`All ${files.length} files`} />
+          {kinds.length > 1 && <div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
+            <Link className={`chip small-chip ${!kind ? "on" : ""}`} href={`/courses/${code}#files`} scroll={false}>All {files.length}</Link>
+            {kinds.map((item) => <Link key={item} className={`chip small-chip ${kind === item ? "on" : ""}`} href={`/courses/${code}?files=${item}#files`} scroll={false}>{item[0].toUpperCase() + item.slice(1)} {files.filter((file) => file.type === item).length}</Link>)}
+          </div>}
+          {files.length === 0 ? <Empty title="No files yet" action={<a className="key btn" href="https://t.me/pupressfbot" target="_blank" rel="noreferrer">Send on Telegram</a>}>Got past exams or notes? Send them to our bot.</Empty> : <div className="stack" style={{ "--gap": "12px" } as React.CSSProperties}>{shownFiles.slice(0, 5).map((file) => <FileRow key={file.id} file={file} />)}</div>}
         </section>
       </div>
 
       {mentioned.length > 0 && (
         <div className="band"><section id="anonymous" className="wrap section">
           <div className="stack" style={{ "--gap": "8px" } as React.CSSProperties}><SectionHead title="What Anonymous says" /><p className="soft">Anonymous posts, unverified. Press F never edits them and every card links to the original.</p></div>
-          <div className="grid-3">{mentioned.slice(0, 3).map((m) => <MentionCard key={m.postId} mention={m} />)}</div>
+          <div className="grid-3">{mentioned.slice(0, 3).map((m) => <MentionCard key={m.postId} mention={m} matched="Course" />)}</div>
           <Link className="ghost" href={`/posts?course=${code}`}>{mentioned.length === 1 ? "Read the full post" : `All ${mentioned.length} posts`}<Arrow /></Link>
         </section></div>
       )}

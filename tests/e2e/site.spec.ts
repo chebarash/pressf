@@ -1,4 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { Pool } from "pg";
+
+// Home changes once a student has a group, and tests share one student.
+test.beforeEach(async () => {
+  const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL ?? "postgres://pressf@127.0.0.1:5544/pressf_test" });
+  await pool.query('update users set "group" = null');
+  await pool.end();
+});
 
 /** The key works once the page is interactive, so it is pressed until the panel opens. */
 async function pressF(page: import("@playwright/test").Page) {
@@ -92,7 +100,8 @@ test("promised addresses hold", async ({ page }) => {
   await page.goto("/timetable?class=FCS%201");
   await expect(page.getByRole("heading", { name: "Timetable" })).toBeVisible();
   await page.goto("/programs/bsc-cyber-security/curriculum");
-  await expect(page.getByRole("heading", { name: "Cyber Security" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Curriculum" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Cyber Security" }).first()).toBeVisible();
 });
 
 test("pages without data explain themselves", async ({ page }) => {
@@ -126,7 +135,7 @@ test("choosing a group builds My semester and the timetable", async ({ page, isM
   await page.goto("/me/group");
   await page.getByLabel("Search group").fill("FCS");
   await page.getByRole("button", { name: "FCS 1" }).click();
-  await expect(page).toHaveURL(/\/me$/);
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "My semester" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Calculus 1/ }).first()).toBeVisible();
   await page.goto("/timetable");
@@ -242,5 +251,20 @@ test("the course tabs follow the page and show counts apart from labels", async 
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     await expect(tabs.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "location", { timeout: 500 });
   }).toPass();
+});
+
+test("files filter by semester, and by the group's courses once it is known", async ({ page, isMobile }) => {
+  await page.goto("/files");
+  await page.getByRole("link", { name: "Fall 2023", exact: true }).click();
+  await expect(page).toHaveURL(/term=Fall/);
+  await expect(page.locator(".file")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "My courses" })).toHaveCount(0);
+  test.skip(isMobile, "Covered on desktop");
+  await page.goto("/me/group");
+  await page.getByLabel("Search group").fill("FCS");
+  await page.getByRole("button", { name: "FCS 1" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto("/files?mine=1");
+  await expect(page.getByRole("link", { name: "My courses" })).toBeVisible();
 });
 
