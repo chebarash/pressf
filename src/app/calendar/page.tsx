@@ -17,7 +17,7 @@ export default function CalendarPage() {
           const done = m.ends < today;
           const on = m === next;
           return (
-            <div key={m.order} className="line-row" style={{ background: on ? "var(--accent-soft)" : undefined, outline: on ? "2px solid var(--accent)" : undefined, outlineOffset: -2, color: done ? "var(--text-2)" : undefined }}>
+            <div key={m.order} className="line-row cal-row" style={{ background: on ? "var(--accent-soft)" : undefined, outline: on ? "2px solid var(--accent)" : undefined, outlineOffset: -2, color: done ? "var(--text-2)" : undefined }}>
               <span className="label num" style={{ width: 72, flex: "none" }}>{date(m.starts)}</span>
               <span className="grow"><span className="label" style={{ display: "block" }}>{NAMES[m.kind]}</span><span className="small soft">{m.term[0].toUpperCase() + m.term.slice(1)}{m.week ? `, Week ${m.week}` : ""}</span></span>
               {on && <span className="tag dark">Next up</span>}

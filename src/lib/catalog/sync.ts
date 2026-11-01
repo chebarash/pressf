@@ -82,7 +82,7 @@ export async function mergeTeacherIds(teachers: Teacher[]) {
 }
 
 type ExportPost = {
-  post_id: number; url: string; text: string; date: string;
+  post_id: number; url: string; text: string; date: string | null;
   links: Array<{ kind: string; code?: string; teacher_id?: string }>;
 };
 
@@ -92,8 +92,8 @@ export async function syncMentions() {
     const params = new URLSearchParams({ limit: "500", offset: String(offset) });
     const body: Envelope<ExportPost> = await get<ExportPost>(`/api/mentions/export?${params}`, 120_000);
     for (const post of body.items ?? []) {
-      const row = { postId: post.post_id, url: post.url, text: post.text, date: new Date(post.date) };
-      await db().insert(mentions).values(row).onConflictDoUpdate({ target: mentions.postId, set: { url: row.url, text: row.text } });
+      const row = { postId: post.post_id, url: post.url, text: post.text, date: post.date ? new Date(post.date) : null };
+      await db().insert(mentions).values(row).onConflictDoUpdate({ target: mentions.postId, set: { url: row.url, text: row.text, date: row.date } });
       await db().delete(mentionLinks).where(eq(mentionLinks.postId, post.post_id));
       const links = post.links.flatMap((link) => {
         const target = link.code ?? link.teacher_id;

@@ -35,7 +35,7 @@ export async function mentionsFor(kind: "course" | "teacher" | Array<string>, ta
   const linkKind = Array.isArray(kind) ? "course" : kind;
   const where = and(eq(mentionLinks.kind, linkKind), inArray(mentionLinks.target, targets.length ? targets : [""]));
   const rows = await db().selectDistinct({ postId: mentions.postId, url: mentions.url, text: mentions.text, date: mentions.date })
-    .from(mentions).innerJoin(mentionLinks, eq(mentionLinks.postId, mentions.postId)).where(where).orderBy(desc(mentions.date)).limit(limit);
+    .from(mentions).innerJoin(mentionLinks, eq(mentionLinks.postId, mentions.postId)).where(where).orderBy(desc(mentions.postId)).limit(limit);
   const [{ total }] = await db().select({ total: sql<number>`count(distinct ${mentionLinks.postId})` }).from(mentionLinks).where(where);
   return { items: rows, total: Number(total) };
 }

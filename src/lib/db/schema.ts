@@ -160,7 +160,8 @@ export const mentions = pgTable(
     postId: integer("post_id").primaryKey(),
     url: text("url").notNull(),
     text: text("text").notNull(),
-    date: timestamp("date", { withTimezone: true }).notNull(),
+    /** Most posts come without a date, so ordering relies on the post id. */
+    date: timestamp("date", { withTimezone: true }),
   },
   (t) => [index("mentions_date").on(t.date)]
 );

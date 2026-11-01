@@ -44,12 +44,12 @@ export function FileRow({ file }: { file: FileItem }) {
   );
 }
 
-export type MentionItem = { postId: number; url: string; text: string; date: Date };
+export type MentionItem = { postId: number; url: string; text: string; date: Date | null };
 
 export function MentionCard({ mention }: { mention: MentionItem }) {
   return (
     <a className="card" href={mention.url} target="_blank" rel="noreferrer">
-      <div className="row between"><span className="label-sm accent">Anonymous</span><span className="small soft">{mention.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span></div>
+      <div className="row between"><span className="label-sm accent">Anonymous</span>{mention.date && <span className="small soft">{mention.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>}</div>
       <p style={{ display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{mention.text}</p>
       <span className="label-sm accent row" style={{ "--gap": "6px" } as React.CSSProperties}>Open post<Arrow /></span>
     </a>
