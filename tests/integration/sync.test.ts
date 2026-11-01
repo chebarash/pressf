@@ -45,8 +45,7 @@ describe("syncCatalog", () => {
     expect(data.teachers).toHaveLength(2);
     expect(data.curricula["bsc-cyber-security"].semesters).toHaveLength(2);
     expect(data.semesters.next?.starts).toBe("2027-02-22");
-    expect(calls.filter((call) => call.path.startsWith("/api")).every((call) => call.auth === "Bearer bot-token")).toBe(true);
-    expect(calls.filter((call) => !call.path.startsWith("/api")).every((call) => call.auth === null)).toBe(true);
+    expect(calls.every((call) => call.auth === "Bearer bot-token")).toBe(true);
     const [row] = await db().select().from(catalogCache).where(eq(catalogCache.key, "teachers"));
     expect(row.sourceUpdatedAt?.toISOString()).toBe("2026-11-01T00:00:00.000Z");
   });

@@ -23,7 +23,7 @@
 .score.Mid { background: var(--mid); color: var(--on-warm); }
 .score.Low { background: var(--low); color: var(--on-accent); }
 .score.None { background: var(--sunken); color: var(--text-2); }
-.face { flex: none; border-radius: 50%; background: var(--face); object-fit: cover; transition: transform var(--dur-base) var(--ease-spring); }
+.face { flex: none; border-radius: 50%; background: var(--face); object-fit: contain; transition: transform var(--dur-base) var(--ease-spring); }
 a:hover > .face, a:hover .face { transform: rotate(-3deg); }
 .card { display: grid; gap: 16px; padding: 16px; background: var(--surface); border: 2px solid var(--line); border-radius: 20px; box-shadow: 0 5px 0 var(--edge); transition: transform 160ms var(--ease-spring), box-shadow 160ms var(--ease-spring); align-content: space-between; min-width: 0; }
 a.card:hover { transform: translateY(-3px); box-shadow: 0 8px 0 var(--edge); }

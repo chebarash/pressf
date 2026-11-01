@@ -33,7 +33,3 @@ export function shortName({ id, display_name: name }: Pick<Teacher, "id" | "disp
   const given = others.find((index) => letters(words[index]).startsWith(initials[0])) ?? others[0];
   return [closest, given].sort((a, b) => a - b).map((index) => words[index]).join(" ");
 }
-
-/** The same person's name with its parts in any order, spelled the same way. */
-export const nameKey = (name: string) =>
-  name.split(/\s+/).map(letters).filter(Boolean).sort().join(" ");
