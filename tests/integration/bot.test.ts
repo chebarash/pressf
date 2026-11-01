@@ -200,12 +200,14 @@ describe("inline search", () => {
     await ask("calculus");
     const course = answer().results.find((r) => r.title === "Calculus 1")!;
     expect(course.input_message_content.message_text).toContain("<b>Calculus 1</b>");
+    expect(course.input_message_content.link_preview_options).toMatchObject({ url: expect.stringMatching(/\/courses\/MATH111$/), prefer_large_media: true });
+    expect(course.description).toContain("Course · MATH111");
     expect(course.reply_markup.inline_keyboard[0][0].url).toMatch(/\/courses\/MATH111$/);
   });
   it("shares a professor with a face", async () => {
     await ask("pinto");
     const teacher = answer().results.find((r) => /Pinto/.test(r.title))!;
-    expect(teacher.thumbnail_url).toMatch(/pfp\.png$/);
+    expect(teacher.thumbnail_url).toMatch(/\/thumb\?face=g-pinto$/);
     expect(teacher.reply_markup.inline_keyboard[0][0].url).toContain("/professors/g-pinto");
   });
   it("sends a published PDF as a document under a lasting address", async () => {
@@ -238,6 +240,10 @@ describe("inline search", () => {
     await ask("paged", "20");
     expect(answer().results).toHaveLength(5);
     expect(answer().next_offset).toBe("");
+  });
+  it("says so when nothing matches", async () => {
+    await ask("zzzzz");
+    expect((answer() as unknown as { button: { text: string } }).button.text).toBe("Nothing found. Open Press F");
   });
   it("gives each result an id Telegram accepts", async () => {
     await ask("calculus");

@@ -19,7 +19,11 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
-  return { title: findTeacher(await getCatalog(), id)?.display_name ?? "Professor" };
+  const teacher = findTeacher(await getCatalog(), decodeURIComponent(id));
+  if (!teacher) return { title: "Professor" };
+  const rating = (await teacherRatings()).get(teacher.id);
+  const description = [teacher.department, rating ? `Rated ${rating.overall.toFixed(1)} by students` : null, `${teacher.teaches.length} ${teacher.teaches.length === 1 ? "course" : "courses"}`].filter(Boolean).join(" · ");
+  return { title: teacher.display_name, description, openGraph: { title: teacher.display_name, description } };
 }
 
 export default async function ProfessorPage({ params }: Props) {

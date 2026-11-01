@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Arrow, Tag } from "@/components/ui";
 import { activeTerm, calendarHint, countdowns, currentWeek, daysUntil, holidaysIn, semesterProgress, tashkentNow, termWeeks, TERMS, weekTitle, type CalendarWeek, type Countdown, type Term } from "@/lib/calendar";
+import { currentGroup } from "@/lib/group";
 
 export const metadata = { title: "Calendar" };
 type Props = { searchParams: Promise<{ term?: string }> };
@@ -48,7 +49,7 @@ export default async function CalendarPage({ searchParams }: Props) {
   const term = TERMS.find((item) => item === asked) ?? activeTerm(now);
   const week = currentWeek(now);
   const progress = semesterProgress(now);
-  const hint = calendarHint(now);
+  const hint = calendarHint(now, !!(await currentGroup()));
   return (
     <div className="wrap section" style={{ maxWidth: 1040 }}>
       <div className="row between" style={{ alignItems: "end" }}>

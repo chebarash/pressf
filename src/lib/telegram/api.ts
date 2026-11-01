@@ -65,13 +65,13 @@ export const sendMessage = (chatId: number | string, text: string, replyMarkup?:
 export const sendPhoto = (chatId: number | string, photo: string, caption: string, replyMarkup?: InlineKeyboard) =>
   call<TelegramMessage>("sendPhoto", { chat_id: chatId, photo, caption, parse_mode: "HTML", reply_markup: replyMarkup });
 
-export const answerInlineQuery = (id: string, results: object[], nextOffset: string, site: string) =>
+export const answerInlineQuery = (id: string, results: object[], nextOffset: string, site: string, buttonText: string) =>
   call<boolean>("answerInlineQuery", {
     inline_query_id: id,
     results,
     next_offset: nextOffset,
     cache_time: 300,
-    button: { text: "Open Press F", web_app: { url: site } },
+    button: { text: buttonText, web_app: { url: site } },
   });
 
 export const answerCallback = (id: string, text?: string) =>
