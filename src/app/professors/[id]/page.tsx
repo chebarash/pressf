@@ -44,8 +44,8 @@ export default async function ProfessorPage({ params }: Props) {
   return (
     <>
       <div className="wrap section">
-        <div className="row" style={{ "--gap": "48px" } as React.CSSProperties}>
-          <Face name={teacher.display_name} src={faces.get(id)} size={240} />
+        <div className="row prof-head">
+          <Face name={teacher.display_name} src={faces.get(id)} size={240} className="face-lg" />
           <div className="stack grow" style={{ flexBasis: 320 }}>
             <h1 className="d-title">{teacher.display_name}</h1>
             <div className="stack" style={{ "--gap": "4px" } as React.CSSProperties}>

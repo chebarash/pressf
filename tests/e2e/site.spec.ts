@@ -41,14 +41,36 @@ test("the search button works on every device", async ({ page }) => {
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
-test("the phone menu opens every section and closes after a choice", async ({ page, isMobile }) => {
+test("the phone tab bar reaches the sections", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Desktop shows the links in the header");
   await page.goto("/");
-  await page.getByRole("button", { name: "Menu" }).click();
-  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Courses" }).click();
-  await expect(page).toHaveURL(/\/courses$/);
-  await expect(page.getByRole("navigation", { name: "Sections" })).toHaveCount(0);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Files" }).click();
+  await expect(page).toHaveURL(/\/files$/);
+  await expect(page.getByRole("heading", { name: "Files", level: 1 })).toBeVisible();
+  const header = await page.locator("header").boundingBox();
+  expect(header!.height).toBeLessThan(90);
   expect(await noSideScroll(page)).toBe(true);
+});
+
+test("inside Telegram the page behaves like an app", async ({ page }) => {
+  await page.route("https://telegram.org/js/telegram-web-app.js", (route) => route.fulfill({ contentType: "text/javascript", body: `
+    window.calls = [];
+    const log = (name) => (...args) => window.calls.push([name, ...args]);
+    window.Telegram = { WebApp: { initData: "", colorScheme: "dark", safeAreaInset: { top: 20, bottom: 30 }, contentSafeAreaInset: { top: 40, bottom: 0 },
+      ready: log("ready"), expand: log("expand"), disableVerticalSwipes: log("swipes"), isVersionAtLeast: () => true,
+      setHeaderColor: log("header"), setBackgroundColor: log("background"), setBottomBarColor: log("bottom"), onEvent: log("event"),
+      openLink: log("openLink"), openTelegramLink: log("openTelegramLink"),
+      BackButton: { show: log("backShow"), hide: log("backHide"), onClick: (fn) => { window.goBack = fn; } },
+      HapticFeedback: { impactOccurred: log("haptic") } } };` }));
+  await page.goto("/courses/MATH111#tgWebAppData=x");
+  await expect(page.locator("html.tg")).toHaveCount(1);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByRole("button", { name: "Switch theme" })).toBeHidden();
+  const calls = () => page.evaluate(() => (window as unknown as { calls: string[][] }).calls.map((c) => c[0]));
+  await expect.poll(calls).toEqual(expect.arrayContaining(["ready", "expand", "swipes", "header", "backShow"]));
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--tg-top"))).toBe("60px");
+  await page.getByRole("link", { name: "Open", exact: true }).first().click();
+  await expect.poll(calls).toEqual(expect.arrayContaining(["openLink", "haptic"]));
 });
 
 test("course page shows syllabus data, files and mentions", async ({ page }) => {
@@ -58,7 +80,7 @@ test("course page shows syllabus data, files and mentions", async ({ page }) => 
     await expect(page.getByRole("heading", { name })).toBeVisible();
   }
   await expect(page.getByRole("link", { name: "Precalculus" })).toBeVisible();
-  await expect(page.getByText("Calculus 1 midterm.pdf")).toBeVisible();
+  await expect(page.getByText("Calculus 1 midterm")).toBeVisible();
   expect(await noSideScroll(page)).toBe(true);
 });
 
