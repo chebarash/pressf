@@ -7,7 +7,7 @@ export function ThemeToggle() {
     try { localStorage.setItem("theme", next); } catch { /* private window */ }
   };
   return (
-    <button className="ghost" onClick={toggle} aria-label="Switch theme" style={{ color: "var(--text)" }}>
+    <button className="ghost theme-toggle" onClick={toggle} aria-label="Switch theme" style={{ color: "var(--text)" }}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
     </button>
   );

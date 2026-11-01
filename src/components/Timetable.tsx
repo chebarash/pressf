@@ -8,7 +8,9 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const tone = (code: string | null) => `t${[...(code ?? "")].reduce((a, c) => a + c.charCodeAt(0), 0) % 5}`;
 
 export function Timetable({ lessons, today }: { lessons: Lesson[]; today: number }) {
-  const [day, setDay] = useState(Math.min(today, 5));
+  // Sunday, or a day without classes, opens on the next day that has some.
+  const first = [0, 1, 2, 3, 4, 5, 6].map((step) => (today + step) % 7).find((d) => lessons.some((l) => l.day === d));
+  const [day, setDay] = useState(first ?? 0);
   const [picked, setPicked] = useState<Lesson | null>(null);
   const days = DAYS.slice(0, Math.max(5, ...lessons.map((l) => l.day + 1)));
   const times = [...new Set(lessons.map((l) => l.starts))].sort();
@@ -37,7 +39,7 @@ export function Timetable({ lessons, today }: { lessons: Lesson[]; today: number
         </div>
       </div>
       <div className="only-sm stack">
-        <div className="tabs">{days.map((d, i) => <button key={d} className={`tab ${day === i ? "on" : ""}`} onClick={() => setDay(i)}>{d}</button>)}</div>
+        <div className="tabs even">{days.map((d, i) => <button key={d} className={`tab ${day === i ? "on" : ""}`} onClick={() => setDay(i)}>{d}</button>)}</div>
         {lessons.filter((l) => l.day === day).sort((a, b) => a.starts.localeCompare(b.starts)).map((l) => (
           <button key={`${l.starts}${l.subject}`} className="class" onClick={() => setPicked(l)}><span className="label num">{l.starts}</span><span className="grow"><span className="label" style={{ display: "block" }}>{l.subject}</span><span className="small soft">{[l.teacher_name, l.room].filter(Boolean).join(" · ")}</span></span></button>
         ))}

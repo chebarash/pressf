@@ -6,6 +6,8 @@ import { Geologica, Instrument_Serif } from "next/font/google";
 import Script from "next/script";
 import { cookies } from "next/headers";
 import { Footer, Nav, StaleNotice } from "@/components/Chrome";
+import { TabBar } from "@/components/TabBar";
+import { TelegramApp } from "@/components/TelegramApp";
 import { getUser } from "@/lib/auth";
 
 const serif = Instrument_Serif({ weight: "400", style: ["normal", "italic"], subsets: ["latin", "latin-ext"], variable: "--serif" });
@@ -32,6 +34,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <StaleNotice />
         <main>{children}</main>
         <Footer />
+        <TabBar />
+        <TelegramApp signedIn={!!user} />
       </body>
     </html>
   );

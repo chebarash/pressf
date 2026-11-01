@@ -15,9 +15,9 @@ export function Score({ value, size = "" }: { value?: number | null; size?: "" |
   );
 }
 
-export function Face({ src, name, size = 56 }: { src?: string | null; name: string; size?: number }) {
+export function Face({ src, name, size = 56, className = "" }: { src?: string | null; name: string; size?: number; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img className="face" src={src ?? "/pfp.png"} alt={name} width={size} height={size} loading="lazy" />;
+  return <img className={`face ${className}`} src={src ?? "/pfp.png"} alt={name} width={size} height={size} loading="lazy" />;
 }
 
 export const Tag = ({ tone = "", children }: { tone?: string; children: ReactNode }) => <span className={`tag ${tone}`}>{children}</span>;
