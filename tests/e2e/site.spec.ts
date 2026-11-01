@@ -303,3 +303,14 @@ test("a course page rates a chosen professor", async ({ page }) => {
   await expect(dialog.getByText("Respects paid")).toBeVisible();
 });
 
+test("a student can remove their group", async ({ page }) => {
+  await page.goto("/me/group");
+  await page.getByLabel("Search group").fill("FCS");
+  await page.getByRole("button", { name: "FCS 1" }).click();
+  await expect(page.getByRole("heading", { name: "My semester" })).toBeVisible();
+  await page.goto("/me/group");
+  await page.getByRole("button", { name: "Remove group" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("respects");
+});
+
