@@ -12,7 +12,7 @@ function s3() {
   client ??= new S3Client({
     endpoint: S3_ENDPOINT,
     region: S3_REGION,
-    forcePathStyle: true,
+    forcePathStyle: false,
     credentials: { accessKeyId: S3_ACCESS_KEY_ID, secretAccessKey: S3_SECRET_ACCESS_KEY },
   });
   return client;
