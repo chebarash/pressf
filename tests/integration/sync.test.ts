@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCatalog, isStale } from "@/lib/catalog";
-import { mergeTeacherIds, syncCatalog } from "@/lib/catalog/sync";
+import { mergeTeacherIds, syncCatalog, syncMentions } from "@/lib/catalog/sync";
 import { db } from "@/lib/db";
 import { catalogCache, faces, mentionLinks, mentions, ratings, respects, teacherAliases, users } from "@/lib/db/schema";
 import { catalog, teacher } from "../fixtures/catalog";
@@ -134,24 +134,20 @@ describe("mentions", () => {
     return body(path);
   };
 
-  beforeEach(() => { vi.stubEnv("MENTIONS_SYNC", "on"); });
-  afterEach(() => vi.unstubAllEnvs());
-
   it("stores posts with links and removes deleted ones", async () => {
     stub(channel([1, 2, 3], [1, 2, 3]));
-    await syncCatalog();
-    stub(channel([1, 2], [1, 2, 3, 4].filter((id) => id !== 3)));
-    expect((await syncCatalog()).failed).toEqual([]);
+    await syncMentions();
+    stub(channel([1, 2], [1, 2, 4]));
+    await syncMentions();
     expect((await db().select().from(mentions)).map((row) => row.postId).sort()).toEqual([1, 2]);
     expect(await db().select().from(mentionLinks)).toHaveLength(2);
   });
 
   it("does not wipe posts when the id list looks broken", async () => {
     stub(channel([1, 2, 3], [1, 2, 3]));
-    await syncCatalog();
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    await syncMentions();
     stub(channel([], []));
-    expect((await syncCatalog()).failed).toContain("mentions");
+    await expect(syncMentions()).rejects.toThrow("Refusing");
     expect(await db().select().from(mentions)).toHaveLength(3);
   });
 });

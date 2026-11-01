@@ -86,7 +86,7 @@ type ExportPost = {
   links: Array<{ kind: string; code?: string; teacher_id?: string }>;
 };
 
-async function syncMentions() {
+export async function syncMentions() {
   let offset: number | null = 0;
   while (offset !== null) {
     const params = new URLSearchParams({ limit: "500", offset: String(offset) });
