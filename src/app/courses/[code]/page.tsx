@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
+import { ViewTransition } from "react";
 import { FileRow, MentionCard, TeacherRow } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
 import { WeekList } from "@/components/WeekList";
-import { Banner, Empty, SectionHead, Stat, Tag } from "@/components/ui";
+import { Banner, Empty, SectionHead, Stat, Tag, viewName } from "@/components/ui";
 import { currentWeek } from "@/lib/calendar";
 import { findCourse, getCatalog, normalizeCode } from "@/lib/catalog";
 import { courseDetails, faceMap, mentionsFor, programsWith, publishedFiles, resolveRequirement, teacherLine, unlocks } from "@/lib/content";
@@ -52,7 +53,7 @@ export default async function CoursePage({ params }: Props) {
               <Tag tone="accent-tag">{code}</Tag>
               {programs.length > 0 && <Tag>{programs.length} {programs.length === 1 ? "program" : "programs"}</Tag>}
             </div>
-            <h1 className="d-title">{course.subject}</h1>
+            <ViewTransition name={`course-${viewName(code)}`}><h1 className="d-title">{course.subject}</h1></ViewTransition>
             {data?.description && <p className="body-lg" style={{ maxWidth: "62ch", display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{data.description}</p>}
           </div>
           <RatingPanel rating={ratings.get(code)} label="Rate a teacher to start" />
