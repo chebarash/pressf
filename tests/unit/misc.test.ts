@@ -1,3 +1,4 @@
+import { pageList } from "@/components/Pager";
 import { standardName } from "@/lib/telegram/store";
 import { describe, expect, it } from "vitest";
 import { isStale, normalizeCode, type Catalog } from "@/lib/catalog";
@@ -57,3 +58,11 @@ describe("standardName", () => {
   it("leaves out what is unknown", () => expect(standardName({ ...file, term: null })).toBe("Calculus 1 Final.pdf"));
   it("keeps a book's title and the extension", () => expect(standardName({ ...file, type: "textbook", fileName: "Calculus_9th.docx" })).toBe("Calculus 1 Textbook Calculus 9th.docx"));
 });
+
+describe("pageList", () => {
+  it("shows all of a short list", () => expect(pageList(2, 4)).toEqual([1, 2, 3, 4]));
+  it("keeps both ends and the neighbours", () => expect(pageList(8, 20)).toEqual([1, "gap", 7, 8, 9, "gap", 20]));
+  it("fills a gap of one page instead of hiding it", () => expect(pageList(3, 20)).toEqual([1, 2, 3, 4, "gap", 20]));
+  it("works at the last page", () => expect(pageList(20, 20)).toEqual([1, "gap", 19, 20]));
+});
+

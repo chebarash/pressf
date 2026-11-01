@@ -57,20 +57,25 @@ export function TeacherCard({ id, name, face, score, groups, time, room, office,
   );
 }
 
-export type FileItem = { id: string; fileName: string; type: string | null; term: string | null; courseName: string | null; author: string | null; hasSolutions: boolean };
+export type FileItem = { id: string; fileName: string; type: string | null; term: string | null; courseName: string | null; courseCode?: string | null; author: string | null; hasSolutions: boolean };
 
 const fileTitle = (name: string) => name.replace(/(\.(pdf|docx|pptx))+$/i, "").replace(/_+/g, " ").replace(/\bNUU\b/g, "NewUU").trim();
 
 export function FileRow({ file }: { file: FileItem }) {
-  const meta = [file.term, file.courseName, file.author && `by ${file.author}`].filter(Boolean).join(" · ");
+  const details = [file.term, file.courseName, file.author && `by ${file.author}`].filter(Boolean).join(" · ");
   return (
     <div className="file">
       {file.type && <Tag tone={tags[file.type]}>{file.type}</Tag>}
       <div className="grow">
         <div className="name">{fileTitle(file.fileName)}</div>
-        <div className="small soft">{meta}</div>
+        <div className="small soft only-sm">{details}</div>
+        {file.author && <div className="small soft hide-sm">by {file.author}</div>}
       </div>
-      {file.hasSolutions && <span className="hide-sm"><Tag tone="warm">Solutions</Tag></span>}
+      <span className="row hide-sm" style={{ "--gap": "8px", justifyContent: "end" } as React.CSSProperties}>
+        {file.hasSolutions && <Tag tone="warm">Solutions</Tag>}
+        {file.courseCode && <Link className="chip small-chip" href={`/courses/${file.courseCode}`}>{file.courseName ?? file.courseCode}</Link>}
+        {file.term && <Link className="chip small-chip" href={`/files?term=${encodeURIComponent(file.term)}`}>{file.term}</Link>}
+      </span>
       <a className="key btn sm" href={`/files/${file.id}`} target="_blank" rel="noreferrer">Open</a>
     </div>
   );

@@ -13,6 +13,7 @@ export default async function SignIn({ searchParams }: Props) {
       <h1 className="d-md">{wrong ? "That is not a student account" : "Sign in to pay respects"}</h1>
       <p className="soft">{wrong ? "Press F only opens for @newuu.uz Google accounts." : "Use your NewUU student Google account. Other students never see who rated."}</p>
       <GoogleSignIn label={wrong ? "Use another Google account" : "Continue with Google"} telegram={tg} />
+      {!wrong && <p className="small soft">Only @newuu.uz accounts can sign in.</p>}
     </div>
   );
 }

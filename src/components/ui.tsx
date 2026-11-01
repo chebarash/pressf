@@ -93,7 +93,7 @@ export function Empty({ title, children, action }: { title: string; children: Re
 export function Banner({ tone = "Info", children, href, action }: { tone?: string; children: ReactNode; href?: string; action?: string }) {
   return (
     <div className={`banner ${tone}`}>
-      <span>{children}</span>
+      <span>{tone === "Warning" && Icons.clock()}{children}</span>
       {href && <Link href={href}>{action}</Link>}
     </div>
   );
