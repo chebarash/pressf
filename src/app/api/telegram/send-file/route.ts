@@ -2,10 +2,10 @@ import { eq } from "drizzle-orm";
 import { publishedFile } from "@/lib/content";
 import { db } from "@/lib/db";
 import { materials } from "@/lib/db/schema";
-import { env } from "@/lib/env";
 import { signedUrl } from "@/lib/storage";
 import { sendDocument } from "@/lib/telegram/api";
 import { esc } from "@/lib/telegram/bot";
+import { appButton } from "@/lib/telegram/links";
 import { verifyInitData } from "@/lib/telegram/webapp";
 
 // Telegram fetches up to 20 MB by URL and accepts up to 50 MB when a bot uploads.
@@ -23,10 +23,8 @@ export async function POST(request: Request) {
   if (!file) return Response.json({ error: "missing" }, { status: 404 });
   if (!file.sharedFileId && file.size > BY_UPLOAD) return Response.json({ error: "too_big" }, { status: 413 });
 
-  // Behind the proxy the request's own address is internal, so links use the site's.
-  const site = env().NEXTAUTH_URL.replace(/\/$/, "");
   const caption = `<b>${esc(file.fileName.replace(/\.[a-z0-9]+$/i, ""))}</b>`;
-  const buttons = { inline_keyboard: file.courseCode ? [[{ text: "Open course", url: `${site}/courses/${file.courseCode}#files` }]] : [] };
+  const buttons = { inline_keyboard: file.courseCode ? [[appButton("Open course", `/courses/${file.courseCode}#files`)]] : [] };
   const send = (document: Parameters<typeof sendDocument>[1]) => sendDocument(chat, document, caption, buttons);
   const upload = async () => {
     const response = await fetch(await signedUrl(file.storageKey!, file.fileName));

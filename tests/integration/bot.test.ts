@@ -204,13 +204,13 @@ describe("inline search", () => {
     expect(course.input_message_content.message_text).toContain("<b>Calculus 1</b>");
     expect(course.input_message_content.link_preview_options).toMatchObject({ url: expect.stringMatching(/\/courses\/MATH111$/), prefer_large_media: true });
     expect(course.description).toContain("Course · MATH111");
-    expect(course.reply_markup.inline_keyboard[0][0].url).toMatch(/\/courses\/MATH111$/);
+    expect(course.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pupressfbot?startapp=course_MATH111");
   });
   it("shares a professor with a face", async () => {
     await ask("pinto");
     const teacher = answer().results.find((r) => /Pinto/.test(r.title))!;
     expect(teacher.thumbnail_url).toMatch(/\/thumb\?face=g-pinto$/);
-    expect(teacher.reply_markup.inline_keyboard[0][0].url).toContain("/professors/g-pinto");
+    expect(teacher.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pupressfbot?startapp=professor_g-pinto");
   });
   it("sends a published PDF as a document under a lasting address", async () => {
     const [file] = await publish();
@@ -242,6 +242,13 @@ describe("inline search", () => {
     await ask("paged", "20");
     expect(answer().results).toHaveLength(5);
     expect(answer().next_offset).toBe("");
+  });
+  it("never offers a plain site link on a button", async () => {
+    await publish();
+    await ask("calculus");
+    const links = answer().results.flatMap((r) => r.reply_markup.inline_keyboard.flat().map((b: { url?: string }) => b.url)).filter(Boolean);
+    expect(links.length).toBeGreaterThan(0);
+    expect(links.every((url: string) => url.startsWith("https://t.me/pupressfbot?startapp"))).toBe(true);
   });
   it("says so when nothing matches", async () => {
     await ask("zzzzz");
@@ -276,7 +283,9 @@ describe("sending a file to the mini app user", () => {
   it("links to the public site, not the address behind the proxy", async () => {
     const file = await publish();
     await ask(file.id, signed(77));
-    expect(String(sent[0].body.reply_markup)).toContain(`${process.env.NEXTAUTH_URL}/courses/MATH111#files`);
+    const button = JSON.parse(String(sent[0].body.reply_markup)).inline_keyboard[0][0];
+    expect(button.web_app.url).toBe(`${process.env.NEXTAUTH_URL}/courses/MATH111#files`);
+    expect(button.url).toBeUndefined();
   });
   it("uploads the file when Telegram cannot fetch it by URL", async () => {
     const file = await publish();

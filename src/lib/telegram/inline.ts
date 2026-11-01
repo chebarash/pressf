@@ -9,6 +9,7 @@ import { env } from "@/lib/env";
 import { courseRatings, teacherRatings, type Rating } from "@/lib/ratings";
 import { search } from "@/lib/search";
 import { answerInlineQuery } from "./api";
+import { deepLink } from "./links";
 
 type Material = typeof materials.$inferSelect;
 type InlineQuery = { id: string; query: string; offset: string };
@@ -25,7 +26,7 @@ const resultId = (kind: string, id: string) => createHash("sha1").update(`${kind
 const label = (path: string) => `pressf.chebarash.uz${path}`;
 const searchButton = { text: "Search Press F", switch_inline_query_current_chat: "" };
 const keyboard = (...links: Array<[string, string]>) => ({
-  inline_keyboard: [links.map(([text, path]) => ({ text, url: `${site()}${path}` })), [searchButton]],
+  inline_keyboard: [links.map(([text, path]) => ({ text, url: deepLink(path) })), [searchButton]],
 });
 const scored = (rating?: Rating) => (rating ? `★ ${rating.overall.toFixed(1)} from ${plural(rating.count, "student")}` : "No ratings yet");
 const lines = (...parts: Array<string | null | undefined>) => parts.filter((part) => part != null).join("\n");
