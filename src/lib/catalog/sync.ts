@@ -86,14 +86,10 @@ type ExportPost = {
   links: Array<{ kind: string; code?: string; teacher_id?: string }>;
 };
 
-async function syncMentions() {
-  const [latest] = await db().select({ date: sql<Date | null>`max(${mentions.date})` }).from(mentions);
-  const newest = latest?.date ? new Date(latest.date) : null;
-  const since = newest ? new Date(newest.getTime() - 2 * 86400_000).toISOString() : "";
+export async function syncMentions() {
   let offset: number | null = 0;
   while (offset !== null) {
     const params = new URLSearchParams({ limit: "500", offset: String(offset) });
-    if (since) params.set("since", since);
     const body: Envelope<ExportPost> = await get<ExportPost>(`/api/mentions/export?${params}`, 120_000);
     for (const post of body.items ?? []) {
       const row = { postId: post.post_id, url: post.url, text: post.text, date: new Date(post.date) };
@@ -107,6 +103,16 @@ async function syncMentions() {
     }
     offset = body.next_offset ?? null;
   }
+  await dropDeletedPosts();
+}
+
+/** `since` cannot show deletions, so whatever the channel no longer has goes. */
+async function dropDeletedPosts() {
+  const live = new Set((await get<number>("/api/posts/ids")).items ?? []);
+  const stored = await db().select({ postId: mentions.postId }).from(mentions);
+  const gone = stored.map((row) => row.postId).filter((id) => !live.has(id));
+  if (gone.length > stored.length / 2) throw new Error(`Refusing to delete ${gone.length} of ${stored.length} posts`);
+  if (gone.length) await db().delete(mentions).where(inArray(mentions.postId, gone));
 }
 
 /** A failed endpoint keeps its old copy and does not stop the others. */

@@ -4,7 +4,7 @@ import { getCatalog } from "@/lib/catalog";
 import { db } from "@/lib/db";
 import { materials, syllabi } from "@/lib/db/schema";
 import { env } from "@/lib/env";
-import { extractSyllabus, matchesCourse, syllabusFlags } from "@/lib/syllabus";
+import { extractSyllabus, findSyllabusCourse, syllabusFlags } from "@/lib/syllabus";
 import { answerCallback, downloadFile, editCaption, sendDocument, sendMessage, sendPhoto, TelegramMessage, TelegramUpdate } from "./api";
 import { classify, KnownCourse } from "./classify";
 import { storeMaterial } from "./store";
@@ -114,9 +114,10 @@ async function readSyllabus(material: Material, buffer: Buffer) {
   try {
     const { is_syllabus: _ignored, ...data } = await extractSyllabus(buffer);
     const { courses } = await getCatalog();
+    const found = findSyllabusCourse(data, courses);
     await db().insert(syllabi).values({
-      courseCode: material.courseCode!, sourceName: material.fileName, materialId: material.id,
-      data, flags: syllabusFlags(data, courses), matched: matchesCourse(data, courses),
+      courseCode: found ?? material.courseCode!, sourceName: material.fileName, materialId: material.id,
+      data, flags: syllabusFlags(data, courses), matched: found !== null,
     }).onConflictDoNothing();
   } catch (error) {
     // The file is still useful without the parsed fields.

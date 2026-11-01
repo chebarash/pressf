@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isStated, matchesCourse, syllabusFlags, termRank, titleKey } from "@/lib/syllabus";
+import { findSyllabusCourse, isStated, matchesCourse, syllabusFlags, termRank, titleKey } from "@/lib/syllabus";
 import { course, syllabus } from "../fixtures/catalog";
 
 const courses = [course("MATH111", "Calculus 1"), course("HASS111", "Academic and Communication Skills 2"), course("CS111", "Algorithms & Data Struсtures"), course("ECON201", "Microeconomics 2")];
@@ -22,6 +22,21 @@ describe("matchesCourse", () => {
   });
   it("rejects a code missing from the catalog", () => {
     expect(matchesCourse({ course_code: "SE201", course_title: "Web Programming" }, courses)).toBe(false);
+  });
+});
+
+describe("findSyllabusCourse", () => {
+  const list = [course("ECON102", "Macroeconomics 1"), course("ECON201", "Microeconomics 2"), course("ECON202", "Macroeconomics 2"), course("CS411", "Compilers", { same_name_codes: ["CS620"] }), course("CS620", "Compilers", { same_name_codes: ["CS411"] })];
+  it("follows a renumbered course by its title", () => {
+    expect(findSyllabusCourse({ course_code: "ECON-202", course_title: "MACROECONOMICS-1" }, list)).toBe("ECON102");
+    expect(findSyllabusCourse({ course_code: "ECON211", course_title: "Microeconomics 2 (Intermediate Microeconomics)" }, list)).toBe("ECON201");
+  });
+  it("keeps a correct pair and leaves unknown titles alone", () => {
+    expect(findSyllabusCourse({ course_code: "ECON 202", course_title: "Macroeconomics 2" }, list)).toBe("ECON202");
+    expect(findSyllabusCourse({ course_code: "SE201", course_title: "Web Programming" }, list)).toBeNull();
+  });
+  it("never guesses between courses with one name", () => {
+    expect(findSyllabusCourse({ course_code: "CS999", course_title: "Compilers" }, list)).toBeNull();
   });
 });
 
