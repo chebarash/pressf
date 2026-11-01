@@ -8,6 +8,21 @@ type Source = {
   type: string | null; term: string | null; hasSolutions: boolean; author: string | null;
 };
 
+type Named = Pick<Source, "fileName" | "courseCode" | "courseName" | "type" | "term" | "hasSolutions" | "author">;
+
+/**
+ * The one way files are named: course, kind, term, then what sets it apart, as in
+ * "Calculus 1 Midterm Fall 2024 Solutions". Books and notes keep their own title.
+ */
+export function standardName(file: Named) {
+  const extension = extname(file.fileName);
+  const title = file.fileName.slice(0, file.fileName.length - extension.length).replace(/[_\s]+/g, " ").trim();
+  const kind = file.type ? file.type[0].toUpperCase() + file.type.slice(1) : null;
+  const detail = file.type === "syllabus" || file.type === "midterm" || file.type === "final" || file.type === "mock" ? file.term : title;
+  const parts = [file.courseName ?? file.courseCode, kind, detail, file.hasSolutions && "Solutions", file.author && `by ${file.author}`];
+  return `${parts.filter(Boolean).join(" ")}${extension}`;
+}
+
 /** Saves the original and, for PDFs, the Press F copy the site serves. */
 export async function storeMaterial(buffer: Buffer, source: Source) {
   const sha256 = createHash("sha256").update(buffer).digest("hex");
