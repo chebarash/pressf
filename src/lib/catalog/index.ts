@@ -1,3 +1,4 @@
+import { shortName } from "./names";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { catalogCache } from "@/lib/db/schema";
@@ -23,6 +24,9 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
     const built = row.sourceUpdatedAt;
     if (built && (!catalog.updatedAt || built < catalog.updatedAt)) catalog.updatedAt = built;
   }
+  catalog.teachers = catalog.teachers.map((teacher) => ({ ...teacher, display_name: shortName(teacher) }));
+  const names = new Map(catalog.teachers.map((teacher) => [teacher.id, teacher.display_name]));
+  catalog.timetable = catalog.timetable.map((lesson) => ({ ...lesson, teacher_name: names.get(lesson.teacher ?? "") ?? lesson.teacher_name }));
   return catalog;
 });
 

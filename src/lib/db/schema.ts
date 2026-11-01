@@ -177,6 +177,8 @@ export const mentionLinks = pgTable(
 export const faces = pgTable("faces", {
   teacherId: text("teacher_id").primaryKey(),
   storageKey: text("storage_key").notNull(),
+  drawn: boolean("drawn").notNull().default(true),
+  source: text("source"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

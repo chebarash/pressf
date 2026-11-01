@@ -6,6 +6,8 @@ import {
 import { env } from "@/lib/env";
 import type { School, Teacher } from "./types";
 
+import { syncPhotos } from "./photos";
+
 type Envelope<T> = { updated_at?: string; items?: T[]; next_offset?: number | null } & Record<string, unknown>;
 
 async function get<T>(path: string, timeout = 30_000): Promise<Envelope<T>> {
@@ -124,6 +126,7 @@ export async function syncCatalog() {
   await task("teachers", async () => {
     const teachers = (await saveList("teachers", await get<Teacher>("/api/faculty"))) as Teacher[];
     await mergeTeacherIds(teachers);
+    await task("photos", () => syncPhotos(teachers));
   });
   for (const [key, path] of [["courses", "/api/courses"], ["timetable", "/api/timetable"], ["groups", "/api/groups"]] as const) {
     await task(key, async () => { await saveList(key, await get(path)); });
