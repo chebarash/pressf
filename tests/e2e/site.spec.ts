@@ -18,7 +18,7 @@ test("home opens with search on the F key", async ({ page, isMobile }) => {
   test.skip(isMobile, "No keyboard on a phone");
   await pressF(page);
   await page.getByRole("textbox", { name: "Search" }).fill("math111");
-  await expect(page.getByRole("button", { name: /Calculus 1/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Calculus 1/ }).first()).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/courses\/MATH111/);
 });
