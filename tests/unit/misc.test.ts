@@ -1,3 +1,4 @@
+import { standardName } from "@/lib/telegram/store";
 import { describe, expect, it } from "vitest";
 import { isStale, normalizeCode, type Catalog } from "@/lib/catalog";
 import { isAdminEmail } from "@/lib/env";
@@ -47,4 +48,12 @@ describe("telegram text", () => {
     expect(caption).toContain("&lt;x&gt;");
     expect(caption).toContain("Course: ?");
   });
+});
+
+describe("standardName", () => {
+  const file = { fileName: "scan_final (2).pdf", courseCode: "MATH111", courseName: "Calculus 1", type: "final", term: "Fall 2024", hasSolutions: false, author: null };
+  it("orders course, kind and term", () => expect(standardName(file)).toBe("Calculus 1 Final Fall 2024.pdf"));
+  it("adds solutions and the author last", () => expect(standardName({ ...file, type: "mock", hasSolutions: true, author: "Meros" })).toBe("Calculus 1 Mock Fall 2024 Solutions by Meros.pdf"));
+  it("leaves out what is unknown", () => expect(standardName({ ...file, term: null })).toBe("Calculus 1 Final.pdf"));
+  it("keeps a book's title and the extension", () => expect(standardName({ ...file, type: "textbook", fileName: "Calculus_9th.docx" })).toBe("Calculus 1 Textbook Calculus 9th.docx"));
 });
