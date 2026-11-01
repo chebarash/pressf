@@ -57,7 +57,7 @@ async function main() {
   }
 
   if (base) {
-    await call("setWebhook", { url: `${base.replace(/\/$/, "")}/api/telegram/files`, secret_token: secret, allowed_updates: ["message", "callback_query"] });
+    await call("setWebhook", { url: `${base.replace(/\/$/, "")}/api/telegram/files`, secret_token: secret, allowed_updates: ["message", "callback_query", "inline_query"] });
     await call("setChatMenuButton", { menu_button: { type: "web_app", text: "Open Press F", web_app: { url: base } } });
   }
   process.exit(0);

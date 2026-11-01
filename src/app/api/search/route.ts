@@ -1,24 +1,15 @@
-import { ilike, eq, and } from "drizzle-orm";
-import { getCatalog } from "@/lib/catalog";
 import { db } from "@/lib/db";
-import { materials, searchEvents } from "@/lib/db/schema";
-
-const fold = (text: string) => text.toLowerCase().normalize("NFKD").replace(/[̀-ͯ'’`]/g, "").replace(/[^a-z0-9а-я ]/g, " ");
+import { searchEvents } from "@/lib/db/schema";
+import { search } from "@/lib/search";
 
 export async function GET(request: Request) {
-  const q = fold(new URL(request.url).searchParams.get("q") ?? "").trim();
-  const { courses, teachers } = await getCatalog();
-  const hits = (value: string) => !q || q.split(/\s+/).every((word) => fold(value).includes(word));
+  const query = new URL(request.url).searchParams.get("q") ?? "";
+  const { courses, teachers, files } = await search(query, { courses: query.trim() ? 5 : 3, teachers: 4, files: 3 });
   const results = [
-    ...courses.filter((c) => hits(`${c.code} ${c.subject} ${c.aliases.join(" ")}`)).slice(0, q ? 5 : 3)
-      .map((c) => ({ kind: "Course", id: c.code, title: c.subject, subtitle: c.code, href: `/courses/${c.code}` })),
-    ...(q ? teachers.filter((t) => hits(`${t.name} ${t.display_name}`)).slice(0, 4)
-      .map((t) => ({ kind: "Professor", id: t.id, title: t.display_name, subtitle: t.department ?? "Staff", href: `/professors/${t.id}` })) : []),
+    ...courses.map((c) => ({ kind: "Course", id: c.code, title: c.subject, subtitle: c.code, href: `/courses/${c.code}` })),
+    ...teachers.map((t) => ({ kind: "Professor", id: t.id, title: t.display_name, subtitle: t.department ?? "Staff", href: `/professors/${t.id}` })),
+    ...files.map((f) => ({ kind: "File", id: f.id, title: f.fileName, subtitle: f.courseCode ?? "", href: `/files/${f.id}` })),
   ];
-  if (q) {
-    const files = await db().select().from(materials).where(and(eq(materials.status, "approved"), ilike(materials.fileName, `%${q.replace(/[%_]/g, "")}%`))).limit(3);
-    results.push(...files.map((f) => ({ kind: "File", id: f.id, title: f.fileName, subtitle: f.courseCode ?? "", href: `/files/${f.id}` })));
-  }
   return Response.json({ results });
 }
 

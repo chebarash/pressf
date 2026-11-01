@@ -1,7 +1,7 @@
 import { env } from "@/lib/env";
 
 export type InlineKeyboard = {
-  inline_keyboard: Array<Array<{ text: string; callback_data?: string; url?: string }>>;
+  inline_keyboard: Array<Array<{ text: string; callback_data?: string; url?: string; switch_inline_query_current_chat?: string }>>;
 };
 
 type TelegramDocument = {
@@ -30,6 +30,7 @@ export type TelegramUpdate = {
     data?: string;
     message?: TelegramMessage;
   };
+  inline_query?: { id: string; query: string; offset: string };
 };
 
 const url = (method: string) =>
@@ -63,6 +64,15 @@ export const sendMessage = (chatId: number | string, text: string, replyMarkup?:
 
 export const sendPhoto = (chatId: number | string, photo: string, caption: string, replyMarkup?: InlineKeyboard) =>
   call<TelegramMessage>("sendPhoto", { chat_id: chatId, photo, caption, parse_mode: "HTML", reply_markup: replyMarkup });
+
+export const answerInlineQuery = (id: string, results: object[], nextOffset: string, site: string) =>
+  call<boolean>("answerInlineQuery", {
+    inline_query_id: id,
+    results,
+    next_offset: nextOffset,
+    cache_time: 300,
+    button: { text: "Open Press F", web_app: { url: site } },
+  });
 
 export const answerCallback = (id: string, text?: string) =>
   call<boolean>("answerCallbackQuery", {

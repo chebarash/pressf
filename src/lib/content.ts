@@ -30,6 +30,13 @@ export const publishedFiles = cache(async (code?: string) => {
   return db().select().from(materials).where(where).orderBy(desc(materials.publishedAt)).limit(code ? 200 : 100);
 });
 
+/** A file anyone may download: approved, and stored. */
+export async function publishedFile(id: string) {
+  if (!/^[0-9a-f-]{36}$/.test(id)) return null;
+  const [file] = await db().select().from(materials).where(eq(materials.id, id));
+  return file?.storageKey && file.status === "approved" ? file : null;
+}
+
 export async function mentionsFor(kind: "course" | "teacher" | Array<string>, target?: string, limit = 3) {
   const targets = Array.isArray(kind) ? kind : [target!];
   const linkKind = Array.isArray(kind) ? "course" : kind;
