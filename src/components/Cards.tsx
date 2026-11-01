@@ -1,13 +1,13 @@
 import { ViewTransition } from "react";
 import Link from "next/link";
-import { Arrow, Face, Score, Tag, tags } from "./ui";
+import { Arrow, Face, Score, Tag, tags, viewName } from "./ui";
 
 export function CourseCard({ code, name, score, meta }: { code: string; name: string; score?: number | null; meta: string }) {
   return (
     <Link className="card course-card" href={`/courses/${code}`}>
       <div className="stack" style={{ "--gap": "8px" } as React.CSSProperties}>
         <div><Tag tone="accent-tag">{code}</Tag></div>
-        <h3 className="d-xs">{name}</h3>
+        <ViewTransition name={`course-${viewName(code)}`}><h3 className="d-xs">{name}</h3></ViewTransition>
       </div>
       <div className="row between course-meta"><span className="small soft grow">{meta}</span><Score value={score} /></div>
     </Link>
