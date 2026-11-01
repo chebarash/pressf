@@ -7,7 +7,7 @@ Next.js on Railway with Postgres and S3-compatible storage.
 
 - Teachers, courses, timetable, groups, schools and curricula come from the
   `anonymous` bot API (`docs/BOT_API_REQUEST.md`) and are never edited here.
-- `POST /api/cron/sync` copies them into `catalog_cache` daily. The site reads only
+- `POST /api/cron/sync` copies them into `catalog_cache` nightly. The site reads only
   its own database, so it opens when the bot is down.
 - Ratings hang on teacher ids. Sync moves them when `previous_ids` changes an id, and
   old `/professors/{id}` links redirect through `teacher_aliases`.
@@ -27,5 +27,5 @@ Next.js on Railway with Postgres and S3-compatible storage.
 ## Deploy on Railway
 
 1. Add Postgres and a bucket, set the variables from `.env.example`.
-2. Add a cron service that calls `/api/cron/sync` with `Authorization: Bearer $CRON_SECRET`.
+2. Set the `CRON_SECRET` secret and `SITE_URL` variable on GitHub. `.github/workflows/sync.yml` calls `/api/cron/sync` at 02:30 UTC, after the bot finishes its rebuild.
 3. Run `npx tsx scripts/files-bot-setup.ts https://pressf.chebarash.uz`.
