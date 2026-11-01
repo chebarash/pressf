@@ -48,7 +48,7 @@ a.card:active { transform: translateY(5px); box-shadow: none; }
 .nav a.link { font-weight: 500; font-size: 15px; }
 .nav a.link:hover, .nav a.link.here { color: var(--text-accent); }
 .footer { padding-block: 40px; }
-.tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-block: 8px; }
+.tabs { position: relative; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-block: 8px; }
 .tab { flex: none; min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 999px; font-weight: 500; font-size: 15px; cursor: pointer; background: none; border: 0; }
 .tab:hover { background: var(--sunken); }
 .tabs.even .tab { flex: 1; justify-content: center; padding: 0 8px; }
@@ -162,7 +162,7 @@ a.card:active { transform: translateY(5px); box-shadow: none; }
 .post-short { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
 .post-full { white-space: pre-wrap; overflow-wrap: anywhere; }
 .tab { gap: 8px; }
-.tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--sunken); color: var(--text-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tab-count { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--sunken); color: var(--text-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .tab.on .tab-count { background: color-mix(in srgb, var(--text-inv) 18%, transparent); color: var(--text-inv); }
 .tab { transition: background var(--dur-fast) ease, color var(--dur-fast) ease; }
 section[id] { scroll-margin-top: 136px; }

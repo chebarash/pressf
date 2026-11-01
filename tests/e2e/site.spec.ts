@@ -288,6 +288,7 @@ test("Schools opens the list of schools, even with a group", async ({ page, isMo
 
 test("a course page rates a chosen professor", async ({ page }) => {
   await page.goto("/courses/MATH111");
+  expect(await noSideScroll(page)).toBe(true);
   const dialog = page.getByRole("dialog");
   await expect(async () => {
     await page.getByRole("button", { name: "Rate this course" }).click({ timeout: 2000 });
