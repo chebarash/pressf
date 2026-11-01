@@ -285,7 +285,11 @@ section[id] { scroll-margin-top: 136px; }
 .select.on select { background: var(--accent); color: var(--on-accent); }
 .select.on::after { color: var(--on-accent); }
 .tile.off { opacity: .55; box-shadow: none; border-style: dashed; }
-.pdf-viewer { position: fixed; inset: 0; z-index: 60; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--sunken); padding: calc(var(--tg-top, 0px) + 8px) 0 calc(var(--tg-bottom, 0px) + 72px); display: grid; gap: 8px; align-content: start; }
-.pdf-page { width: 100%; background: #FFFFFF; }
+.pdf-viewer { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: var(--sunken); padding-top: var(--tg-top, 0px); }
+.pdf-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--page); border-bottom: 2px solid var(--subtle); }
+.pdf-bar .key { margin-bottom: 5px; }
+.pdf-title { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 500; font-size: 14px; }
+.pdf-pages { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; display: grid; gap: 8px; align-content: start; padding-bottom: calc(var(--tg-bottom, 0px) + 72px); }
+.pdf-page { background: #FFFFFF; }
 .pdf-page canvas { display: block; width: 100%; height: 100%; }
 .pdf-loading { padding: 48px 16px; text-align: center; }

@@ -1,0 +1,1 @@
+ALTER TABLE "materials" ADD COLUMN "shared_file_id" text;

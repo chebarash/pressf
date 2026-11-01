@@ -86,6 +86,8 @@ export const materials = pgTable(
     caption: text("caption"),
     telegramFileId: text("telegram_file_id"),
     telegramFileUniqueId: text("telegram_file_unique_id").unique(),
+    /** Telegram's id for the branded copy, so sending it again needs no upload. */
+    sharedFileId: text("shared_file_id"),
     sha256: text("sha256").unique(),
     storageKey: text("storage_key"),
     originalKey: text("original_key"),

@@ -273,6 +273,33 @@ describe("sending a file to the mini app user", () => {
     expect((await ask(file.id, signed(77))).status).toBe(200);
     expect(sent[0]).toMatchObject({ method: "sendDocument", body: { chat_id: "77", document: "https://files.test/x" } });
   });
+  it("links to the public site, not the address behind the proxy", async () => {
+    const file = await publish();
+    await ask(file.id, signed(77));
+    expect(String(sent[0].body.reply_markup)).toContain(`${process.env.NEXTAUTH_URL}/courses/MATH111#files`);
+  });
+  it("uploads the file when Telegram cannot fetch it by URL", async () => {
+    const file = await publish();
+    const real = fetch;
+    let tries = 0;
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).endsWith("/sendDocument") && ++tries === 1) return Response.json({ ok: false, description: "Bad Request: failed to get HTTP URL content" });
+      if (String(url) === "https://files.test/x") return new Response("pdf");
+      return real(url, init);
+    }));
+    expect((await ask(file.id, signed(77))).status).toBe(200);
+    expect(sent.at(-1)!.body.document).toBeInstanceOf(File);
+  });
+  it("reuses Telegram's copy on the next send", async () => {
+    const file = await publish({ sharedFileId: "kept-id" });
+    await ask(file.id, signed(77));
+    expect(sent[0].body.document).toBe("kept-id");
+  });
+  it("asks for access when the bot may not write", async () => {
+    const file = await publish();
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ ok: false, description: "Forbidden: bots can't send messages to bots" })));
+    expect(await (await ask(file.id, signed(77))).json()).toEqual({ error: "no_access" });
+  });
   it("hides files under review", async () => {
     const file = await publish({ status: "pending" });
     expect((await ask(file.id, signed(77))).status).toBe(404);
@@ -281,5 +308,10 @@ describe("sending a file to the mini app user", () => {
     const file = await publish({ size: 60 * 1024 * 1024 });
     expect(await (await ask(file.id, signed(77))).json()).toEqual({ error: "too_big" });
   });
+  it("greets in text when the picture cannot be sent", async () => {
+    const real = fetch;
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => (String(url).endsWith("/sendPhoto") ? Response.json({ ok: false, description: "Bad Request: failed to get HTTP URL content" }) : real(url, init))));
+    await post({ message: { message_id: 1, chat: { id: 7, type: "private" }, text: "/start" } });
+    expect(methods()).toContain("sendMessage");
+  });
 });
-
