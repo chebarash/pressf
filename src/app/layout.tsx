@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   description: "Courses, teachers, files and timetables for New Uzbekistan University students.",
   icons: { icon: "/favicon.svg", apple: "/apple-touch-icon.png" },
   manifest: "/site.webmanifest",
+  openGraph: { siteName: "Press F", type: "website", title: "Press F", description: "Courses, teachers, files and timetables for New Uzbekistan University students." },
 };
 
 const themeScript = `try{var t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t;else if(matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.dataset.theme="dark"}catch(e){}`;

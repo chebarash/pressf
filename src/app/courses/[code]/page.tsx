@@ -8,7 +8,7 @@ import { SectionTabs } from "@/components/SectionTabs";
 import { Arrow, Crumbs, Empty, SectionHead, Stat, Tag, viewName } from "@/components/ui";
 import { currentWeek } from "@/lib/calendar";
 import { findCourse, getCatalog, normalizeCode } from "@/lib/catalog";
-import { courseDetails, faceMap, mentionsFor, programsWith, publishedFiles, resolveRequirement, schoolOfCourse, unlocks } from "@/lib/content";
+import { courseDetails, faceMap, fileCounts, mentionsFor, programsWith, publishedFiles, resolveRequirement, schoolOfCourse, unlocks } from "@/lib/content";
 import { courseRatings, strengths, teacherRatings } from "@/lib/ratings";
 import { isStated } from "@/lib/syllabus";
 
@@ -18,7 +18,12 @@ const DAY = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export async function generateMetadata({ params }: Props) {
   const { code } = await params;
   const course = findCourse(await getCatalog(), code);
-  return { title: course?.subject ?? "Course" };
+  if (!course) return { title: "Course" };
+  const [ratings, counts] = await Promise.all([courseRatings(), fileCounts()]);
+  const rating = ratings.get(course.code);
+  const files = counts.get(course.code) ?? 0;
+  const description = [course.code, rating ? `Rated ${rating.overall.toFixed(1)} by students` : null, `${course.teachers.length} ${course.teachers.length === 1 ? "teacher" : "teachers"}`, files ? `${files} ${files === 1 ? "file" : "files"}` : null].filter(Boolean).join(" · ");
+  return { title: course.subject, description, openGraph: { title: course.subject, description } };
 }
 
 const COLORS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"];
