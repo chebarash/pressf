@@ -81,6 +81,17 @@ export function titleKey(title: string) {
 }
 
 /** A code alone is not proof: numbering moved between years, so the title must agree too. */
+/**
+ * The university renumbered courses, so a syllabus may carry an old code. The
+ * title decides then, unless two courses share it: those are told apart by hand.
+ */
+export function findSyllabusCourse(data: Pick<SyllabusData, "course_code" | "course_title">, courses: Course[]) {
+  if (matchesCourse(data, courses)) return normalizeCode(data.course_code);
+  const title = titleKey(data.course_title);
+  const same = courses.filter((course) => [course.subject, ...course.aliases].some((name) => titleKey(name) === title));
+  return same.length === 1 && !same[0].same_name_codes.length ? same[0].code : null;
+}
+
 export function matchesCourse(data: Pick<SyllabusData, "course_code" | "course_title">, courses: Course[]) {
   const course = courses.find((item) => item.code === normalizeCode(data.course_code));
   if (!course) return false;

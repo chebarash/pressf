@@ -12,7 +12,7 @@
   color-scheme: light;
 }
 :root[data-theme="dark"] {
-  --cover-filter: brightness(2.6) contrast(1.05);
+  --cover-filter: brightness(3.4) contrast(1.05);
   --page: #0E0E0D; --sunken: #070707; --surface: #1A1A18; --hover: #24241F; --inverse: #F5F0D6;
   --accent: #62B6C7; --accent-soft: #23302F; --text: #F5F0D6; --text-2: #A9A594; --text-inv: #0E0E0D;
   --text-accent: #62B6C7; --on-accent: #0E0E0D; --line: #34332D; --subtle: #2A2925; --edge: #000000;

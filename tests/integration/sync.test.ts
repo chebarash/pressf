@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCatalog, isStale } from "@/lib/catalog";
 import { mergeTeacherIds, syncCatalog } from "@/lib/catalog/sync";
 import { db } from "@/lib/db";
-import { catalogCache, faces, ratings, respects, teacherAliases, users } from "@/lib/db/schema";
+import { catalogCache, faces, mentionLinks, mentions, ratings, respects, teacherAliases, users } from "@/lib/db/schema";
 import { catalog, teacher } from "../fixtures/catalog";
 import { resetDb } from "../fixtures/db";
 
@@ -123,6 +123,36 @@ describe("mergeTeacherIds", () => {
   it("ignores an id listed as its own past", async () => {
     await mergeTeacherIds([teacher("same", { previous_ids: ["same"] })]);
     expect(await db().select().from(teacherAliases)).toEqual([]);
+  });
+});
+
+describe("mentions", () => {
+  const post = (id: number) => ({ post_id: id, url: `https://t.me/x/${id}`, text: `post ${id}`, date: "2026-10-01T00:00:00Z", links: [{ kind: "course", code: "MATH111" }] });
+  const channel = (posts: number[], ids: number[]) => (path: string) => {
+    if (path === "/api/mentions/export") return { items: posts.map(post), next_offset: null };
+    if (path === "/api/posts/ids") return { items: ids };
+    return body(path);
+  };
+
+  beforeEach(() => { vi.stubEnv("MENTIONS_SYNC", "on"); });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("stores posts with links and removes deleted ones", async () => {
+    stub(channel([1, 2, 3], [1, 2, 3]));
+    await syncCatalog();
+    stub(channel([1, 2], [1, 2, 3, 4].filter((id) => id !== 3)));
+    expect((await syncCatalog()).failed).toEqual([]);
+    expect((await db().select().from(mentions)).map((row) => row.postId).sort()).toEqual([1, 2]);
+    expect(await db().select().from(mentionLinks)).toHaveLength(2);
+  });
+
+  it("does not wipe posts when the id list looks broken", async () => {
+    stub(channel([1, 2, 3], [1, 2, 3]));
+    await syncCatalog();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    stub(channel([], []));
+    expect((await syncCatalog()).failed).toContain("mentions");
+    expect(await db().select().from(mentions)).toHaveLength(3);
   });
 });
 

@@ -94,4 +94,4 @@ a.card:active { transform: translateY(5px); box-shadow: none; }
 
 .hero-cover { position: relative; isolation: isolate; overflow: hidden; }
 .hero-cover::before { content: ""; position: absolute; inset: 0; z-index: -2; background: url(/cover.png) center/cover; filter: var(--cover-filter); }
-.hero-cover::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, color-mix(in srgb, var(--page) 72%, transparent), color-mix(in srgb, var(--page) 12%, transparent) 75%), linear-gradient(transparent 60%, var(--page)); }
+.hero-cover::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, color-mix(in srgb, var(--page) 58%, transparent), transparent 70%), linear-gradient(transparent 72%, var(--page)); }
