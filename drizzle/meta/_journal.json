@@ -29,6 +29,20 @@
       "when": 1793529861058,
       "tag": "0003_standard_file_names",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793533776463,
+      "tag": "0004_rating_per_course",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793534483880,
+      "tag": "0005_term_courses",
+      "breakpoints": true
     }
   ]
 }

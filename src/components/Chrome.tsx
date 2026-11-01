@@ -15,6 +15,7 @@ export function Nav({ user, group }: { user: CurrentUser | null; group: string |
           <Link className="link" href="/courses">Courses</Link>
           <Link className="link" href="/professors">Professors</Link>
           <Link className="link" href="/files">Files</Link>
+          <Link className="link" href="/timetable">Timetable</Link>
           <Link className="link" href="/calendar">Calendar</Link>
         </nav>
         <div className="row nav-tools">
@@ -38,8 +39,8 @@ export async function StaleNotice() {
 export function Footer() {
   return (
     <footer className="wrap footer row between">
-      <span className="d-xs serif">Made with love by <a className="link" href="https://chebarash.uz" target="_blank" rel="noreferrer">chebarash</a></span>
-      <span className="small soft">Issues or ideas? <a className="link accent" href="https://t.me/pupressfbot" target="_blank" rel="noreferrer">Reach out on Telegram</a>.<br />Data refreshes daily from the <a className="link accent" href="https://newuu.uz" target="_blank" rel="noreferrer">university</a> timetable.</span>
+      <span className="d-xs serif">Made with love by <a className="ref" href="https://chebarash.uz" target="_blank" rel="noreferrer">chebarash</a></span>
+      <span className="small soft">Issues or ideas? <a className="ref accent" href="https://t.me/pupressfbot" target="_blank" rel="noreferrer">Reach out on Telegram</a>.<br />Data refreshes daily from the <a className="ref accent" href="https://newuu.uz" target="_blank" rel="noreferrer">university</a> timetable.</span>
     </footer>
   );
 }

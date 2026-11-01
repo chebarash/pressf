@@ -11,7 +11,7 @@ import { findTeacher, getCatalog } from "@/lib/catalog";
 import { faceMap, mentionsFor } from "@/lib/content";
 import { db } from "@/lib/db";
 import { syllabi, teacherAliases } from "@/lib/db/schema";
-import { respectCount, teacherRatings } from "@/lib/ratings";
+import { ownRatings, pickScores, respectCount, teacherRatings } from "@/lib/ratings";
 import { isStated, termRank } from "@/lib/syllabus";
 
 type Props = { params: Promise<{ id: string }> };
@@ -38,6 +38,7 @@ export default async function ProfessorPage({ params }: Props) {
   const [user, ratings, respects, mentioned, faces, rows] = await Promise.all([
     getUser(), teacherRatings(), respectCount(id), mentionsFor({ kind: "teacher", teacher }), faceMap(), db().select().from(syllabi).where(eq(syllabi.matched, true)),
   ]);
+  const own = user ? await ownRatings(user.id, { teacherId: id }) : [];
   const courses = teacher.teaches.map((code) => catalog.courses.find((c) => c.code === code)).filter((c) => !!c);
   const lessons = catalog.timetable.filter((l) => l.teacher === id);
   const seen = new Set<string>();
@@ -56,13 +57,13 @@ export default async function ProfessorPage({ params }: Props) {
             <ViewTransition name={`name-${id}`}><h1 className="d-title">{teacher.display_name}</h1></ViewTransition>
             <div className="stack" style={{ "--gap": "4px" } as React.CSSProperties}>
               {(teacher.department ?? teacher.position) && <div className="label">{teacher.department ?? teacher.position}</div>}
-              {teacher.email && <div className="row soft" style={{ "--gap": "8px" } as React.CSSProperties}>{Icons.mail()}<a className="link" href={`mailto:${teacher.email}`}>{teacher.email}</a></div>}
+              {teacher.email && <div className="row soft" style={{ "--gap": "8px" } as React.CSSProperties}>{Icons.mail()}<a className="ref" href={`mailto:${teacher.email}`}>{teacher.email}</a></div>}
               {office && <div className="row soft" style={{ "--gap": "8px" } as React.CSSProperties}>{Icons.pin()}Office {office}</div>}
               {fromSyllabus && isStated(fromSyllabus.office_hours) && <div className="small soft">Office hours by syllabus: {fromSyllabus.office_hours}</div>}
             </div>
             <div className="row" style={{ "--gap": "32px" } as React.CSSProperties}>
               <RespectButton teacherId={id} count={respects} signedIn={!!user} />
-              <RateButton teacherId={id} name={teacher.display_name} courses={courses.map((c) => ({ code: c.code, subject: c.subject }))} signedIn={!!user} label="Rate this professor" />
+              <RateButton title={`Rate ${teacher.display_name}`} pick="Which course did you take?" signedIn={!!user} label="Rate this professor" options={courses.map((c) => ({ teacherId: id, courseCode: c.code, label: c.subject, given: own.find((row) => row.courseCode === c.code) ? pickScores(own.find((row) => row.courseCode === c.code)!) : undefined }))} />
             </div>
           </div>
         </div>

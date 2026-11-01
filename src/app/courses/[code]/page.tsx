@@ -3,13 +3,15 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { ViewTransition } from "react";
 import { FileRow, MentionCard, TeacherCard } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
+import { RateButton } from "@/components/RatePanel";
 import { WeekList } from "@/components/WeekList";
 import { SectionTabs } from "@/components/SectionTabs";
 import { Arrow, Crumbs, Empty, SectionHead, Stat, Tag, viewName } from "@/components/ui";
 import { currentWeek } from "@/lib/calendar";
 import { findCourse, getCatalog, normalizeCode } from "@/lib/catalog";
 import { courseDetails, faceMap, fileCounts, mentionsFor, programsWith, publishedFiles, resolveRequirement, schoolOfCourse, unlocks } from "@/lib/content";
-import { courseRatings, strengths, teacherRatings } from "@/lib/ratings";
+import { getUser } from "@/lib/auth";
+import { courseRatings, ownRatings, pairRatings, pickScores, strengths } from "@/lib/ratings";
 import { isStated } from "@/lib/syllabus";
 
 type Props = { params: Promise<{ code: string }>; searchParams: Promise<{ files?: string }> };
@@ -38,8 +40,10 @@ export default async function CoursePage({ params, searchParams }: Props) {
   const code = course.code;
 
   const [details, files, mentioned, ratings, teacherScores, faces, opens] = await Promise.all([
-    courseDetails(code), publishedFiles(code), mentionsFor({ kind: "course", course }), courseRatings(), teacherRatings(), faceMap(), unlocks(code, catalog),
+    courseDetails(code), publishedFiles(code), mentionsFor({ kind: "course", course }), courseRatings(), pairRatings(code), faceMap(), unlocks(code, catalog),
   ]);
+  const user = await getUser();
+  const own = user ? await ownRatings(user.id, { courseCode: code }) : [];
   const data = details?.data;
   const teachers = course.teachers.map((id) => catalog.teachers.find((t) => t.id === id)).filter((t) => !!t);
   const programs = programsWith(code, catalog);
@@ -69,10 +73,13 @@ export default async function CoursePage({ params, searchParams }: Props) {
               {programs.length > 0 && <Tag>{programs.length} {programs.length === 1 ? "program" : "programs"}</Tag>}
             </div>
             <ViewTransition name={`course-${viewName(code)}`}><h1 className="d-title">{course.subject}</h1></ViewTransition>
-            {syllabusFile && <div><a className="key btn sm" href={`/files/${syllabusFile.id}`} target="_blank" rel="noreferrer">Syllabus</a></div>}
+            <div className="row" style={{ "--gap": "12px" } as React.CSSProperties}>
+              <RateButton title={`Rate ${course.subject}`} subtitle={teachers.length === 1 ? `With ${teachers[0].display_name}. Other students never see who rated.` : undefined} pick="Who taught you?" signedIn={!!user} label="Rate this course" options={teachers.map((t) => { const given = own.find((row) => row.teacherId === t.id); return { teacherId: t.id, courseCode: code, label: t.display_name, face: faces.get(t.id) ?? null, given: given ? pickScores(given) : undefined }; })} />
+              {syllabusFile && <a className="key btn" href={`/files/${syllabusFile.id}`} target="_blank" rel="noreferrer">Syllabus</a>}
+            </div>
             {data?.description && <p className="body-lg" style={{ maxWidth: "62ch", display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{data.description}</p>}
           </div>
-          <RatingPanel rating={ratings.get(code)} label="Rate a teacher to start" />
+          <RatingPanel rating={ratings.get(code)} label="Rate this course to start" across={ratings.get(code)?.teachers} />
         </div>
         {(ects || data) && (
           <div className="row" style={{ "--gap": "48px" } as React.CSSProperties}>
@@ -146,7 +153,7 @@ export default async function CoursePage({ params, searchParams }: Props) {
         </section>
 
         <section id="teachers" className="section">
-          <h2 className="d-md">Who teaches it</h2>
+          <div className="row between"><h2 className="d-md">Who teaches it</h2>{teachers.length > 0 && <span className="small soft">Scores here are for this course only.</span>}</div>
           {teachers.length === 0 ? <p className="soft">Not in the timetable this term.</p> : <div className="grid-2" style={{ gap: 24 }}>{teachers.map((t) => {
             const info = t.email ? instructors.get(t.email.toLowerCase()) : undefined;
             const office = [isStated(info?.office) && `Office ${info!.office}`, isStated(info?.office_hours) && info!.office_hours].filter(Boolean).join(", ");

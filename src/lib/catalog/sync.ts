@@ -1,9 +1,13 @@
 import { eq, inArray, sql } from "drizzle-orm";
+import { activeTerm, tashkentNow } from "@/lib/calendar";
+import { runningNow } from "@/lib/curriculum";
 import { db } from "@/lib/db";
 import {
   catalogCache, faces, mentionLinks, mentions, ratings, respects, teacherAliases,
+  termCourses,
 } from "@/lib/db/schema";
 import { env } from "@/lib/env";
+import { getCatalog } from "./index";
 import type { School, Teacher } from "./types";
 
 type Envelope<T> = { updated_at?: string; items?: T[]; next_offset?: number | null } & Record<string, unknown>;
@@ -58,13 +62,13 @@ export async function mergeTeacherIds(teachers: Teacher[]) {
       }
       await tx.execute(sql`
         delete from ratings stale using ratings keep
-        where stale.user_id = keep.user_id
+        where stale.user_id = keep.user_id and stale.course_code = keep.course_code
           and stale.teacher_id in (${sql.join(old.map((id) => sql`${id}`), sql`, `)})
           and keep.teacher_id = ${teacher.id}
           and stale.updated_at <= keep.updated_at`);
       await tx.execute(sql`
         delete from ratings keep using ratings stale
-        where stale.user_id = keep.user_id
+        where stale.user_id = keep.user_id and stale.course_code = keep.course_code
           and stale.teacher_id in (${sql.join(old.map((id) => sql`${id}`), sql`, `)})
           and keep.teacher_id = ${teacher.id}`);
       const updated = await tx.update(ratings).set({ teacherId: teacher.id }).where(inArray(ratings.teacherId, old)).returning({ id: ratings.id });
@@ -115,6 +119,18 @@ async function dropDeletedPosts() {
   if (gone.length) await db().delete(mentions).where(inArray(mentions.postId, gone));
 }
 
+/** Keeps what runs this term, so it survives the next term's timetable. */
+export async function saveTermCourses() {
+  const catalog = await getCatalog();
+  const term = activeTerm(tashkentNow());
+  for (const program of catalog.schools.flatMap((school) => school.programs)) {
+    for (const record of runningNow(program.slug, catalog, term)) {
+      const row = { program: program.slug, ...record, updatedAt: new Date() };
+      await db().insert(termCourses).values(row).onConflictDoUpdate({ target: [termCourses.program, termCourses.year, termCourses.term], set: row });
+    }
+  }
+}
+
 /** A failed endpoint keeps its old copy and does not stop the others. */
 export async function syncCatalog() {
   const failed: string[] = [];
@@ -148,6 +164,7 @@ export async function syncCatalog() {
       });
     }
   });
+  await task("terms", saveTermCourses);
   if (env().MENTIONS_SYNC === "on") await task("mentions", syncMentions);
 
   return { failed };

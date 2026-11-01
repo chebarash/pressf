@@ -1,4 +1,4 @@
-import { avg, count, eq, sql } from "drizzle-orm";
+import { and, avg, count, countDistinct, eq, sql } from "drizzle-orm";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { ratings, respects } from "@/lib/db/schema";
@@ -25,9 +25,21 @@ export const teacherRatings = cache(async () => {
 });
 
 export const courseRatings = cache(async () => {
-  const rows = await db().select({ id: ratings.courseCode, ...fields }).from(ratings).groupBy(ratings.courseCode);
+  const rows = await db().select({ id: ratings.courseCode, teachers: countDistinct(ratings.teacherId), ...fields }).from(ratings).groupBy(ratings.courseCode);
+  return new Map(rows.map((row) => [row.id, { ...parse(row), teachers: row.teachers }]));
+});
+
+/** What one teacher scores for one course, for the course page. */
+export const pairRatings = cache(async (code: string) => {
+  const rows = await db().select({ id: ratings.teacherId, ...fields }).from(ratings).where(eq(ratings.courseCode, code)).groupBy(ratings.teacherId);
   return new Map(rows.map((row) => [row.id, parse(row)]));
 });
+
+/** The student's own ratings, to open the form with what they gave before. */
+export const ownRatings = (userId: string, match: { teacherId: string } | { courseCode: string }) =>
+  db().select().from(ratings).where(and(eq(ratings.userId, userId), "teacherId" in match ? eq(ratings.teacherId, match.teacherId) : eq(ratings.courseCode, match.courseCode)));
+
+export const pickScores = (row: typeof ratings.$inferSelect) => ({ clarity: row.clarity, engagement: row.engagement, organization: row.organization, expertise: row.expertise, fairGrading: row.fairGrading });
 
 export const respectCounts = cache(async () => {
   const rows = await db().select({ id: respects.teacherId, value: count() }).from(respects).groupBy(respects.teacherId);
