@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, count, ilike } from "drizzle-orm";
+import { and, desc, eq, gte, count, ilike, inArray } from "drizzle-orm";
 import { cache } from "react";
 import { getCatalog, normalizeCode, type Catalog, type Course, type Teacher } from "@/lib/catalog";
 import { courseCertainty, teacherCertainty } from "@/lib/mention-match";
@@ -75,6 +75,14 @@ export async function mentionsFor(subject: MentionSubject, sort: "best" | "new" 
   const rated = rows.map((row) => ({ ...row, certainty: certainty(row.text) }));
   const rank = (row: (typeof rated)[number]) => (sort === "best" && row.certainty === "possible" ? 1 : 0);
   return rated.sort((a, b) => rank(a) - rank(b) || b.postId - a.postId);
+}
+
+/** The latest posts about any of these courses. */
+export async function postsAboutCourses(codes: string[], limit: number) {
+  if (!codes.length) return [];
+  return db().selectDistinct({ postId: mentions.postId, url: mentions.url, text: mentions.text, date: mentions.date }).from(mentions)
+    .innerJoin(mentionLinks, eq(mentionLinks.postId, mentions.postId))
+    .where(and(eq(mentionLinks.kind, "course"), inArray(mentionLinks.target, codes))).orderBy(desc(mentions.postId)).limit(limit);
 }
 
 /** The whole channel, newest first. */

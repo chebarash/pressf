@@ -18,7 +18,7 @@ export default async function TimetablePage({ searchParams }: Props) {
   const today = (new Date().getDay() + 6) % 7;
   return (
     <div className="wrap section">
-      <div className="row between"><div><h1 className="d-title">Timetable</h1><p className="soft">{group}{week ? ` · ${week.label}` : ""} · Updated daily</p></div><Link className="key btn sm" href="/me/group">View another group</Link></div>
+      <div className="row between"><div><h1 className="d-title">Timetable</h1><p className="soft">{group}{week ? ` · ${week.kind === "midterm" ? "Week 8, midterm exams" : week.label}` : ""} · Updated daily</p></div><Link className="key btn sm" href="/me/group">View another group</Link></div>
       {requested && mine && requested !== mine && <Banner href="/timetable" action={`Back to ${mine}`}>You are viewing {requested}. Your group is {mine}.</Banner>}
       {lessons.length ? <Timetable lessons={lessons} today={today} /> : <p className="soft">No classes found for {group}.</p>}
     </div>

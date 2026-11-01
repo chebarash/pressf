@@ -270,3 +270,13 @@ a.link:hover { text-decoration-color: currentColor; }
   .nav-tools { --gap: 12px; }
   .search { box-shadow: 0 5px 0 var(--edge); }
 }
+.tt-week { display: grid; gap: 8px; }
+.tt-head { display: grid; grid-template-columns: var(--gutter) repeat(var(--days), minmax(0, 1fr)); }
+.tt-body { position: relative; }
+.tt-hour { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid var(--subtle); }
+.tt-hour span { position: absolute; left: 0; top: -9px; padding-right: 6px; background: var(--page); }
+.tt-days { position: absolute; inset: 0 0 0 var(--gutter); display: grid; grid-template-columns: repeat(var(--days), minmax(0, 1fr)); }
+.tt-day { position: relative; }
+.tt-day .slot { position: absolute; overflow: hidden; align-content: start; z-index: 1; }
+.now-line { z-index: 2; }
+.banner.Warning > span:first-child { display: inline-flex; gap: 8px; align-items: center; }
