@@ -3,7 +3,7 @@ import type { Teacher } from "./types";
 const letters = (word: string) =>
   word.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^\p{L}]/gu, "");
 
-function distance(a: string, b: string) {
+export function distance(a: string, b: string) {
   let row = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {
     const next = [i];

@@ -1,6 +1,7 @@
-import { and, desc, eq, inArray, sql, gte, count } from "drizzle-orm";
+import { and, desc, eq, gte, count, ilike } from "drizzle-orm";
 import { cache } from "react";
-import { getCatalog, normalizeCode, type Catalog, type Course } from "@/lib/catalog";
+import { getCatalog, normalizeCode, type Catalog, type Course, type Teacher } from "@/lib/catalog";
+import { courseCertainty, teacherCertainty } from "@/lib/mention-match";
 import { db } from "@/lib/db";
 import { courseOverrides, faces, materials, mentionLinks, mentions, searchEvents, syllabi, type SyllabusData } from "@/lib/db/schema";
 import { termRank, titleKey } from "@/lib/syllabus";
@@ -37,14 +38,29 @@ export async function publishedFile(id: string) {
   return file?.storageKey && file.status === "approved" ? file : null;
 }
 
-export async function mentionsFor(kind: "course" | "teacher" | Array<string>, target?: string, limit = 3) {
-  const targets = Array.isArray(kind) ? kind : [target!];
-  const linkKind = Array.isArray(kind) ? "course" : kind;
-  const where = and(eq(mentionLinks.kind, linkKind), inArray(mentionLinks.target, targets.length ? targets : [""]));
+export type MentionSubject = { kind: "course"; course: Course } | { kind: "teacher"; teacher: Teacher };
+
+/** Every post linked to a course or person: sure matches first, then newest. */
+export async function mentionsFor(subject: MentionSubject, sort: "best" | "new" = "best") {
+  const target = subject.kind === "course" ? subject.course.code : subject.teacher.id;
   const rows = await db().selectDistinct({ postId: mentions.postId, url: mentions.url, text: mentions.text, date: mentions.date })
-    .from(mentions).innerJoin(mentionLinks, eq(mentionLinks.postId, mentions.postId)).where(where).orderBy(desc(mentions.postId)).limit(limit);
-  const [{ total }] = await db().select({ total: sql<number>`count(distinct ${mentionLinks.postId})` }).from(mentionLinks).where(where);
-  return { items: rows, total: Number(total) };
+    .from(mentions).innerJoin(mentionLinks, eq(mentionLinks.postId, mentions.postId))
+    .where(and(eq(mentionLinks.kind, subject.kind), eq(mentionLinks.target, target)));
+  const certainty = (text: string) => subject.kind === "course" ? courseCertainty(text, subject.course) : teacherCertainty(text, subject.teacher);
+  const rated = rows.map((row) => ({ ...row, certainty: certainty(row.text) }));
+  const rank = (row: (typeof rated)[number]) => (sort === "best" && row.certainty === "possible" ? 1 : 0);
+  return rated.sort((a, b) => rank(a) - rank(b) || b.postId - a.postId);
+}
+
+/** The whole channel, newest first. */
+export async function channelPosts(query: string, limit: number, offset = 0) {
+  const words = query.trim().split(/\s+/).filter(Boolean);
+  const where = and(...words.map((word) => ilike(mentions.text, `%${word.replace(/[%_]/g, "")}%`)));
+  const [items, [{ total }]] = await Promise.all([
+    db().select().from(mentions).where(where).orderBy(desc(mentions.postId)).limit(limit).offset(offset),
+    db().select({ total: count() }).from(mentions).where(where),
+  ]);
+  return { items, total };
 }
 
 export type Requirement = { text: string; code: string | null };

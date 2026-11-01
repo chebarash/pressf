@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { CourseCard, FileRow, TeacherRow } from "@/components/Cards";
+import { CourseCard, FileRow, MentionCard, TeacherRow } from "@/components/Cards";
 import { Palette } from "@/components/Palette";
 import { Arrow, Banner, SectionHead, Stat } from "@/components/ui";
 import { calendarHint } from "@/lib/calendar";
 import { getCatalog } from "@/lib/catalog";
-import { faceMap, popularCourses, publishedFiles, teacherLine } from "@/lib/content";
+import { channelPosts, faceMap, popularCourses, publishedFiles, teacherLine } from "@/lib/content";
 import { courseRatings, teacherRatings } from "@/lib/ratings";
 
 const TINT: Record<string, string> = { computing: "computing", engineering: "engineering", management: "management", humanities: "humanities", medicine: "medicine" };
 
 export default async function Home() {
   const catalog = await getCatalog();
-  const [popular, files, cScores, tScores, faces] = await Promise.all([popularCourses(catalog), publishedFiles(), courseRatings(), teacherRatings(), faceMap()]);
+  const [popular, files, cScores, tScores, faces, posts] = await Promise.all([popularCourses(catalog), publishedFiles(), courseRatings(), teacherRatings(), faceMap(), channelPosts("", 3)]);
   const best = catalog.teachers.filter((t) => tScores.get(t.id)).sort((a, b) => tScores.get(b.id)!.overall - tScores.get(a.id)!.overall).slice(0, 3);
   const hint = calendarHint();
   return (
@@ -56,6 +56,12 @@ export default async function Home() {
           <section className="section">
             <SectionHead title="Fresh from students" href="/files" action="All files" />
             <div className="stack" style={{ "--gap": "12px" } as React.CSSProperties}>{files.slice(0, 4).map((file) => <FileRow key={file.id} file={file} />)}</div>
+          </section>
+        )}
+        {posts.total > 0 && (
+          <section className="section">
+            <SectionHead title="What Anonymous says" href="/posts" action={`All ${posts.total} posts`} />
+            <div className="grid-3">{posts.items.map((m) => <MentionCard key={m.postId} mention={m} />)}</div>
           </section>
         )}
         {best.length > 0 && (

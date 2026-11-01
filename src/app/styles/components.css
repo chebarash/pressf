@@ -159,3 +159,11 @@ a.card:active { transform: translateY(5px); box-shadow: none; }
   *, *::before, *::after { animation-name: fade !important; animation-duration: 120ms !important; animation-delay: 0ms !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation-duration: 120ms !important; }
 }
+.post-short { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.post-full { white-space: pre-wrap; overflow-wrap: anywhere; }
+.tab { gap: 8px; }
+.tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--sunken); color: var(--text-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tab.on .tab-count { background: color-mix(in srgb, var(--text-inv) 18%, transparent); color: var(--text-inv); }
+.tab { transition: background var(--dur-fast) ease, color var(--dur-fast) ease; }
+section[id] { scroll-margin-top: 136px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
