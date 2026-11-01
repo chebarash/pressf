@@ -152,6 +152,12 @@ test("admin reaches syllabi and faces", async ({ page }) => {
 test("calendar and theme work", async ({ page }) => {
   await page.goto("/calendar");
   await expect(page.getByText("Midterm exams").first()).toBeVisible();
+  await page.getByRole("link", { name: "Spring", exact: true }).click();
+  await expect(page).toHaveURL(/term=spring/);
+  await expect(page.getByText("International Women's Day")).toBeVisible();
+  expect(await noSideScroll(page)).toBe(true);
+  const ics = await page.request.get("/calendar.ics");
+  expect(ics.headers()["content-type"]).toContain("text/calendar");
   await page.getByRole("button", { name: "Switch theme" }).click();
   const before = await page.evaluate(() => document.documentElement.dataset.theme);
   await page.reload();
