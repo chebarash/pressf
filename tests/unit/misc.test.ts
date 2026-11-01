@@ -1,4 +1,5 @@
-import { startPath } from "@/components/TelegramApp";
+import { startFile, startPath } from "@/components/TelegramApp";
+import { deepLink, startParam } from "@/lib/telegram/links";
 import { groupByCourse, shortTitle } from "@/lib/files";
 import { pageList } from "@/components/Pager";
 import { standardName } from "@/lib/telegram/store";
@@ -90,10 +91,23 @@ describe("startPath", () => {
   it("opens courses and professors", () => {
     expect(startPath("course_MATH111")).toBe("/courses/MATH111");
     expect(startPath("professor_g-pinto")).toBe("/professors/g-pinto");
+    expect(startPath("files_MATH111")).toBe("/courses/MATH111#files");
   });
   it("ignores anything else", () => {
     expect(startPath("evil_../admin")).toBeNull();
     expect(startPath(undefined)).toBeNull();
+  });
+});
+
+describe("deep links", () => {
+  const id = "2a771f96-9095-42c6-9a18-fde64b6f6c52";
+  it("makes a page into a start value and back", () => {
+    for (const path of ["/courses/MATH111", "/courses/MATH111#files", "/professors/g-pinto"]) expect(startPath(startParam(path))).toBe(path);
+    expect(startFile(startParam(`/files/${id}`))).toBe(id);
+  });
+  it("opens the app itself for anything it cannot carry", () => {
+    expect(deepLink()).toBe("https://t.me/pupressfbot?startapp");
+    expect(deepLink("/professors/gon%C3%A7alo")).toBe("https://t.me/pupressfbot?startapp");
   });
 });
 

@@ -8,6 +8,7 @@ import { extractSyllabus, findSyllabusCourse, syllabusFlags } from "@/lib/syllab
 import { answerCallback, downloadFile, editCaption, sendDocument, sendMessage, sendPhoto, TelegramMessage, TelegramUpdate } from "./api";
 import { classify, KnownCourse } from "./classify";
 import { handleInline } from "./inline";
+import { appButton } from "./links";
 import { standardName, storeMaterial } from "./store";
 
 export const MAX_FILE_SIZE = 20 * 1024 * 1024; // Bot API download limit
@@ -164,7 +165,7 @@ async function handleCallback(query: NonNullable<TelegramUpdate["callback_query"
   await readSyllabus(material, buffer);
   if (material.submitterChatId) {
     await sendPhoto(material.submitterChatId, `${site()}/bot/published.png`, TEXT.published(material.fileName), {
-      inline_keyboard: [[{ text: "Open the course", url: `${site()}/courses/${material.courseCode}#files` }]],
+      inline_keyboard: [[appButton("Open the course", `/courses/${material.courseCode}#files`)]],
     }).catch(() => {});
   }
 }
@@ -202,7 +203,7 @@ export async function handleUpdate(update: TelegramUpdate) {
   if (message.chat.type !== "private") return;
   if (message.document) return handleDocument(message);
   if (message.photo) return sendMessage(message.chat.id, TEXT.wrongType);
-  const open = { inline_keyboard: [[{ text: "Open Press F", url: site() }], [{ text: "Search", switch_inline_query_current_chat: "" }]] };
+  const open = { inline_keyboard: [[appButton("Open Press F")], [{ text: "Search", switch_inline_query_current_chat: "" }]] };
   // A failed picture must not leave the sender without an answer.
   return sendPhoto(message.chat.id, `${site()}/bot/welcome.png`, TEXT.start, open).catch(() => sendMessage(message.chat.id, TEXT.start, open));
 }
