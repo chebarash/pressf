@@ -46,7 +46,7 @@ export function RateButton({ teacherId, name, courses, signedIn, label }: { teac
             {!signedIn ? (
               <div className="stack" style={{ justifyItems: "center", textAlign: "center" }}>
                 <h2 className="d-sm">Sign in to pay respects</h2>
-                <p className="soft">Use your NUU student Google account. Other students never see who rated.</p>
+                <p className="soft">Use your NewUU student Google account. Other students never see who rated.</p>
                 <Link className="key btn" href="/sign-in">Continue with Google</Link>
                 <p className="small soft">Only @newuu.uz accounts can sign in.</p>
               </div>
