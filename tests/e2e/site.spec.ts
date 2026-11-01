@@ -234,9 +234,12 @@ test("the course tabs follow the page and show counts apart from labels", async 
     await expect(files).toHaveAttribute("aria-current", "location", { timeout: 1000 });
   }).toPass();
   await expect(tabs.getByRole("link", { name: "Overview" })).not.toHaveAttribute("aria-current", "location");
+  // The chosen tab holds through the jump, so the check starts once that is over.
+  await page.waitForTimeout(800);
   await expect(async () => {
+    await page.evaluate(() => window.scrollTo({ top: 60, behavior: "instant" }));
+    await page.waitForTimeout(100);
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-    await page.evaluate(() => window.scrollTo({ top: 1, behavior: "instant" }));
     await expect(tabs.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "location", { timeout: 500 });
   }).toPass();
 });
