@@ -182,3 +182,66 @@ describe("moderator commands", () => {
     expect(lastText()).toContain("review desk");
   });
 });
+
+describe("inline search", () => {
+  const ask = (query: string, offset = "") => post({ inline_query: { id: "q1", from: { id: 7 }, query, offset } });
+  const answer = () => sent.find((item) => item.method === "answerInlineQuery")!.body as { results: Array<Record<string, any>>; next_offset: string };
+  const publish = (extra: object = {}) => db().insert(materials).values({
+    status: "approved", courseCode: "MATH111", courseName: "Calculus 1", type: "midterm", term: "Fall 2023", fileName: "calculus-midterm.pdf",
+    mimeType: "application/pdf", size: 1000, storageKey: "materials/a-pressf.pdf", ...extra,
+  }).returning();
+
+  it("offers popular courses before anything is typed", async () => {
+    await ask("");
+    expect(answer().results.length).toBeGreaterThan(0);
+    expect(answer().results[0].type).toBe("article");
+  });
+  it("shares a course with a link back to the site", async () => {
+    await ask("calculus");
+    const course = answer().results.find((r) => r.title === "Calculus 1")!;
+    expect(course.input_message_content.message_text).toContain("<b>Calculus 1</b>");
+    expect(course.reply_markup.inline_keyboard[0][0].url).toMatch(/\/courses\/MATH111$/);
+  });
+  it("shares a professor with a face", async () => {
+    await ask("pinto");
+    const teacher = answer().results.find((r) => /Pinto/.test(r.title))!;
+    expect(teacher.thumbnail_url).toMatch(/pfp\.png$/);
+    expect(teacher.reply_markup.inline_keyboard[0][0].url).toContain("/professors/g-pinto");
+  });
+  it("sends a published PDF as a document under a lasting address", async () => {
+    const [file] = await publish();
+    await ask("math111 midterm");
+    const shared = answer().results.find((r) => r.type === "document")!;
+    expect(shared.document_url).toMatch(new RegExp(`/files/${file.id}/calculus-midterm\\.pdf$`));
+    expect(shared.caption).toContain("MATH111 Calculus 1");
+  });
+  it("links to files Telegram cannot send by URL", async () => {
+    await publish({ fileName: "slides.pptx", mimeType: "application/vnd.ms-powerpoint" });
+    await publish({ fileName: "huge.pdf", size: 30 * 1024 * 1024, storageKey: "materials/b.pdf" });
+    await ask("slides");
+    expect(answer().results.map((r) => r.type)).toContain("article");
+    sent = [];
+    await ask("huge");
+    expect(answer().results.every((r) => r.type === "article")).toBe(true);
+  });
+  it("never shows a file still under review", async () => {
+    await publish({ status: "pending", fileName: "secret.pdf" });
+    await ask("secret");
+    expect(answer().results).toEqual([]);
+  });
+  it("pages through long results", async () => {
+    await Promise.all(Array.from({ length: 25 }, (_, i) => publish({ fileName: `paged-${i}.pdf`, storageKey: `materials/${i}.pdf` })));
+    await ask("paged");
+    expect(answer().results).toHaveLength(20);
+    expect(answer().next_offset).toBe("20");
+    sent = [];
+    await ask("paged", "20");
+    expect(answer().results).toHaveLength(5);
+    expect(answer().next_offset).toBe("");
+  });
+  it("gives each result an id Telegram accepts", async () => {
+    await ask("calculus");
+    for (const result of answer().results) expect(Buffer.byteLength(result.id)).toBeLessThanOrEqual(64);
+  });
+});
+

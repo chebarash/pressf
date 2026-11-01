@@ -1,10 +1,11 @@
+import { ViewTransition } from "react";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { MentionCard } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
 import { RateButton, RespectButton } from "@/components/RatePanel";
-import { Face, SectionHead } from "@/components/ui";
+import { Arrow, Face, SectionHead } from "@/components/ui";
 import { getUser } from "@/lib/auth";
 import { findTeacher, getCatalog } from "@/lib/catalog";
 import { faceMap, mentionsFor } from "@/lib/content";
@@ -31,7 +32,7 @@ export default async function ProfessorPage({ params }: Props) {
     notFound();
   }
   const [user, ratings, respects, mentioned, faces, rows] = await Promise.all([
-    getUser(), teacherRatings(), respectCount(id), mentionsFor("teacher", id), faceMap(), db().select().from(syllabi).where(eq(syllabi.matched, true)),
+    getUser(), teacherRatings(), respectCount(id), mentionsFor({ kind: "teacher", teacher }), faceMap(), db().select().from(syllabi).where(eq(syllabi.matched, true)),
   ]);
   const courses = teacher.teaches.map((code) => catalog.courses.find((c) => c.code === code)).filter((c) => !!c);
   const lessons = catalog.timetable.filter((l) => l.teacher === id);
@@ -44,10 +45,10 @@ export default async function ProfessorPage({ params }: Props) {
   return (
     <>
       <div className="wrap section">
-        <div className="row" style={{ "--gap": "48px" } as React.CSSProperties}>
-          <Face name={teacher.display_name} src={faces.get(id)} size={240} />
+        <div className="row prof-head">
+          <ViewTransition name={`face-${id}`}><Face name={teacher.display_name} src={faces.get(id)} size={240} className="face-lg" /></ViewTransition>
           <div className="stack grow" style={{ flexBasis: 320 }}>
-            <h1 className="d-title">{teacher.display_name}</h1>
+            <ViewTransition name={`name-${id}`}><h1 className="d-title">{teacher.display_name}</h1></ViewTransition>
             <div className="stack" style={{ "--gap": "4px" } as React.CSSProperties}>
               {(teacher.department ?? teacher.position) && <div className="label">{teacher.department ?? teacher.position}</div>}
               {teacher.email && <div className="soft">{teacher.email}</div>}
@@ -68,10 +69,11 @@ export default async function ProfessorPage({ params }: Props) {
           {slots.length > 0 && <div className="stack" style={{ "--gap": "4px" } as React.CSSProperties}><h2 className="d-sm">This term</h2>{slots.map((l) => <div key={`${l.day}${l.starts}${l.code}`} className="row" style={{ padding: "10px 0", borderBottom: "2px solid var(--subtle)", flexWrap: "nowrap" }}><span className="label" style={{ width: 44 }}>{DAYS[l.day]}</span><span className="num" style={{ width: 56 }}>{l.starts}</span><span className="grow">{l.subject}</span><span className="small soft">{l.room}</span></div>)}</div>}
         </div>
       </div>
-      {mentioned.total > 0 && (
+      {mentioned.length > 0 && (
         <div className="band"><section className="wrap section">
           <div className="stack" style={{ "--gap": "8px" } as React.CSSProperties}><SectionHead title="What Anonymous says" /><p className="soft">Anonymous posts, unverified. Press F never edits them and every card links to the original.</p></div>
-          <div className="grid-3">{mentioned.items.map((m) => <MentionCard key={m.postId} mention={m} />)}</div>
+          <div className="grid-3">{mentioned.slice(0, 3).map((m) => <MentionCard key={m.postId} mention={m} />)}</div>
+          <Link className="ghost" href={`/posts?professor=${encodeURIComponent(id)}`}>{mentioned.length === 1 ? "Read the full post" : `All ${mentioned.length} posts`}<Arrow /></Link>
         </section></div>
       )}
     </>

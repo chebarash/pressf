@@ -20,7 +20,8 @@ import { GET as search, POST as track } from "@/app/api/search/route";
 import { chooseGroup, deleteRating, payRespect, rateTeacher, saveOverride } from "@/lib/actions";
 import { getCatalog } from "@/lib/catalog";
 import { authOptions } from "@/lib/auth";
-import { courseDetails, mentionsFor, popularCourses, programsWith, publishedFiles, resolveRequirement, teacherLine, unlocks } from "@/lib/content";
+import type { Teacher } from "@/lib/catalog";
+import { channelPosts, courseDetails, mentionsFor, popularCourses, programsWith, publishedFiles, resolveRequirement, teacherLine, unlocks } from "@/lib/content";
 import { db } from "@/lib/db";
 import { materials, mentionLinks, mentions, ratings, respects, searchEvents, syllabi, users } from "@/lib/db/schema";
 import { courseRatings, respectCount, teacherRatings, userRatings } from "@/lib/ratings";
@@ -170,11 +171,25 @@ describe("course content", () => {
   it("finds mentions by course and teacher, newest first, each post once", async () => {
     await db().insert(mentions).values([{ postId: 1, url: "u", text: "old", date: new Date("2026-01-01") }, { postId: 2, url: "u", text: "new", date: new Date("2026-02-01") }]);
     await db().insert(mentionLinks).values([{ postId: 1, kind: "course", target: "MATH111" }, { postId: 2, kind: "course", target: "MATH111" }, { postId: 2, kind: "course", target: "PHYS101" }, { postId: 2, kind: "teacher", target: "g-pinto" }]);
-    const course = await mentionsFor("course", "MATH111");
-    expect(course.items.map((m) => m.text)).toEqual(["new", "old"]);
-    expect(course.total).toBe(2);
-    expect((await mentionsFor("teacher", "g-pinto")).total).toBe(1);
-    expect((await mentionsFor(["MATH111", "PHYS101"])).items).toHaveLength(2);
+    const math = { code: "MATH111", subject: "Calculus 1", aliases: [], same_name_codes: [], teachers: [], classes: [] };
+    const course = await mentionsFor({ kind: "course", course: math });
+    expect(course.map((m) => m.text)).toEqual(["new", "old"]);
+    const pinto = { id: "g-pinto", display_name: "Gonçalo Pinto" } as Teacher;
+    expect(await mentionsFor({ kind: "teacher", teacher: pinto })).toHaveLength(1);
+  });
+  it("puts posts that name the subject before partial matches", async () => {
+    await db().insert(mentions).values([{ postId: 1, url: "u", text: "MATH111 was fine" }, { postId: 2, url: "u", text: "maths again" }]);
+    await db().insert(mentionLinks).values([{ postId: 1, kind: "course", target: "MATH111" }, { postId: 2, kind: "course", target: "MATH111" }]);
+    const math = { code: "MATH111", subject: "Calculus 1", aliases: [], same_name_codes: [], teachers: [], classes: [] };
+    expect((await mentionsFor({ kind: "course", course: math })).map((m) => [m.postId, m.certainty])).toEqual([[1, "exact"], [2, "possible"]]);
+    expect((await mentionsFor({ kind: "course", course: math }, "new")).map((m) => m.postId)).toEqual([2, 1]);
+  });
+  it("reads the whole channel by page and by word", async () => {
+    await db().insert(mentions).values([{ postId: 1, url: "u", text: "first post" }, { postId: 2, url: "u", text: "second post" }]);
+    expect((await channelPosts("", 1)).total).toBe(2);
+    expect((await channelPosts("", 1)).items[0].postId).toBe(2);
+    expect((await channelPosts("", 1, 1)).items[0].postId).toBe(1);
+    expect((await channelPosts("FIRST", 10)).items.map((m) => m.postId)).toEqual([1]);
   });
 });
 

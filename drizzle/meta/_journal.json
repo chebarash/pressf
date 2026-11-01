@@ -8,6 +8,20 @@
       "when": 1793496246446,
       "tag": "0000_free_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793504475163,
+      "tag": "0001_useful_wendell_rand",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793505046760,
+      "tag": "0002_mushy_imperial_guard",
+      "breakpoints": true
     }
   ]
 }

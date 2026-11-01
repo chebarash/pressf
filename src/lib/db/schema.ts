@@ -33,6 +33,7 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   group: text("group"),
+  telegramId: text("telegram_id").unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -159,7 +160,8 @@ export const mentions = pgTable(
     postId: integer("post_id").primaryKey(),
     url: text("url").notNull(),
     text: text("text").notNull(),
-    date: timestamp("date", { withTimezone: true }).notNull(),
+    /** Most posts come without a date, so ordering relies on the post id. */
+    date: timestamp("date", { withTimezone: true }),
   },
   (t) => [index("mentions_date").on(t.date)]
 );

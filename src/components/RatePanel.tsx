@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { payRespect, rateTeacher } from "@/lib/actions";
 import { CRITERIA } from "@/lib/criteria";
 
@@ -17,16 +17,23 @@ export function RateButton({ teacherId, name, courses, signedIn, label }: { teac
   const [pending, start] = useTransition();
   const complete = CRITERIA.every(([key]) => values[key]);
 
-  const pick = (key: string, n: number) => {
-    setValues((v) => ({ ...v, [key]: n }));
-    setTimeout(() => setStep((s) => Math.min(s + 1, CRITERIA.length - 1)), 120);
+  const form = useRef<HTMLDivElement>(null);
+
+  const pick = (index: number, n: number) => {
+    setValues((v) => ({ ...v, [CRITERIA[index][0]]: n }));
+    setStep(index);
+    setTimeout(() => {
+      const next = Math.min(index + 1, CRITERIA.length - 1);
+      setStep(next);
+      form.current?.querySelector<HTMLButtonElement>(`[data-criterion="${next}"]`)?.focus();
+    }, 120);
   };
 
   useEffect(() => {
     if (!open || done) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
-      if (/^[1-5]$/.test(event.key)) pick(CRITERIA[step][0], Number(event.key));
+      if (/^[1-5]$/.test(event.key)) pick(step, Number(event.key));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -42,11 +49,11 @@ export function RateButton({ teacherId, name, courses, signedIn, label }: { teac
       <button className="key btn primary" onClick={() => setOpen(true)}>{label}</button>
       {open && (
         <div className="scrim sheet" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
-          <div className="panel pad" role="dialog" aria-modal="true" aria-label={`Rate ${name}`}>
+          <div ref={form} className="panel pad" role="dialog" aria-modal="true" aria-label={`Rate ${name}`}>
             {!signedIn ? (
               <div className="stack" style={{ justifyItems: "center", textAlign: "center" }}>
                 <h2 className="d-sm">Sign in to pay respects</h2>
-                <p className="soft">Use your NUU student Google account. Other students never see who rated.</p>
+                <p className="soft">Use your NewUU student Google account. Other students never see who rated.</p>
                 <Link className="key btn" href="/sign-in">Continue with Google</Link>
                 <p className="small soft">Only @newuu.uz accounts can sign in.</p>
               </div>
@@ -69,10 +76,10 @@ export function RateButton({ teacherId, name, courses, signedIn, label }: { teac
                   </div>
                 )}
                 {CRITERIA.map(([key, title, hint], index) => (
-                  <div key={key} className="row between" style={{ opacity: index > step && !values[key] ? .6 : 1 }}>
+                  <div key={key} className={`row between rate-row ${index === step ? "current" : ""}`} style={{ opacity: index > step && !values[key] ? .6 : 1 }}>
                     <div><div className="label">{title}</div><div className="small soft">{hint}</div></div>
                     <div className="row" style={{ "--gap": "6px" } as React.CSSProperties}>
-                      {[1, 2, 3, 4, 5].map((n) => <button key={n} className={`key cap sm ${values[key] === n ? "on" : ""}`} onClick={() => { setStep(index); pick(key, n); }} aria-label={`${title} ${n}`}>{n}</button>)}
+                      {[1, 2, 3, 4, 5].map((n) => <button key={n} data-criterion={index} className={`key cap sm ${values[key] === n ? "on" : ""}`} onClick={() => pick(index, n)} aria-label={`${title} ${n}`}>{n}</button>)}
                     </div>
                   </div>
                 ))}
@@ -89,18 +96,26 @@ export function RateButton({ teacherId, name, courses, signedIn, label }: { teac
 export function RespectButton({ teacherId, count, signedIn }: { teacherId: string; count: number; signedIn: boolean }) {
   const [shown, setShown] = useState(count);
   const [paid, setPaid] = useState(false);
+  const [rolling, setRolling] = useState(false);
   const router = useRouter();
   const press = () => {
     if (!signedIn) { router.push("/sign-in"); return; }
     if (paid) return;
     setPaid(true);
     setShown((n) => n + 1);
+    setRolling(true);
     payRespect(teacherId);
   };
   return (
     <div className="row" style={{ "--gap": "12px" } as React.CSSProperties}>
-      <button className={`key cap ${paid ? "on" : ""}`} onClick={press} aria-label="Pay respect">F</button>
-      <div><div className="d-xs num">{shown}</div><div className="small soft">respects paid</div></div>
+      <span className="respect">
+        <button className={`key cap ${paid ? "on" : ""}`} onClick={press} aria-label="Pay respect">F</button>
+        {paid && <span className="fly" aria-hidden="true">F</span>}
+      </span>
+      <div>
+        <div className="d-xs num roll"><span className={rolling ? "rolling" : ""} onAnimationEnd={() => setRolling(false)}>{rolling && <span>{shown - 1}</span>}<span>{shown}</span></span></div>
+        <div className="small soft">respects paid</div>
+      </div>
     </div>
   );
 }

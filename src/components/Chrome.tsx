@@ -9,19 +9,20 @@ export function Nav({ user, group }: { user: CurrentUser | null; group: string |
   return (
     <header className="nav">
       <div className="wrap nav-in">
-        <Link href="/" className="serif" style={{ fontSize: 34, lineHeight: 1 }}>Press F</Link>
+        <Link href="/" className="serif logo">Press F</Link>
         <nav className="nav-links" aria-label="Main">
           <Link className="link" href="/schools">Schools</Link>
           <Link className="link" href="/courses">Courses</Link>
           <Link className="link" href="/professors">Professors</Link>
           <Link className="link" href="/files">Files</Link>
+          <Link className="link" href="/posts">Posts</Link>
           <Link className="link" href="/calendar">Calendar</Link>
           {group && <Link className="link accent" href="/me">My semester</Link>}
         </nav>
-        <div className="row" style={{ marginLeft: "auto", "--gap": "12px" } as React.CSSProperties}>
+        <div className="row nav-tools">
           <Palette />
           <ThemeToggle />
-          <Link className="chip" href="/me/group">{group ?? "Add group"}</Link>
+          <Link className="chip nav-chip" href="/me/group">{group ?? "Add group"}</Link>
           {user ? <Link className="key btn sm" href="/me/ratings">Me</Link> : <Link className="key btn sm" href="/sign-in">Sign in</Link>}
         </div>
       </div>
@@ -39,7 +40,7 @@ export async function StaleNotice() {
 export function Footer() {
   return (
     <footer className="wrap footer row between">
-      <span className="d-xs">Made with love by chebarash</span>
+      <span className="label">Made with love by chebarash</span>
       <span className="small soft">Issues or ideas? Reach out on Telegram.</span>
     </footer>
   );

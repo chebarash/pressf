@@ -19,6 +19,11 @@ async function main() {
   await db().insert(teacherAliases).values({ oldId: "gonçalo-pinto", teacherId: "g-pinto" });
   await db().insert(mentions).values({ postId: 1, url: "https://t.me/x/1", text: "Is MATH111 hard?", date: new Date() });
   await db().insert(mentionLinks).values({ postId: 1, kind: "course", target: "MATH111" });
+  await db().insert(mentions).values([
+    { postId: 2, url: "https://t.me/x/2", text: "Is Gonçalo around today? Someone found his card.", date: null },
+    { postId: 3, url: "https://t.me/x/3", text: "Pinto explains calculus really well.\nSecond line of the post stays visible.", date: null },
+  ]);
+  await db().insert(mentionLinks).values([{ postId: 2, kind: "teacher", target: "g-pinto" }, { postId: 3, kind: "teacher", target: "g-pinto" }]);
   process.exit(0);
 }
 

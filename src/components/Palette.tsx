@@ -10,6 +10,7 @@ export function Palette({ variant }: { variant?: "bar" }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Result[]>([]);
   const [active, setActive] = useState(0);
+  const [down, setDown] = useState(false);
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
 
@@ -22,7 +23,8 @@ export function Palette({ variant }: { variant?: "bar" }) {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key.toLowerCase() === "f" || event.key.toLowerCase() === "а") {
         event.preventDefault();
-        setOpen(true);
+        setDown(true);
+        setTimeout(() => { setDown(false); setOpen(true); }, 80);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -65,7 +67,7 @@ export function Palette({ variant }: { variant?: "bar" }) {
           <span className="key cap sm" aria-hidden="true" style={{ marginBottom: 0 }}>F</span>
         </button>
       ) : (
-        <button className="key cap sm" onClick={() => setOpen(true)} aria-label="Search">F</button>
+        <button className={`key cap sm ${down ? "down" : ""}`} onClick={() => setOpen(true)} aria-label="Search">F</button>
       )}
       {open && (
         <div className="scrim" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>

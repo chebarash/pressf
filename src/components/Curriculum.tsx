@@ -26,7 +26,7 @@ export function CurriculumBoard({ terms }: { terms: Term[] }) {
                       <button key={tile.code} className={`tile ${tile.type === "elective" ? "elective" : ""} ${selected?.code === tile.code ? "on" : ""} ${linked.has(tile.code) ? "linked" : ""}`} onClick={() => setSelected(tile)}>
                         <span className="row between label-sm soft"><span>{tile.code}</span>{tile.credits != null && <span>{tile.credits} ECTS</span>}</span>
                         <span className="label">{tile.subject}</span>
-                        {tile.files > 0 && <span className="label-sm soft">{tile.files} files</span>}
+                        {tile.files > 0 && <span className="label-sm soft">{tile.files} {tile.files === 1 ? "file" : "files"}</span>}
                       </button>
                     ))}
                   </div>
@@ -37,7 +37,7 @@ export function CurriculumBoard({ terms }: { terms: Term[] }) {
         ))}
       </div>
       {selected && (
-        <aside className="card" style={{ position: "sticky", top: 88, alignContent: "start" }}>
+        <aside key={selected.code} className="card slide-in" style={{ position: "sticky", top: 88, alignContent: "start" }}>
           <div><span className="tag accent-tag">{selected.code}</span><h2 className="d-sm">{selected.subject}</h2></div>
           {selected.needs.length > 0 && <p className="small"><span className="soft">Needs:</span> {selected.needs.join(", ")}</p>}
           {selected.unlocks.length > 0 && <p className="small"><span className="soft">Unlocks:</span> {selected.unlocks.join(", ")}</p>}
