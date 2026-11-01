@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { extractSyllabus, findSyllabusCourse, syllabusFlags } from "@/lib/syllabus";
 import { answerCallback, downloadFile, editCaption, sendDocument, sendMessage, sendPhoto, TelegramMessage, TelegramUpdate } from "./api";
 import { classify, KnownCourse } from "./classify";
+import { handleInline } from "./inline";
 import { storeMaterial } from "./store";
 
 export const MAX_FILE_SIZE = 20 * 1024 * 1024; // Bot API download limit
@@ -21,7 +22,7 @@ const site = () => env().NEXTAUTH_URL.replace(/\/$/, "");
 const review = () => env().TELEGRAM_FILES_REVIEW_CHAT_ID;
 
 const TEXT = {
-  start: "Send a syllabus, past exam, mock or notes as a file. Forwarding from a channel works too.\n\nAdd the course in the caption if the file name does not say it.",
+  start: "Send a syllabus, past exam, mock or notes as a file. Forwarding from a channel works too.\n\nAdd the course in the caption if the file name does not say it.\n\nTo find and share a course, professor or file, type @pupressfbot in any chat.",
   received: "Got it. We will check it and let you know.",
   duplicate: "We already have this file. Respect anyway.",
   wrongType: "Please send it as a PDF, DOCX or PPTX file.",
@@ -186,6 +187,7 @@ async function handleReviewReply(message: TelegramMessage) {
 }
 
 export async function handleUpdate(update: TelegramUpdate) {
+  if (update.inline_query) return handleInline(update.inline_query);
   if (update.callback_query) return handleCallback(update.callback_query);
   const message = update.message;
   if (!message) return;
@@ -201,6 +203,6 @@ export async function handleUpdate(update: TelegramUpdate) {
   if (message.document) return handleDocument(message);
   if (message.photo) return sendMessage(message.chat.id, TEXT.wrongType);
   return sendPhoto(message.chat.id, `${site()}/bot/welcome.png`, TEXT.start, {
-    inline_keyboard: [[{ text: "Open Press F", url: site() }]],
+    inline_keyboard: [[{ text: "Open Press F", url: site() }], [{ text: "Search", switch_inline_query_current_chat: "" }]],
   });
 }
