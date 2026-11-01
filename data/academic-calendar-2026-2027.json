@@ -1,0 +1,531 @@
+{
+ "academic_year": "2026-2027",
+ "source": "Academic calendar - 2026-2027.pdf",
+ "holidays": [
+  {
+   "date": "2026-09-01"
+  },
+  {
+   "date": "2026-10-01"
+  },
+  {
+   "date": "2026-12-08",
+   "note": "The PDF prints it on the Nov 30 row"
+  },
+  {
+   "date": "2027-03-08"
+  }
+ ],
+ "weeks": [
+  {
+   "order": 1,
+   "label": "Pre-semester",
+   "starts": "2026-08-31",
+   "ends": "2026-09-04",
+   "note": "Administrative start of semester. Fall course registration and course retake application.",
+   "term": "fall",
+   "week": null,
+   "kind": "registration"
+  },
+  {
+   "order": 2,
+   "label": "Induction",
+   "starts": "2026-09-07",
+   "ends": "2026-09-11",
+   "note": "Induction",
+   "term": "fall",
+   "week": null,
+   "kind": "induction"
+  },
+  {
+   "order": 3,
+   "label": "Week 1",
+   "starts": "2026-09-14",
+   "ends": "2026-09-18",
+   "note": null,
+   "term": "fall",
+   "week": 1,
+   "kind": "teaching"
+  },
+  {
+   "order": 4,
+   "label": "Week 2",
+   "starts": "2026-09-21",
+   "ends": "2026-09-25",
+   "note": null,
+   "term": "fall",
+   "week": 2,
+   "kind": "teaching"
+  },
+  {
+   "order": 5,
+   "label": "Week 3",
+   "starts": "2026-09-28",
+   "ends": "2026-10-02",
+   "note": null,
+   "term": "fall",
+   "week": 3,
+   "kind": "teaching"
+  },
+  {
+   "order": 6,
+   "label": "Week 4",
+   "starts": "2026-10-05",
+   "ends": "2026-10-09",
+   "note": null,
+   "term": "fall",
+   "week": 4,
+   "kind": "teaching"
+  },
+  {
+   "order": 7,
+   "label": "Week 5",
+   "starts": "2026-10-12",
+   "ends": "2026-10-16",
+   "note": null,
+   "term": "fall",
+   "week": 5,
+   "kind": "teaching"
+  },
+  {
+   "order": 8,
+   "label": "Week 6",
+   "starts": "2026-10-19",
+   "ends": "2026-10-23",
+   "note": null,
+   "term": "fall",
+   "week": 6,
+   "kind": "teaching"
+  },
+  {
+   "order": 9,
+   "label": "Week 7",
+   "starts": "2026-10-26",
+   "ends": "2026-10-30",
+   "note": null,
+   "term": "fall",
+   "week": 7,
+   "kind": "teaching"
+  },
+  {
+   "order": 10,
+   "label": "Week 8 — Exams",
+   "starts": "2026-11-02",
+   "ends": "2026-11-06",
+   "note": "FALL SEMESTER MIDTERM EXAM",
+   "term": "fall",
+   "week": 8,
+   "kind": "midterm"
+  },
+  {
+   "order": 11,
+   "label": "Week 9",
+   "starts": "2026-11-09",
+   "ends": "2026-11-13",
+   "note": null,
+   "term": "fall",
+   "week": 9,
+   "kind": "teaching"
+  },
+  {
+   "order": 12,
+   "label": "Week 10",
+   "starts": "2026-11-16",
+   "ends": "2026-11-20",
+   "note": null,
+   "term": "fall",
+   "week": 10,
+   "kind": "teaching"
+  },
+  {
+   "order": 13,
+   "label": "Week 11",
+   "starts": "2026-11-23",
+   "ends": "2026-11-27",
+   "note": null,
+   "term": "fall",
+   "week": 11,
+   "kind": "teaching"
+  },
+  {
+   "order": 14,
+   "label": "Week 12",
+   "starts": "2026-11-30",
+   "ends": "2026-12-04",
+   "note": null,
+   "term": "fall",
+   "week": 12,
+   "kind": "teaching"
+  },
+  {
+   "order": 15,
+   "label": "Week 13",
+   "starts": "2026-12-07",
+   "ends": "2026-12-11",
+   "note": null,
+   "term": "fall",
+   "week": 13,
+   "kind": "teaching"
+  },
+  {
+   "order": 16,
+   "label": "Week 14",
+   "starts": "2026-12-14",
+   "ends": "2026-12-18",
+   "note": null,
+   "term": "fall",
+   "week": 14,
+   "kind": "teaching"
+  },
+  {
+   "order": 17,
+   "label": "Break",
+   "starts": "2026-12-21",
+   "ends": "2026-12-25",
+   "note": "Holiday",
+   "term": "fall",
+   "week": null,
+   "kind": "break"
+  },
+  {
+   "order": 18,
+   "label": "Break",
+   "starts": "2026-12-28",
+   "ends": "2027-01-01",
+   "note": "Holiday",
+   "term": "fall",
+   "week": null,
+   "kind": "break"
+  },
+  {
+   "order": 19,
+   "label": "Week 15 (online)",
+   "starts": "2027-01-04",
+   "ends": "2027-01-08",
+   "note": "Online Revision week",
+   "term": "fall",
+   "week": 15,
+   "kind": "teaching"
+  },
+  {
+   "order": 20,
+   "label": "Week 16 -Exams",
+   "starts": "2027-01-11",
+   "ends": "2027-01-15",
+   "note": "FALL SEMESTER FINAL EXAM",
+   "term": "fall",
+   "week": 16,
+   "kind": "final"
+  },
+  {
+   "order": 21,
+   "label": "Post-semester",
+   "starts": "2027-01-18",
+   "ends": "2027-01-22",
+   "note": "Grading / Paper review / Report Submission (remote)",
+   "term": "fall",
+   "week": null,
+   "kind": "other"
+  },
+  {
+   "order": 22,
+   "label": "Post-semester",
+   "starts": "2027-01-25",
+   "ends": "2027-01-29",
+   "note": "Resit preparation/ Resit registration",
+   "term": "fall",
+   "week": null,
+   "kind": "resit_registration"
+  },
+  {
+   "order": 23,
+   "label": "Post-semester",
+   "starts": "2027-02-01",
+   "ends": "2027-02-05",
+   "note": "Resit exam",
+   "term": "fall",
+   "week": null,
+   "kind": "resit_exam"
+  },
+  {
+   "order": 24,
+   "label": "Post-semester",
+   "starts": "2027-02-08",
+   "ends": "2027-02-12",
+   "note": "Grading of Resit Exams and Reports Submission",
+   "term": "fall",
+   "week": null,
+   "kind": "other"
+  },
+  {
+   "order": 25,
+   "label": "Pre-semester",
+   "starts": "2027-02-15",
+   "ends": "2027-02-19",
+   "note": "Administrative start of semester. Spring course registration and course retake application.",
+   "term": "spring",
+   "week": null,
+   "kind": "registration"
+  },
+  {
+   "order": 26,
+   "label": "Week 1",
+   "starts": "2027-02-22",
+   "ends": "2027-02-26",
+   "note": null,
+   "term": "spring",
+   "week": 1,
+   "kind": "teaching"
+  },
+  {
+   "order": 27,
+   "label": "Week 2",
+   "starts": "2027-03-01",
+   "ends": "2027-03-05",
+   "note": null,
+   "term": "spring",
+   "week": 2,
+   "kind": "teaching"
+  },
+  {
+   "order": 28,
+   "label": "Week 3",
+   "starts": "2027-03-08",
+   "ends": "2027-03-12",
+   "note": "Move to Revision week (Holiday)",
+   "term": "spring",
+   "week": 3,
+   "kind": "teaching"
+  },
+  {
+   "order": 29,
+   "label": "Week 4",
+   "starts": "2027-03-15",
+   "ends": "2027-03-19",
+   "note": null,
+   "term": "spring",
+   "week": 4,
+   "kind": "teaching"
+  },
+  {
+   "order": 30,
+   "label": "Week 5",
+   "starts": "2027-03-22",
+   "ends": "2027-03-26",
+   "note": null,
+   "term": "spring",
+   "week": 5,
+   "kind": "teaching"
+  },
+  {
+   "order": 31,
+   "label": "Week 6",
+   "starts": "2027-03-29",
+   "ends": "2027-04-02",
+   "note": null,
+   "term": "spring",
+   "week": 6,
+   "kind": "teaching"
+  },
+  {
+   "order": 32,
+   "label": "Week 7",
+   "starts": "2027-04-05",
+   "ends": "2027-04-09",
+   "note": "Review of W03",
+   "term": "spring",
+   "week": 7,
+   "kind": "teaching"
+  },
+  {
+   "order": 33,
+   "label": "Week 8 — Exams",
+   "starts": "2027-04-12",
+   "ends": "2027-04-16",
+   "note": "SPRING SEMESTER MIDTERM EXAM",
+   "term": "spring",
+   "week": 8,
+   "kind": "midterm"
+  },
+  {
+   "order": 34,
+   "label": "Week 9",
+   "starts": "2027-04-19",
+   "ends": "2027-04-23",
+   "note": null,
+   "term": "spring",
+   "week": 9,
+   "kind": "teaching"
+  },
+  {
+   "order": 35,
+   "label": "Week 10",
+   "starts": "2027-04-26",
+   "ends": "2027-04-30",
+   "note": null,
+   "term": "spring",
+   "week": 10,
+   "kind": "teaching"
+  },
+  {
+   "order": 36,
+   "label": "Week 11",
+   "starts": "2027-05-03",
+   "ends": "2027-05-07",
+   "note": null,
+   "term": "spring",
+   "week": 11,
+   "kind": "teaching"
+  },
+  {
+   "order": 37,
+   "label": "Week 12",
+   "starts": "2027-05-10",
+   "ends": "2027-05-14",
+   "note": null,
+   "term": "spring",
+   "week": 12,
+   "kind": "teaching"
+  },
+  {
+   "order": 38,
+   "label": "Week 13",
+   "starts": "2027-05-17",
+   "ends": "2027-05-21",
+   "note": null,
+   "term": "spring",
+   "week": 13,
+   "kind": "teaching"
+  },
+  {
+   "order": 39,
+   "label": "Week 14",
+   "starts": "2027-05-24",
+   "ends": "2027-05-28",
+   "note": null,
+   "term": "spring",
+   "week": 14,
+   "kind": "teaching"
+  },
+  {
+   "order": 40,
+   "label": "Week 15",
+   "starts": "2027-05-31",
+   "ends": "2027-06-04",
+   "note": null,
+   "term": "spring",
+   "week": 15,
+   "kind": "teaching"
+  },
+  {
+   "order": 41,
+   "label": "Week 16 — Exams",
+   "starts": "2027-06-07",
+   "ends": "2027-06-11",
+   "note": "SPRING SEMESTER FINAL EXAM",
+   "term": "spring",
+   "week": 16,
+   "kind": "final"
+  },
+  {
+   "order": 42,
+   "label": "Post-semester",
+   "starts": "2027-06-14",
+   "ends": "2027-06-18",
+   "note": "Grading / Paper review / Report Submission (remote)",
+   "term": "spring",
+   "week": null,
+   "kind": "other"
+  },
+  {
+   "order": 43,
+   "label": "Post-semester",
+   "starts": "2027-06-21",
+   "ends": "2027-06-25",
+   "note": "Resit preparation/ Resit registration",
+   "term": "spring",
+   "week": null,
+   "kind": "resit_registration"
+  },
+  {
+   "order": 44,
+   "label": "Post-semester",
+   "starts": "2027-06-28",
+   "ends": "2027-07-02",
+   "note": "Resit Exams",
+   "term": "spring",
+   "week": null,
+   "kind": "resit_exam"
+  },
+  {
+   "order": 45,
+   "label": "Post-semester",
+   "starts": "2027-07-05",
+   "ends": "2027-07-09",
+   "note": "Grading of Resit Exams and Reports Submission",
+   "term": "spring",
+   "week": null,
+   "kind": "other"
+  },
+  {
+   "order": 46,
+   "label": "Pre-semester",
+   "starts": "2027-07-12",
+   "ends": "2027-07-16",
+   "note": "Administrative Start of Summer Semester",
+   "term": "summer",
+   "week": null,
+   "kind": "other"
+  },
+  {
+   "order": 47,
+   "label": "Summer semester",
+   "starts": "2027-07-19",
+   "ends": "2027-07-23",
+   "note": null,
+   "term": "summer",
+   "week": null,
+   "kind": "other"
+  },
+  {
+   "order": 48,
+   "label": "Summer semester",
+   "starts": "2027-07-26",
+   "ends": "2027-07-30",
+   "note": "Summer Semester / Midterm exam",
+   "term": "summer",
+   "week": null,
+   "kind": "other"
+  },
+  {
+   "order": 49,
+   "label": "Summer semester",
+   "starts": "2027-08-02",
+   "ends": "2027-08-06",
+   "note": null,
+   "term": "summer",
+   "week": null,
+   "kind": "other"
+  },
+  {
+   "order": 50,
+   "label": "Summer semester",
+   "starts": "2027-08-09",
+   "ends": "2027-08-13",
+   "note": "Summer Semester / Final exam",
+   "term": "summer",
+   "week": null,
+   "kind": "other"
+  },
+  {
+   "order": 51,
+   "label": "Post-semester",
+   "starts": "2027-08-16",
+   "ends": "2027-08-20",
+   "note": "Summer Semester Grading / Report submission",
+   "term": "summer",
+   "week": null,
+   "kind": "other"
+  }
+ ]
+}

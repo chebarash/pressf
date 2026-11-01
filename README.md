@@ -1,62 +1,31 @@
-# PressF
+# Press F
 
-## Overview
-PressF is a Next.js-based web application designed to provide a structured platform for managing courses, professors, and user interactions. It integrates authentication, feedback, and profile management features. Thia project is adapted specifically for our university.
+Student guide to New Uzbekistan University: courses, teachers, files, timetables.
+Next.js on Railway with Postgres and S3-compatible storage.
 
-## Features
-- User Profiles – Users can create and manage their profiles.
-- Course Management – View and interact with available courses.
-- Professor Listings – Browse and manage professor profiles.
-- Feedback System – Submit and view feedback for courses or professors.
-- Authentication – Secure login system with potential OAuth support.
-- Admin Dashboard – Admin users can manage content and users.
-- Interactive UI – Forms and modals enhance user interactions.
+## Data
 
-## Prerequisites
-Ensure you have the following installed before setting up the project:
-- Node.js (Latest LTS version recommended)
-- npm (Comes with Node.js) or yarn
-- Git (Optional but recommended)
+- Teachers, courses, timetable, groups, schools and curricula come from the
+  `anonymous` bot API (`docs/BOT_API_REQUEST.md`) and are never edited here.
+- `POST /api/cron/sync` copies them into `catalog_cache` daily. The site reads only
+  its own database, so it opens when the bot is down.
+- Ratings hang on teacher ids. Sync moves them when `previous_ids` changes an id, and
+  old `/professors/{id}` links redirect through `teacher_aliases`.
+- Syllabi are read automatically (`src/lib/syllabus.ts`). A syllabus shows only when both
+  code and title match the catalog; the rest waits in `/admin`.
+- `data/academic-calendar-2026-2027.json` drives week numbers and hints. Replace it yearly.
 
-## Installation
+## Run
 
-1. Clone the repository:
-   
-   git clone https://github.com/your-repo/pressf.git
-   cd pressf
-   
-2. Install dependencies:
-   
-   npm install
-   
-   Or, if using yarn:
-   
-   yarn install
-   
-## Usage
+    cp .env.example .env
+    npm install
+    npm run db:migrate
+    npx tsx scripts/sync.ts
+    npx tsx scripts/seed-syllabi.ts
+    npm run dev
 
-### Running in Development Mode
-Start the development server with:
-npm run dev
-Visit http://localhost:3000/ in your browser.
+## Deploy on Railway
 
-### Building and Running for Production
-To build the project:
-npm run build
-To start the production server:
-npm run start
-## Environment Variables
-Create a .env.local file in the root directory and add required environment variables.
-
-## Available Scripts
-- npm run dev - Start the development server
-- npm run build - Build the project for production
-- npm run start - Start the production server
-- npm run lint - Run linting checks
-
-## Contributing
-We welcome contributions! Follow these steps:
-1. Fork the repository
-2. Create a new branch
-3. Make changes and commit them
-4. Open a pull request
+1. Add Postgres and a bucket, set the variables from `.env.example`.
+2. Add a cron service that calls `/api/cron/sync` with `Authorization: Bearer $CRON_SECRET`.
+3. Run `npx tsx scripts/files-bot-setup.ts https://pressf.chebarash.uz`.
