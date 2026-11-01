@@ -8,7 +8,7 @@ import { extractSyllabus, findSyllabusCourse, syllabusFlags } from "@/lib/syllab
 import { answerCallback, downloadFile, editCaption, sendDocument, sendMessage, sendPhoto, TelegramMessage, TelegramUpdate } from "./api";
 import { classify, KnownCourse } from "./classify";
 import { handleInline } from "./inline";
-import { storeMaterial } from "./store";
+import { standardName, storeMaterial } from "./store";
 
 export const MAX_FILE_SIZE = 20 * 1024 * 1024; // Bot API download limit
 const MAX_PER_HOUR = 20;
@@ -158,7 +158,7 @@ async function handleCallback(query: NonNullable<TelegramUpdate["callback_query"
     await answerCallback(query.id, "Same file is already published.");
     return editCaption(review(), messageId, `Duplicate: ${esc(material.fileName)}`);
   }
-  await db().update(materials).set({ ...stored, status: "approved", publishedAt: new Date(), submitterChatId: null }).where(eq(materials.id, id));
+  await db().update(materials).set({ ...stored, fileName: standardName(material), status: "approved", publishedAt: new Date(), submitterChatId: null }).where(eq(materials.id, id));
   await answerCallback(query.id);
   await editCaption(review(), messageId, `Published: ${esc(material.fileName)}`);
   await readSyllabus(material, buffer);

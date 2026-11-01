@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarHint, currentWeek, milestones, upcoming, weeks } from "@/lib/calendar";
+import { activeTerm, calendarHint, calendarIcs, countdowns, currentWeek, daysUntil, holidaysIn, milestones, semesterProgress, tashkentNow, upcoming, weekTitle, weeks } from "@/lib/calendar";
 
 const at = (date: string) => new Date(`${date}T10:00:00Z`);
 
@@ -59,3 +59,48 @@ describe("exam links", () => {
   it("narrows to the group's courses when it is known", () => expect(calendarHint(at("2026-11-03"), true)?.href).toBe("/files?type=midterm&mine=1"));
 });
 
+describe("calendar page data", () => {
+  it("tells where the semester is", () => {
+    expect(semesterProgress(at("2026-10-28"))).toEqual({ term: "fall", week: 7, total: 16 });
+    expect(semesterProgress(at("2026-12-25"))).toBeNull();
+  });
+  it("opens the term that is running or comes next", () => {
+    expect(activeTerm(at("2027-03-01"))).toBe("spring");
+    expect(activeTerm(at("2027-07-20"))).toBe("summer");
+  });
+  it("counts days from the given date", () => {
+    expect(daysUntil("2026-11-02", at("2026-11-01"))).toBe(1);
+    expect(daysUntil("2026-10-30", at("2026-11-01"))).toBe(-2);
+  });
+  it("finds the next exams, day off and registration", () => {
+    const [exams, off, register] = countdowns(at("2026-11-01"));
+    expect(exams.event).toMatchObject({ title: "Midterm exams", starts: "2026-11-02", href: "/files?type=midterm" });
+    expect(off.event).toMatchObject({ title: "Constitution Day", starts: "2026-12-08" });
+    expect(register.event).toMatchObject({ starts: "2027-02-15" });
+  });
+  it("treats the two week break as one stretch", () => {
+    expect(countdowns(at("2026-12-10"))[1].event).toMatchObject({ starts: "2026-12-21", ends: "2027-01-01" });
+  });
+  it("keeps counting through an exam week", () => {
+    expect(countdowns(at("2026-11-04"))[0].event?.starts).toBe("2026-11-02");
+  });
+  it("names every week", () => {
+    expect(weeks.every((week) => weekTitle(week).length > 0)).toBe(true);
+    expect(weekTitle(weeks[18])).toBe("Online revision week");
+    expect(weekTitle(weeks[47])).toBe("Summer midterm exam");
+  });
+  it("places holidays in their weeks", () => {
+    expect(holidaysIn(weeks[27]).map((h) => h.name)).toEqual(["International Women's Day"]);
+  });
+  it("uses Tashkent dates near midnight", () => {
+    expect(tashkentNow(new Date("2026-11-01T20:00:00Z")).toISOString().slice(0, 10)).toBe("2026-11-02");
+  });
+  it("exports all day events that end on the last day", () => {
+    const ics = calendarIcs();
+    expect(ics).toContain("BEGIN:VCALENDAR\r\n");
+    expect(ics).toContain("SUMMARY:Midterm exams");
+    expect(ics).toContain("DTSTART;VALUE=DATE:20261102\r\nDTEND;VALUE=DATE:20261107");
+    expect(ics).toContain("SUMMARY:Teachers' Day");
+    expect(ics.match(/BEGIN:VEVENT/g)?.length).toBe(milestones.length + 4);
+  });
+});
