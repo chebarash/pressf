@@ -1,5 +1,5 @@
-import { startFile, startPath } from "@/components/TelegramApp";
-import { deepLink, startParam } from "@/lib/telegram/links";
+import { deepLink } from "@/lib/telegram/links";
+import { startParam, startPath } from "@/lib/telegram/start";
 import { groupByCourse, shortTitle } from "@/lib/files";
 import { pageList } from "@/components/Pager";
 import { standardName } from "@/lib/telegram/store";
@@ -103,11 +103,16 @@ describe("deep links", () => {
   const id = "2a771f96-9095-42c6-9a18-fde64b6f6c52";
   it("makes a page into a start value and back", () => {
     for (const path of ["/courses/MATH111", "/courses/MATH111#files", "/professors/g-pinto"]) expect(startPath(startParam(path))).toBe(path);
-    expect(startFile(startParam(`/files/${id}`))).toBe(id);
+    expect(startPath(startParam(`/files/${id}`))).toBe(`/files?open=${id}`);
   });
-  it("opens the app itself for anything it cannot carry", () => {
-    expect(deepLink()).toBe("https://t.me/pupressfbot?startapp");
-    expect(deepLink("/professors/gon%C3%A7alo")).toBe("https://t.me/pupressfbot?startapp");
+  it("goes straight to the app when the bot has a Main Mini App", () => {
+    expect(deepLink("/courses/MATH111", true)).toBe("https://t.me/pupressfbot?startapp=course_MATH111");
+  });
+  it("goes through the bot when it does not", () => {
+    expect(deepLink("/courses/MATH111", false)).toBe("https://t.me/pupressfbot?start=course_MATH111");
+  });
+  it("opens the bare app for anything it cannot carry", () => {
+    expect(deepLink("/professors/gon%C3%A7alo", true)).toBe("https://t.me/pupressfbot?startapp");
+    expect(deepLink("", false)).toBe("https://t.me/pupressfbot");
   });
 });
-

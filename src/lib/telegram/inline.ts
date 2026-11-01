@@ -8,7 +8,7 @@ import { materials } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { courseRatings, teacherRatings, type Rating } from "@/lib/ratings";
 import { search } from "@/lib/search";
-import { answerInlineQuery } from "./api";
+import { answerInlineQuery, getMe } from "./api";
 import { deepLink } from "./links";
 
 type Material = typeof materials.$inferSelect;
@@ -25,8 +25,8 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const resultId = (kind: string, id: string) => createHash("sha1").update(`${kind}:${id}`).digest("hex");
 const label = (path: string) => `pressf.chebarash.uz${path}`;
 const searchButton = { text: "Search Press F", switch_inline_query_current_chat: "" };
-const keyboard = (...links: Array<[string, string]>) => ({
-  inline_keyboard: [links.map(([text, path]) => ({ text, url: deepLink(path) })), [searchButton]],
+const keyboard = (hasMainApp: boolean, ...links: Array<[string, string]>) => ({
+  inline_keyboard: [links.map(([text, path]) => ({ text, url: deepLink(path, hasMainApp) })), [searchButton]],
 });
 const scored = (rating?: Rating) => (rating ? `★ ${rating.overall.toFixed(1)} from ${plural(rating.count, "student")}` : "No ratings yet");
 const lines = (...parts: Array<string | null | undefined>) => parts.filter((part) => part != null).join("\n");
@@ -44,24 +44,24 @@ const article = (kind: string, id: string, title: string, description: string, t
   reply_markup: buttons,
 });
 
-function courseResult(course: Course, rating: Rating | undefined, files: number, teachers: string[]) {
+function courseResult(main: boolean, course: Course, rating: Rating | undefined, files: number, teachers: string[]) {
   const path = `/courses/${course.code}`;
   const taught = teachers.length ? `Taught by ${teachers.slice(0, 3).join(", ")}${teachers.length > 3 ? ` and ${teachers.length - 3} more` : ""}` : null;
   const fileLine = files ? plural(files, "file") : null;
   const text = lines(`<b>${esc(course.subject)}</b>`, course.code, "", scored(rating), taught && esc(taught), fileLine);
-  const buttons = keyboard(["Open course", path], ...(files ? [["Files", `${path}#files`] as [string, string]] : []));
+  const buttons = keyboard(main, ["Open course", path], ...(files ? [["Files", `${path}#files`] as [string, string]] : []));
   return article("course", course.code, course.subject, dots("Course", course.code, star(rating), fileLine), text, path, buttons, thumb(`score=${rating?.overall.toFixed(1) ?? ""}`));
 }
 
-function teacherResult(teacher: Teacher, rating: Rating | undefined) {
+function teacherResult(main: boolean, teacher: Teacher, rating: Rating | undefined) {
   const id = encodeURIComponent(teacher.id);
   const path = `/professors/${id}`;
   const courses = teacher.teaches.length ? plural(teacher.teaches.length, "course") : null;
   const text = lines(`<b>${esc(teacher.display_name)}</b>`, teacher.department && esc(teacher.department), "", scored(rating), courses && `Teaches ${courses}`);
-  return article("teacher", teacher.id, teacher.display_name, dots("Professor", teacher.department?.replace(/^Department of /, ""), star(rating)), text, path, keyboard(["Open profile", path]), thumb(`face=${id}`));
+  return article("teacher", teacher.id, teacher.display_name, dots("Professor", teacher.department?.replace(/^Department of /, ""), star(rating)), text, path, keyboard(main, ["Open profile", path]), thumb(`face=${id}`));
 }
 
-function fileResult(file: Material) {
+function fileResult(main: boolean, file: Material) {
   const name = file.fileName.replace(/\.[a-z0-9]+$/i, "");
   const course = [file.courseCode, file.courseName].filter(Boolean).join(" ");
   const kind = file.type ? file.type[0].toUpperCase() + file.type.slice(1) : "File";
@@ -70,12 +70,12 @@ function fileResult(file: Material) {
   const coursePath = file.courseCode ? `/courses/${file.courseCode}#files` : "/files";
   const isPdf = file.mimeType === "application/pdf" && /\.pdf$/i.test(file.fileName);
   const image = thumb(`kind=${file.type ?? ""}`);
-  if (!isPdf || file.size > MAX_SHARED_SIZE) return article("file", file.id, name, description, text, `/files/${file.id}`, keyboard(["Open file", `/files/${file.id}`]), image);
+  if (!isPdf || file.size > MAX_SHARED_SIZE) return article("file", file.id, name, description, text, `/files/${file.id}`, keyboard(main, ["Open file", `/files/${file.id}`]), image);
   return {
     type: "document", id: resultId("file", file.id), title: name, description,
     document_url: `${site()}/files/${file.id}/${encodeURIComponent(file.fileName)}`,
     mime_type: "application/pdf", caption: text, parse_mode: "HTML", thumbnail_url: image, thumbnail_width: 160, thumbnail_height: 160,
-    reply_markup: keyboard(["Open course", coursePath]),
+    reply_markup: keyboard(main, ["Open course", coursePath]),
   };
 }
 
@@ -93,12 +93,13 @@ export async function handleInline(query: InlineQuery) {
   const found = text
     ? await search(text, { courses: MOST, teachers: MOST, files: MOST })
     : { courses: await popularCourses(catalog, PAGE), teachers: [], files: [] };
-  const [cScores, tScores, fileCounts] = await Promise.all([courseRatings(), teacherRatings(), filesPerCourse()]);
+  const [cScores, tScores, fileCounts, bot] = await Promise.all([courseRatings(), teacherRatings(), filesPerCourse(), getMe()]);
+  const main = !!bot.has_main_web_app;
   const nameOf = new Map(catalog.teachers.map((t) => [t.id, t.display_name]));
   const results = [
-    ...found.courses.map((c) => courseResult(c, cScores.get(c.code), fileCounts.get(c.code) ?? 0, c.teachers.flatMap((id) => nameOf.get(id) ?? []))),
-    ...found.teachers.map((t) => teacherResult(t, tScores.get(t.id))),
-    ...found.files.map(fileResult),
+    ...found.courses.map((c) => courseResult(main, c, cScores.get(c.code), fileCounts.get(c.code) ?? 0, c.teachers.flatMap((id) => nameOf.get(id) ?? []))),
+    ...found.teachers.map((t) => teacherResult(main, t, tScores.get(t.id))),
+    ...found.files.map((file) => fileResult(main, file)),
   ];
   const next = offset + PAGE;
   return answerInlineQuery(query.id, results.slice(offset, next), next < results.length ? String(next) : "", site(), results.length ? "Open Press F" : "Nothing found. Open Press F");
