@@ -17,7 +17,7 @@ export default async function Home() {
   return (
     <>
       <div className="hero-cover">
-        <section className="wrap section" style={{ paddingTop: 16 }}>
+        <section className="wrap section" style={{ paddingTop: 48 }}>
           <h1 className="d-hero">
             <span className="row" style={{ "--gap": ".18em" } as React.CSSProperties}>Press <span className="key cap lg" aria-hidden="true" style={{ cursor: "default" }}>F</span> to pay</span>
             <em className="accent" style={{ display: "block" }}>respects</em>

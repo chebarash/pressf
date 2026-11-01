@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCatalog, isStale } from "@/lib/catalog";
 import type { CurrentUser } from "@/lib/auth";
+import { MobileMenu } from "./MobileMenu";
 import { Palette } from "./Palette";
 import { ThemeToggle } from "./ThemeToggle";
 import { Banner } from "./ui";
@@ -21,8 +22,9 @@ export function Nav({ user, group }: { user: CurrentUser | null; group: string |
         <div className="row" style={{ marginLeft: "auto", "--gap": "12px" } as React.CSSProperties}>
           <Palette />
           <ThemeToggle />
-          <Link className="chip" href="/me/group">{group ?? "Add group"}</Link>
+          <Link className="chip nav-chip" href="/me/group">{group ?? "Add group"}</Link>
           {user ? <Link className="key btn sm" href="/me/ratings">Me</Link> : <Link className="key btn sm" href="/sign-in">Sign in</Link>}
+          <MobileMenu group={group} />
         </div>
       </div>
     </header>

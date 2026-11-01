@@ -34,7 +34,9 @@ a.card:active { transform: translateY(5px); box-shadow: none; }
 .nav { position: sticky; top: 0; z-index: 20; background: var(--page); }
 .nav-in { display: flex; align-items: center; gap: 24px; min-height: 72px; }
 .nav-links { display: none; gap: 24px; }
-@media (min-width: 900px) { .nav-links { display: flex; } }
+.chip.nav-chip { display: none; }
+.menu-panel { position: fixed; inset: 72px 0 0; z-index: 19; display: flex; flex-direction: column; gap: 16px; padding: 24px max(16px, env(safe-area-inset-left, 0px)); background: var(--page); overflow-y: auto; }
+@media (min-width: 900px) { .nav-links { display: flex; } .chip.nav-chip { display: inline-flex; } .menu-btn { display: none; } }
 .nav a.link { font-weight: 500; font-size: 15px; }
 .nav a.link:hover, .nav a.link.here { color: var(--text-accent); }
 .footer { padding-block: 40px; }
