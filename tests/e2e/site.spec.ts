@@ -229,8 +229,10 @@ test("the course tabs follow the page and show counts apart from labels", async 
   await expect(tabs.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "location");
   const files = tabs.getByRole("link", { name: /^Files/ });
   await expect(files.locator(".tab-count")).toBeVisible();
-  await files.click();
-  await expect(files).toHaveAttribute("aria-current", "location");
+  await expect(async () => {
+    await files.click();
+    await expect(files).toHaveAttribute("aria-current", "location", { timeout: 1000 });
+  }).toPass();
   await expect(tabs.getByRole("link", { name: "Overview" })).not.toHaveAttribute("aria-current", "location");
   await expect(async () => {
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));

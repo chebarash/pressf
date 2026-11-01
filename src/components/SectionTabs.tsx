@@ -24,7 +24,7 @@ export function SectionTabs({ tabs, label }: { tabs: SectionTab[]; label: string
     const onScroll = () => { frame ||= requestAnimationFrame(update); };
     update();
     // The chosen tab stays lit through the jump, even if its section cannot reach the top.
-    const settle = () => { jumpingUntil.current = 0; };
+    const settle = () => { cancelAnimationFrame(frame); frame = 0; jumpingUntil.current = 0; };
     addEventListener("scroll", onScroll, { passive: true });
     addEventListener("scrollend", settle);
     return () => { removeEventListener("scroll", onScroll); removeEventListener("scrollend", settle); cancelAnimationFrame(frame); };
