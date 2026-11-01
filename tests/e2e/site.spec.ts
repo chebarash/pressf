@@ -202,3 +202,45 @@ test.describe("motion from the design", () => {
     await context.close();
   });
 });
+
+test("every post can be read, with sure matches first", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: /All \d+ posts/ }).first().click();
+  await expect(page).toHaveURL(/\/posts$/);
+  await expect(page.getByText("Is MATH111 hard?")).toBeVisible();
+
+  await page.goto("/professors/g-pinto");
+  await page.getByRole("link", { name: "All 2 posts" }).click();
+  const posts = page.locator(".post-full");
+  await expect(posts).toHaveCount(2);
+  await expect(posts.first()).toContainText("Second line of the post stays visible");
+  await expect(page.locator(".card", { hasText: "found his card" }).getByText("Possible match")).toBeVisible();
+
+  await page.getByRole("link", { name: "Newest" }).click();
+  await expect(page).toHaveURL(/sort=new/);
+  await expect(page.locator(".post-full").first()).toContainText("Pinto explains");
+  expect(await noSideScroll(page)).toBe(true);
+});
+
+test("the course tabs follow the page and show counts apart from labels", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 420 });
+  await page.goto("/courses/MATH111");
+  const tabs = page.getByRole("navigation", { name: "Course sections" });
+  await expect(tabs.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "location");
+  const files = tabs.getByRole("link", { name: /^Files/ });
+  await expect(files.locator(".tab-count")).toBeVisible();
+  await expect(async () => {
+    await files.click();
+    await expect(files).toHaveAttribute("aria-current", "location", { timeout: 1000 });
+  }).toPass();
+  await expect(tabs.getByRole("link", { name: "Overview" })).not.toHaveAttribute("aria-current", "location");
+  // The chosen tab holds through the jump, so the check starts once that is over.
+  await page.waitForTimeout(800);
+  await expect(async () => {
+    await page.evaluate(() => window.scrollTo({ top: 60, behavior: "instant" }));
+    await page.waitForTimeout(100);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await expect(tabs.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "location", { timeout: 500 });
+  }).toPass();
+});
+

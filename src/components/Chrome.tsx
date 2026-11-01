@@ -15,6 +15,7 @@ export function Nav({ user, group }: { user: CurrentUser | null; group: string |
           <Link className="link" href="/courses">Courses</Link>
           <Link className="link" href="/professors">Professors</Link>
           <Link className="link" href="/files">Files</Link>
+          <Link className="link" href="/posts">Posts</Link>
           <Link className="link" href="/calendar">Calendar</Link>
           {group && <Link className="link accent" href="/me">My semester</Link>}
         </nav>

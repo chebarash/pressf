@@ -1,5 +1,6 @@
 import { ViewTransition } from "react";
 import Link from "next/link";
+import type { Certainty } from "@/lib/mention-match";
 import { Arrow, Face, Score, Tag, tags, viewName } from "./ui";
 
 export function CourseCard({ code, name, score, meta }: { code: string; name: string; score?: number | null; meta: string }) {
@@ -45,13 +46,20 @@ export function FileRow({ file }: { file: FileItem }) {
   );
 }
 
-export type MentionItem = { postId: number; url: string; text: string; date: Date | null };
+export type MentionItem = { postId: number; url: string; text: string; date: Date | null; certainty?: Certainty };
 
-export function MentionCard({ mention }: { mention: MentionItem }) {
+/** The bot's links can be wrong, so `full` keeps the whole post readable where people judge it. */
+export function MentionCard({ mention, full }: { mention: MentionItem; full?: boolean }) {
   return (
     <a className="card" href={mention.url} target="_blank" rel="noreferrer">
-      <div className="row between"><span className="label-sm accent">Anonymous</span>{mention.date && <span className="small soft">{mention.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>}</div>
-      <p style={{ display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{mention.text}</p>
+      <div className="row between">
+        <span className="label-sm accent">Anonymous</span>
+        <span className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
+          {mention.certainty === "possible" && <Tag>Possible match</Tag>}
+          {mention.date && <span className="small soft">{mention.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>}
+        </span>
+      </div>
+      <p className={full ? "post-full" : "post-short"}>{mention.text}</p>
       <span className="label-sm accent row" style={{ "--gap": "6px" } as React.CSSProperties}>Open post<Arrow /></span>
     </a>
   );

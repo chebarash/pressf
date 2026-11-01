@@ -4,7 +4,8 @@ import { ViewTransition } from "react";
 import { FileRow, MentionCard, TeacherRow } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
 import { WeekList } from "@/components/WeekList";
-import { Banner, Empty, SectionHead, Stat, Tag, viewName } from "@/components/ui";
+import { SectionTabs } from "@/components/SectionTabs";
+import { Arrow, Banner, Empty, SectionHead, Stat, Tag, viewName } from "@/components/ui";
 import { currentWeek } from "@/lib/calendar";
 import { findCourse, getCatalog, normalizeCode } from "@/lib/catalog";
 import { courseDetails, faceMap, mentionsFor, programsWith, publishedFiles, resolveRequirement, teacherLine, unlocks } from "@/lib/content";
@@ -30,7 +31,7 @@ export default async function CoursePage({ params }: Props) {
   const code = course.code;
 
   const [details, files, mentioned, ratings, teacherScores, faces, opens] = await Promise.all([
-    courseDetails(code), publishedFiles(code), mentionsFor("course", code), courseRatings(), teacherRatings(), faceMap(), unlocks(code, catalog),
+    courseDetails(code), publishedFiles(code), mentionsFor({ kind: "course", course }), courseRatings(), teacherRatings(), faceMap(), unlocks(code, catalog),
   ]);
   const data = details?.data;
   const teachers = course.teachers.map((id) => catalog.teachers.find((t) => t.id === id)).filter((t) => !!t);
@@ -68,12 +69,12 @@ export default async function CoursePage({ params }: Props) {
         )}
       </div>
 
-      <div className="sticky-tabs"><nav className="wrap tabs" aria-label="Course sections">
-        <a className="tab on" href="#overview">Overview</a>
-        <a className="tab" href="#teachers">Who teaches</a>
-        <a className="tab" href="#files">Files{files.length ? ` ${files.length}` : ""}</a>
-        {mentioned.total > 0 && <a className="tab" href="#anonymous">Anonymous {mentioned.total}</a>}
-      </nav></div>
+      <div className="sticky-tabs"><SectionTabs label="Course sections" tabs={[
+        { id: "overview", label: "Overview" },
+        { id: "teachers", label: "Who teaches", count: teachers.length, unit: teachers.length === 1 ? "teacher" : "teachers" },
+        { id: "files", label: "Files", count: files.length, unit: files.length === 1 ? "file" : "files" },
+        ...(mentioned.length ? [{ id: "anonymous", label: "Anonymous", count: mentioned.length, unit: mentioned.length === 1 ? "post" : "posts" }] : []),
+      ]} /></div>
 
       <div className="wrap">
         <section id="overview" className="section">
@@ -143,11 +144,11 @@ export default async function CoursePage({ params }: Props) {
         </section>
       </div>
 
-      {mentioned.total > 0 && (
+      {mentioned.length > 0 && (
         <div className="band"><section id="anonymous" className="wrap section">
           <div className="stack" style={{ "--gap": "8px" } as React.CSSProperties}><SectionHead title="What Anonymous says" /><p className="soft">Anonymous posts, unverified. Press F never edits them and every card links to the original.</p></div>
-          <div className="grid-3">{mentioned.items.map((m) => <MentionCard key={m.postId} mention={m} />)}</div>
-          {mentioned.total > 3 && <Banner>{mentioned.total} posts mention this course.</Banner>}
+          <div className="grid-3">{mentioned.slice(0, 3).map((m) => <MentionCard key={m.postId} mention={m} />)}</div>
+          <Link className="ghost" href={`/posts?course=${code}`}>{mentioned.length === 1 ? "Read the full post" : `All ${mentioned.length} posts`}<Arrow /></Link>
         </section></div>
       )}
     </>
