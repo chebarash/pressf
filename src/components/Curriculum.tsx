@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { Arrow, Face, Icons, Score, Tag } from "./ui";
 
-export type Tile = { code: string; subject: string; credits: number | null; type: string; files: number; needs: string[]; unlocks: string[]; score: number | null; teachers: number; faces: Array<{ name: string; src: string | null }> };
-export type Term = { label: string; year: number | null; tiles: Tile[] };
+export type Tile = { code: string; subject: string; credits: number | null; type: string; files: number; needs: string[]; unlocks: string[]; score: number | null; teachers: number; faces: Array<{ name: string; src: string | null }>; notRunning: boolean };
+export type Term = { label: string; year: number | null; live: boolean; tiles: Tile[] };
 
 const LEGEND = [["Core", "core"], ["Elective", "elective"], ["Selected", "selected"], ["Needs or unlocks", "linked"]];
 
@@ -26,15 +26,16 @@ export function CurriculumBoard({ terms }: { terms: Term[] }) {
       <div className="grid-2" style={{ gap: 16 }}>
         {terms.filter((t) => t.year === year).map((term) => (
           <div key={term.label} className="semester">
-            <span className="label">{term.label}</span>
+            <span className="row between"><span className="label">{term.label}</span>{term.live && <span className="tag accent-tag">This term</span>}</span>
             <div className="tiles">
               {term.tiles.map((tile) => (
-                <button key={tile.code} className={`tile ${tile.type === "elective" ? "elective" : ""} ${selected?.code === tile.code ? "on" : ""} ${linked.has(tile.code) ? "linked" : ""}`} onClick={() => setSelected(tile)}>
+                <button key={tile.code} className={`tile ${tile.type === "elective" ? "elective" : ""} ${selected?.code === tile.code ? "on" : ""} ${linked.has(tile.code) ? "linked" : ""} ${tile.notRunning ? "off" : ""}`} onClick={() => setSelected(tile)}>
                   <span className="row between label-sm soft"><span>{tile.code}</span>{tile.credits != null && <span>{tile.credits} ECTS</span>}</span>
                   <span className="label">{tile.subject}</span>
                   <span className="row label-sm soft" style={{ "--gap": "8px" } as React.CSSProperties}>
                     <span className="row" style={{ "--gap": "3px" } as React.CSSProperties}>{Icons.file(13)}{tile.files}</span>
                     <span className="row" style={{ "--gap": "3px" } as React.CSSProperties}>{Icons.users(13)}{tile.teachers}</span>
+                    {tile.notRunning && <span>Not running</span>}
                   </span>
                 </button>
               ))}

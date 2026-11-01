@@ -22,8 +22,10 @@ export async function rateTeacher(input: unknown) {
   if (!teacher || !teacher.teaches.includes(value.courseCode)) return { error: "invalid" as const };
   const overall = (value.clarity + value.engagement + value.organization + value.expertise + value.fairGrading) / 5;
   const row = { ...value, overall, userId: user.id, updatedAt: new Date() };
-  await db().insert(ratings).values(row).onConflictDoUpdate({ target: [ratings.userId, ratings.teacherId], set: row });
+  await db().insert(ratings).values(row).onConflictDoUpdate({ target: [ratings.userId, ratings.teacherId, ratings.courseCode], set: row });
   revalidatePath(`/professors/${value.teacherId}`);
+  revalidatePath(`/courses/${value.courseCode}`);
+  revalidatePath("/me/ratings");
   return { ok: true as const };
 }
 
@@ -45,10 +47,10 @@ export async function chooseGroup(formData: FormData) {
   redirect("/");
 }
 
-export async function deleteRating(teacherId: string) {
+export async function deleteRating(teacherId: string, courseCode: string) {
   const user = await getUser();
   if (!user) return;
-  await db().delete(ratings).where(and(eq(ratings.userId, user.id), eq(ratings.teacherId, teacherId)));
+  await db().delete(ratings).where(and(eq(ratings.userId, user.id), eq(ratings.teacherId, teacherId), eq(ratings.courseCode, courseCode)));
   revalidatePath("/me/ratings");
 }
 

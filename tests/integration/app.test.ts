@@ -24,7 +24,7 @@ import type { Teacher } from "@/lib/catalog";
 import { channelPosts, courseDetails, mentionsFor, popularCourses, programsWith, publishedFiles, resolveRequirement, teacherLine, unlocks } from "@/lib/content";
 import { db } from "@/lib/db";
 import { materials, mentionLinks, mentions, ratings, respects, searchEvents, syllabi, users } from "@/lib/db/schema";
-import { courseRatings, respectCount, teacherRatings, userRatings } from "@/lib/ratings";
+import { courseRatings, ownRatings, pairRatings, respectCount, teacherRatings, userRatings } from "@/lib/ratings";
 import { syllabus } from "../fixtures/catalog";
 import { resetDb, seedCatalog } from "../fixtures/db";
 
@@ -68,6 +68,15 @@ describe("rating", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].overall).toBeCloseTo(2.2);
   });
+  it("keeps a separate rating for each course of a teacher", async () => {
+    await rate();
+    await rate({ courseCode: "MATH211", clarity: 1 });
+    const rows = await db().select().from(ratings);
+    expect(rows.map((row) => row.courseCode).sort()).toEqual(["MATH111", "MATH211"]);
+    expect((await pairRatings("MATH211")).get("g-pinto")?.clarity).toBe(1);
+    expect((await courseRatings()).get("MATH111")?.teachers).toBe(1);
+    expect(await ownRatings(user.current!.id, { teacherId: "g-pinto" })).toHaveLength(2);
+  });
   it("refuses a course the teacher does not teach", async () => {
     expect(await rate({ courseCode: "PHYS101" })).toEqual({ error: "invalid" });
     expect(await rate({ teacherId: "nobody" })).toEqual({ error: "invalid" });
@@ -88,7 +97,7 @@ describe("rating", () => {
   });
   it("lets a student remove their rating", async () => {
     await rate();
-    await deleteRating("g-pinto");
+    await deleteRating("g-pinto", "MATH111");
     expect(await db().select().from(ratings)).toEqual([]);
   });
 });

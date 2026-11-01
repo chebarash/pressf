@@ -2,14 +2,13 @@ import Link from "next/link";
 import { CourseCard, FileRow, MentionCard, TeacherRow } from "@/components/Cards";
 import { MySemester } from "@/components/MySemester";
 import { Palette } from "@/components/Palette";
+import { SchoolCards } from "@/components/SchoolCards";
 import { Arrow, Banner, SectionHead, Stat } from "@/components/ui";
 import { calendarHint } from "@/lib/calendar";
 import { getCatalog } from "@/lib/catalog";
 import { channelPosts, courseCards, faceMap, fileCounts, popularCourses, publishedFiles, teacherCourses, teacherLine } from "@/lib/content";
 import { currentGroup } from "@/lib/group";
 import { teacherRatings } from "@/lib/ratings";
-
-const TINT: Record<string, string> = { computing: "computing", engineering: "engineering", management: "management", humanities: "humanities", medicine: "medicine" };
 
 type Props = { searchParams: Promise<{ list?: string }> };
 
@@ -52,12 +51,7 @@ export default async function Home({ searchParams }: Props) {
         <section id="schools" className="section">
           <h2 className="d-md">Start with your school</h2>
           <div className="grid-3">
-            {catalog.schools.map((school) => (
-              <Link key={school.slug} className={`card school ${TINT[school.slug] ?? ""}`} href={`/schools/${school.slug}`}>
-                <div><div className="caps">School of</div><h3 className="d-sm">{school.name.replace(/^School of /, "")}</h3></div>
-                <div className="row between"><span className="small grow">{school.programs.map((p) => p.name).join(", ")}</span><Arrow /></div>
-              </Link>
-            ))}
+            <SchoolCards schools={catalog.schools} />
             <Link className="card school" href="/courses" style={{ background: "var(--inverse)", color: "var(--text-inv)" }}>
               <div><div className="caps">Not sure yet?</div><h3 className="d-sm">Browse every course</h3></div>
               <span className="small">{catalog.courses.length} courses, A to Z</span>

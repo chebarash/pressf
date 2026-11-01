@@ -247,8 +247,7 @@ section[id] { scroll-margin-top: 136px; }
 @media (min-width: 768px) { .btn.sm { min-height: 36px; } }
 .filters { display: grid; gap: 8px; }
 .link:hover { color: var(--text-accent); }
-a.link { text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color var(--dur-fast) ease; }
-a.link:hover { text-decoration-color: currentColor; }
+.ref { text-decoration: underline; text-underline-offset: 2px; }
 .search { border-radius: 20px; box-shadow: 0 8px 0 var(--edge); color: var(--text-2); }
 .search svg { flex: none; }
 .search input { color: var(--text); }
@@ -280,3 +279,9 @@ a.link:hover { text-decoration-color: currentColor; }
 .tt-day .slot { position: absolute; overflow: hidden; align-content: start; z-index: 1; }
 .now-line { z-index: 2; }
 .banner.Warning > span:first-child { display: inline-flex; gap: 8px; align-items: center; }
+.select { position: relative; display: inline-flex; }
+.select select { appearance: none; min-height: 30px; padding: 0 28px 0 12px; border: 2px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text); box-shadow: 0 3px 0 var(--edge); font: 500 13px var(--sans); cursor: pointer; }
+.select::after { content: ""; position: absolute; right: 12px; top: 11px; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); pointer-events: none; }
+.select.on select { background: var(--accent); color: var(--on-accent); }
+.select.on::after { color: var(--on-accent); }
+.tile.off { opacity: .55; box-shadow: none; border-style: dashed; }

@@ -21,12 +21,12 @@ export function CourseCard({ code, name, score, meta, faces = [] }: { code: stri
   );
 }
 
-export function TeacherRow({ id, name, meta, face, score, courses = [] }: { id: string; name: string; meta: string; face?: string | null; score?: number | null; courses?: string[] }) {
+export function TeacherRow({ id, name, meta, face, score, courses = [], morph = true }: { id: string; name: string; meta: string; face?: string | null; score?: number | null; courses?: string[]; morph?: boolean }) {
   return (
     <Link className="line-row link teacher-row" href={`/professors/${id}`}>
       <Score value={score} size="md" />
-      <ViewTransition name={`face-${id}`}><Face name={name} src={face} size={80} /></ViewTransition>
-      <div className="grow"><ViewTransition name={`name-${id}`}><div className="d-xs serif teacher-name">{name}</div></ViewTransition><div className="small soft">{meta}</div></div>
+      {morph ? <ViewTransition name={`face-${id}`}><Face name={name} src={face} size={80} /></ViewTransition> : <Face name={name} src={face} size={80} />}
+      <div className="grow">{morph ? <ViewTransition name={`name-${id}`}><div className="d-xs serif teacher-name">{name}</div></ViewTransition> : <div className="d-xs serif teacher-name">{name}</div>}<div className="small soft">{meta}</div></div>
       {courses.length > 0 && <span className="row hide-sm" style={{ "--gap": "8px", justifyContent: "end" } as React.CSSProperties}>{courses.map((course) => <span key={course} className="chip small-chip">{course}</span>)}</span>}
     </Link>
   );

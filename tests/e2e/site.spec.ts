@@ -123,12 +123,12 @@ test("a student rates with the number keys and pays respect", async ({ page, isM
   } else {
     for (const key of ["4", "3", "4", "5", "4"]) { await page.keyboard.press(key); await page.waitForTimeout(160); }
   }
-  await dialog.getByRole("button", { name: "Pay respects" }).click();
+  await dialog.getByRole("button", { name: /Pay respects|Update rating/ }).click();
   await expect(dialog.getByText("Respects paid")).toBeVisible();
-  await dialog.getByRole("button", { name: "Back to profile" }).click();
+  await dialog.getByRole("button", { name: "Back", exact: true }).click();
   await page.getByRole("button", { name: "Pay respect", exact: true }).click();
   await page.goto("/me/ratings");
-  await expect(page.getByText("Gonçalo Pinto")).toBeVisible();
+  await expect(page.getByText("Gonçalo Pinto").first()).toBeVisible();
 });
 
 test("choosing a group builds My semester and the timetable", async ({ page, isMobile }) => {
@@ -262,7 +262,7 @@ test("the course tabs follow the page and show counts apart from labels", async 
 
 test("files filter by semester, and by the group's courses once it is known", async ({ page, isMobile }) => {
   await page.goto("/files");
-  await page.getByRole("link", { name: "Fall 2023", exact: true }).first().click();
+  await page.getByLabel("Semester").selectOption("Fall 2023");
   await expect(page).toHaveURL(/term=Fall/);
   await expect(page.locator(".file")).toHaveCount(1);
   await expect(page.getByRole("link", { name: "My courses" })).toHaveCount(0);
@@ -273,5 +273,28 @@ test("files filter by semester, and by the group's courses once it is known", as
   await expect(page).toHaveURL(/\/$/);
   await page.goto("/files?mine=1");
   await expect(page.getByRole("link", { name: "My courses" })).toBeVisible();
+});
+
+test("Schools opens the list of schools, even with a group", async ({ page, isMobile }) => {
+  test.skip(isMobile, "The phone menu has no Schools link");
+  await page.goto("/me/group");
+  await page.getByLabel("Search group").fill("FCS");
+  await page.getByRole("button", { name: "FCS 1" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.getByRole("link", { name: "Schools", exact: true }).click();
+  await expect(page).toHaveURL(/\/schools$/);
+  await expect(page.getByRole("heading", { name: "Schools", level: 1 })).toBeVisible();
+});
+
+test("a course page rates a chosen professor", async ({ page }) => {
+  await page.goto("/courses/MATH111");
+  const dialog = page.getByRole("dialog");
+  await expect(async () => {
+    await page.getByRole("button", { name: "Rate this course" }).click({ timeout: 2000 });
+    await expect(dialog).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  for (const label of ["Clarity 4", "Engagement 4", "Organization 4", "Expertise 4", "Fair grading 4"]) await dialog.getByRole("button", { name: label }).click();
+  await dialog.getByRole("button", { name: /Pay respects|Update rating/ }).click();
+  await expect(dialog.getByText("Respects paid")).toBeVisible();
 });
 

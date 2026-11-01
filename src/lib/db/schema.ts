@@ -3,6 +3,7 @@ import {
   index,
   integer,
   jsonb,
+  primaryKey,
   pgEnum,
   pgTable,
   real,
@@ -53,7 +54,7 @@ export const ratings = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("ratings_user_teacher").on(t.userId, t.teacherId),
+    uniqueIndex("ratings_user_teacher_course").on(t.userId, t.teacherId, t.courseCode),
     index("ratings_teacher").on(t.teacherId),
     index("ratings_course").on(t.courseCode),
   ]
@@ -174,6 +175,19 @@ export const mentionLinks = pgTable(
     target: text("target").notNull(),
   },
   (t) => [uniqueIndex("mention_links_unique").on(t.postId, t.kind, t.target), index("mention_links_target").on(t.kind, t.target)]
+);
+
+/** What actually ran, kept per term so a finished semester does not fall back to the plan. */
+export const termCourses = pgTable(
+  "term_courses",
+  {
+    program: text("program").notNull(),
+    year: integer("year").notNull(),
+    term: text("term").notNull(),
+    courses: jsonb("courses").$type<Array<{ code: string; subject: string }>>().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.program, t.year, t.term] })]
 );
 
 export const faces = pgTable("faces", {

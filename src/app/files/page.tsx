@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FileRow } from "@/components/Cards";
+import { FilterSelect } from "@/components/FilterSelect";
 import { Pager, PER_PAGE } from "@/components/Pager";
 import { Empty, PageSearch } from "@/components/ui";
 import { getCatalog } from "@/lib/catalog";
@@ -30,19 +31,17 @@ export default async function Files({ searchParams }: Props) {
       <p className="body-lg soft">Syllabi, past exams, mocks and solutions shared by students.</p>
       <div style={{ maxWidth: 800 }}><PageSearch value={q} placeholder="Search by course, year or file name" label="Search files">{type && <input type="hidden" name="type" value={type} />}{term && <input type="hidden" name="term" value={term} />}{mine && <input type="hidden" name="mine" value={mine} />}{school && <input type="hidden" name="school" value={school} />}</PageSearch></div>
       <div className="filters">
-      <div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
-        <Link className={`chip small-chip ${!school ? "on" : ""}`} href={link({ school: undefined })}>All schools</Link>
-        {catalog.schools.map((s) => <Link key={s.slug} className={`chip small-chip ${school === s.slug ? "on" : ""}`} href={link({ school: school === s.slug ? undefined : s.slug })}>{s.name.replace(/^School of /, "").split(",")[0]}</Link>)}
-      </div>
-      <div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
-        <Link className={`chip small-chip ${!type ? "on" : ""}`} href={link({ type: undefined })}>All</Link>
-        {[...MATERIAL_KINDS, "solutions"].map((kind) => <Link key={kind} className={`chip small-chip ${type === kind ? "on" : ""}`} href={link({ type: type === kind ? undefined : kind })}>{kind[0].toUpperCase() + kind.slice(1)}</Link>)}
-      </div>
-      <div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
-        {myCodes.size > 0 && <Link className={`chip small-chip ${onlyMine ? "on" : ""}`} href={link({ mine: onlyMine ? undefined : "1" })}>My courses</Link>}
-        <Link className={`chip small-chip ${!term ? "on" : ""}`} href={link({ term: undefined })}>All semesters</Link>
-        {terms.map((item) => <Link key={item} className={`chip small-chip ${term === item ? "on" : ""}`} href={link({ term: term === item ? undefined : item })}>{item}</Link>)}
-      </div>
+        <div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
+          <Link className={`chip small-chip ${!type ? "on" : ""}`} href={link({ type: undefined })}>All</Link>
+          {[...MATERIAL_KINDS, "solutions"].map((kind) => <Link key={kind} className={`chip small-chip ${type === kind ? "on" : ""}`} href={link({ type: type === kind ? undefined : kind })}>{kind[0].toUpperCase() + kind.slice(1)}</Link>)}
+        </div>
+        <div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
+          {myCodes.size > 0 && <Link className={`chip small-chip ${onlyMine ? "on" : ""}`} href={link({ mine: onlyMine ? undefined : "1" })}>My courses</Link>}
+          <FilterSelect label="School" value={school ?? ""} options={[{ label: "All schools", value: "", href: link({ school: undefined }) }, ...catalog.schools.map((s) => ({ label: s.name.replace(/^School of /, "").split(",")[0], value: s.slug, href: link({ school: s.slug }) }))]} />
+          <FilterSelect label="Semester" value={term ?? ""} options={[{ label: "All semesters", value: "", href: link({ term: undefined }) }, ...terms.map((item) => ({ label: item, value: item, href: link({ term: item }) }))]} />
+          {(type || term || school || mine) && <Link className="ghost" href="/files">Clear filters</Link>}
+          <span className="small soft" style={{ marginLeft: "auto" }}>{list.length} {list.length === 1 ? "file" : "files"}</span>
+        </div>
       </div>
       <div className="stack" style={{ "--gap": "12px" } as React.CSSProperties}>{list.slice((n - 1) * PER_PAGE, n * PER_PAGE).map((file) => <FileRow key={file.id} file={file} />)}</div>
       <Pager page={n} pages={Math.ceil(list.length / PER_PAGE)} query={{ q: q || undefined, type, term, mine, school }} />
