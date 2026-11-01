@@ -37,7 +37,7 @@ export function CurriculumBoard({ terms }: { terms: Term[] }) {
         ))}
       </div>
       {selected && (
-        <aside className="card" style={{ position: "sticky", top: 88, alignContent: "start" }}>
+        <aside key={selected.code} className="card slide-in" style={{ position: "sticky", top: 88, alignContent: "start" }}>
           <div><span className="tag accent-tag">{selected.code}</span><h2 className="d-sm">{selected.subject}</h2></div>
           {selected.needs.length > 0 && <p className="small"><span className="soft">Needs:</span> {selected.needs.join(", ")}</p>}
           {selected.unlocks.length > 0 && <p className="small"><span className="soft">Unlocks:</span> {selected.unlocks.join(", ")}</p>}

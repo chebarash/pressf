@@ -1,3 +1,4 @@
+import { ViewTransition } from "react";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
@@ -45,9 +46,9 @@ export default async function ProfessorPage({ params }: Props) {
     <>
       <div className="wrap section">
         <div className="row prof-head">
-          <Face name={teacher.display_name} src={faces.get(id)} size={240} className="face-lg" />
+          <ViewTransition name={`face-${id}`}><Face name={teacher.display_name} src={faces.get(id)} size={240} className="face-lg" /></ViewTransition>
           <div className="stack grow" style={{ flexBasis: 320 }}>
-            <h1 className="d-title">{teacher.display_name}</h1>
+            <ViewTransition name={`name-${id}`}><h1 className="d-title">{teacher.display_name}</h1></ViewTransition>
             <div className="stack" style={{ "--gap": "4px" } as React.CSSProperties}>
               {(teacher.department ?? teacher.position) && <div className="label">{teacher.department ?? teacher.position}</div>}
               {teacher.email && <div className="soft">{teacher.email}</div>}

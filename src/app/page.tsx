@@ -19,8 +19,8 @@ export default async function Home() {
       <div className="hero-cover">
         <section className="wrap section" style={{ paddingTop: 48 }}>
           <h1 className="d-hero">
-            <span className="row" style={{ "--gap": ".18em" } as React.CSSProperties}>Press <span className="key cap lg" aria-hidden="true" style={{ cursor: "default" }}>F</span> to pay</span>
-            <em className="accent" style={{ display: "block" }}>respects</em>
+            <span className="row" style={{ "--gap": ".18em" } as React.CSSProperties}><span className="word" style={{ "--i": 0 } as React.CSSProperties}>Press</span> <span className="key cap lg drop" aria-hidden="true" style={{ cursor: "default" }}>F</span> <span className="word" style={{ "--i": 1 } as React.CSSProperties}>to</span> <span className="word" style={{ "--i": 2 } as React.CSSProperties}>pay</span></span>
+            <em className="accent word" style={{ display: "block", "--i": 3 } as React.CSSProperties}>respects</em>
           </h1>
           <p className="body-lg" style={{ maxWidth: "52ch" }}>Not all heroes wear capes… Some just teach really well. Everything about NewUU courses, from the people who took them.</p>
           <div style={{ maxWidth: 800 }}><Palette variant="bar" /></div>

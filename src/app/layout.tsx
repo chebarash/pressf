@@ -6,6 +6,7 @@ import { Geologica, Instrument_Serif } from "next/font/google";
 import Script from "next/script";
 import { cookies } from "next/headers";
 import { Footer, Nav, StaleNotice } from "@/components/Chrome";
+import { Motion } from "@/components/Motion";
 import { TabBar } from "@/components/TabBar";
 import { TelegramApp } from "@/components/TelegramApp";
 import { getUser } from "@/lib/auth";
@@ -36,6 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Footer />
         <TabBar />
         <TelegramApp signedIn={!!user} />
+        <Motion />
       </body>
     </html>
   );

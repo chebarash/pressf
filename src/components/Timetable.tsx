@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Lesson } from "@/lib/catalog";
+import { NowLine } from "./NowLine";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const tone = (code: string | null) => `t${[...(code ?? "")].reduce((a, c) => a + c.charCodeAt(0), 0) % 5}`;
@@ -14,8 +15,10 @@ export function Timetable({ lessons, today }: { lessons: Lesson[]; today: number
   const [picked, setPicked] = useState<Lesson | null>(null);
   const days = DAYS.slice(0, Math.max(5, ...lessons.map((l) => l.day + 1)));
   const times = [...new Set(lessons.map((l) => l.starts))].sort();
+  const lastEnd = lessons.map((l) => l.ends).sort().at(-1);
+  const grid = useRef<HTMLDivElement>(null);
   const detail = picked && (
-    <div className="card" style={{ alignContent: "start" }}>
+    <div key={`${picked.day}${picked.starts}${picked.subject}`} className="card pop-in" style={{ alignContent: "start" }}>
       <div className="row between"><h2 className="d-sm">{picked.subject}</h2><button className="ghost" onClick={() => setPicked(null)}>Close</button></div>
       <p className="small soft">{DAYS[picked.day]} {picked.starts}–{picked.ends}{picked.room ? `, ${picked.room}` : ""}</p>
       {picked.teacher && <Link className="label accent" href={`/professors/${picked.teacher}`}>{picked.teacher_name}</Link>}
@@ -25,17 +28,18 @@ export function Timetable({ lessons, today }: { lessons: Lesson[]; today: number
   return (
     <div className="stack">
       <div className="hide-sm">
-        <div className="tt" style={{ "--days": days.length } as React.CSSProperties}>
-          <span />{days.map((d, i) => <span key={d} className={`label ${i === today ? "accent" : ""}`}>{d}</span>)}
+        <div ref={grid} className="tt" style={{ "--days": days.length } as React.CSSProperties}>
+          <span />{days.map((d, i) => <span key={d} data-day-head={i} className={`label ${i === today ? "accent" : ""}`}>{d}</span>)}
           {times.map((time) => [
-            <span key={time} className="small soft num">{time}</span>,
+            <span key={time} data-time={time} data-ends={lastEnd} className="small soft num">{time}</span>,
             ...days.map((_, d) => {
               const here = lessons.filter((l) => l.day === d && l.starts === time);
               return <div key={`${time}${d}`} className="stack" style={{ "--gap": "4px" } as React.CSSProperties}>{here.map((l) => (
-                <button key={`${l.subject}${l.room}`} className={`slot ${tone(l.code)} ${picked === l ? "on" : ""}`} onClick={() => setPicked(l)}><b style={{ fontWeight: 500 }}>{l.subject}</b><span className="soft">{l.room}</span></button>
+                <button key={`${l.subject}${l.room}`} className={`slot ${tone(l.code)} ${picked === l ? "on" : ""}`} style={{ "--d": d } as React.CSSProperties} onClick={() => setPicked(l)}><b style={{ fontWeight: 500 }}>{l.subject}</b><span className="soft">{l.room}</span></button>
               ))}</div>;
             }),
           ])}
+          {today < days.length && <NowLine grid={grid} column={today} />}
         </div>
       </div>
       <div className="only-sm stack">

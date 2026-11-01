@@ -1,3 +1,4 @@
+import { ViewTransition } from "react";
 import Link from "next/link";
 import { Arrow, Face, Score, Tag, tags } from "./ui";
 
@@ -17,8 +18,8 @@ export function TeacherRow({ id, name, meta, face, score }: { id: string; name: 
   return (
     <Link className="line-row link" href={`/professors/${id}`}>
       <Score value={score} />
-      <Face name={name} src={face} />
-      <div className="grow"><div className="d-xs teacher-name">{name}</div><div className="small soft">{meta}</div></div>
+      <ViewTransition name={`face-${id}`}><Face name={name} src={face} /></ViewTransition>
+      <div className="grow"><ViewTransition name={`name-${id}`}><div className="d-xs teacher-name">{name}</div></ViewTransition><div className="small soft">{meta}</div></div>
     </Link>
   );
 }
