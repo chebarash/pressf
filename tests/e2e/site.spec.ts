@@ -157,3 +157,48 @@ test("calendar and theme work", async ({ page }) => {
   await page.reload();
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe(before);
 });
+
+test.describe("motion from the design", () => {
+  test("a face is only the head, with no circle behind it", async ({ page }) => {
+    await page.goto("/professors");
+    const face = page.locator(".face").first();
+    await expect(face).toHaveCSS("border-radius", "0px");
+    await expect(face).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  });
+
+  test("the hero plays on the first load only", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator(".d-hero .word").first()).toHaveCSS("animation-name", "rise");
+    await expect(page.locator(".d-hero .drop")).toHaveCSS("animation-name", "drop");
+    await page.getByRole("link", { name: "All courses" }).first().click();
+    await expect(page).toHaveURL(/\/courses$/);
+    await page.goBack();
+    await expect(page.locator(".d-hero .word").first()).toHaveCSS("animation-name", "none");
+  });
+
+  test("cards rise as they scroll into view, once", async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 200 });
+    await page.goto("/courses");
+    const rises = () => page.evaluate(() => document.getAnimations().filter((a) => (a.effect as KeyframeEffect).target?.matches(".card")).length);
+    const last = page.locator(".card").last();
+    await expect(async () => {
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      expect(await rises()).toBeGreaterThan(0);
+    }).toPass();
+    await expect(last).toBeVisible();
+    await expect.poll(rises).toBe(0);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    expect(await rises()).toBe(0);
+  });
+
+  test("reduced motion turns every move into a short fade", async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/");
+    const word = page.locator(".d-hero .word").first();
+    await expect(word).toHaveCSS("animation-name", "fade");
+    await expect(word).toHaveCSS("animation-duration", "0.12s");
+    await context.close();
+  });
+});
