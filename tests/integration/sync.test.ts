@@ -143,6 +143,12 @@ describe("mentions", () => {
     expect(await db().select().from(mentionLinks)).toHaveLength(2);
   });
 
+  it("keeps posts without a date", async () => {
+    stub((path) => (path === "/api/mentions/export" ? { items: [{ ...post(9), date: null }], next_offset: null } : path === "/api/posts/ids" ? { items: [9] } : body(path)));
+    await syncMentions();
+    expect((await db().select().from(mentions))[0].date).toBeNull();
+  });
+
   it("does not wipe posts when the id list looks broken", async () => {
     stub(channel([1, 2, 3], [1, 2, 3]));
     await syncMentions();
