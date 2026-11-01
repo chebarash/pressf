@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
 
+/** The key works once the page is interactive, so it is pressed until the panel opens. */
+async function pressF(page: import("@playwright/test").Page) {
+  await expect(async () => {
+    await page.keyboard.press("f");
+    await expect(page.getByRole("dialog")).toHaveCount(1, { timeout: 1000 });
+  }).toPass();
+}
+
 const noSideScroll = (page: import("@playwright/test").Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
@@ -8,8 +16,8 @@ test("home opens with search on the F key", async ({ page, isMobile }) => {
   await expect(page.getByRole("heading", { level: 1 })).toContainText("respects");
   expect(await noSideScroll(page)).toBe(true);
   test.skip(isMobile, "No keyboard on a phone");
-  await page.keyboard.press("f");
-  await page.getByLabel("Search").last().fill("math111");
+  await pressF(page);
+  await page.getByRole("textbox", { name: "Search" }).fill("math111");
   await expect(page.getByRole("button", { name: /Calculus 1/ })).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/courses\/MATH111/);
@@ -18,17 +26,29 @@ test("home opens with search on the F key", async ({ page, isMobile }) => {
 test("the F key opens one search panel", async ({ page, isMobile }) => {
   test.skip(isMobile, "No keyboard on a phone");
   await page.goto("/");
-  await page.keyboard.press("f");
-  await expect(page.getByRole("dialog")).toHaveCount(1);
+  await pressF(page);
 });
 
 test("the search button works on every device", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
-  await page.getByLabel("Search").last().fill("pinto");
+  await expect(async () => {
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(1, { timeout: 1000 });
+  }).toPass();
+  await page.getByRole("textbox", { name: "Search" }).fill("pinto");
   await expect(page.getByRole("button", { name: /Gonçalo Pinto/ })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("the phone menu opens every section and closes after a choice", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Desktop shows the links in the header");
+  await page.goto("/");
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Courses" }).click();
+  await expect(page).toHaveURL(/\/courses$/);
+  await expect(page.getByRole("navigation", { name: "Sections" })).toHaveCount(0);
+  expect(await noSideScroll(page)).toBe(true);
 });
 
 test("course page shows syllabus data, files and mentions", async ({ page }) => {
