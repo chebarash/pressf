@@ -1,0 +1,25 @@
+/** Fills the test database for the browser tests. */
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { Pool } from "pg";
+
+async function main() {
+  process.env.DATABASE_URL ??= "postgres://pressf@127.0.0.1:5544/pressf_test";
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  await migrate(drizzle(pool), { migrationsFolder: "./drizzle" });
+  await pool.end();
+  const { resetDb, seedCatalog } = await import("./db");
+  const { syllabus } = await import("./catalog");
+  const { db } = await import("../../src/lib/db");
+  const { materials, syllabi, teacherAliases, mentions, mentionLinks } = await import("../../src/lib/db/schema");
+  await resetDb();
+  await seedCatalog();
+  await db().insert(syllabi).values({ courseCode: "MATH111", sourceName: "calc.pdf", data: syllabus(), matched: true });
+  await db().insert(materials).values({ status: "approved", courseCode: "MATH111", courseName: "Calculus 1", type: "midterm", term: "Fall 2023", fileName: "Calculus 1 midterm.pdf", mimeType: "application/pdf", size: 10, storageKey: "k", publishedAt: new Date() });
+  await db().insert(teacherAliases).values({ oldId: "gonçalo-pinto", teacherId: "g-pinto" });
+  await db().insert(mentions).values({ postId: 1, url: "https://t.me/x/1", text: "Is MATH111 hard?", date: new Date() });
+  await db().insert(mentionLinks).values({ postId: 1, kind: "course", target: "MATH111" });
+  process.exit(0);
+}
+
+main().catch((error) => { console.error(error); process.exit(1); });

@@ -1,14 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "l4l8qr8nf6lc97wt.public.blob.vercel-storage.com",
-        port: "",
-      },
-    ],
+  output: "standalone",
+  serverExternalPackages: ["pdf-lib", "@pdf-lib/fontkit", "pg"],
+  outputFileTracingIncludes: {
+    "/api/telegram/files": ["./src/lib/telegram/fonts/*.ttf"],
   },
 };
 
