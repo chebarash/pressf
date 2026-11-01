@@ -202,7 +202,7 @@ export async function handleUpdate(update: TelegramUpdate) {
   if (message.chat.type !== "private") return;
   if (message.document) return handleDocument(message);
   if (message.photo) return sendMessage(message.chat.id, TEXT.wrongType);
-  return sendPhoto(message.chat.id, `${site()}/bot/welcome.png`, TEXT.start, {
-    inline_keyboard: [[{ text: "Open Press F", url: site() }], [{ text: "Search", switch_inline_query_current_chat: "" }]],
-  });
+  const open = { inline_keyboard: [[{ text: "Open Press F", url: site() }], [{ text: "Search", switch_inline_query_current_chat: "" }]] };
+  // A failed picture must not leave the sender without an answer.
+  return sendPhoto(message.chat.id, `${site()}/bot/welcome.png`, TEXT.start, open).catch(() => sendMessage(message.chat.id, TEXT.start, open));
 }

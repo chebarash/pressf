@@ -39,8 +39,14 @@ async function sendToChat(file: OpenFile) {
   await send();
 }
 
-function PdfPage({ pdf, number, ratio }: { pdf: Pdf; number: number; ratio: number }) {
+function PdfPage({ pdf, number, ratio, zoom, onSeen }: { pdf: Pdf; number: number; ratio: number; zoom: number; onSeen: (page: number) => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const element = canvas.current!.parentElement!;
+    const seen = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) onSeen(number); }, { rootMargin: "-50% 0px -50% 0px" });
+    seen.observe(element);
+    return () => seen.disconnect();
+  }, [number, onSeen]);
   useEffect(() => {
     const element = canvas.current!;
     let drawn = false;
@@ -49,7 +55,7 @@ function PdfPage({ pdf, number, ratio }: { pdf: Pdf; number: number; ratio: numb
       drawn = true;
       watch.disconnect();
       const page = await pdf.getPage(number);
-      const width = element.parentElement!.clientWidth * Math.min(devicePixelRatio, 2);
+      const width = element.parentElement!.clientWidth * Math.min(devicePixelRatio * zoom, 3);
       const viewport = page.getViewport({ scale: width / page.getViewport({ scale: 1 }).width });
       element.width = viewport.width;
       element.height = viewport.height;
@@ -57,8 +63,8 @@ function PdfPage({ pdf, number, ratio }: { pdf: Pdf; number: number; ratio: numb
     }, { rootMargin: "600px" });
     watch.observe(element);
     return () => watch.disconnect();
-  }, [pdf, number]);
-  return <div className="pdf-page" style={{ aspectRatio: String(ratio) }}><canvas ref={canvas} aria-label={`Page ${number}`} /></div>;
+  }, [pdf, number, zoom]);
+  return <div className="pdf-page" style={{ aspectRatio: String(ratio), width: `${zoom * 100}%` }}><canvas ref={canvas} aria-label={`Page ${number}`} /></div>;
 }
 
 /** Shows PDFs on top of the mini app. What it cannot show goes to the chat instead. */
@@ -66,6 +72,8 @@ export function FileViewer() {
   const [file, setFile] = useState<OpenFile | null>(null);
   const [pdf, setPdf] = useState<Pdf | null>(null);
   const [ratio, setRatio] = useState(.7);
+  const [zoom, setZoom] = useState(1);
+  const [page, setPage] = useState(1);
   const close = useCallback(() => { setFile(null); setPdf(null); }, []);
 
   useEffect(() => {
@@ -73,6 +81,8 @@ export function FileViewer() {
       const next = (event as CustomEvent<OpenFile>).detail;
       if (!/\.pdf$/i.test(next.name)) { sendToChat(next); return; }
       history.pushState({ file: next.id }, "");
+      setZoom(1);
+      setPage(1);
       setFile(next);
     };
     document.addEventListener("tg-file", open);
@@ -113,8 +123,14 @@ export function FileViewer() {
   if (!file) return null;
   return (
     <div className="pdf-viewer" role="dialog" aria-modal="true" aria-label={file.name}>
-      {!pdf && <p className="soft pdf-loading">Opening {file.name.replace(/\.pdf$/i, "")}…</p>}
-      {pdf && Array.from({ length: pdf.numPages }, (_, index) => <PdfPage key={index} pdf={pdf} number={index + 1} ratio={ratio} />)}
+      <div className="pdf-bar">
+        <span className="grow pdf-title">{file.name.replace(/\.pdf$/i, "")}</span>
+        {pdf && <span className="small soft num">{page} / {pdf.numPages}</span>}
+        <button className="key cap sm" aria-label="Zoom out" disabled={zoom <= 1} onClick={() => setZoom((value) => Math.max(1, value - .5))}>−</button>
+        <button className="key cap sm" aria-label="Zoom in" disabled={zoom >= 2.5} onClick={() => setZoom((value) => Math.min(2.5, value + .5))}>+</button>
+      </div>
+      {!pdf && <p className="soft pdf-loading">Opening…</p>}
+      {pdf && <div className="pdf-pages">{Array.from({ length: pdf.numPages }, (_, index) => <PdfPage key={`${index}-${zoom}`} pdf={pdf} number={index + 1} ratio={ratio} zoom={zoom} onSeen={setPage} />)}</div>}
     </div>
   );
 }
