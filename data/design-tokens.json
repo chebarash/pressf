@@ -1,0 +1,32 @@
+{
+  "source": "Figma FmLDCU6LOFiYBhkwelL1B5 · variables (Color: Light/Dark, Dimensions) and text styles",
+  "color": {
+    "bg/page": ["#f5f0d6", "#0e0e0d"], "bg/sunken": ["#ece5c3", "#070707"], "bg/surface": ["#ffffff", "#1a1a18"], "bg/hover": ["#fbf8ea", "#24241f"],
+    "bg/inverse": ["#12110c", "#f5f0d6"], "bg/accent": ["#2a7181", "#62b6c7"], "bg/accent-soft": ["#d5e5e1", "#23302f"], "bg/danger": ["#b8452b", "#ee9a7e"],
+    "bg/telegram-pill": ["#12110c14", "#f5f0d61f"],
+    "text/primary": ["#12110c", "#f5f0d6"], "text/secondary": ["#5a5648", "#a9a594"], "text/inverse": ["#f5f0d6", "#0e0e0d"], "text/accent": ["#163c45", "#62b6c7"],
+    "text/on-accent": ["#ffffff", "#0e0e0d"], "text/on-warm": ["#12110c", "#12110c"],
+    "border/strong": ["#12110c", "#34332d"], "border/subtle": ["#dcd4ac", "#2a2925"], "border/accent": ["#2a7181", "#62b6c7"],
+    "rating/high": ["#2a7181", "#62b6c7"], "rating/mid": ["#d9a21b", "#f0c95a"], "rating/low": ["#4a2417", "#ee9a7e"],
+    "school/computing": ["#2a7181", "#7fc3cf"], "school/computing-soft": ["#d5e5e1", "#1d2b2d"], "school/engineering": ["#b8452b", "#ee9a7e"], "school/engineering-soft": ["#f6dccf", "#2e201b"],
+    "school/management": ["#d9a21b", "#f0c95a"], "school/management-soft": ["#f8e7ae", "#2e2715"], "school/humanities": ["#6a4a8c", "#bfa6dc"], "school/humanities-soft": ["#e6dcf0", "#262130"],
+    "school/medicine": ["#3f6f32", "#a6cf8e"], "school/medicine-soft": ["#dae8cf", "#1f2a1c"],
+    "tint/teal": ["#d5e5e1", "#1d2b2d"], "tint/rust": ["#f6dccf", "#2e201b"], "tint/mustard": ["#f8e7ae", "#2e2715"], "tint/plum": ["#e6dcf0", "#262130"], "tint/moss": ["#dae8cf", "#1f2a1c"], "tint/mustard-strong": ["#f0c95a", "#4a3a0e"],
+    "face/backing": ["#f5f0d6", "#f5f0d6"], "shadow/key": ["#12110c", "#000000"], "scrim": ["#08080573", "#00000099"],
+    "tg/chat-bg": ["#d1dec7", "#0e1621"], "tg/bar": ["#ffffff", "#17212b"], "tg/bubble-in": ["#ffffff", "#182533"], "tg/bubble-out": ["#e0f7d1", "#2b5278"], "tg/text": ["#12120d", "#f5f5f5"],
+    "tg/text-secondary": ["#12120dad", "#f5f5f580"], "tg/separator": ["#12120d26", "#ffffff1a"], "tg/link": ["#1a6bb5", "#6ab3f3"], "tg/button": ["#3f5e45e5", "#ffffff1f"], "tg/button-selected": ["#1f4d33", "#2b5278"],
+    "native/white": ["#ffffff", "#ffffff"], "native/camera": ["#1f211f", "#1f211f"],
+    "doc/page": ["#ffffff", "#ffffff"], "doc/ink": ["#12120d", "#12120d"], "doc/line": ["#12120d1a", "#12120d1a"],
+    "cover/line": ["#12120d29", "#ffffff33"], "cover/line-strong": ["#12120d6b", "#ffffff80"], "cover/media": ["#1a1a14e0", "#000000b2"]
+  },
+  "space": { "1": 4, "2": 8, "3": 12, "4": 16, "5": 24, "6": 32, "7": 48, "8": 64, "9": 96, "10": 128 },
+  "radius": { "sm": 8, "md": 14, "lg": 20, "xl": 32, "full": 999 },
+  "type": {
+    "display-2xl": ["serif", 188, 0.88, -0.01], "display-xl": ["serif", 136, 0.92, -0.01], "display-lg": ["serif", 96, 0.98, -0.01], "display-md": ["serif", 64, 1.04, -0.01],
+    "display-sm": ["serif", 48, 1.08, -0.01], "display-xs": ["serif", 34, 1.12, -0.01],
+    "mobile-hero": ["serif", 84, 0.9, -0.01], "mobile-title": ["serif", 56, 1.0, -0.01], "mobile-section": ["serif", 40, 1.05, -0.01],
+    "body-lg": ["sans", 20, 1.35, 0, 400], "body-md": ["sans", 16, 1.4, 0, 400], "body-sm": ["sans", 14, 1.4, 0, 400],
+    "label-lg": ["sans", 18, 1.3, 0, 500], "label-md": ["sans", 15, 1.3, 0, 500], "label-sm": ["sans", 13, 1.3, 0, 500], "label-xs": ["sans", 11, 1.3, 0.08, 600]
+  },
+  "shadow": { "key-sm": 2, "key-md": 3, "key-lg": 4, "float-lg": 6 }
+}

@@ -17,7 +17,8 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
-    "db:seed:test": "tsx tests/fixtures/seed.ts"
+    "db:seed:test": "tsx tests/fixtures/seed.ts",
+    "tokens": "tsx scripts/tokens.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
