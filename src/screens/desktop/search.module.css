@@ -1,0 +1,31 @@
+.main { padding: 32px 24px var(--space-7) 40px; display: flex; flex-direction: column; gap: var(--space-4); }
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 58px;
+  padding: 0 var(--space-4);
+  background: var(--bg-surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-key-lg);
+}
+.bar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; padding: 0; font: 500 20px/normal var(--font-sans); color: var(--text-primary); }
+.count { font: 600 13px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; }
+.body { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; align-items: start; }
+.results { display: flex; flex-direction: column; gap: 10px; }
+.label { font: 600 11px/normal var(--font-sans); text-transform: uppercase; color: var(--text-secondary); padding-top: 6px; }
+.item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-surface); border: 1.5px solid var(--border-subtle); border-radius: 10px; color: var(--text-primary); }
+.item:hover { border-color: var(--border-strong); }
+.itemOn, .itemOn:hover { background: var(--bg-accent-soft); border-color: var(--border-strong); }
+.itemText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.itemTitle { font: 600 15px/normal var(--font-sans); }
+.itemMeta { font: 400 13px/normal var(--font-sans); color: var(--text-secondary); }
+.right { font: 600 13px/normal var(--font-sans); color: var(--text-accent); white-space: nowrap; }
+.preview { gap: 12px; position: sticky; top: 32px; }
+.eyebrow { font: 600 11px/normal var(--font-sans); color: var(--text-secondary); }
+.previewTitle { font: 400 48px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.previewText { font: 400 15px/1.35 var(--font-sans); }
+.open { display: flex; align-items: center; gap: var(--space-2); }
+.open > * > a { margin-bottom: 0; }
+.nothing { display: flex; flex-direction: column; align-items: center; padding-top: 40px; }

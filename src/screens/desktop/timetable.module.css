@@ -1,0 +1,83 @@
+.split { display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: 100dvh; }
+.main { padding: 28px var(--space-6) var(--space-7); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+
+.header { display: flex; align-items: center; gap: var(--space-3); }
+.title { font: 400 48px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.sub { flex: 1; font: 600 15px/normal var(--font-sans); color: var(--text-secondary); padding-top: 6px; }
+.weekNav { display: flex; align-items: center; gap: var(--space-2); }
+.navBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: 0 2px 0 var(--shadow-key);
+  font: 600 13px/normal var(--font-sans);
+  color: var(--text-primary);
+}
+.navBtn:hover { background: var(--bg-hover); }
+
+/* Week grid */
+.grid {
+  --hour: 64px;
+  --head: 40px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px repeat(var(--days), minmax(0, 1fr));
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-key-lg);
+  overflow: hidden;
+}
+.gutter { position: relative; }
+.hourLabel { position: absolute; left: 10px; transform: translateY(-50%); font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
+.day { position: relative; border-left: 1px solid var(--border-subtle); }
+.dayToday { background: var(--bg-accent); }
+.dayHead { height: var(--head); display: flex; align-items: center; padding: 0 10px; font: 600 13px/normal var(--font-sans); color: var(--text-primary); background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); }
+.dayLink { gap: 6px; color: var(--text-secondary); }
+.dayLink:hover { color: var(--text-primary); background: var(--bg-hover); }
+.dayCount { min-width: 18px; padding: 0 5px; border-radius: var(--radius-full); background: var(--bg-sunken); font: 600 11px/18px var(--font-sans); text-align: center; }
+.lines { position: absolute; inset: var(--head) 0 0 0; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour) - 1px), var(--border-subtle) calc(var(--hour) - 1px), var(--border-subtle) var(--hour)); }
+.dayToday .lines { opacity: 0.35; }
+
+.class {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 8px 8px 10px;
+  border: 1.25px solid var(--border-accent);
+  border-radius: 10px;
+  text-align: left;
+  font: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+  overflow: hidden;
+}
+.class:hover { filter: brightness(0.98); }
+.classOn { border: 2px solid var(--border-strong); box-shadow: 0 3px 0 var(--shadow-key); z-index: 1; }
+.classTitle { font: 600 13px/normal var(--font-sans); }
+.classMeta { font: 400 11px/1.32 var(--font-sans); color: var(--text-secondary); }
+.teal { background: var(--tint-teal); border-color: var(--border-accent); }
+.mustard { background: var(--tint-mustard); border-color: var(--rating-mid); }
+.plum { background: var(--tint-plum); border-color: var(--school-humanities); }
+.moss { background: var(--tint-moss); border-color: var(--school-medicine); }
+.rust { background: var(--tint-rust); border-color: var(--bg-danger); }
+.teal.classOn, .mustard.classOn, .plum.classOn, .moss.classOn, .rust.classOn { border-color: var(--border-strong); }
+
+.now { position: absolute; left: 0; right: 0; height: 2px; background: var(--bg-danger); z-index: 2; pointer-events: none; }
+.now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--bg-danger); }
+
+/* Inspector */
+.tags { display: flex; align-items: center; gap: 6px; }
+.spacer { flex: 1; }
+.inspectorTitle { font: 400 40px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.label { font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
+.absences { display: flex; gap: var(--space-2); font: 500 13px/normal var(--font-sans); color: var(--text-secondary); }
+.absences b { font-weight: 600; color: var(--text-primary); margin-left: auto; }
+.tip { font: 400 12px/1.32 var(--font-sans); color: var(--text-secondary); }
+.emptyInspector { font: 400 14px/1.4 var(--font-sans); color: var(--text-secondary); }

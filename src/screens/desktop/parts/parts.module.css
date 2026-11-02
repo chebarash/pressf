@@ -1,0 +1,253 @@
+/* Desktop building blocks, measured from the Figma "Desktop · web" frames. Tokens only. */
+
+/* ---------- Screen root: a local reset so the screens never depend on page CSS ---------- */
+.screen { color: var(--text-primary); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+.screen :where(*, *::before, *::after) { box-sizing: border-box; }
+.screen :where(p, h1, h2, h3, h4, ul, ol, li, figure, dl, dd) { margin: 0; padding: 0; }
+.screen :where(ul, ol) { list-style: none; }
+.screen :where(a) { color: inherit; text-decoration: none; }
+.screen :where(button, input, select, textarea) { font: inherit; color: inherit; }
+.screen :where(kbd) { font-family: var(--font-sans); }
+
+.contents { display: contents; }
+
+/* ---------- Text ---------- */
+.serif { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.01em; margin: 0; }
+.eyebrow { font: 600 12px/normal var(--font-sans); color: var(--text-accent); text-transform: uppercase; }
+.muted { color: var(--text-secondary); }
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-key-lg);
+  padding: var(--space-4) 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.cardHead { display: flex; align-items: center; gap: var(--space-2); }
+.cardTitle { composes: serif; flex: 1; font-size: 26px; line-height: 1.08; color: var(--text-primary); }
+.cardLink { font: 600 13px/normal var(--font-sans); color: var(--text-accent); white-space: nowrap; }
+.cardLink:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- Key hints ---------- */
+/* Quiet hint next to links and nav items. */
+.hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1.25px solid var(--border-subtle);
+  border-radius: 5px;
+  padding: 1px 4px;
+  font: 600 11px/normal var(--font-sans);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex: none;
+}
+/* Real keycap: palette, dialogs, shortcuts sheet. */
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  background: var(--bg-page);
+  border: 1.25px solid var(--border-strong);
+  border-radius: 6px;
+  box-shadow: 0 1px 0 var(--shadow-key);
+  padding: 2px 6px;
+  font: 600 11px/normal var(--font-sans);
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex: none;
+}
+.keys { display: inline-flex; gap: 6px; align-items: center; flex: none; }
+
+/* ---------- Buttons (key caps) ---------- */
+.btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 48px;
+  padding: 0 var(--space-5);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 5px 0 var(--shadow-key);
+  margin-bottom: 5px;
+  font: 500 18px/1.3 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+.btn:hover { transform: translateY(-3px); box-shadow: 0 8px 0 var(--shadow-key); }
+.btn:active { transform: translateY(5px); box-shadow: 0 0 0 var(--shadow-key); }
+.btn:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 3px; }
+.primary { background: var(--bg-accent); color: var(--text-on-accent); }
+.textBtn { appearance: none; background: none; border: 0; padding: 0; cursor: pointer; font: 600 14px/normal var(--font-sans); color: var(--text-primary); }
+
+/* ---------- Tags ---------- */
+
+/* Small % pill (course list, professor courses). */
+.pct {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  padding: 1px var(--space-2);
+  font: 600 11px/normal var(--font-sans);
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex: none;
+}
+.toneHigh { background: var(--tint-teal); }
+.toneMid { background: var(--tint-mustard); }
+.toneLow { background: var(--tint-rust); }
+.tonePlum { background: var(--tint-plum); }
+.toneMoss { background: var(--tint-moss); }
+.toneSurface { background: var(--bg-surface); }
+
+/* ---------- Rating stickers ---------- */
+.tagSticker {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border: 1.25px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font: 600 12px/normal var(--font-sans);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.tagSticker > span:last-child { font-weight: 400; color: var(--text-secondary); }
+
+/* ---------- File row ---------- */
+.file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 12px 14px 12px 12px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 3px 0 var(--shadow-key);
+  color: var(--text-primary);
+  min-width: 0;
+  transition: transform 80ms ease;
+}
+.file:hover { background: var(--bg-hover); }
+.fileTitle { font: 600 15px/normal var(--font-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fileMeta { display: flex; align-items: center; gap: 12px; font: 400 12px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; }
+
+/* ---------- Feed item ---------- */
+.feed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px 12px 12px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 3px 0 var(--shadow-key);
+  color: var(--text-primary);
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+}
+.feed:hover { background: var(--bg-hover); }
+.feedSelected, .feedSelected:hover { background: var(--bg-accent-soft); }
+.badge {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  color: var(--text-on-warm);
+}
+.feedText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.feedTitle { font: 600 15px/normal var(--font-sans); }
+.feedMeta { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); }
+.unread { width: 8px; height: 8px; border-radius: 50%; background: var(--bg-accent); flex: none; }
+
+/* ---------- Filter chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 0 var(--shadow-key);
+  font: 600 13px/normal var(--font-sans);
+  color: var(--text-primary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip:hover { background: var(--bg-hover); }
+.chipOn, .chipOn:hover { background: var(--bg-accent); color: var(--text-on-accent); }
+
+/* ---------- Course card (App/CourseCard) ---------- */
+.teacher { display: flex; align-items: center; gap: var(--space-2); font: 500 14px/normal var(--font-sans); }
+
+
+/* ---------- Trend chart ---------- */
+
+/* ---------- Anonymous mention ---------- */
+.mention {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: var(--space-4);
+  background: var(--bg-surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: 0 3px 0 var(--shadow-key);
+}
+.mentionHead { display: flex; align-items: center; gap: var(--space-2); font: 400 13px/normal var(--font-sans); color: var(--text-secondary); }
+.mentionHead b { font-weight: 600; color: var(--text-accent); }
+.mentionHead svg { color: var(--text-accent); }
+.mentionText { font: 400 15px/1.45 var(--font-sans); color: var(--text-primary); }
+.mentionFoot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.mentionFoot svg { color: var(--text-accent); }
+
+/* ---------- Faces ---------- */
+.face { display: block; flex: none; object-fit: contain; }
+
+/* ---------- Score tile ---------- */
+
+/* ---------- Panes ---------- */
+.inspector {
+  background: var(--bg-surface);
+  border-left: 1.5px solid var(--border-subtle);
+  padding: 28px var(--space-5) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+}
+.factLine { display: flex; align-items: center; gap: var(--space-2); font: 400 14px/normal var(--font-sans); color: var(--text-primary); }
+
+/* Empty state with the mascot. */
+
+/* Lists navigated with J/K get a visible cursor. */
+.navList [data-nav-item]:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; }
+
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
