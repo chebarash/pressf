@@ -3,6 +3,7 @@ import { getUser } from "@/lib/auth";
 import { getPlatform, isMobile } from "@/platform/server";
 import { rateMetadata } from "@/server/og";
 import Desktop from "@/screens/desktop/Rate";
+import { submitRating } from "../actions";
 import { demo, demoOf, loadRate, rateScreen } from "@/screens/mobile/load";
 import Mobile from "@/screens/mobile/Rate";
 
@@ -16,5 +17,5 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   if (!user && !d) redirect(`/sign-in?next=${encodeURIComponent(`/rate/${courseId}`)}`);
   const data = d ? rateScreen(demo.rate(), courseId, from) : await loadRate(user!.id, courseId, from);
   if (!data?.open) notFound();
-  return isMobile(platform) ? <Mobile data={data} /> : <Desktop data={data} />;
+  return isMobile(platform) ? <Mobile data={data} /> : <Desktop data={data} courseId={courseId} actions={{ submit: submitRating }} />;
 }

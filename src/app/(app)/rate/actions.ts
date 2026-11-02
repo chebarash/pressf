@@ -30,3 +30,13 @@ export async function sendRating(courseId: string, term: string, input: RatingIn
   invalidateRating(item.code, input.teachers.map((t) => t.teacherId));
   return { ok: true };
 }
+
+/** Desktop rate screen (D5): the term is the course's own, from the queue. Throws when it can't be saved. */
+export async function submitRating(courseId: string, input: RatingInput): Promise<void> {
+  const user = await getUser();
+  if (!user) throw new Error("Sign in to rate");
+  const view = await loadRate(user.id, courseId);
+  if (!view?.open) throw new Error("Not a course you can rate");
+  const res = await sendRating(courseId, view.open.item.term, input);
+  if (!res.ok) throw new Error(`Rating not saved: ${res.reason}`);
+}
