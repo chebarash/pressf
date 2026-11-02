@@ -49,6 +49,35 @@ describe("studentTimetable", () => {
     expect(lessons![1]).toMatchObject({ day: 1, starts: "14:00", code: "CS412", room: "M.A.T.H. 101" });
   });
 
+  it("merges consecutive hour-long pieces of one class into a single block", async () => {
+    const mon1120end = Math.floor(Date.UTC(2026, 10, 2, 6, 20) / 1000); // 11:20 Tashkent
+    const mon1120start = mon1120end; // next piece starts right as the first ends
+    const mon1240end = Math.floor(Date.UTC(2026, 10, 2, 7, 40) / 1000); // 12:40 Tashkent
+    lms.scheduleList.mockResolvedValue([
+      { events: [
+        { begin_time: String(mon10), end_time: String(mon1120end), subject_id: "272", employee_id: "141", auditorium: "306" },
+        { begin_time: String(mon1120start), end_time: String(mon1240end), subject_id: "272", employee_id: "141", auditorium: "306" },
+      ] },
+    ]);
+    const lessons = await studentTimetable("u1");
+    expect(lessons).toHaveLength(1);
+    expect(lessons![0]).toMatchObject({ starts: "10:00", ends: "12:40", code: "CS210" });
+  });
+
+  it("keeps two separate sessions of the same course on one day apart", async () => {
+    const mon1120end = Math.floor(Date.UTC(2026, 10, 2, 6, 20) / 1000);
+    const afternoon = Math.floor(Date.UTC(2026, 10, 2, 10, 0) / 1000); // 15:00, a clear gap
+    const afternoonEnd = Math.floor(Date.UTC(2026, 10, 2, 11, 20) / 1000);
+    lms.scheduleList.mockResolvedValue([
+      { events: [
+        { begin_time: String(mon10), end_time: String(mon1120end), subject_id: "272", employee_id: "141" },
+        { begin_time: String(afternoon), end_time: String(afternoonEnd), subject_id: "272", employee_id: "141" },
+      ] },
+    ]);
+    const lessons = await studentTimetable("u1");
+    expect(lessons).toHaveLength(2);
+  });
+
   it("collapses repeated weekly occurrences into one slot", async () => {
     const nextMon10 = mon10 + 7 * 86400;
     lms.scheduleList.mockResolvedValue([
