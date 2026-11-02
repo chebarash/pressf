@@ -1,20 +1,30 @@
 import Link from "next/link";
 import { CourseCard, FileRow, MentionCard, TeacherRow } from "@/components/Cards";
+import { GroupSemester } from "@/components/GroupSemester";
 import { MySemester } from "@/components/MySemester";
 import { Palette } from "@/components/Palette";
 import { SchoolCards } from "@/components/SchoolCards";
 import { Arrow, Banner, SectionHead, Stat } from "@/components/ui";
+import { getUser } from "@/lib/auth";
 import { calendarHint } from "@/lib/calendar";
 import { getCatalog } from "@/lib/catalog";
 import { channelPosts, courseCards, faceMap, fileCounts, popularCourses, publishedFiles, teacherCourses, teacherLine } from "@/lib/content";
 import { currentGroup } from "@/lib/group";
+import { studentSemester } from "@/lib/lms/enrollment";
 import { teacherRatings } from "@/lib/ratings";
 
 type Props = { searchParams: Promise<{ list?: string }> };
 
 export default async function Home({ searchParams }: Props) {
+  // A signed-in student lands on their own semester, drawn from the LMS.
+  const user = await getUser();
+  if (user) {
+    const enrollment = await studentSemester(user.id);
+    if (enrollment?.courses.length) return <MySemester userId={user.id} enrollment={enrollment} />;
+  }
+  // Fallback until the bot catalog and group picker are removed.
   const group = await currentGroup();
-  if (group) return <MySemester group={group} />;
+  if (group) return <GroupSemester group={group} />;
   const { list } = await searchParams;
   const worst = list === "worst";
   const catalog = await getCatalog();
