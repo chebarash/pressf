@@ -12,7 +12,7 @@ The new app is built on the `rebuild` branch and merged to `main` in one cutover
 - Before coding a screen or component, pull its design context and a screenshot from Figma. Match layout, spacing, type, radii, borders and keycap shadows exactly. After coding, screenshot the running page (light and dark) and compare with Figma; fix differences.
 - Colours, spacing, radii and type only through `src/ui/tokens.css` (generated from `data/design-tokens.json`): `var(--bg-page)`, `.t-mobile-title`, etc. No raw hex in components.
 - Fonts: Instrument Serif (display) and Geologica (body/labels) via `next/font/google`.
-- Strong border 1.5px `var(--border-strong)`; keycap shadow `0 3px 0 var(--shadow-key)` (`--shadow-key-md`).
+- Base library components (Button, Keycap, Chip, Score… on page 02) keep their own Figma values: Button cap 2px border + `0 5px` shadow, Chip 2px + `0 3px`, Score M 2px + `0 5px`. Redesign-built cards and containers (CourseCard, FileRow, FeedItem, RatingSummary, sheets, panels) use 1.5px `var(--border-strong)` + `0 3px 0 var(--shadow-key)`. When unsure, measure the instance in Figma.
 
 ## Shared code — use, don't duplicate
 - `src/core/*` pure logic (agenda, semester, attendance, qr, files, ratings, notifications, links, uploads, roles, people, deadlines, grades, time).
