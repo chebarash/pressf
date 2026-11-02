@@ -89,7 +89,7 @@ export function TelegramApp({ signedIn }: { signedIn: boolean }) {
       app.expand();
       if (app.isVersionAtLeast("7.7")) app.disableVerticalSwipes?.();
       if (app.isVersionAtLeast("8.0") && (app.platform === "ios" || app.platform === "android")) app.requestFullscreen?.();
-      if (app.isVersionAtLeast("7.0")) { app.SettingsButton?.onClick(() => router.push("/me/ratings")); app.SettingsButton?.show(); }
+      if (app.isVersionAtLeast("7.0")) { app.SettingsButton?.onClick(() => router.push("/me")); app.SettingsButton?.show(); }
       const start = startPath(app.initDataUnsafe?.start_param);
       if (start) router.replace(start);
       const file = new URLSearchParams(location.search).get("open");

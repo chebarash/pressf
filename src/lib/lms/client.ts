@@ -1,8 +1,11 @@
 import { env } from "@/lib/env";
 import type {
+  LmsGradebookData,
+  LmsGradebookSemester,
   LmsLessonFull,
   LmsMyList,
   LmsSubject,
+  LmsTranscript,
   LmsUser,
 } from "@/lib/lms/types";
 
@@ -87,6 +90,18 @@ export async function subject(s: LmsSession, subjectId: string | number): Promis
 
 export const lesson = (s: LmsSession, lessonId: string | number) =>
   request<LmsLessonFull>(`/lesson/get-by-id?id=${lessonId}`, { token: s.token });
+
+/** Transcript header: GPA and ECTS totals (no per-subject grades; those come from the gradebook). */
+export const transcript = (s: LmsSession) =>
+  request<{ transcript?: LmsTranscript } & Partial<LmsTranscript>>("/transcript/learner", { token: s.token });
+
+/** The student's gradebook, one row per semester enrolled. */
+export const gradebookSemesters = (s: LmsSession) =>
+  request<LmsGradebookSemester[]>("/gradebook/semesters-list", { token: s.token });
+
+/** Per-semester grades, keyed by subject id, including the final mark. */
+export const gradebookData = (s: LmsSession, semesterId: string | number) =>
+  request<LmsGradebookData>(`/gradebook/gradebook-data?semester_id=${semesterId}`, { token: s.token });
 
 /** Download a lesson material's bytes. `fileFullUrl` already starts with `/v1`. */
 export async function downloadFile(s: LmsSession, fileFullUrl: string): Promise<{ bytes: Buffer; contentType: string }> {
