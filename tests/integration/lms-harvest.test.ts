@@ -46,6 +46,15 @@ describe("harvestCatalog", () => {
     expect(links).toHaveLength(2);
   });
 
+  it("tolerates duplicate department and program ids from the LMS", async () => {
+    lms.departments.mockResolvedValue([{ id: "2", name: "CS" }, { id: "2", name: "CS again" }]);
+    lms.programs.mockResolvedValue([{ id: "23", name: "SE" }, { id: "23", name: "SE again" }]);
+    lms.subject.mockResolvedValue({ id: "1", employee: [], landings: [] });
+    // Must not throw "ON CONFLICT ... cannot affect row a second time".
+    const r = await harvestCatalog(session, { stopGap: 5, maxId: 10 });
+    expect(r).toMatchObject({ departments: 1, programs: 1 });
+  });
+
   it("re-running updates in place and drops a teacher who left a course", async () => {
     lms.subject.mockImplementation(async (_s, id: number) =>
       id === 1 ? course(1, "CS101", [emp("9", "Ann", "Lecture"), emp("10", "Bob", "Laboratory")]) : { id: String(id), employee: [] }

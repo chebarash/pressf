@@ -9,6 +9,11 @@ export async function POST(request: Request) {
   if (!env().CRON_SECRET || expected.length !== received.length || !timingSafeEqual(expected, received)) {
     return new Response(null, { status: 401 });
   }
-  const result = await harvestAll();
-  return Response.json(result, { status: "error" in result ? 503 : 200 });
+  try {
+    const result = await harvestAll();
+    return Response.json(result, { status: "error" in result ? 503 : 200 });
+  } catch (error) {
+    console.error("Harvest failed", error);
+    return Response.json({ error: "failed", message: error instanceof Error ? error.message : String(error) }, { status: 500 });
+  }
 }
