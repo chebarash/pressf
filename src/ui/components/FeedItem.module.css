@@ -1,0 +1,33 @@
+/* Figma App/FeedItem (4180:7810). */
+.item {
+  composes: card from "./card.module.css";
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 14px var(--space-3) var(--space-3);
+  min-width: 0;
+}
+.badge {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  color: var(--text-on-warm);
+}
+.announcement { background: var(--tint-teal); }
+.grade { background: var(--tint-moss); }
+.absence { background: var(--tint-rust); }
+.files, .anonymous { background: var(--tint-plum); }
+.deadline { background: var(--tint-mustard); }
+.room { background: var(--bg-sunken); color: var(--text-primary); }
+.announcement, .grade, .absence, .files, .anonymous, .deadline { color: var(--text-primary); }
+
+.text { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; font-family: var(--font-sans); line-height: normal; }
+.title { font-size: 15px; font-weight: 600; }
+.meta { color: var(--text-secondary); font-size: 12px; }
+.unread { flex: none; width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--bg-accent); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

@@ -1,0 +1,38 @@
+/* Figma App/TopBar (4156:2809). */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 60px;
+  padding: 10px var(--space-4) 6px;
+  background: var(--bg-page);
+}
+.search {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: var(--space-3) 14px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-key-md);
+  color: var(--text-primary);
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+}
+.search:active { transform: translateY(3px); box-shadow: none; }
+.search:focus-visible { outline: none; border-color: var(--border-accent); box-shadow: inset 0 0 0 1.5px var(--border-accent), 0 3px 0 var(--border-accent); }
+.placeholder {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: normal;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.avatar { display: inline-flex; flex: none; border-radius: var(--radius-full); }
+.avatar:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; }

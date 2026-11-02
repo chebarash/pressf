@@ -1,0 +1,38 @@
+/* Figma App/RatingStrip (4199:7448). */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-1) 0 6px 2px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-3) 6px var(--space-2);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-key-sm);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: normal;
+  white-space: nowrap;
+}
+.teal { background: var(--tint-teal); }
+.mustard { background: var(--tint-mustard); }
+.rust { background: var(--tint-rust); }
+
+.bars { display: inline-flex; align-items: flex-start; gap: 2px; }
+.rising { align-items: flex-end; }
+.bar {
+  width: 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 1.5px;
+  background: var(--bg-surface);
+}
+.onAccent { background: var(--bg-accent); }
+.onDanger { background: var(--bg-danger); }

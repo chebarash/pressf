@@ -1,0 +1,42 @@
+/* Figma File/Row v2 (4153:2357). */
+.row {
+  composes: card from "./card.module.css";
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 64px;
+  padding: var(--space-3) 14px var(--space-3) var(--space-3);
+  min-width: 0;
+}
+.flag { align-self: stretch; width: 6px; flex: none; border-radius: 3px; }
+.exam { background: var(--bg-danger); }
+.mock { background: var(--rating-mid); }
+.lecture { background: var(--bg-accent); }
+.notes { background: var(--school-humanities); }
+.syllabus { background: var(--school-medicine); }
+.other { background: var(--border-subtle); }
+
+.body { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-1); min-width: 0; overflow: hidden; }
+.title {
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: normal;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: normal;
+  white-space: nowrap;
+}
+.source { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--text-primary); }
+.source > span { color: var(--text-secondary); }
+.chev { flex: none; }

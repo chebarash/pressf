@@ -1,0 +1,24 @@
+/* Figma StatusBannerMobile (4024:1232). */
+.banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+.banner p { margin: 0; }
+.info { background: var(--bg-accent-soft); }
+.warning { background: var(--school-management-soft); }
+.action {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+@media (hover: hover) { .action:hover { text-decoration: underline; text-underline-offset: 3px; } }
+.action:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; border-radius: 4px; }

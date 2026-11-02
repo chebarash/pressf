@@ -1,0 +1,19 @@
+/* Figma 02 Components → Tag (4007:1287). */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex: none;
+}
+.neutral { background: var(--bg-sunken); }
+.accent { background: var(--bg-accent-soft); }
+.computing { background: var(--school-computing-soft); }
+.engineering { background: var(--school-engineering-soft); }
+.management { background: var(--school-management-soft); }
+.humanities { background: var(--school-humanities-soft); }
+.medicine { background: var(--school-medicine-soft); }
+.dark { background: var(--bg-inverse); color: var(--text-inverse); }
