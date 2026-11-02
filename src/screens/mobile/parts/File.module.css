@@ -1,0 +1,12 @@
+/* Figma 4.9 File · preview. */
+.screen { min-height: 100dvh; background: var(--bg-sunken); }
+.head { display: flex; align-items: stretch; gap: 10px; padding: var(--space-2) 0 var(--space-3); }
+.flag { align-self: stretch; }
+.headText { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; }
+.title { margin: 0; overflow: hidden; font-family: var(--font-sans); font-size: 17px; font-weight: 600; line-height: 1.3; white-space: nowrap; text-overflow: ellipsis; }
+.meta { margin: 0; overflow: hidden; color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: normal; white-space: nowrap; text-overflow: ellipsis; }
+.share { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 40px; padding: 0; border: 0; background: none; color: var(--text-secondary); cursor: pointer; }
+.preview { display: block; width: 100%; height: calc(100dvh - 300px); min-height: 420px; border: 1.5px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--doc-page); }
+.noPreview { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); min-height: 420px; border: 1.5px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-surface); text-align: center; }
+.noPreviewTitle { margin: 0; font-family: var(--font-serif); font-size: 28px; line-height: 1.1; }
+.format { padding: 4px 10px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
