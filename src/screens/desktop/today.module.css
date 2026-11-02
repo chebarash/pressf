@@ -1,0 +1,65 @@
+.main { padding: var(--space-6) var(--space-6) var(--space-7); display: flex; flex-direction: column; gap: 20px; max-width: 1240px; }
+
+.header { display: flex; flex-direction: column; gap: 6px; }
+.greeting { font: 600 13px/normal var(--font-sans); color: var(--text-secondary); }
+.title { font: 400 64px/1.04 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); margin: 0; }
+.dateLine { font: 400 15px/normal var(--font-sans); color: var(--text-secondary); }
+
+/* Bento: wide column 736 + side 360 at 1440; the wide one gives way down to 1280. */
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--space-4); align-items: stretch; }
+.side { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* Next class */
+.next { background: var(--bg-accent-soft); justify-content: space-between; gap: 10px; }
+.nextLabel { display: flex; align-items: center; gap: var(--space-2); font: 600 12px/normal var(--font-sans); color: var(--text-accent); text-transform: uppercase; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bg-accent); flex: none; }
+.nextTitle { font: 400 56px/1.04 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); margin: 0; }
+.nextLine { font: 500 16px/normal var(--font-sans); color: var(--text-primary); }
+.materials { display: flex; gap: 10px; }
+.materials > * { flex: 1 1 0; }
+.actions { display: flex; align-items: center; gap: 10px; }
+.actions > :first-child { margin-bottom: 0; }
+.spacer { flex: 1; }
+.note { font: 500 13px/normal var(--font-sans); color: var(--text-secondary); text-align: right; }
+
+/* Your day */
+.slot { display: flex; align-items: center; gap: 12px; color: var(--text-primary); }
+a.slot:hover .slotTitle { text-decoration: underline; text-underline-offset: 3px; }
+.time { width: 46px; flex: none; font: 600 14px/normal var(--font-sans); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.timeNext { color: var(--text-accent); }
+.shape { width: 4px; height: 36px; border-radius: 2px; flex: none; background: var(--tint-teal); }
+.shapeNext { background: var(--bg-accent); }
+.shapeDeadline { background: var(--rating-mid); }
+.slotText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.slotTitle { font: 600 15px/normal var(--font-sans); }
+.slotMeta { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nowLine { display: flex; align-items: center; gap: 6px; font: 600 11px/normal var(--font-sans); color: var(--rating-low); }
+.nowLine::after { content: ""; flex: 1; height: 2px; background: var(--bg-danger); }
+
+/* Due soon */
+.due { display: flex; flex-direction: column; gap: 2px; color: var(--text-primary); }
+.dueTitle { font: 600 15px/normal var(--font-sans); }
+.dueMeta { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); }
+.dueStatus { font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
+.late { color: var(--rating-low); }
+.quiet { font: 400 13px/1.4 var(--font-sans); color: var(--text-secondary); }
+
+/* Next exam */
+.exam { background: var(--tint-rust); }
+.examEyebrow { font: 600 11px/normal var(--font-sans); color: var(--rating-low); text-transform: uppercase; }
+.examWhen { font: 400 40px/1.04 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); margin: 0 0 -2px; }
+.examTitle { font: 600 15px/normal var(--font-sans); color: var(--text-primary); }
+.examMeta { font: 400 12px/1.32 var(--font-sans); color: var(--text-secondary); }
+
+/* My courses */
+.courses { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; flex: 1; }
+/* Rate */
+.rate { background: var(--tint-mustard-strong); justify-content: space-between; color: var(--text-primary); }
+.rateEyebrow { font: 600 11px/normal var(--font-sans); text-transform: uppercase; }
+.rateTitle { font: 400 32px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.rateText { font: 400 13px/normal var(--font-sans); }
+.rateActions { display: flex; align-items: center; gap: var(--space-2); }
+.rateActions > :first-child { margin-bottom: 0; }
+.rateActions button:last-child { color: inherit; }
+
