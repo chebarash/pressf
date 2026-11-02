@@ -75,8 +75,35 @@ export const lmsCourses = pgTable(
     semesterId: text("semester_id"),
     raw: jsonb("raw").notNull(),
     fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+    /** When this course's lesson files were last pulled from the LMS (on demand). */
+    filesSyncedAt: timestamp("files_synced_at", { withTimezone: true }),
   },
   (t) => [index("lms_courses_code").on(t.code)]
+);
+
+/**
+ * Lesson materials pulled from the LMS into our bucket, once per file, then
+ * served to every student of the course. Official files: no moderation, no
+ * Press F cover. Files that vanish from the LMS are kept.
+ */
+export const lmsFiles = pgTable(
+  "lms_files",
+  {
+    /** LMS material id. */
+    id: text("id").primaryKey(),
+    courseId: text("course_id").notNull(),
+    code: text("code").notNull(),
+    lessonId: text("lesson_id"),
+    name: text("name").notNull(),
+    extension: text("extension"),
+    /** LMS file_version; a change means re-download. */
+    version: text("version"),
+    storageKey: text("storage_key").notNull(),
+    size: integer("size"),
+    mimeType: text("mime_type"),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("lms_files_code").on(t.code)]
 );
 
 export const lmsTeachers = pgTable("lms_teachers", {

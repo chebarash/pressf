@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
+import { after } from "next/server";
 import { ViewTransition } from "react";
 import { FileRow, MentionCard, TeacherCard } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
@@ -13,6 +14,8 @@ import { currentWeek } from "@/lib/calendar";
 import { findCourse, getCatalog, normalizeCode } from "@/lib/catalog";
 import { courseDetails, faceMap, fileCounts, mentionsFor, programsWith, publishedFiles, resolveRequirement, schoolOfCourse, unlocks } from "@/lib/content";
 import { getUser } from "@/lib/auth";
+import { courseIdForCode, filesAreStale, harvestCourseFiles, lmsFilesFor } from "@/lib/lms/files";
+import { sessionFor } from "@/lib/lms/store";
 import { courseRatings, ownRatings, pairRatings, pickScores, strengths } from "@/lib/ratings";
 import { isStated } from "@/lib/syllabus";
 
@@ -46,7 +49,15 @@ export default async function CoursePage({ params, searchParams }: Props) {
     mentionsFor({ kind: "course", course }), courseRatings(), pairRatings(code), faceMap(), unlocks(code, catalog),
   ]);
   // Course details and files are for signed-in students; never fetched for guests.
-  const [details, files] = user ? await Promise.all([courseDetails(code), publishedFiles(code)]) : [null, [] as Awaited<ReturnType<typeof publishedFiles>>];
+  const [details, files, lmsFiles] = user ? await Promise.all([courseDetails(code), publishedFiles(code), lmsFilesFor(code)]) : [null, [] as Awaited<ReturnType<typeof publishedFiles>>, []];
+  // Pull this course's LMS files once a student opens it, after the response.
+  if (user) after(async () => {
+    const id = await courseIdForCode(code);
+    if (id && (await filesAreStale(id))) {
+      const session = await sessionFor(user.id);
+      if (session) await harvestCourseFiles(session, id).catch(() => {});
+    }
+  });
   const own = user ? await ownRatings(user.id, { courseCode: code }) : [];
   const data = details?.data;
   const teachers = course.teachers.map((id) => catalog.teachers.find((t) => t.id === id)).filter((t) => !!t);
@@ -180,6 +191,17 @@ export default async function CoursePage({ params, searchParams }: Props) {
             {kinds.map((item) => <Link key={item} className={`chip small-chip ${kind === item ? "on" : ""}`} href={`/courses/${code}?files=${item}#files`} scroll={false}>{item[0].toUpperCase() + item.slice(1)} {files.filter((file) => file.type === item).length}</Link>)}
           </div>}
           {files.length === 0 ? <Empty title="No files yet" action={<a className="key btn" href="https://t.me/pupressfbot" target="_blank" rel="noreferrer">Send on Telegram</a>}>Got past exams or notes? Send them to our bot.</Empty> : <div className="stack" style={{ "--gap": "12px" } as React.CSSProperties}>{shownFiles.slice(0, 5).map((file) => <FileRow key={file.id} file={file} />)}</div>}
+          {lmsFiles.length > 0 && (
+            <div className="stack" style={{ "--gap": "12px", marginTop: 24 } as React.CSSProperties}>
+              <SectionHead title="From the LMS" />
+              {lmsFiles.slice(0, 12).map((file) => (
+                <a key={file.id} className="row between file-row" href={`/lms-files/${file.id}`} data-name={file.name} target="_blank" rel="noreferrer">
+                  <span className="grow">{file.name}</span>
+                  {file.extension && <Tag>{file.extension.toUpperCase()}</Tag>}
+                </a>
+              ))}
+            </div>
+          )}
           </>)}
         </section>
       </div>
