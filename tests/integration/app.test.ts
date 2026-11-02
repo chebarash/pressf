@@ -70,12 +70,26 @@ describe("lms sign-in", () => {
 
   it("rejects a wrong password without saving anything", async () => {
     lmsLogin.mockRejectedValueOnce(new LmsError("no token", 401));
-    expect(await authorize("a@newuu.uz", "wrong")).toBeNull();
+    await expect(authorize("a@newuu.uz", "wrong")).rejects.toThrow("wrong-password");
     expect(await db().select().from(lmsAccounts)).toHaveLength(0);
   });
 
+  it("tells a down LMS apart from a wrong password", async () => {
+    lmsLogin.mockRejectedValueOnce(new LmsError("LMS request failed", 0));
+    await expect(authorize("a@newuu.uz", "pw")).rejects.toThrow("lms-down");
+    lmsLogin.mockRejectedValueOnce(new LmsError("LMS 502", 502));
+    await expect(authorize("a@newuu.uz", "pw")).rejects.toThrow("lms-down");
+    expect(await db().select().from(lmsAccounts)).toHaveLength(0);
+  });
+
+  it("never puts the password in an error", async () => {
+    lmsLogin.mockRejectedValueOnce(new LmsError("no token", 401, { echo: "secret-pw" }));
+    const error = await authorize("a@newuu.uz", "secret-pw").catch((e: Error) => e);
+    expect(String((error as Error).message)).not.toContain("secret-pw");
+  });
+
   it("rejects non-student emails before hitting the LMS", async () => {
-    expect(await authorize("a@gmail.com", "pw")).toBeNull();
+    await expect(authorize("a@gmail.com", "pw")).rejects.toThrow("not-student");
     expect(lmsLogin).not.toHaveBeenCalled();
   });
 
