@@ -12,6 +12,17 @@ export type LmsEmployee = {
   employee_type?: string;
 };
 
+/** Rich teacher profile from `/employee/get-by-id`; most fields may be empty strings. */
+export type LmsEmployeeDetail = {
+  employee_id?: string;
+  user_id?: string;
+  first_name_en?: string;
+  last_name_en?: string;
+  sur_name_en?: string;
+  /** Position/title lives in `academicStatus.name` (the object, not a string). */
+  academicStatus?: { name?: string } | null;
+};
+
 export type LmsSubjectSummary = {
   id: string;
   name: string;

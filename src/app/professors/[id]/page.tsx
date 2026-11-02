@@ -58,6 +58,7 @@ export default async function ProfessorPage({ params }: Props) {
             <ViewTransition name={`name-${id}`}><h1 className="d-title">{teacher.display_name}</h1></ViewTransition>
             <div className="stack" style={{ "--gap": "4px" } as React.CSSProperties}>
               {(teacher.department ?? teacher.position) && <div className="label">{teacher.department ?? teacher.position}</div>}
+              {teacher.department && teacher.position && <div className="small soft">{teacher.position}</div>}
               {teacher.email && <div className="row soft" style={{ "--gap": "8px" } as React.CSSProperties}>{Icons.mail()}<a className="ref" href={`mailto:${teacher.email}`}>{teacher.email}</a></div>}
               {office && <div className="row soft" style={{ "--gap": "8px" } as React.CSSProperties}>{Icons.pin()}Office {office}</div>}
               {fromSyllabus && isStated(fromSyllabus.office_hours) && <div className="small soft">Office hours by syllabus: {fromSyllabus.office_hours}</div>}

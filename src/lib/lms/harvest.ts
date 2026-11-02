@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers, type LmsCurriculumData } from "@/lib/db/schema";
-import { departments, individualPlan, programs, subject, type LmsSession } from "@/lib/lms/client";
+import { departments, employee, individualPlan, programs, subject, type LmsSession } from "@/lib/lms/client";
 import { activeAccountIds, harvestSession, sessionFor } from "@/lib/lms/store";
 import type { LmsEmployee, LmsIepRow, LmsSubject } from "@/lib/lms/types";
 
@@ -150,8 +150,35 @@ export async function harvestCatalog(session: LmsSession, opts: { maxId?: number
 }
 
 /**
+ * Enriches stored teachers with their LMS profile: the position/title from
+ * `academicStatus.name`. Paced like the course walk; one failing teacher never
+ * aborts the rest. (The LMS has no email, and the real photo is deliberately
+ * ignored — Press F only shows Notion Faces.)
+ */
+export async function harvestTeacherDetails(session: LmsSession) {
+  const rows = await db().select({ id: lmsTeachers.id }).from(lmsTeachers);
+  let updated = 0;
+  for (let i = 0; i < rows.length; i += CONCURRENCY) {
+    const batch = rows.slice(i, i + CONCURRENCY);
+    await Promise.all(batch.map(async ({ id }) => {
+      try {
+        const detail = await employee(session, id);
+        const position = detail?.academicStatus?.name?.trim() || null;
+        await db().update(lmsTeachers).set({ position }).where(sql`${lmsTeachers.id} = ${id}`);
+        updated++;
+      } catch {
+        // One teacher's failed fetch must not abort the rest.
+      }
+    }));
+    await sleep(PACE_MS);
+  }
+  return { teacherDetails: updated };
+}
+
+/**
  * A full run: the shared catalog once, then each saved student's curriculum so
- * cohorts fill in. One account failing never stops the rest.
+ * cohorts fill in, then every teacher's profile detail. One account failing
+ * never stops the rest.
  */
 export async function harvestAll(opts: { maxId?: number; stopGap?: number } = {}) {
   const session = await harvestSession();
@@ -163,5 +190,6 @@ export async function harvestAll(opts: { maxId?: number; stopGap?: number } = {}
     if (!s) continue;
     curricula += (await harvestCurriculum(s).catch(() => ({ curricula: 0 }))).curricula;
   }
-  return { ...catalog, curricula };
+  const { teacherDetails } = await harvestTeacherDetails(session).catch(() => ({ teacherDetails: 0 }));
+  return { ...catalog, curricula, teacherDetails };
 }

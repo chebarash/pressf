@@ -70,7 +70,7 @@ async function lmsCatalog() {
     const full = [t.firstName, t.surName].filter(Boolean).join(" ").trim() || t.id;
     return {
       id: t.id, name: full, display_name: full, previous_ids: [],
-      position: null, department: deptFor(t.id), school: null, email: null,
+      position: t.position ?? null, department: deptFor(t.id), school: null, email: null,
       office: null, photo_url: null, url: null, teaches: [...(teaches.get(t.id) ?? [])],
     };
   });
