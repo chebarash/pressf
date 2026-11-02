@@ -1,0 +1,100 @@
+/* Today, Notifications and QR on mobile (Figma 10 Redesign, 2.x and 10.x). Layout around the UI kit; tokens only. */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  padding: 0 var(--space-4);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+/* The kit's sticky bottom bar spans the screen edge to edge. */
+.barBleed { margin-inline: calc(var(--space-4) * -1); }
+
+/* Title block */
+.head { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) 0 var(--space-4); }
+.title { margin: 0; font-weight: 400; color: var(--text-primary); }
+.subtitle { color: var(--text-secondary); }
+
+/* Banners run edge to edge (Figma 2.7, 2.8, 2.13) */
+.bannerBleed { margin: 0 calc(var(--space-4) * -1) var(--space-2); }
+
+/* Quick access strip */
+.tiles { display: flex; gap: 10px; margin: 0 calc(var(--space-4) * -1); padding: var(--space-1) var(--space-4) var(--space-4); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: var(--space-4); }
+.tiles::-webkit-scrollbar { display: none; }
+.tile { flex: none; scroll-snap-align: start; }
+
+/* Content column */
+.content { display: flex; flex-direction: column; gap: var(--space-7); padding: var(--space-6) 0 var(--space-7); }
+.list { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.listTight { display: flex; flex-direction: column; gap: 10px; }
+.list12 { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* Class rows (ClassRow: Default · Next; done classes dim) */
+.classRow { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border: 2px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-primary); min-width: 0; }
+.classRow:active { background: var(--bg-hover); }
+.classTime { flex: none; font-variant-numeric: tabular-nums; }
+.classText { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.classSubject, .classDetails { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.classDetails { color: var(--text-secondary); }
+.classNext { background: var(--bg-accent-soft); border-color: var(--border-accent); }
+.classDone { background: transparent; }
+.classDone .classTime, .classDone .classSubject, .classDone .classDetails { color: var(--text-secondary); }
+
+/* Big card (coming up, exams, break, next exams) */
+.hero { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border: 2px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: 0 5px 0 var(--shadow-key); color: var(--text-primary); }
+.heroEyebrow { font: 500 13px/normal var(--font-sans); color: var(--text-secondary); }
+.heroTitle { margin: 0; }
+.heroLine { font: 500 16px/normal var(--font-sans); }
+.heroSub { font: 400 14px/normal var(--font-sans); color: var(--text-secondary); white-space: pre-line; }
+
+/* Rating ask (Rate last semester) */
+.rate { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: var(--space-4); border: 2px solid var(--border-strong); border-radius: 18px; background: var(--tint-mustard-strong); box-shadow: 0 5px 0 var(--shadow-key); color: var(--text-primary); }
+.rateEyebrow { font: 600 11px/normal var(--font-sans); text-transform: uppercase; }
+.rateTitle { margin: 0; font-weight: 400; line-height: 1.04; }
+.rateBody { margin: 0; }
+.rateActions { display: flex; align-items: center; gap: 10px; }
+
+/* Section header */
+.section { display: flex; flex-direction: column; gap: 10px; }
+.sectionHead { display: flex; align-items: center; gap: 6px; }
+.sectionTitle { flex: 1; min-width: 0; margin: 0; font-weight: 400; }
+.sectionAll { display: inline-flex; align-items: center; gap: 6px; color: var(--text-accent); font: 600 14px/normal var(--font-sans); }
+
+/* A kit FeedItem that opens a sheet */
+.rowButton { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+
+.caughtUp { display: flex; align-items: center; gap: 10px; padding: 14px var(--space-4); border: 1.5px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--tint-moss); font: 500 14px/1.3 var(--font-sans); }
+
+/* Due soon */
+.dueRow { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 14px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-key-md); color: var(--text-primary); }
+.dueRow:active { transform: translateY(3px); box-shadow: none; }
+.dueText { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.dueTitle { font: 600 15px/normal var(--font-sans); }
+.dueMeta { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); }
+.dueStatus { font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
+.dueLate { color: var(--rating-low); }
+
+/* Notifications screen */
+.unreadRow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-3); }
+.linkButton { padding: 0; border: 0; background: none; color: var(--text-accent); font: 600 15px/normal var(--font-sans); cursor: pointer; }
+.linkButton:disabled { color: var(--text-secondary); cursor: default; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-bottom: var(--space-4); }
+.feedSections { display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-7); }
+.feedSectionTitle { margin: 0; padding-bottom: 10px; font: 500 14px/normal var(--font-sans); color: var(--text-secondary); }
+
+/* Sheet content */
+.sheetTag { display: flex; }
+.sheetEyebrow { font: 400 13px/normal var(--font-sans); color: var(--text-secondary); }
+.sheetTitle { margin: 0; font-weight: 400; line-height: 1.04; }
+.sheetBody { font: 600 15px/1.4 var(--font-sans); white-space: pre-line; overflow-wrap: anywhere; }
+.sheetNote { font: 400 14px/1.4 var(--font-sans); color: var(--text-secondary); }
+.sheetSmall { font: 400 12px/1.4 var(--font-sans); color: var(--text-secondary); }
+.appIcon { display: grid; place-items: center; width: 64px; height: 64px; border: 1.5px solid var(--border-strong); border-radius: 16px; background: var(--bg-accent); color: var(--text-on-accent); }
+
+/* QR page */
+.qrIdle { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6) 0 var(--space-7); }
+.qrLead { font: 400 16px/1.4 var(--font-sans); color: var(--text-secondary); }
