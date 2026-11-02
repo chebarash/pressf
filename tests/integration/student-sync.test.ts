@@ -10,6 +10,8 @@ const cacheMod = vi.hoisted(() => ({ preloadUser: vi.fn() }));
 const filesMod = vi.hoisted(() => ({ filesAreStale: vi.fn(), harvestCourseFiles: vi.fn() }));
 vi.mock("@/lib/lms/client", async (orig) => ({ ...(await orig<object>()), ...lms }));
 vi.mock("@/lib/lms/store", () => store);
+// Views schedule a background sync when stale; keep it out of these tests.
+vi.mock("@/server/sync/refresh", () => ({ scheduleRefresh: vi.fn(), refreshOnce: vi.fn(), refreshStudent: vi.fn() }));
 vi.mock("@/lib/telegram/api", async (orig) => ({ ...(await orig<object>()), ...tg }));
 vi.mock("@/lib/lms/cache", async (orig) => ({ ...(await orig<object>()), ...cacheMod }));
 vi.mock("@/lib/lms/files", async (orig) => ({ ...(await orig<object>()), ...filesMod }));
