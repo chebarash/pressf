@@ -13,6 +13,7 @@ export default defineConfig({
       BOT_API_URL: "https://bot.test", BOT_API_TOKEN: "bot-token", CRON_SECRET: "cron-secret",
       ADMIN_EMAILS: "boss@newuu.uz, Second@newuu.uz", NEXTAUTH_URL: "https://pressf.test",
       TELEGRAM_FILES_BOT_TOKEN: "tg-token", TELEGRAM_FILES_WEBHOOK_SECRET: "hook-secret", TELEGRAM_FILES_REVIEW_CHAT_ID: "-100",
+      CREDENTIAL_KEY: "test-credential-key-0123456789",
     },
   },
 });
