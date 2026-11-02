@@ -85,8 +85,11 @@ export type LmsProgram = {
 
 export type LmsSubject = {
   id: string;
-  name: string;
+  /** Null for some records (e.g. deleted placeholders). */
+  name: string | null;
   code: string;
+  /** "1" for records the LMS has deleted. */
+  deleted?: string;
   credit_count?: string;
   lecture_hours?: string;
   laboratory_hours?: string;
