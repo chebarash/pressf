@@ -1,16 +1,17 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Sheet } from "@/ui/components";
+import { Sheet } from "@/ui/shell/overlays";
 import { BottomBar } from "./BottomBar";
 
 type Action = { text: string; onClick: () => void; busy?: boolean };
 
-/** A bottom sheet whose action is Telegram's MainButton (the kit's buttons in a browser). */
+/** A shell bottom sheet whose action is the MainButton (stacked over the screen's own). */
 export function ActionSheet({ title, onClose, main, secondary, children }: { title: string; onClose: () => void; main: Action; secondary?: Action; children: ReactNode }) {
   return (
-    <Sheet open onClose={onClose} title={title} heading={false} footer={<BottomBar inline main={main} secondary={secondary} />}>
+    <Sheet label={title} onClose={onClose}>
       {children}
+      <BottomBar main={main} secondary={secondary} />
     </Sheet>
   );
 }

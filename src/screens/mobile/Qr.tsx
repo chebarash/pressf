@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { TodayView } from "@/server/views";
-import "@/ui/tokens.css";
 import s from "./mobile.module.css";
 import { QrFlow, type QrFlowProps } from "./parts/QrFlow";
 

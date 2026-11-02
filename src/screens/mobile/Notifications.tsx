@@ -5,7 +5,6 @@ import { useCallback, useOptimistic, useState, useTransition } from "react";
 import type { FeedKind } from "@/core/notifications";
 import type { FeedView, NotificationsView } from "@/server/views";
 import { Chip, EmptyState } from "@/ui/components";
-import "@/ui/tokens.css";
 import { acknowledgeFeed, markAllFeedRead, markFeedRead } from "./actions";
 import s from "./mobile.module.css";
 import { allItems, applyChange, orderedFilters, readable, unreadNow } from "./notifications/model";

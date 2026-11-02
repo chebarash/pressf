@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { TodayView } from "@/server/views";
 import { CourseCard, QuickTile, Tag } from "@/ui/components";
 import { BookIcon, CalendarIcon, CheckIcon, ChevronRightIcon, ClockIcon, QrIcon } from "@/ui/icons";
-import "@/ui/tokens.css";
 import s from "./mobile.module.css";
 import { FeedRow } from "./parts/FeedRow";
 import { GuestHome } from "./today/GuestHome";

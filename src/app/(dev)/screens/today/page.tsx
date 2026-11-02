@@ -5,6 +5,7 @@ import MobileNotifications from "@/screens/mobile/Notifications";
 import MobileQr from "@/screens/mobile/Qr";
 import type { QrResult } from "@/screens/mobile/parts/QrFlow";
 import MobileToday from "@/screens/mobile/Today";
+import { Shell } from "@/ui/shell/Shell";
 
 /**
  * Dev-only preview of every Figma state of Today, Notifications and QR on
@@ -28,11 +29,17 @@ export default async function Preview({ searchParams }: Props) {
   const { state, theme } = await searchParams;
   const themeScript = theme ? <script dangerouslySetInnerHTML={{ __html: `document.documentElement.dataset.theme=${JSON.stringify(theme === "dark" ? "dark" : "light")}` }} /> : null;
 
-  if (state && state in TODAY_STATES) return <>{themeScript}<MobileToday data={TODAY_STATES[state as keyof typeof TODAY_STATES]()} /></>;
-  if (state === "1.2-guest") return <>{themeScript}<MobileToday data={GUEST} /></>;
-  if (state === "2.9-notifications") return <>{themeScript}<MobileNotifications data={notificationsFixture()} /></>;
-  if (state === "2.10-notification-open") return <>{themeScript}<MobileNotifications data={notificationsFixture("lms:1")} /></>;
-  if (state && state in QR) return <>{themeScript}<MobileQr data={qrFixture()} preview={QR[state]} /></>;
+  const framed = (screen: React.ReactNode) => (
+    <>
+      {themeScript}
+      <Shell>{screen}</Shell>
+    </>
+  );
+  if (state && state in TODAY_STATES) return framed(<MobileToday data={TODAY_STATES[state as keyof typeof TODAY_STATES]()} />);
+  if (state === "1.2-guest") return framed(<MobileToday data={GUEST} />);
+  if (state === "2.9-notifications") return framed(<MobileNotifications data={notificationsFixture()} />);
+  if (state === "2.10-notification-open") return framed(<MobileNotifications data={notificationsFixture("lms:1")} />);
+  if (state && state in QR) return framed(<MobileQr data={qrFixture()} preview={QR[state]} />);
 
   const all = [...Object.keys(TODAY_STATES), "1.2-guest", "2.9-notifications", "2.10-notification-open", ...Object.keys(QR)];
   return (
