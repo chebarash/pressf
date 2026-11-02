@@ -573,3 +573,38 @@ export const telegramFiles = pgTable("telegram_files", {
   fileId: text("file_id").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Admin edits to harvested LMS files (rename, type, week, hide). A re-sync
+ * never overwrites them; views apply them on top of `lms_files`.
+ */
+export const fileOverrides = pgTable("file_overrides", {
+  fileId: text("file_id").primaryKey(),
+  title: text("title"),
+  type: text("type"),
+  week: integer("week"),
+  hidden: boolean("hidden").notNull().default(false),
+  updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Small moderation and system flags keyed by (kind, target):
+ * - `post-hidden` / `post-mute` on an Anonymous post id (a mute acts on the
+ *   post's private author token, never on a person),
+ * - `teachers-distinct` on a teacher pair that is not a duplicate,
+ * - `signout` on a user id (sessions issued before `at` are void),
+ * - `setting` on a key (`maintenance`, `sync-paused`).
+ */
+export const adminMarks = pgTable(
+  "admin_marks",
+  {
+    kind: text("kind").notNull(),
+    target: text("target").notNull(),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
+    until: timestamp("until", { withTimezone: true }),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.kind, t.target] })]
+);

@@ -39,3 +39,11 @@ test("the shell frames every screen", async ({ page, isMobile }) => {
     await expect(page.getByRole("dialog", { name: "Search" })).toBeVisible({ timeout: 1000 });
   }).toPass();
 });
+
+test("admin opens the review queue", async ({ page, isMobile }) => {
+  test.skip(isMobile, "The admin is desktop only");
+  await page.goto("/admin");
+  await expect(page.getByRole("navigation", { name: "Admin" })).toBeVisible();
+  await page.goto("/admin/uploads");
+  await expect(page.getByRole("heading", { name: "Uploads" })).toBeVisible();
+});
