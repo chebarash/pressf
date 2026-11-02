@@ -5,6 +5,7 @@ import type {
   LmsGradebookData,
   LmsGradebookSemester,
   LmsIepRow,
+  LmsScheduleDay,
   LmsLessonFull,
   LmsMyList,
   LmsProgram,
@@ -98,6 +99,10 @@ export const programs = (s: LmsSession) =>
 /** The signed-in student's individual education plan, one row per semester. */
 export const individualPlan = (s: LmsSession) =>
   request<LmsIepRow[]>("/individual-education-plan/my", { token: s.token });
+
+/** The student's schedule between two unix timestamps, grouped by day. */
+export const scheduleList = (s: LmsSession, beginTime: number, endTime: number) =>
+  request<LmsScheduleDay[]>(`/schedule/list?beginTime=${beginTime}&endTime=${endTime}`, { token: s.token });
 
 /** `/subject/get-by-id` returns an array of one; any university course id works. */
 export async function subject(s: LmsSession, subjectId: string | number): Promise<LmsSubject | null> {

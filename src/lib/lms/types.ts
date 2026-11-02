@@ -123,6 +123,17 @@ export type LmsUser = {
   avatar_extension?: string;
 };
 
+export type LmsScheduleEvent = {
+  begin_time?: string;
+  end_time?: string;
+  subject_id?: string;
+  employee_id?: string;
+  /** The LMS sends either a room string or an object with the room name. */
+  auditorium?: string | { name?: string } | null;
+};
+
+export type LmsScheduleDay = { day?: string; events?: LmsScheduleEvent[] };
+
 /** A row of the student's individual education plan: one semester of their program. */
 export type LmsIepRow = {
   work_education_plan_id?: string;
