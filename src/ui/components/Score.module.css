@@ -1,17 +1,17 @@
-/* Figma 02 Components → Score (4008:1068). */
+/* Figma 02 Components → Score (4008:1068). Base-library values: 2px border, Key/MD 0 5px shadow at every size. */
 .score {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  border: 1.5px solid var(--border-strong);
-  box-shadow: var(--shadow-key-md);
+  border: 2px solid var(--border-strong);
+  box-shadow: 0 5px 0 var(--shadow-key);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .s { width: 52px; height: 52px; border-radius: var(--radius-md); }
 .m { width: 72px; height: 72px; border-radius: var(--radius-md); }
-.l { width: 144px; height: 144px; border-radius: var(--radius-xl); box-shadow: var(--shadow-key-lg); }
+.l { width: 144px; height: 144px; border-radius: var(--radius-xl); }
 
 .high { background: var(--rating-high); color: var(--text-on-accent); }
 .mid { background: var(--rating-mid); color: var(--text-on-warm); }
