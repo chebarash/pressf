@@ -1,0 +1,19 @@
+/* Figma 02 Components → Score (4008:1068). */
+.score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 1.5px solid var(--border-strong);
+  box-shadow: var(--shadow-key-md);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.s { width: 52px; height: 52px; border-radius: var(--radius-md); }
+.m { width: 72px; height: 72px; border-radius: var(--radius-md); }
+.l { width: 144px; height: 144px; border-radius: var(--radius-xl); box-shadow: var(--shadow-key-lg); }
+
+.high { background: var(--rating-high); color: var(--text-on-accent); }
+.mid { background: var(--rating-mid); color: var(--text-on-warm); }
+.low { background: var(--rating-low); color: var(--text-on-accent); }
+.none { background: var(--bg-sunken); color: var(--text-secondary); }

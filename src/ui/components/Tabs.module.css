@@ -1,0 +1,26 @@
+/* Figma Tab (4008:1433) and the day picker in 3.1 Timetable. */
+.tabs { display: flex; align-items: center; gap: var(--space-1); overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.spread { justify-content: space-between; }
+.tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 40px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-primary);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 120ms;
+}
+.l { height: 44px; }
+@media (hover: hover) { .tab:not(.active):hover { background: var(--bg-sunken); } }
+.tab[data-state="hover"]:not(.active) { background: var(--bg-sunken); }
+.active { background: var(--bg-inverse); color: var(--text-inverse); }
+.tab:focus-visible,
+.tab[data-state="focus"] { outline: 3px solid var(--border-accent); outline-offset: 0; }
