@@ -57,7 +57,7 @@ async function saveDepartmentsAndPrograms(session: LmsSession) {
 
 async function saveCourse(c: LmsSubject) {
   await db().insert(lmsCourses).values({
-    id: c.id, code: c.code, name: c.name,
+    id: c.id, code: c.code, name: c.name ?? c.code,
     credits: int(c.credit_count), lectureHours: int(c.lecture_hours), labHours: int(c.laboratory_hours), practiceHours: int(c.practice_hours),
     departmentId: c.department?.id ?? null, semesterId: c.semester_id ?? null, raw: c, fetchedAt: new Date(),
   }).onConflictDoUpdate({
@@ -136,7 +136,12 @@ export async function harvestCatalog(session: LmsSession, opts: { maxId?: number
     const results = await Promise.all(batch.map((n) => subject(session, n).catch(() => null)));
     for (let k = 0; k < batch.length; k++) {
       const c = results[k];
-      if (c?.code) { await saveCourse(c); courses++; lastHit = Math.max(lastHit, batch[k]); }
+      if (!c?.code) continue;
+      // A real subject id: keep scanning past it. Skip deleted/nameless records,
+      // which the LMS still returns under a used id.
+      lastHit = Math.max(lastHit, batch[k]);
+      if (c.deleted === "1" || !c.name) continue;
+      await saveCourse(c); courses++;
     }
     id += batch.length;
     await sleep(PACE_MS);

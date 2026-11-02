@@ -46,6 +46,20 @@ describe("harvestCatalog", () => {
     expect(links).toHaveLength(2);
   });
 
+  it("skips deleted or nameless courses without crashing, and keeps scanning past them", async () => {
+    const present: Record<number, object> = {
+      1: course(1, "CS101", [emp("9", "Ann", "Lecture")]),
+      2: { id: "2", code: "GRAD490", name: null, deleted: "1", employee: [] }, // deleted, name null
+      3: { id: "3", code: "OLD100", name: null, employee: [] }, // nameless
+      4: course(4, "CS102", [emp("9", "Ann", "Lecture")]),
+    };
+    lms.subject.mockImplementation(async (_s, id: number) => present[id] ?? { id: String(id), employee: [], landings: [] });
+    const r = await harvestCatalog(session, { stopGap: 20, maxId: 100 });
+    expect(r.courses).toBe(2); // only CS101 and CS102 stored
+    expect(r.lastCourseId).toBe(4); // scan continued past the skipped ids
+    expect((await db().select().from(lmsCourses)).map((c) => c.code).sort()).toEqual(["CS101", "CS102"]);
+  });
+
   it("tolerates duplicate department and program ids from the LMS", async () => {
     lms.departments.mockResolvedValue([{ id: "2", name: "CS" }, { id: "2", name: "CS again" }]);
     lms.programs.mockResolvedValue([{ id: "23", name: "SE" }, { id: "23", name: "SE again" }]);

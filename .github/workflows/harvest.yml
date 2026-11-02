@@ -18,7 +18,8 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           SITE_URL: ${{ vars.SITE_URL }}
         run: |
-          result=$(curl --fail --silent --show-error --max-time 900 -X POST \
+          code=$(curl --silent --show-error --max-time 900 -o body.txt -w "%{http_code}" -X POST \
             -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/harvest")
-          echo "$result"
-          test "$(echo "$result" | jq -e '.courses >= 0')" = "true"
+          echo "HTTP $code"
+          echo "BODY: $(cat body.txt)"
+          test "$code" = "200"
