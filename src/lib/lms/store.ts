@@ -24,6 +24,23 @@ function tokenExpiry(token: string): Date | null {
   }
 }
 
+/** Store (or refresh) a verified login. Separate from `saveAccount` so sign-in,
+ * which already logged in to authenticate, does not log in a second time. */
+export async function persistAccount(userId: string, password: string, session: LmsSession) {
+  const fields = {
+    sealedPassword: seal(password),
+    token: session.token,
+    tokenExpiresAt: tokenExpiry(session.token),
+    status: "active" as const,
+    lastUsedAt: new Date(),
+    updatedAt: new Date(),
+  };
+  await db()
+    .insert(lmsAccounts)
+    .values({ userId, ...fields })
+    .onConflictDoUpdate({ target: lmsAccounts.userId, set: fields });
+}
+
 /**
  * Verify an email/password against the LMS and save it for `userId`. Throws
  * LmsError if the credentials are rejected, so callers can show a sign-in error
@@ -31,29 +48,7 @@ function tokenExpiry(token: string): Date | null {
  */
 export async function saveAccount(userId: string, email: string, password: string): Promise<LmsSession> {
   const session = await login(email, password);
-  const expiresAt = tokenExpiry(session.token);
-  await db()
-    .insert(lmsAccounts)
-    .values({
-      userId,
-      sealedPassword: seal(password),
-      token: session.token,
-      tokenExpiresAt: expiresAt,
-      status: "active",
-      lastUsedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: lmsAccounts.userId,
-      set: {
-        sealedPassword: seal(password),
-        token: session.token,
-        tokenExpiresAt: expiresAt,
-        status: "active",
-        lastUsedAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+  await persistAccount(userId, password, session);
   return session;
 }
 
