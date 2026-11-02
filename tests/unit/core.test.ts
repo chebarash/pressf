@@ -272,8 +272,8 @@ describe("links", () => {
   });
   it("builds paths and URLs", () => {
     expect(path({ to: "course", code: "MATH111", tab: "files", term: "Fall 2025" })).toBe("/c/MATH111/files?term=Fall%202025");
-    expect(miniAppUrl({ to: "course", code: "MATH111" })).toBe("https://t.me/pupressfbot?startapp=c_MATH111");
-    expect(uploadLink("MATH 111")).toBe("https://t.me/pupressfbot?start=upload_MATH111");
+    expect(miniAppUrl({ to: "course", code: "MATH111" })).toBe("https://t.me/pressfapp?startapp=c_MATH111");
+    expect(uploadLink("MATH 111")).toBe("https://t.me/pressfapp?start=upload_MATH111");
     expect(parseStartParam("garbage")).toEqual({ to: "today" });
     expect(parseStartParam(null)).toEqual({ to: "today" });
   });

@@ -249,7 +249,7 @@ describe("review outcome", () => {
     const out = await submitUpload({ uploaderId: user.id, courseId: "12", courseCode: "PHYS101", title: "Notes", type: "notes", fileName: "a.pdf", mimeType: "application/pdf", size: 1, sha256: "y" });
     const { upload, message } = await rejectUpload(out.duplicate ? "" : out.upload.id, user.id, "in-lms", "", "Physics 1");
     await notifyUploader(upload.id, message);
-    expect(String(sent[0].body.text)).toMatch(/^<b>Not accepted: Notes · Physics 1\.<\/b>/);
+    expect(String(sent[0].body.text)).toMatch(/^<b>Not accepted: Notes<\/b>\nReason: /);
     sent = [];
     await tap("ok");
     expect(methods()).toEqual(["answerCallbackQuery", "editMessageReplyMarkup"]);
@@ -280,13 +280,13 @@ describe("inline search", () => {
     expect(course.input_message_content.message_text).toContain("<b>Calculus 1</b>");
     expect(course.input_message_content.link_preview_options).toMatchObject({ url: expect.stringMatching(/\/courses\/MATH111$/), prefer_large_media: true });
     expect(course.description).toContain("Course · MATH111");
-    expect(course.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pupressfbot?startapp=course_MATH111");
+    expect(course.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pressfapp?startapp=course_MATH111");
   });
   it("shares a professor with a face", async () => {
     await ask("pinto");
     const teacher = answer().results.find((r) => /Pinto/.test(r.title))!;
     expect(teacher.thumbnail_url).toMatch(/\/thumb\?face=g-pinto$/);
-    expect(teacher.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pupressfbot?startapp=professor_g-pinto");
+    expect(teacher.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pressfapp?startapp=professor_g-pinto");
   });
   it("sends a published PDF as a document under a lasting address", async () => {
     const [file] = await publish();
@@ -323,7 +323,7 @@ describe("inline search", () => {
     mainApp = false;
     await ask("calculus");
     mainApp = true;
-    expect(answer().results.find((r) => r.title === "Calculus 1")!.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pupressfbot?start=course_MATH111");
+    expect(answer().results.find((r) => r.title === "Calculus 1")!.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pressfapp?start=course_MATH111");
   });
   it("answers such a link with a button to the page", async () => {
     await post({ message: { message_id: 1, chat: { id: 7, type: "private" }, text: "/start course_MATH111" } });
@@ -335,7 +335,7 @@ describe("inline search", () => {
     await ask("calculus");
     const links = answer().results.flatMap((r) => r.reply_markup.inline_keyboard.flat().map((b: { url?: string }) => b.url)).filter(Boolean);
     expect(links.length).toBeGreaterThan(0);
-    expect(links.every((url: string) => url.startsWith("https://t.me/pupressfbot?start"))).toBe(true);
+    expect(links.every((url: string) => url.startsWith("https://t.me/pressfapp?start"))).toBe(true);
   });
   it("says so when nothing matches", async () => {
     await ask("zzzzz");
