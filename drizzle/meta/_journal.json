@@ -78,6 +78,13 @@
       "when": 1793639982496,
       "tag": "0010_lms_teacher_details",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793641552319,
+      "tag": "0011_lms_files",
+      "breakpoints": true
     }
   ]
 }
