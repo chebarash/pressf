@@ -121,11 +121,12 @@ export const filterFeed = (items: FeedItem[], filter: (typeof FILTERS)[number]["
   filter === "all" ? items : items.filter((i) => FILTERS.find((f) => f.id === filter)!.kinds.includes(i.kind));
 
 /** Alert settings: which kinds go to the bot. Defaults on for what is time-critical. */
-export type AlertSettings = Record<FeedKind | "digest" | "classReminder" | "qrReminder" | "rating", boolean>;
+export type AlertSettings = Record<FeedKind | "digest" | "classReminder" | "qrReminder" | "rating" | "registration" | "exams", boolean>;
 
 export const DEFAULT_ALERTS: AlertSettings = {
   digest: true, classReminder: true, qrReminder: true, absence: true, grade: true, file: false,
   announcement: true, deadline: true, anonymous: true, upload: true, system: true, rating: true,
+  registration: true, exams: true,
 };
 
 /** Quiet hours 22:00–08:00 Tashkent; urgent kinds still go through. */
