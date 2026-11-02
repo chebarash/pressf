@@ -1,3 +1,5 @@
+// Superseded by src/server/covers (Figma 12 · branded file covers): use brandFile / brandPdf /
+// coverPng from "@/server/covers" and brandedCopy from "@/server/covers/store". Kept until the bot switches.
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import fontkit from "@pdf-lib/fontkit";
