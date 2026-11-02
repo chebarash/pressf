@@ -31,23 +31,28 @@ const name = (e: LmsEmployee, part: "first" | "last" | "sur") => {
 
 async function saveDepartmentsAndPrograms(session: LmsSession) {
   const [deps, progs] = await Promise.all([departments(session), programs(session)]);
-  if (deps.length) {
+  // Postgres rejects a batch upsert that touches the same id twice, and the LMS
+  // can return duplicate ids, so keep the last row per id.
+  const uniqueById = <T extends { id: string }>(rows: T[]) => [...new Map(rows.filter((r) => r.id).map((r) => [r.id, r])).values()];
+  const depRows = uniqueById(deps);
+  const progRows = uniqueById(progs);
+  if (depRows.length) {
     await db().insert(lmsDepartments).values(
-      deps.map((d) => ({ id: d.id, code: d.code ?? null, parentId: d.parent_id ?? null, typeId: d.department_type_id ?? null, name: d.name, shortName: d.short_name ?? null }))
+      depRows.map((d) => ({ id: d.id, code: d.code ?? null, parentId: d.parent_id ?? null, typeId: d.department_type_id ?? null, name: d.name, shortName: d.short_name ?? null }))
     ).onConflictDoUpdate({
       target: lmsDepartments.id,
       set: { code: sql`excluded.code`, parentId: sql`excluded.parent_id`, typeId: sql`excluded.type_id`, name: sql`excluded.name`, shortName: sql`excluded.short_name` },
     });
   }
-  if (progs.length) {
+  if (progRows.length) {
     await db().insert(lmsPrograms).values(
-      progs.map((p) => ({ id: p.id, name: p.name, departmentId: p.department_id ?? null, groupId: p.education_program_group_id ?? null, description: p.description ?? null }))
+      progRows.map((p) => ({ id: p.id, name: p.name, departmentId: p.department_id ?? null, groupId: p.education_program_group_id ?? null, description: p.description ?? null }))
     ).onConflictDoUpdate({
       target: lmsPrograms.id,
       set: { name: sql`excluded.name`, departmentId: sql`excluded.department_id`, groupId: sql`excluded.group_id`, description: sql`excluded.description` },
     });
   }
-  return { departments: deps.length, programs: progs.length };
+  return { departments: depRows.length, programs: progRows.length };
 }
 
 async function saveCourse(c: LmsSubject) {
