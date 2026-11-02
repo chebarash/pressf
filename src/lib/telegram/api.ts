@@ -1,10 +1,12 @@
 import { env } from "@/lib/env";
 
+export type InlineButton = { text: string; callback_data?: string; url?: string; web_app?: { url: string }; switch_inline_query_current_chat?: string };
+
 export type InlineKeyboard = {
-  inline_keyboard: Array<Array<{ text: string; callback_data?: string; url?: string; web_app?: { url: string }; switch_inline_query_current_chat?: string }>>;
+  inline_keyboard: InlineButton[][];
 };
 
-type TelegramDocument = {
+export type TelegramFile = {
   file_id: string;
   file_unique_id: string;
   file_name?: string;
@@ -12,24 +14,34 @@ type TelegramDocument = {
   file_size?: number;
 };
 
+export type TelegramPhotoSize = { file_id: string; file_unique_id: string; width: number; height: number; file_size?: number };
+
+export type TelegramUser = { id: number; is_bot?: boolean; first_name?: string; username?: string };
+
 export type TelegramMessage = {
   message_id: number;
   chat: { id: number; type: string };
+  from?: TelegramUser;
   text?: string;
   caption?: string;
-  document?: TelegramDocument;
-  photo?: unknown[];
+  document?: TelegramFile;
+  video?: TelegramFile;
+  audio?: TelegramFile;
+  photo?: TelegramPhotoSize[];
   reply_to_message?: { message_id: number };
+};
+
+export type TelegramCallbackQuery = {
+  id: string;
+  from?: TelegramUser;
+  data?: string;
+  message?: TelegramMessage;
 };
 
 export type TelegramUpdate = {
   update_id: number;
   message?: TelegramMessage;
-  callback_query?: {
-    id: string;
-    data?: string;
-    message?: TelegramMessage;
-  };
+  callback_query?: TelegramCallbackQuery;
   inline_query?: { id: string; query: string; offset: string };
 };
 
@@ -62,6 +74,28 @@ export const sendMessage = (chatId: number | string, text: string, replyMarkup?:
     reply_markup: replyMarkup,
   });
 
+/** A ready message from one of the builders in ./messages. */
+export type BotMessage = { text: string; keyboard?: InlineKeyboard };
+
+export const send = (chatId: number | string, message: BotMessage) => sendMessage(chatId, message.text, message.keyboard);
+
+export const editMessage = (chatId: number | string, messageId: number, text: string, replyMarkup?: InlineKeyboard) =>
+  call<TelegramMessage | true>("editMessageText", {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    reply_markup: replyMarkup ?? { inline_keyboard: [] },
+  });
+
+export const editKeyboard = (chatId: number | string, messageId: number, replyMarkup?: InlineKeyboard) =>
+  call<TelegramMessage | true>("editMessageReplyMarkup", {
+    chat_id: chatId,
+    message_id: messageId,
+    reply_markup: replyMarkup ?? { inline_keyboard: [] },
+  });
+
 export const sendPhoto = (chatId: number | string, photo: string, caption: string, replyMarkup?: InlineKeyboard) =>
   call<TelegramMessage>("sendPhoto", { chat_id: chatId, photo, caption, parse_mode: "HTML", reply_markup: replyMarkup });
 
@@ -76,11 +110,11 @@ export const answerInlineQuery = (id: string, results: object[], nextOffset: str
 
 export const getMe = () => call<{ has_main_web_app?: boolean }>("getMe", {});
 
-export const answerCallback = (id: string, text?: string) =>
+export const answerCallback = (id: string, text?: string, alert = !!text) =>
   call<boolean>("answerCallbackQuery", {
     callback_query_id: id,
     text,
-    show_alert: !!text,
+    show_alert: alert,
   });
 
 export const editCaption = (

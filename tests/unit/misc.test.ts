@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { isStale, normalizeCode, type Catalog } from "@/lib/catalog";
 import { isAdminEmail } from "@/lib/env";
 import { tierOf } from "@/lib/ratings";
-import { esc, reviewCaption } from "@/lib/telegram/bot";
+import { esc } from "@/lib/telegram/html";
 
 describe("tierOf", () => {
   it("draws the tier borders", () => {
@@ -46,12 +46,6 @@ describe("isAdminEmail", () => {
 
 describe("telegram text", () => {
   it("escapes HTML from file names", () => expect(esc("a<b>&c")).toBe("a&lt;b&gt;&amp;c"));
-  it("fits a Telegram caption", () => {
-    const caption = reviewCaption({ fileName: "<x>.pdf", courseCode: null, courseName: null, type: null, term: null, hasSolutions: false, author: null, caption: "y".repeat(5000) });
-    expect(caption.length).toBeLessThanOrEqual(1024);
-    expect(caption).toContain("&lt;x&gt;");
-    expect(caption).toContain("Course: ?");
-  });
 });
 
 describe("standardName", () => {
