@@ -57,6 +57,13 @@
       "when": 1793625444593,
       "tag": "0007_lms_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793630432061,
+      "tag": "0008_lms_catalog",
+      "breakpoints": true
     }
   ]
 }

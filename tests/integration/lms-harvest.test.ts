@@ -1,0 +1,68 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const lms = vi.hoisted(() => ({ departments: vi.fn(), programs: vi.fn(), subject: vi.fn() }));
+vi.mock("@/lib/lms/client", () => lms);
+
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { lmsCourseTeachers, lmsCourses, lmsDepartments, lmsPrograms, lmsTeachers } from "@/lib/db/schema";
+import { harvestCatalog } from "@/lib/lms/harvest";
+import { resetDb } from "../fixtures/db";
+
+const session = { token: "t" };
+
+const course = (id: number, code: string, employee: object[] = []) => ({
+  id: String(id), code, name: `Course ${code}`, credit_count: "6", lecture_hours: "30",
+  department: { id: "2", name: "CS" }, semester_id: "181", employee,
+});
+const emp = (id: string, first: string, role: string) => ({ employee_id: id, first_name_en: first, last_name_en: "Doe", sur_name_en: "D", employee_type: role });
+
+beforeEach(async () => {
+  await resetDb();
+  lms.departments.mockResolvedValue([{ id: "2", code: "60010", parent_id: "4", name: "Computer Science", short_name: "cs" }]);
+  lms.programs.mockResolvedValue([{ id: "23", name: "Software Engineering", department_id: "2" }]);
+});
+afterEach(() => vi.clearAllMocks());
+
+describe("harvestCatalog", () => {
+  it("stores departments, programs, courses and teachers, and stops after the gap", async () => {
+    const present: Record<number, ReturnType<typeof course>> = {
+      1: course(1, "CS101", [emp("9", "Ann", "Lecture")]),
+      2: course(2, "CS102", [emp("9", "Ann", "Lecture"), emp("10", "Bob", "Laboratory")]),
+    };
+    lms.subject.mockImplementation(async (_s, id: number) => present[id] ?? { id: String(id), employee: [], landings: [] });
+
+    const result = await harvestCatalog(session, { stopGap: 20, maxId: 500 });
+    expect(result).toMatchObject({ departments: 1, programs: 1, courses: 2, lastCourseId: 2 });
+    // It stopped ~20 past the last course instead of scanning to maxId.
+    expect(result.scannedTo).toBeLessThan(40);
+
+    expect(await db().select().from(lmsDepartments)).toHaveLength(1);
+    expect(await db().select().from(lmsPrograms)).toHaveLength(1);
+    expect(await db().select().from(lmsCourses)).toHaveLength(2);
+    const teachers = await db().select().from(lmsTeachers);
+    expect(teachers.map((t) => t.firstName).sort()).toEqual(["Ann", "Bob"]);
+    const links = await db().select().from(lmsCourseTeachers).where(eq(lmsCourseTeachers.courseId, "2"));
+    expect(links).toHaveLength(2);
+  });
+
+  it("re-running updates in place and drops a teacher who left a course", async () => {
+    lms.subject.mockImplementation(async (_s, id: number) =>
+      id === 1 ? course(1, "CS101", [emp("9", "Ann", "Lecture"), emp("10", "Bob", "Laboratory")]) : { id: String(id), employee: [] }
+    );
+    await harvestCatalog(session, { stopGap: 10, maxId: 100 });
+    expect(await db().select().from(lmsCourseTeachers)).toHaveLength(2);
+
+    // Bob no longer teaches CS101.
+    lms.subject.mockImplementation(async (_s, id: number) =>
+      id === 1 ? course(1, "CS101 Renamed", [emp("9", "Ann", "Lecture")]) : { id: String(id), employee: [] }
+    );
+    await harvestCatalog(session, { stopGap: 10, maxId: 100 });
+
+    const [c] = await db().select().from(lmsCourses).where(eq(lmsCourses.id, "1"));
+    expect(c.code).toBe("CS101 Renamed");
+    expect(await db().select().from(lmsCourses)).toHaveLength(1);
+    const links = await db().select().from(lmsCourseTeachers).where(eq(lmsCourseTeachers.courseId, "1"));
+    expect(links.map((l) => l.teacherId)).toEqual(["9"]);
+  });
+});

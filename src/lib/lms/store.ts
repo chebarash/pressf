@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { lmsAccounts, users } from "@/lib/db/schema";
 import { login, LmsError, type LmsSession } from "@/lib/lms/client";
@@ -50,6 +50,22 @@ export async function saveAccount(userId: string, email: string, password: strin
   const session = await login(email, password);
   await persistAccount(userId, password, session);
   return session;
+}
+
+/** A session from any active saved login, for background harvesting. Rotates by
+ * least-recently-used so no single student's account carries every run. */
+export async function harvestSession(): Promise<LmsSession | null> {
+  const rows = await db()
+    .select({ userId: lmsAccounts.userId })
+    .from(lmsAccounts)
+    .where(eq(lmsAccounts.status, "active"))
+    .orderBy(sql`${lmsAccounts.lastUsedAt} asc nulls first`)
+    .limit(5);
+  for (const row of rows) {
+    const session = await sessionFor(row.userId);
+    if (session) return session;
+  }
+  return null;
 }
 
 /** Mark a saved login dead (wrong password now) so refresh skips it and the UI can re-ask. */
