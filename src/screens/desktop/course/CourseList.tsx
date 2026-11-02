@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { CourseListItem, CoursesData } from "../fixtures/types";
+import type { CourseListItem, CoursesData } from "../model";
 import { css, cx, Hint, Icon, Pct } from "../parts";
 import c from "./course.module.css";
 

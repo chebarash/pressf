@@ -1,15 +1,17 @@
 /**
- * View-model shapes the desktop screens render. Until the matching function in
- * src/server/views lands, each screen is typed against these; once it lands the
- * screen's prop becomes `Awaited<ReturnType<typeof views.x>>` and these go away.
+ * Display shapes the desktop screens draw. Each screen takes its view model from
+ * src/server/views as `data` and maps it here with ./adapt, so the layout code
+ * reads like the Figma frame and the mapping lives in one place.
  */
-import type { FeedKind, FileRowData, Strip } from "../parts";
+import type { TeacherRole } from "@/core/ratings";
+import type { RatingSummaryProps } from "@/ui/components";
+import type { FeedKind, FileRowData, Strip, Tier } from "./parts";
 
-export type { FeedKind, FileRowData, Strip };
+export type { FeedKind, FileRowData, Strip, Tier };
 
 export type Teacher = { id: string; name: string; face: string | null; href: string };
 
-export type CourseCardVM = { code: string; name: string; href: string; recommendPct: number | null; teacher: Teacher | null; line: string };
+export type CourseCardVM = { code: string; name: string; href: string; recommendPct: number | null; teacher: { name: string; face: string | null } | null; line: string };
 
 export type FeedItemVM = {
   id: string;
@@ -18,25 +20,19 @@ export type FeedItemVM = {
   meta: string;
   unread: boolean;
   href: string;
-  section?: "Today" | "This week" | "Earlier";
-  /** Detail pane. */
+  section?: string;
   eyebrow?: string;
   body?: string[];
   needsAck?: boolean;
-  course?: { name: string; href: string } | null;
+  /** Where "Open …" goes from the detail pane. */
+  open?: { label: string; href: string } | null;
 };
 
 export type TodayData = {
   greeting: string;
+  title: string;
   dateLine: string;
-  next: null | {
-    label: string;
-    title: string;
-    line: string;
-    href: string;
-    files: FileRowData[];
-    note: string | null;
-  };
+  next: null | { label: string; title: string; line: string; href: string; files: FileRowData[]; note: string | null };
   day: Array<{ time: string; title: string; meta: string; tone: "class" | "next" | "deadline"; href?: string }>;
   /** The red now-line goes before `day[before]`. */
   now: { time: string; before: number } | null;
@@ -70,13 +66,14 @@ export type TimetableData = {
   prevHref: string;
   nextHref: string;
   todayHref: string;
-  days: Array<{ label: string; today: boolean }>;
+  /** `loaded`: the view sent this day's classes; other days link to themselves. */
+  days: Array<{ label: string; today: boolean; href: string; count: number; loaded: boolean }>;
   startHour: number;
   endHour: number;
   now: { day: number; minutes: number } | null;
   classes: TimetableClass[];
-  /** Class opened in the inspector first. */
   selected: string | null;
+  empty: string | null;
 };
 
 export type CourseListItem = { code: string; name: string; href: string; recommendPct: number | null; next: string; absences: string | null };
@@ -84,18 +81,10 @@ export type CoursesData = {
   terms: Array<{ id: string; label: string; href: string; active: boolean }>;
   courses: CourseListItem[];
   cards: CourseCardVM[];
+  note: string | null;
 };
 
 export type Mention = { date: string; text: string; tag: string; href: string };
-export type RatingSummaryVM = {
-  by: string;
-  recommendPct: number;
-  hours: number | null;
-  difficulty: number | null;
-  trend: Array<{ term: string; value: number }>;
-  delta: string | null;
-  tags: Array<{ tag: string; pct: number }>;
-};
 export type CourseData = {
   code: string;
   name: string;
@@ -109,17 +98,18 @@ export type CourseData = {
   teachers: Array<Teacher & { line: string; pressFPct: number | null }>;
   grading: Array<{ pct: number; title: string; note: string }>;
   syllabus: Array<{ title: string; meta: string; href?: string }>;
-  me: null | { average: number | null; tier: "High" | "Mid" | "Low" | "None"; line: string; next: string | null; href: string };
-  summary: RatingSummaryVM | null;
+  me: null | { average: number | null; tier: Tier; line: string; next: string | null; href: string };
+  summary: RatingSummaryProps | null;
   mention: Mention | null;
   rateHref: string | null;
-  /** The student's courses for the list pane (desktop shows it beside the course). */
+  /** The student's courses for the list pane, when the view sends them. */
   myCourses: CourseListItem[] | null;
   terms: CoursesData["terms"] | null;
+  locked: boolean;
 };
 
 export type FileData = {
-  file: {
+  file: null | {
     id: string;
     title: string;
     meta: string;
@@ -130,6 +120,7 @@ export type FileData = {
     openHref: string;
   };
   course: CourseData | null;
+  courseLink: { name: string; href: string } | null;
 };
 
 export type ProfessorData = {
@@ -139,9 +130,7 @@ export type ProfessorData = {
   title: string;
   stats: Array<{ value: string; label: string; accent?: boolean }>;
   schedule: { term: string; rows: Array<{ day: string; time: string; course: string; href: string; role: string; room: string }> };
-  trend: Array<{ term: string; value: number }>;
-  delta: string | null;
-  byCourse: Array<{ label: string; pct: number }>;
+  summary: RatingSummaryProps | null;
   courses: Array<{ code: string; name: string; role: string; pct: number | null; href: string }>;
   tags: Array<{ tag: string; pct: number }>;
   mention: Mention | null;
@@ -160,7 +149,7 @@ export type ProgressRow = {
   next: string | null;
   href: string;
   detail: null | {
-    marks: Array<{ label: string; value: number | null; max: number; tier: "High" | "Mid" | "Low" | "None" }>;
+    marks: Array<{ label: string; value: number | null; max: number; tier: Tier }>;
     classes: Array<"present" | "qr" | "absent">;
     classesLabel: string;
     grading: Array<{ label: string; value: string }>;
@@ -169,25 +158,28 @@ export type ProgressRow = {
 export type ProgressData = {
   gpa: { value: string; delta: string; note: string; trend: number[] } | null;
   credits: { done: number; total: number; note: string } | null;
-  attendance: { pct: string; note: string } | null;
+  attendance: { value: string; note: string } | null;
   week: { title: string; note: string } | null;
   rows: ProgressRow[];
   open: string | null;
   semesters: Array<{ term: string; short: string; value: number | null; current: boolean; line: string }>;
   rate: null | { title: string; line: string; href: string };
+  empty: boolean;
 };
-export type CourseProgressData = { course: { name: string; code: string; href: string }; row: ProgressRow };
+export type CourseProgressData = { course: { name: string; code: string; href: string; term: string | null; teacher: string | null }; row: ProgressRow };
 
 export type NotificationsData = { unread: number; items: FeedItemVM[]; open: string | null };
 
-export type CalendarKind = "week" | "deadline" | "exam" | "registration" | "holiday";
+export type CalendarKind = "week" | "deadline" | "exam" | "registration" | "holiday" | "class";
+export type CalendarMonth = {
+  label: string;
+  weeks: Array<Array<{ key: string; date: number; inMonth: boolean; today: boolean; items: Array<{ title: string; kind: CalendarKind; href?: string | null }> }>>;
+};
 export type CalendarData = {
-  month: string;
-  prevHref: string;
-  nextHref: string;
-  filters: Array<{ id: "classes" | "exams" | "deadlines" | "holidays" | "registration"; label: string; on: boolean }>;
-  weeks: Array<Array<{ date: number; inMonth: boolean; today: boolean; items: Array<{ title: string; kind: CalendarKind; href?: string }> }>>;
+  months: CalendarMonth[];
+  filters: Array<{ id: string; label: string; on: boolean; href: string }>;
   coming: Array<{ title: string; meta: string; kind: CalendarKind }>;
+  empty: string | null;
   icsHref: string;
 };
 
@@ -195,9 +187,8 @@ export type SearchItem = { id: string; title: string; meta: string; right: strin
 export type SearchData = {
   q: string;
   total: number;
-  filters: Array<{ id: string; label: string; href: string; on: boolean }>;
   groups: Array<{ id: "courses" | "professors" | "files"; label: string; items: SearchItem[] }>;
-  preview: null | { eyebrow: string; title: string; strip: Strip; text: string; href: string };
+  previews: Record<string, { eyebrow: string; title: string; strip: Strip; text: string; href: string }>;
   suggestion: string | null;
 };
 
@@ -205,18 +196,19 @@ export type NextRow = {
   code: string;
   name: string;
   meta: string;
-  ects: number;
+  ects: number | null;
   recommendPct: number | null;
   hours: string;
   difficulty: string;
   prereq: { name: string; status: string; ok: boolean } | null;
+  href: string | null;
   detail: {
     eyebrow: string;
     strip: Strip;
     cohorts: Array<{ title: string; line: string; note: string; ok: boolean; pct: number | null; face: string | null }>;
   };
 };
-export type NextData = { eyebrow: string; title: string; dates: Array<{ title: string; note: string }>; rows: NextRow[]; lmsHref: string; note: string };
+export type NextData = { eyebrow: string; title: string; dates: Array<{ title: string; note: string }>; rows: NextRow[]; lmsHref: string; note: string; missing: boolean };
 
 export type SettingsData = {
   account: { name: string; line: string };
@@ -227,19 +219,21 @@ export type SettingsData = {
 };
 
 export type RateData = {
-  course: { id: string; name: string; term: string; href: string };
-  teachers: Array<{ id: string; name: string; role: string; face: string | null }>;
+  course: null | { id: string; name: string; term: string; href: string };
+  waiting: number;
+  teachers: Array<{ id: string; name: string; role: string; kind: TeacherRole; face: string | null }>;
   tags: string[];
   initial: null | { recommend: "yes" | "unsure" | "no" | null; hours: string | null; difficulty: number | null; tags: string[]; pressed: string[] };
 };
 
 export type ProfessorsData = {
-  filters: Array<{ id: string; label: string; href: string; on: boolean }>;
-  items: Array<{ id: string; name: string; face: string | null; dept: string; courses: string; pct: number | null; count: number; href: string }>;
+  schools: string[];
+  items: Array<{ id: string; name: string; face: string | null; dept: string; school: string | null; courses: string; pct: number | null; href: string; yours: boolean }>;
 };
 
 export type CurriculumData = {
   program: string;
   line: string;
-  years: Array<{ label: string; semesters: Array<{ label: string; ects: number; courses: Array<{ code: string; name: string; ects: number; status: "passed" | "now" | "next" | "later"; href: string }> }> }>;
+  programs: Array<{ id: string; name: string; href: string; on: boolean }>;
+  years: Array<{ label: string; semesters: Array<{ label: string; ects: number; courses: Array<{ code: string; name: string; ects: number | null; pct: number | null; status: "passed" | "failed" | "now" | "planned" | null; href: string | null }> }> }>;
 };

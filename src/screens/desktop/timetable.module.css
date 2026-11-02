@@ -36,6 +36,9 @@
 .day { position: relative; border-left: 1px solid var(--border-subtle); }
 .dayToday { background: var(--bg-accent); }
 .dayHead { height: var(--head); display: flex; align-items: center; padding: 0 10px; font: 600 13px/normal var(--font-sans); color: var(--text-primary); background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); }
+.dayLink { gap: 6px; color: var(--text-secondary); }
+.dayLink:hover { color: var(--text-primary); background: var(--bg-hover); }
+.dayCount { min-width: 18px; padding: 0 5px; border-radius: var(--radius-full); background: var(--bg-sunken); font: 600 11px/18px var(--font-sans); text-align: center; }
 .lines { position: absolute; inset: var(--head) 0 0 0; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour) - 1px), var(--border-subtle) calc(var(--hour) - 1px), var(--border-subtle) var(--hour)); }
 .dayToday .lines { opacity: 0.35; }
 

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
-import type { CourseData } from "../fixtures/types";
-import { ButtonLink, css, cx, Face, FileRow, Hint, Icon, MentionCard, RatingStrip, Score, Tag, TagStickers, Trend } from "../parts";
+import type { CourseData } from "../model";
+import { RatingSummary } from "@/ui/components";
+import { ButtonLink, css, cx, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, Tag } from "../parts";
 import c from "./course.module.css";
 import { CourseList } from "./CourseList";
 
@@ -9,7 +10,7 @@ import { CourseList } from "./CourseList";
 export function CourseLayout({ data, aside }: { data: CourseData; aside?: ReactNode }) {
   const withList = !!data.myCourses?.length;
   return (
-    <div className={cx(css.screen, c.layout, aside && withList && c.layoutFile, !withList && c.layoutNoList)}>
+    <div className={cx(css.screen, c.layout, !!aside && withList && c.layoutFile, !withList && c.layoutNoList)}>
       {withList && <CourseList courses={data.myCourses!} terms={data.terms} current={data.code} />}
       <CourseDetail data={data} />
       {aside ?? <CourseInspector data={data} />}
@@ -47,13 +48,17 @@ function CourseDetail({ data }: { data: CourseData }) {
         <span className={cx(c.tab, c.tabOn)} aria-current="page">
           {data.tabs.overview}
         </span>
-        <Link href={data.tabs.filesHref} className={c.tab} data-key="g f">
-          Files {data.tabs.files}
-        </Link>
+        <KeyTo k="g f">
+          <Link href={data.tabs.filesHref} className={c.tab}>
+            Files {data.tabs.files}
+          </Link>
+        </KeyTo>
         <Link href={data.tabs.anonymousHref} className={c.tab}>
           Anonymous {data.tabs.anonymous}
         </Link>
       </nav>
+
+      {data.locked && <p className={c.boxMeta}>Sign in to see the weeks, files and your marks for this course.</p>}
 
       {data.weeks.length > 0 && (
         <section className={c.section}>
@@ -177,37 +182,7 @@ function CourseInspector({ data }: { data: CourseData }) {
       )}
 
       {s ? (
-        <div className={c.summary}>
-          <p className={c.by}>{s.by}</p>
-          <div className={c.numbers}>
-            <span className={c.number}>
-              <b style={{ color: "var(--text-accent)" }}>{s.recommendPct}%</b>
-              <span>recommend</span>
-            </span>
-            {s.hours != null && (
-              <span className={c.number}>
-                <b>{Math.round(s.hours)} h</b>
-                <span>a week</span>
-              </span>
-            )}
-            {s.difficulty != null && (
-              <span className={c.number}>
-                <b style={{ color: "var(--rating-low)" }}>{Math.round(s.difficulty)}/5</b>
-                <span>hard</span>
-              </span>
-            )}
-          </div>
-          {s.trend.length > 1 && (
-            <div>
-              <p className={c.trendHead}>
-                <span>Recommend by semester</span>
-                {s.delta && <span className={c.delta}>{s.delta}</span>}
-              </p>
-              <Trend points={s.trend} />
-            </div>
-          )}
-          {s.tags.length > 0 && <TagStickers tags={s.tags} />}
-        </div>
+        <RatingSummary {...s} />
       ) : (
         <div className={c.summary}>
           <p className={c.by}>Not enough ratings yet</p>
@@ -224,7 +199,7 @@ function CourseInspector({ data }: { data: CourseData }) {
 
       {data.rateHref && (
         <div className={c.rate}>
-          <ButtonLink href={data.rateHref} data-key="r">
+          <ButtonLink href={data.rateHref} keyName="r">
             Rate this course
           </ButtonLink>
           <Hint>R</Hint>

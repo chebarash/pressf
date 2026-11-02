@@ -1,4 +1,8 @@
-/** Desktop Search screen — stub until the desktop agent replaces it. Same data prop as the mobile screen. */
-export default function DesktopSearch(_props: { data: unknown }) {
-  return null;
+import type { SearchView } from "@/server/views";
+import * as adapt from "./adapt";
+import { SearchScreen } from "./split/SearchScreen";
+
+/** D14 Search / D17 Search · nothing found. */
+export default function DesktopSearch({ data }: { data: SearchView }) {
+  return <SearchScreen data={adapt.search(data)} />;
 }

@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { Fragment } from "react";
-import type { ProfessorData } from "./fixtures/types";
-import { css, cx, Face, Hint, MentionCard, Pct, Trend } from "./parts";
+import type { ProfessorView } from "@/server/views";
+import { RatingSummary } from "@/ui/components";
+import * as adapt from "./adapt";
+import type { ProfessorData } from "./model";
+import { css, cx, Face, Hint, KeyTo, MentionCard, Pct } from "./parts";
 import p from "./professor.module.css";
 
 const SAY_TONES = [css.toneHigh, css.toneMid, css.tonePlum, css.toneMoss, css.toneLow];
 const TILT = ["rotate(-1.5deg)", "rotate(-2deg)", "rotate(1.5deg)", "rotate(-1deg)", "rotate(2deg)", "rotate(-1.5deg)"];
 
 /** D9 Professor — drawn face only, never a photo. Press F (or the key) to rate them. */
-export default function DesktopProfessor({ data }: { data: ProfessorData }) {
+export default function DesktopProfessor({ data }: { data: ProfessorView }) {
+  return <ProfessorScreen data={adapt.professor(data)} />;
+}
+
+export function ProfessorScreen({ data }: { data: ProfessorData }) {
   return (
     <main className={cx(css.screen, p.main)}>
       <nav className={p.crumbs} aria-label="Breadcrumb">
@@ -21,7 +28,7 @@ export default function DesktopProfessor({ data }: { data: ProfessorData }) {
       </nav>
 
       <section className={p.hero}>
-        <Face src={data.face} size={96} alt="" />
+        <Face src={data.face} size={96} />
         <div className={p.who}>
           <h1 className={p.name}>{data.name}</h1>
           <p className={p.title}>{data.title}</p>
@@ -35,11 +42,13 @@ export default function DesktopProfessor({ data }: { data: ProfessorData }) {
           </div>
         </div>
         {data.rateHref && (
-          <Link href={data.rateHref} className={p.press} data-key="f">
-            <span className={p.pressKey}>F</span>
-            Press F if they taught you
-            <Hint>F</Hint>
-          </Link>
+          <KeyTo k="f">
+            <Link href={data.rateHref} className={p.press}>
+              <span className={p.pressKey}>F</span>
+              Press F if they taught you
+              <Hint>F</Hint>
+            </Link>
+          </KeyTo>
         )}
       </section>
 
@@ -60,29 +69,13 @@ export default function DesktopProfessor({ data }: { data: ProfessorData }) {
           </div>
         </section>
 
-        <section className={css.card}>
-          {data.trend.length > 1 && (
-            <div>
-              <p className={p.trendHead}>
-                <span>Pressed F by semester</span>
-                {data.delta && <span className={p.delta}>{data.delta}</span>}
-              </p>
-              <Trend points={data.trend} />
-            </div>
-          )}
-          {data.byCourse.length > 0 && (
-            <>
-              <p className={p.label}>By course and role</p>
-              {data.byCourse.map((b) => (
-                <p key={b.label} className={p.leader}>
-                  <span>{b.label}</span>
-                  <b>{b.pct}%</b>
-                </p>
-              ))}
-            </>
-          )}
-          {data.trend.length < 2 && data.byCourse.length === 0 && <p className={p.fine}>Not enough ratings yet. Shown from 5 students.</p>}
-        </section>
+        {data.summary ? (
+          <RatingSummary {...data.summary} />
+        ) : (
+          <section className={css.card}>
+            <p className={p.fine}>Not enough ratings yet. Shown from 5 students.</p>
+          </section>
+        )}
 
         <section className={css.card}>
           <h2 className={p.cardTitle}>Courses</h2>
@@ -121,6 +114,7 @@ export default function DesktopProfessor({ data }: { data: ProfessorData }) {
           {data.mention ? <MentionCard m={data.mention} /> : <p className={p.fine}>Nothing on Anonymous yet.</p>}
         </section>
 
+        {data.background.length > 0 && (
         <section className={css.card}>
           <h2 className={p.cardTitle}>Background</h2>
           {data.background.map((b) => (
@@ -131,6 +125,7 @@ export default function DesktopProfessor({ data }: { data: ProfessorData }) {
           ))}
           <p className={p.fine}>From the LMS staff profile. Faces are drawn, never photos.</p>
         </section>
+        )}
       </div>
     </main>
   );

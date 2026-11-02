@@ -1,17 +1,23 @@
 import Link from "next/link";
 import { Fragment } from "react";
-import type { TodayData } from "./fixtures/types";
+import type { TodayView } from "@/server/views";
+import * as adapt from "./adapt";
+import type { TodayData } from "./model";
 import { ButtonLink, CardHead, CourseCard, css, cx, FeedLink, FileRow, Hint } from "./parts";
 import { Dismissible } from "./parts/Dismiss";
 import t from "./today.module.css";
 
 /** D1 Today — bento: next class and the day on top, then the feed, deadlines, exam, courses and rating. */
-export default function DesktopToday({ data }: { data: TodayData }) {
+export default function DesktopToday({ data }: { data: TodayView }) {
+  return <TodayScreen data={adapt.today(data)} />;
+}
+
+export function TodayScreen({ data }: { data: TodayData }) {
   return (
     <main className={cx(css.screen, t.main)}>
       <header className={t.header}>
         <p className={t.greeting}>{data.greeting}</p>
-        <h1 className={t.title}>Today</h1>
+        <h1 className={t.title}>{data.title}</h1>
         <p className={t.dateLine}>{data.dateLine}</p>
       </header>
 
@@ -32,7 +38,7 @@ export default function DesktopToday({ data }: { data: TodayData }) {
               </div>
             )}
             <div className={t.actions}>
-              <ButtonLink href={data.next.href} data-key="Enter">
+              <ButtonLink href={data.next.href} keyName="Enter">
                 Open course
               </ButtonLink>
               <Hint>↵</Hint>
@@ -128,7 +134,7 @@ export default function DesktopToday({ data }: { data: TodayData }) {
             <h2 className={t.rateTitle}>{data.rate.title}</h2>
             <p className={t.rateText}>{data.rate.text}</p>
             <div className={t.rateActions}>
-              <ButtonLink href={data.rate.href} data-key="r">
+              <ButtonLink href={data.rate.href} keyName="r">
                 Rate now
               </ButtonLink>
               <button type="button" className={css.textBtn} data-dismiss>

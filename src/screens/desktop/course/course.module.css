@@ -2,6 +2,9 @@
 .layout { display: grid; grid-template-columns: 300px minmax(0, 1fr) 404px; min-height: 100dvh; }
 .layoutNoList { grid-template-columns: minmax(0, 1fr) 404px; }
 .layoutFile { grid-template-columns: 300px minmax(0, 1fr) minmax(420px, 500px); }
+.single { min-height: 100dvh; display: flex; justify-content: center; background: var(--bg-sunken); }
+.single > .file { position: static; height: auto; min-height: 100dvh; width: min(880px, 100%); border-left: 0; padding: 28px var(--space-6) var(--space-7); }
+.back { display: inline-flex; align-items: center; gap: 4px; font: 600 13px/normal var(--font-sans); color: var(--text-accent); }
 .layoutPick { grid-template-columns: 300px minmax(0, 1fr); }
 
 /* List pane */

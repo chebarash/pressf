@@ -24,7 +24,12 @@ export function DesktopKeyboard() {
     let chordTimer = 0;
 
     const visible = (el: Element) => (el as HTMLElement).offsetParent !== null || (el as HTMLElement).getClientRects().length > 0;
-    const byKey = (key: string) => [...document.querySelectorAll<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)].find(visible);
+    const CONTROL = "a, button, input, textarea, select";
+    // A `data-key` sits on the control itself or on a wrapper around a kit component.
+    const byKey = (key: string) =>
+      [...document.querySelectorAll<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)]
+        .map((el) => (el.matches(CONTROL) ? el : el.querySelector<HTMLElement>(CONTROL)))
+        .find((el): el is HTMLElement => !!el && visible(el) && !(el as HTMLButtonElement).disabled);
 
     const move = (dir: 1 | -1) => {
       const active = document.activeElement as HTMLElement | null;
