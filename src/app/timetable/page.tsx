@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Timetable } from "@/components/Timetable";
 import { Banner, Empty } from "@/components/ui";
+import { after } from "next/server";
 import { getUser } from "@/lib/auth";
 import { currentWeek } from "@/lib/calendar";
 import { getCatalog } from "@/lib/catalog";
 import { currentGroup } from "@/lib/group";
-import { studentTimetable } from "@/lib/lms/schedule";
+import { preloadUser, userData } from "@/lib/lms/cache";
 
 export const metadata = { title: "Timetable" };
 type Props = { searchParams: Promise<{ class?: string }> };
@@ -19,8 +20,10 @@ export default async function TimetablePage({ searchParams }: Props) {
   // A signed-in student sees their own live LMS schedule; no group to pick.
   const user = requested ? null : await getUser();
   if (user) {
-    const lessons = await studentTimetable(user.id);
-    if (lessons?.length) {
+    const { data, stale } = await userData(user.id, user.email);
+    if (stale) after(() => preloadUser(user.id, user.email).catch(() => {}));
+    const lessons = data.timetable;
+    if (lessons.length) {
       return (
         <div className="wrap section">
           <h1 className="d-title">Timetable</h1>

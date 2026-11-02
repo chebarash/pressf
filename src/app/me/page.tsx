@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { HomeScreenButton } from "@/components/HomeScreenButton";
 import { Empty, Stat } from "@/components/ui";
 import { getUser } from "@/lib/auth";
-import { lmsProfile } from "@/lib/lms/profile";
+import { preloadUser, userData } from "@/lib/lms/cache";
 
 export const metadata = { title: "My profile", robots: { index: false } };
 
 export default async function Me() {
   const user = await getUser();
   if (!user) redirect("/sign-in");
-  const profile = await lmsProfile(user.id, user.email);
+  const { data, stale } = await userData(user.id, user.email);
+  if (stale) after(() => preloadUser(user.id, user.email).catch(() => {}));
+  const profile = data.profile;
 
   return (
     <div className="wrap section">
