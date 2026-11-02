@@ -109,6 +109,15 @@ export type LmsUser = {
   avatar_extension?: string;
 };
 
+/** A row of the student's individual education plan: one semester of their program. */
+export type LmsIepRow = {
+  work_education_plan_id?: string;
+  education_program_id?: string;
+  semester_id?: string;
+  year_of_study?: string;
+  subjects?: Array<{ subject_id?: string; id?: string; code?: string; name?: string; ects?: string }>;
+};
+
 export type LmsTranscript = {
   gpa?: string;
   /** ECTS earned and the plan total. */

@@ -64,6 +64,13 @@
       "when": 1793630432061,
       "tag": "0008_lms_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793631364007,
+      "tag": "0009_lms_curricula",
+      "breakpoints": true
     }
   ]
 }

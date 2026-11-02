@@ -1,8 +1,9 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { lmsCourseTeachers, lmsCourses, lmsDepartments, lmsPrograms, lmsTeachers } from "@/lib/db/schema";
-import { departments, programs, subject, type LmsSession } from "@/lib/lms/client";
-import type { LmsEmployee, LmsSubject } from "@/lib/lms/types";
+import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers, type LmsCurriculumData } from "@/lib/db/schema";
+import { departments, individualPlan, programs, subject, type LmsSession } from "@/lib/lms/client";
+import { activeAccountIds, harvestSession, sessionFor } from "@/lib/lms/store";
+import type { LmsEmployee, LmsIepRow, LmsSubject } from "@/lib/lms/types";
 
 /**
  * Harvests the whole university catalog from the LMS into our own tables, so
@@ -80,6 +81,40 @@ async function saveCourse(c: LmsSubject) {
   if (links.size) await db().insert(lmsCourseTeachers).values([...links.values()]).onConflictDoNothing();
 }
 
+/**
+ * Build a cohort curriculum from one student's plan and store it, keyed by the
+ * work-education-plan id (one plan per entry year). Each sign-in fills in more
+ * cohorts. Stored only when it has courses, so an empty plan never wipes a good one.
+ */
+export async function harvestCurriculum(session: LmsSession) {
+  let rows: LmsIepRow[];
+  try {
+    rows = await individualPlan(session);
+  } catch {
+    return { curricula: 0 };
+  }
+  const byPlan = new Map<string, { programId: string | null; learnerId: string | null; data: LmsCurriculumData }>();
+  for (const row of rows ?? []) {
+    const wep = row.work_education_plan_id;
+    if (!wep) continue;
+    const entry = byPlan.get(wep) ?? { programId: row.education_program_id ?? null, learnerId: null, data: { programId: row.education_program_id ?? null, semesters: [] } };
+    const courses = (row.subjects ?? [])
+      .filter((s) => s.name)
+      .map((s) => ({ id: s.subject_id ?? s.id ?? "", code: s.code ?? null, name: (s.name ?? "").trim(), ects: s.ects != null && s.ects !== "" ? Number(s.ects) : null }));
+    if (courses.length) entry.data.semesters.push({ semesterId: row.semester_id ?? "", year: row.year_of_study != null && row.year_of_study !== "" ? Number(row.year_of_study) : null, courses });
+    byPlan.set(wep, entry);
+  }
+  let saved = 0;
+  for (const [wep, { programId, data }] of byPlan) {
+    if (!data.semesters.length) continue;
+    data.semesters.sort((a, b) => Number(a.semesterId) - Number(b.semesterId));
+    await db().insert(lmsCurricula).values({ workEducationPlanId: wep, programId, data, updatedAt: new Date() })
+      .onConflictDoUpdate({ target: lmsCurricula.workEducationPlanId, set: { programId: sql`excluded.program_id`, data: sql`excluded.data`, updatedAt: sql`excluded.updated_at` } });
+    saved++;
+  }
+  return { curricula: saved };
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Harvest departments, programs and every course the LMS will return. */
@@ -102,4 +137,21 @@ export async function harvestCatalog(session: LmsSession, opts: { maxId?: number
     await sleep(PACE_MS);
   }
   return { ...meta, courses, scannedTo: id - 1, lastCourseId: lastHit };
+}
+
+/**
+ * A full run: the shared catalog once, then each saved student's curriculum so
+ * cohorts fill in. One account failing never stops the rest.
+ */
+export async function harvestAll(opts: { maxId?: number; stopGap?: number } = {}) {
+  const session = await harvestSession();
+  if (!session) return { error: "no_lms_account" as const };
+  const catalog = await harvestCatalog(session, opts);
+  let curricula = 0;
+  for (const userId of await activeAccountIds()) {
+    const s = await sessionFor(userId).catch(() => null);
+    if (!s) continue;
+    curricula += (await harvestCurriculum(s).catch(() => ({ curricula: 0 }))).curricula;
+  }
+  return { ...catalog, curricula };
 }

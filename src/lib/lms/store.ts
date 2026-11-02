@@ -52,6 +52,12 @@ export async function saveAccount(userId: string, email: string, password: strin
   return session;
 }
 
+/** User ids of all active saved logins, for per-student harvesting (curricula). */
+export async function activeAccountIds(): Promise<string[]> {
+  const rows = await db().select({ userId: lmsAccounts.userId }).from(lmsAccounts).where(eq(lmsAccounts.status, "active"));
+  return rows.map((r) => r.userId);
+}
+
 /** A session from any active saved login, for background harvesting. Rotates by
  * least-recently-used so no single student's account carries every run. */
 export async function harvestSession(): Promise<LmsSession | null> {
