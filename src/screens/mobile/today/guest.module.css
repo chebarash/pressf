@@ -1,0 +1,11 @@
+/* Guest home content under the shell's hero (Figma 1.2). Tokens only. */
+
+.school { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border: 2px solid var(--border-strong); border-radius: var(--radius-lg); box-shadow: 0 5px 0 var(--shadow-key); color: var(--text-primary); }
+.school:active { transform: translateY(5px); box-shadow: none; }
+.schoolName { font-family: var(--font-serif); }
+.schoolFoot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding-top: var(--space-1); }
+.teal { background: var(--school-computing-soft); }
+.rust { background: var(--school-engineering-soft); }
+.mustard { background: var(--school-management-soft); }
+.plum { background: var(--school-humanities-soft); }
+.moss { background: var(--school-medicine-soft); }
