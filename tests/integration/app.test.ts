@@ -260,4 +260,11 @@ describe("routes", () => {
     expect((await openFile(new Request("https://x"), params(waiting.id))).status).toBe(404);
     expect((await openFile(new Request("https://x"), params("' or 1=1"))).status).toBe(404);
   });
+  it("sends guests to sign-in instead of the file", async () => {
+    const [ok] = await db().insert(materials).values({ status: "approved", fileName: "a", mimeType: "x", size: 1, storageKey: "k" }).returning();
+    user.current = null;
+    const res = await openFile(new Request("https://x"), params(ok.id));
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toContain("/sign-in");
+  });
 });

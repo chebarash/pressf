@@ -1,7 +1,12 @@
+import { getUser } from "@/lib/auth";
+import { env } from "@/lib/env";
 import { publishedFile } from "@/lib/content";
 import { signedUrl } from "@/lib/storage";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  // Files are for signed-in students only; a guest never gets a signed URL.
+  const user = await getUser();
+  if (!user) return Response.redirect(new URL("/sign-in", env().NEXTAUTH_URL), 302);
   const { id } = await params;
   const file = await publishedFile(id);
   if (!file) return new Response(null, { status: 404 });
