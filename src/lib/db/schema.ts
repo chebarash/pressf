@@ -551,3 +551,25 @@ export const broadcasts = pgTable("broadcasts", {
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * The bot's open conversation per private chat: the file being shared and the
+ * answers so far. One row per chat; dropped when sent, cancelled or stale.
+ */
+export const botChats = pgTable(
+  "bot_chats",
+  {
+    chatId: text("chat_id").primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    draft: jsonb("draft").$type<Record<string, unknown>>().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("bot_chats_updated").on(t.updatedAt)]
+);
+
+/** Telegram's file_id for a file the bot sent once, so the next send needs no upload. */
+export const telegramFiles = pgTable("telegram_files", {
+  key: text("key").primaryKey(),
+  fileId: text("file_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

@@ -113,6 +113,13 @@
       "when": 1793658952408,
       "tag": "0015_view_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793659131753,
+      "tag": "0016_bot_chats",
+      "breakpoints": true
     }
   ]
 }
