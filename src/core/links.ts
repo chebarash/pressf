@@ -5,7 +5,7 @@
  */
 
 export const SITE_URL = "https://pressf.chebarash.uz";
-export const BOT_USERNAME = "pressf_bot";
+export const BOT_USERNAME = "pupressfbot";
 
 export type Target =
   | { to: "today" }
@@ -45,7 +45,7 @@ export function path(t: Target): string {
   }
 }
 
-/** `startapp` payload for t.me/<bot>/app?startapp=… */
+/** `startapp` payload for t.me/<bot>?startapp=… (the bot's Main Mini App). */
 export function startParam(t: Target): string {
   switch (t.to) {
     case "course": return `c_${slug(t.code)}`;
@@ -80,7 +80,7 @@ export function parseStartParam(p: string | null | undefined): Target {
   }
 }
 
-export const miniAppUrl = (t: Target, bot = BOT_USERNAME) => `https://t.me/${bot}/app?startapp=${startParam(t)}`;
+export const miniAppUrl = (t: Target, bot = BOT_USERNAME) => `https://t.me/${bot}?startapp=${startParam(t)}`;
 export const webUrl = (t: Target, site = SITE_URL) => `${site}${path(t)}`;
 /** Bot deep link for sharing a file into the bot with the course preselected. */
 export const uploadLink = (courseCode: string, bot = BOT_USERNAME) => `https://t.me/${bot}?start=upload_${slug(courseCode)}`;
