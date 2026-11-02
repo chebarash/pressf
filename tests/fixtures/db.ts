@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { catalogCache } from "@/lib/db/schema";
 import { catalog } from "./catalog";
 
-const TABLES = ["term_courses", "mention_links", "mentions", "ratings", "respects", "users", "materials", "syllabi", "course_overrides", "faces", "catalog_cache", "search_events", "teacher_aliases"];
+const TABLES = ["term_courses", "mention_links", "mentions", "ratings", "respects", "lms_accounts", "users", "materials", "syllabi", "course_overrides", "faces", "catalog_cache", "search_events", "teacher_aliases"];
 
 export const resetDb = () => db().execute(sql.raw(`truncate ${TABLES.join(", ")} cascade`));
 
