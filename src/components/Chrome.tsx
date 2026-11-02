@@ -22,7 +22,7 @@ export function Nav({ user, group }: { user: CurrentUser | null; group: string |
           <Palette />
           <span className="hide-sm"><ThemeToggle /></span>
           {(group || user) && <Link className="chip small-chip" href="/me/group">{group ?? "Add group"}</Link>}
-          {user ? <Link className="avatar" href="/me/ratings" aria-label="My ratings"><Face name="" src="/mascot.png" size={34} /></Link> : <Link className="key btn sm nav-sign" href="/sign-in">Sign in</Link>}
+          {user ? <Link className="avatar" href="/me" aria-label="My profile"><Face name="" src="/mascot.png" size={34} /></Link> : <Link className="key btn sm nav-sign" href="/sign-in">Sign in</Link>}
         </div>
       </div>
     </header>

@@ -85,6 +85,41 @@ export type LmsUser = {
   email: string;
   username?: string;
   role?: string;
+  /** NewUU stores the given name in `username`, the family name in `sur_name`. */
   last_name?: string;
   sur_name?: string;
+  avatar_version?: string;
+  avatar_extension?: string;
+};
+
+export type LmsTranscript = {
+  gpa?: string;
+  /** ECTS earned and the plan total. */
+  ects?: string;
+  ects_all?: string;
+  diploma_with_honor?: string;
+};
+
+export type LmsGradebookSemester = {
+  id: number;
+  semester_id: number;
+  semester_name?: string;
+  year_of_study?: number;
+  study_start?: string;
+  study_end?: string;
+  is_open?: number;
+};
+
+/** One mark entry; `mark` is 0–100, `positive_status` is pass/fail. */
+export type LmsMark = { mark: number | null; positive_status?: boolean };
+
+export type LmsGradebookSubject = {
+  subject?: { name?: string; load_id?: number; department_id?: number };
+  final_grade?: LmsMark | null;
+  e?: LmsMark | null;
+  fx?: boolean;
+};
+
+export type LmsGradebookData = {
+  resultSubjects?: Record<string, LmsGradebookSubject>;
 };
