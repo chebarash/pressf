@@ -103,7 +103,7 @@ export const lmsFiles = pgTable(
     mimeType: text("mime_type"),
     fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("lms_files_code").on(t.code)]
+  (t) => [index("lms_files_code").on(t.code), index("lms_files_course").on(t.courseId), index("lms_files_lesson").on(t.lessonId)]
 );
 
 export const lmsTeachers = pgTable("lms_teachers", {
@@ -400,7 +400,7 @@ export const courseRatings = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("course_ratings_once").on(t.rater, t.courseId, t.term), index("course_ratings_course").on(t.courseId)]
+  (t) => [uniqueIndex("course_ratings_once").on(t.rater, t.courseId, t.term), index("course_ratings_course").on(t.courseId), index("course_ratings_code").on(t.courseCode)]
 );
 
 /** Per-teacher answers inside a course rating (a course can have several teachers by role). */
@@ -463,6 +463,7 @@ export const uploads = pgTable(
   (t) => [
     index("uploads_queue").on(t.status, t.createdAt),
     index("uploads_course").on(t.courseId, t.status),
+    index("uploads_course_code").on(t.courseCode, t.status),
     index("uploads_uploader").on(t.uploaderId),
     uniqueIndex("uploads_sha").on(t.sha256, t.courseId),
   ]
