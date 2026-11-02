@@ -16,7 +16,7 @@ const num = (n: number | null) => (n == null ? <span className={g.dash}>—</spa
 
 export function ProgressScreen({ data }: { data: ProgressData }) {
   return (
-    <main className={cx(css.screen, g.main)}>
+    <main data-desktop-screen className={cx(css.screen, g.main)}>
       <h1 className={g.title}>Progress</h1>
 
       <section className={g.tiles}>

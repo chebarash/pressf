@@ -23,7 +23,7 @@ export function FileScreen({ data }: { data: FileData }) {
     </aside>
   );
   if (data.course) return <CourseLayout data={data.course} aside={preview} />;
-  return <div className={cx(css.screen, c.single)}>{preview}</div>;
+  return <div data-desktop-screen className={cx(css.screen, c.single)}>{preview}</div>;
 }
 
 function FilePreview({ file, back }: { file: NonNullable<FileData["file"]>; back: FileData["courseLink"] }) {

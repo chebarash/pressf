@@ -5,16 +5,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "../parts/Icon";
 import s from "../parts/parts.module.css";
 import { GO_TO, openShortcuts, PALETTE_EVENT, toggleTheme } from "./bus";
+import { paletteSearch, type PaletteHit } from "./actions";
 import o from "./overlay.module.css";
 
 type Item = { id: string; group: "Courses" | "Actions" | "People" | "Files"; icon: IconName; title: string; meta?: string; keys?: string[]; href?: string; run?: () => void };
-type SearchHit = { kind?: string; id?: string; title?: string; subtitle?: string; href?: string };
 
 const ICONS: Record<string, IconName> = { Today: "pin", Timetable: "clock", Courses: "book", Progress: "check", Calendar: "calendar", Notifications: "mail", Professors: "users", Curriculum: "file" };
 
 const ACTIONS: Item[] = [
   ...GO_TO.map((g) => ({ id: `go-${g.key}`, group: "Actions" as const, icon: ICONS[g.label] ?? "chevron-right", title: `Go to ${g.label}`, keys: ["G", g.key.toUpperCase()], href: g.href })),
   { id: "search", group: "Actions", icon: "search", title: "Search everything", href: "/search" },
+  { id: "rate", group: "Actions", icon: "check", title: "Rate last semester", href: "/rate" },
   { id: "next", group: "Actions", icon: "calendar", title: "Next semester", href: "/next" },
   { id: "settings", group: "Actions", icon: "users", title: "Settings", href: "/me" },
   { id: "theme", group: "Actions", icon: "moon", title: "Dark theme", keys: ["⇧", "D"], run: toggleTheme },
@@ -23,14 +24,9 @@ const ACTIONS: Item[] = [
 
 const ORDER: Item["group"][] = ["Courses", "Actions", "People", "Files"];
 
-function fromSearch(hits: SearchHit[]): Item[] {
-  return hits.flatMap((h, i): Item[] => {
-    if (!h.href || !h.title) return [];
-    const kind = (h.kind ?? "").toLowerCase();
-    const group = kind.startsWith("course") ? "Courses" : kind.startsWith("prof") || kind.startsWith("teach") ? "People" : "Files";
-    return [{ id: `${group}-${h.id ?? i}`, group, icon: group === "Courses" ? "book" : group === "People" ? "users" : "file", title: h.title, meta: h.subtitle, href: h.href }];
-  });
-}
+const GROUP = { course: "Courses", person: "People", file: "Files" } as const;
+const fromSearch = (hits: PaletteHit[]): Item[] =>
+  hits.map((h) => ({ id: `${h.kind}-${h.id}`, group: GROUP[h.kind], icon: h.kind === "course" ? "book" : h.kind === "person" ? "users" : "file", title: h.title, meta: h.meta || undefined, href: h.href }));
 
 /** D2 Command palette: ⌘K or F anywhere on desktop. Courses, actions, people and files in one list. */
 export function CommandPalette() {
@@ -60,27 +56,24 @@ export function CommandPalette() {
   useEffect(() => {
     if (!open) return;
     const query = q.trim();
-    if (!query) {
-      setHits([]);
-      return;
-    }
-    const ctrl = new AbortController();
+    if (!query) return;
+    let live = true;
     const timer = window.setTimeout(() => {
-      fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: ctrl.signal })
-        .then((r) => (r.ok ? r.json() : { results: [] }))
-        .then((j: { results?: SearchHit[] }) => setHits(fromSearch(j.results ?? [])))
+      paletteSearch(query)
+        .then((hits) => live && setHits(fromSearch(hits)))
         .catch(() => {});
     }, 120);
     return () => {
-      ctrl.abort();
+      live = false;
       window.clearTimeout(timer);
     };
   }, [q, open]);
 
   const items = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const actions = needle ? ACTIONS.filter((a) => a.title.toLowerCase().includes(needle)) : ACTIONS.slice(0, 6);
-    const all = [...hits, ...actions];
+    const actions = needle ? ACTIONS.filter((a) => a.id !== "search" && a.title.toLowerCase().includes(needle)) : ACTIONS.slice(0, 6);
+    const searchAll: Item[] = needle ? [{ id: "search-q", group: "Actions", icon: "search", title: `Search for “${q.trim()}”`, href: `/search?q=${encodeURIComponent(q.trim())}` }] : [];
+    const all = [...(needle ? hits : []), ...actions, ...searchAll];
     return ORDER.flatMap((g) => all.filter((i) => i.group === g));
   }, [hits, q]);
 
@@ -117,7 +110,6 @@ export function CommandPalette() {
     }
   };
 
-  let index = -1;
   return (
     <div className={o.scrim} onMouseDown={(e) => e.target === e.currentTarget && close()} data-keyboard-scope>
       <div className={o.palette} role="dialog" aria-modal="true" aria-label="Search and commands" onKeyDown={onKeyDown}>
@@ -150,8 +142,7 @@ export function CommandPalette() {
               <div key={g} className={o.group} role="group" aria-label={g}>
                 <p className={o.groupLabel}>{g === "People" ? "People" : g}</p>
                 {groupItems.map((item) => {
-                  index += 1;
-                  const i = index;
+                  const i = items.indexOf(item);
                   const on = i === cursor;
                   return (
                     <div

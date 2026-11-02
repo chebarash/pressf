@@ -17,7 +17,7 @@ export default function DesktopProfessor({ data }: { data: ProfessorView }) {
 
 export function ProfessorScreen({ data }: { data: ProfessorData }) {
   return (
-    <main className={cx(css.screen, p.main)}>
+    <main data-desktop-screen className={cx(css.screen, p.main)}>
       <nav className={p.crumbs} aria-label="Breadcrumb">
         {data.crumbs.map((c, i) => (
           <Fragment key={c.label}>

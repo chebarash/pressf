@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useOptimistic, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useOptimistic, useSyncExternalStore, useTransition } from "react";
+import { setTheme } from "@/platform/PlatformProvider";
+import { signOutWithConfirm } from "@/ui/shell/signOut";
 import { Button, Switch, SwitchGroup } from "@/ui/components";
-import { openShortcuts, toggleTheme } from "../global/bus";
+import { openShortcuts } from "../global/bus";
 import type { SettingsData } from "../model";
 import { ButtonLink, css, cx, Hint } from "../parts";
 import x from "../settings.module.css";
@@ -16,36 +19,37 @@ export type SettingsActions = {
 
 const THEMES = ["System", "Light", "Dark"] as const;
 
+/** The saved choice (the platform keeps it in pf_theme); re-read when the page theme flips. */
+function readTheme(): (typeof THEMES)[number] {
+  try {
+    const t = localStorage.getItem("pf_theme");
+    return t === "dark" ? "Dark" : t === "light" ? "Light" : "System";
+  } catch {
+    return "System";
+  }
+}
+function subscribeTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => observer.disconnect();
+}
+
 /** D13 Settings — account, appearance and actions on the left, Telegram alerts on the right. */
 export function SettingsScreen({ data, actions }: { data: SettingsData; actions?: SettingsActions }) {
   const [, start] = useTransition();
   const [alerts, setAlerts] = useOptimistic(data.alerts, (state, change: { id: string; on: boolean }) => state.map((a) => (a.id === change.id ? { ...a, on: change.on } : a)));
-  const [theme, setTheme] = useState<(typeof THEMES)[number]>("System");
-
-  useEffect(() => {
-    try {
-      const t = localStorage.getItem("theme");
-      setTheme(t === "dark" ? "Dark" : t === "light" ? "Light" : "System");
-    } catch {}
-  }, []);
-
+  const router = useRouter();
+  const theme = useSyncExternalStore(subscribeTheme, readTheme, () => "System" as const);
   const cycleTheme = () => {
     const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
-    setTheme(next);
-    const root = document.documentElement;
-    try {
-      if (next === "System") {
-        localStorage.removeItem("theme");
-        root.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      } else {
-        const want = next.toLowerCase();
-        if ((root.dataset.theme ?? "light") !== want) toggleTheme();
-      }
-    } catch {}
+    setTheme(next === "System" ? null : next === "Dark" ? "dark" : "light");
+  };
+  const signOut = async () => {
+    if (await signOutWithConfirm()) router.push("/");
   };
 
   return (
-    <main className={cx(css.screen, x.main)}>
+    <main data-desktop-screen className={cx(css.screen, x.main)}>
       <h1 className={x.title}>Settings</h1>
       <div className={x.cols}>
         <div className={x.stack}>
@@ -97,12 +101,12 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
 
           <section className={x.box}>
             <h2 className={x.boxTitle}>Account actions</h2>
-            <a className={x.row} href="/api/auth/signout">
+            <button type="button" className={x.row} onClick={signOut}>
               <span className={x.text}>
                 <b>Sign out</b>
                 <span>Press F forgets your LMS password; your ratings stay</span>
               </span>
-            </a>
+            </button>
             <a className={cx(x.row, x.danger)} href="/me/delete">
               <span className={x.text}>
                 <b>Delete my data</b>

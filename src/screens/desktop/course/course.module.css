@@ -106,14 +106,6 @@ a.boxRow:hover { background: var(--bg-hover); }
 .meNext { font: 500 13px/1.32 var(--font-sans); color: var(--text-accent); }
 .summary { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4); background: var(--bg-surface); border: 1.5px solid var(--border-strong); border-radius: 18px; box-shadow: 0 3px 0 var(--shadow-key); }
 .by { font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
-.numbers { display: flex; gap: var(--space-2); }
-.number { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.number + .number { border-left: 1.5px solid var(--border-subtle); padding-left: 14px; }
-.number b { font: 400 44px/1.04 var(--font-serif); color: var(--text-primary); }
-.number span { font: 500 12px/normal var(--font-sans); color: var(--text-secondary); }
-.trendHead { display: flex; align-items: center; gap: var(--space-2); font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
-.trendHead > :first-child { flex: 1; }
-.delta { background: var(--tint-teal); border-radius: var(--radius-full); padding: 2px var(--space-2); font: 600 11px/normal var(--font-sans); color: var(--text-accent); }
 .bandTitle { font: 400 28px/1 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
 .rate { display: flex; align-items: center; gap: var(--space-2); }
 .rate > :first-child { margin-bottom: 0; }
@@ -136,3 +128,14 @@ a.boxRow:hover { background: var(--bg-hover); }
 .pickTitle { font: 400 64px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
 .pickNote { font: 400 15px/normal var(--font-sans); color: var(--text-secondary); }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); }
+
+/* Down to 1280: the list and the inspector give the middle column room. */
+@media (max-width: 1399px) {
+  .layout { grid-template-columns: 260px minmax(0, 1fr) 340px; }
+  .layoutNoList { grid-template-columns: minmax(0, 1fr) 360px; }
+  .layoutFile { grid-template-columns: 260px minmax(0, 1fr) 400px; }
+  .layoutPick { grid-template-columns: 260px minmax(0, 1fr); }
+  .detail { padding-left: var(--space-5); padding-right: var(--space-5); }
+  .name { font-size: 56px; }
+}
+.tab { white-space: nowrap; }

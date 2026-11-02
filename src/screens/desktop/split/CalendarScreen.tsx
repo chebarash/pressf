@@ -14,7 +14,7 @@ export function CalendarScreen({ data }: { data: CalendarData }) {
   const [i, setI] = useState(0);
   const month = data.months[i] ?? data.months[0];
   return (
-    <main className={cx(css.screen, k.main)}>
+    <main data-desktop-screen className={cx(css.screen, k.main)}>
       <header className={k.header}>
         <h1 className={k.title}>{month?.label}</h1>
         <div className={k.monthNav}>

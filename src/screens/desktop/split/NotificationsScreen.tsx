@@ -53,7 +53,7 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
   const allRead = items.length === 0 || items.every((i) => !i.unread);
 
   return (
-    <div className={cx(css.screen, n.split)}>
+    <div data-desktop-screen className={cx(css.screen, n.split)}>
       <nav className={n.list} aria-label="Notifications">
         <div className={n.head}>
           <h1 className={n.title}>Notifications</h1>

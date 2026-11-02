@@ -15,7 +15,7 @@ export default function DesktopCurriculum({ data }: { data: CurriculumView }) {
 
 export function CurriculumScreen({ data }: { data: CurriculumData }) {
   return (
-    <main className={cx(css.screen, x.main)}>
+    <main data-desktop-screen className={cx(css.screen, x.main)}>
       <header className={x.head}>
         <div>
           <h1 className={x.title}>{data.program}</h1>

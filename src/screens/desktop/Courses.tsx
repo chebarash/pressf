@@ -12,7 +12,7 @@ export default function DesktopCourses({ data }: { data: MyCoursesView }) {
 
 export function CoursesScreen({ data }: { data: CoursesData }) {
   return (
-    <div className={cx(css.screen, c.layout, c.layoutPick)}>
+    <div data-desktop-screen className={cx(css.screen, c.layout, c.layoutPick)}>
       <CourseList courses={data.courses} terms={data.terms} current={null} />
       <main className={c.pick}>
         <h2 className={c.pickTitle}>Pick a course</h2>

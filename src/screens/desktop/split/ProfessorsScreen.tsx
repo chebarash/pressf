@@ -14,7 +14,7 @@ export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
   const needle = q.trim().toLowerCase();
   const rows = data.items.filter((p) => (!school || p.school === school) && (!needle || `${p.name} ${p.dept} ${p.courses}`.toLowerCase().includes(needle)));
   return (
-    <main className={cx(css.screen, x.main)}>
+    <main data-desktop-screen className={cx(css.screen, x.main)}>
       <header className={x.head}>
         <h1 className={x.title}>Professors</h1>
         <label className={x.filter}>

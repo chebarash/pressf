@@ -10,7 +10,7 @@ import { CourseList } from "./CourseList";
 export function CourseLayout({ data, aside }: { data: CourseData; aside?: ReactNode }) {
   const withList = !!data.myCourses?.length;
   return (
-    <div className={cx(css.screen, c.layout, !!aside && withList && c.layoutFile, !withList && c.layoutNoList)}>
+    <div data-desktop-screen className={cx(css.screen, c.layout, !!aside && withList && c.layoutFile, !withList && c.layoutNoList)}>
       {withList && <CourseList courses={data.myCourses!} terms={data.terms} current={data.code} />}
       <CourseDetail data={data} />
       {aside ?? <CourseInspector data={data} />}

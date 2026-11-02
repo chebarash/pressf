@@ -14,7 +14,7 @@ export default function DesktopToday({ data }: { data: TodayView }) {
 
 export function TodayScreen({ data }: { data: TodayData }) {
   return (
-    <main className={cx(css.screen, t.main)}>
+    <main data-desktop-screen className={cx(css.screen, t.main)}>
       <header className={t.header}>
         <p className={t.greeting}>{data.greeting}</p>
         <h1 className={t.title}>{data.title}</h1>

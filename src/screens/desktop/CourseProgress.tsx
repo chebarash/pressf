@@ -13,7 +13,7 @@ export default function DesktopCourseProgress({ data }: { data: CourseProgressVi
 
 export function CourseProgressScreen({ data }: { data: CourseProgressData }) {
   return (
-    <main className={cx(css.screen, g.main)}>
+    <main data-desktop-screen className={cx(css.screen, g.main)}>
       <Link href="/progress" className={g.back} data-key="Escape">
         <Icon name="chevron-left" size={14} /> Progress
       </Link>

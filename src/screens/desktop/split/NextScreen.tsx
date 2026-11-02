@@ -10,7 +10,7 @@ export function NextScreen({ data }: { data: NextData }) {
   const [code, setCode] = useState(data.rows[0]?.code ?? null);
   const sel = data.rows.find((r) => r.code === code) ?? null;
   return (
-    <main className={cx(css.screen, x.main)}>
+    <main data-desktop-screen className={cx(css.screen, x.main)}>
       <header className={x.head}>
         <div className={x.headText}>
           <p className={x.eyebrow}>{data.eyebrow}</p>

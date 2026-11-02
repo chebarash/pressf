@@ -18,7 +18,7 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
   const height = HEAD + hours.length * HOUR + 16;
 
   return (
-    <div className={cx(css.screen, t.split)}>
+    <div data-desktop-screen className={cx(css.screen, t.split)}>
       <main className={t.main}>
         <header className={t.header}>
           <h1 className={t.title}>Timetable</h1>

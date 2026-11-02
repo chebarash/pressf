@@ -17,7 +17,7 @@ export function SearchScreen({ data }: { data: SearchData }) {
   const typed = data.q.trim().length > 0;
 
   return (
-    <main className={cx(css.screen, x.main)}>
+    <main data-desktop-screen className={cx(css.screen, x.main)}>
       <form action="/search" className={x.bar} role="search">
         <Icon name="search" size={22} />
         <input name="q" defaultValue={data.q} placeholder="Search courses, professors and files" aria-label="Search" autoFocus={!typed} data-key="/" />
