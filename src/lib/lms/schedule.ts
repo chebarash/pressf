@@ -18,8 +18,12 @@ function at(ts: number) {
   const d = new Date(ts * 1000);
   const wd = new Intl.DateTimeFormat("en-US", { timeZone: TZ, weekday: "short" }).format(d).slice(0, 3) as keyof typeof WEEKDAY;
   const time = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
-  return { day: WEEKDAY[wd] ?? 0, time };
+  const [h, m] = time.split(":").map(Number);
+  return { day: WEEKDAY[wd] ?? 0, time, min: h * 60 + m };
 }
+
+/** Back-to-back hours of the same class count as one session, up to this gap. */
+const MERGE_GAP_MIN = 20;
 
 const roomOf = (a: { name?: string } | string | null | undefined) =>
   (typeof a === "string" ? a : a?.name) || null;
@@ -43,21 +47,37 @@ export async function studentTimetable(userId: string): Promise<Lesson[] | null>
   const course = new Map(courses.map((c) => [c.id, c]));
   const teacher = new Map(teachers.map((t) => [t.id, [t.first, t.sur].filter(Boolean).join(" ").trim() || null]));
 
-  // One slot per weekday+time+course, collapsing the repeated occurrences.
-  const slots = new Map<string, Lesson>();
+  // The LMS splits one class into consecutive hour-long entries. Collect the
+  // distinct pieces per weekday+course+teacher, then merge back-to-back ones
+  // into a single session spanning the whole time.
+  type Piece = { day: number; code: string; subject: string; teacher: string | null; teacher_name: string | null; room: string | null; startMin: number; endMin: number; starts: string; ends: string };
+  const byClass = new Map<string, Map<string, Piece>>();
   for (const e of events) {
     const c = course.get(e.subject_id!);
     if (!c) continue;
     const start = at(Number(e.begin_time));
-    const end = e.end_time ? at(Number(e.end_time)).time : "";
-    const key = `${start.day}|${start.time}|${c.code}|${e.employee_id ?? ""}`;
-    if (slots.has(key)) continue;
-    slots.set(key, {
-      class: "", day: start.day, starts: start.time, ends: end,
-      subject: c.name, code: c.code,
+    const end = e.end_time ? at(Number(e.end_time)) : null;
+    const groupKey = `${start.day}|${c.code}|${e.employee_id ?? ""}`;
+    const piece: Piece = {
+      day: start.day, code: c.code, subject: c.name,
       teacher: e.employee_id ?? null, teacher_name: e.employee_id ? teacher.get(e.employee_id) ?? null : null,
-      room: roomOf(e.auditorium),
-    });
+      room: roomOf(e.auditorium), startMin: start.min, endMin: end?.min ?? start.min, starts: start.time, ends: end?.time ?? "",
+    };
+    const pieces = byClass.get(groupKey) ?? byClass.set(groupKey, new Map()).get(groupKey)!;
+    pieces.set(String(start.min), piece); // dedupe repeated weeks by start time
   }
-  return [...slots.values()].sort((a, b) => a.day - b.day || a.starts.localeCompare(b.starts));
+
+  const lessons: Lesson[] = [];
+  for (const pieces of byClass.values()) {
+    const sorted = [...pieces.values()].sort((a, b) => a.startMin - b.startMin);
+    let run: Piece | null = null;
+    const flush = () => { if (run) lessons.push({ class: "", day: run.day, starts: run.starts, ends: run.ends, subject: run.subject, code: run.code, teacher: run.teacher, teacher_name: run.teacher_name, room: run.room }); };
+    for (const p of sorted) {
+      if (run && p.startMin - run.endMin <= MERGE_GAP_MIN) {
+        if (p.endMin > run.endMin) { run.endMin = p.endMin; run.ends = p.ends; }
+      } else { flush(); run = { ...p }; }
+    }
+    flush();
+  }
+  return lessons.sort((a, b) => a.day - b.day || a.starts.localeCompare(b.starts));
 }
