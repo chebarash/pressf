@@ -172,5 +172,30 @@ export type LmsGradebookSubject = {
 };
 
 export type LmsGradebookData = {
-  resultSubjects?: Record<string, LmsGradebookSubject>;
+  resultSubjects?: Record<string, LmsGradebookSubject & { admit?: LmsAdmit; events?: LmsAttendanceEvent[] }>;
+};
+
+export type { LmsAdmit, LmsAttendanceEvent } from "@/core/attendance";
+import type { LmsAdmit, LmsAttendanceEvent } from "@/core/attendance";
+import type { LmsNotification } from "@/core/notifications";
+
+/** `/notification/get-notification`: the LMS bell, split into tabs. */
+export type LmsNotificationsPayload = {
+  all?: LmsNotification[];
+  notification?: LmsNotification[];
+  advertise?: LmsNotification[];
+  advertise_required?: LmsNotification[];
+  offer?: LmsNotification[];
+  polls_event?: LmsNotification[];
+};
+
+export type LmsHomework = {
+  id?: string | number;
+  subject?: string | { name?: string };
+  theme_name?: string;
+  /** Deadline, unix seconds. */
+  time?: number | string;
+  status_id?: number | string;
+  status_name?: string;
+  rating?: number | string | null;
 };
