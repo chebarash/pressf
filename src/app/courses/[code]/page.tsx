@@ -5,6 +5,7 @@ import { FileRow, MentionCard, TeacherCard } from "@/components/Cards";
 import { RatingPanel } from "@/components/Panels";
 import { RateButton } from "@/components/RatePanel";
 import { ShareButton } from "@/components/ShareButton";
+import { SignInGate } from "@/components/SignInGate";
 import { WeekList } from "@/components/WeekList";
 import { SectionTabs } from "@/components/SectionTabs";
 import { Arrow, Crumbs, Empty, SectionHead, Stat, Tag, viewName } from "@/components/ui";
@@ -40,10 +41,12 @@ export default async function CoursePage({ params, searchParams }: Props) {
   if (raw !== course.code && normalizeCode(raw) === course.code) permanentRedirect(`/courses/${course.code}`);
   const code = course.code;
 
-  const [details, files, mentioned, ratings, teacherScores, faces, opens] = await Promise.all([
-    courseDetails(code), publishedFiles(code), mentionsFor({ kind: "course", course }), courseRatings(), pairRatings(code), faceMap(), unlocks(code, catalog),
-  ]);
   const user = await getUser();
+  const [mentioned, ratings, teacherScores, faces, opens] = await Promise.all([
+    mentionsFor({ kind: "course", course }), courseRatings(), pairRatings(code), faceMap(), unlocks(code, catalog),
+  ]);
+  // Course details and files are for signed-in students; never fetched for guests.
+  const [details, files] = user ? await Promise.all([courseDetails(code), publishedFiles(code)]) : [null, [] as Awaited<ReturnType<typeof publishedFiles>>];
   const own = user ? await ownRatings(user.id, { courseCode: code }) : [];
   const data = details?.data;
   const teachers = course.teachers.map((id) => catalog.teachers.find((t) => t.id === id)).filter((t) => !!t);
@@ -103,7 +106,9 @@ export default async function CoursePage({ params, searchParams }: Props) {
 
       <div className="wrap">
         <section id="overview" className="section">
-          {!data ? (
+          {!user ? (
+            <SignInGate title="Sign in to see course details" note="Grading, workload, weekly topics and books are available to NewUU students." lines={6} />
+          ) : !data ? (
             <Empty title="No syllabus yet" action={<a className="key btn" href="https://t.me/pupressfbot" target="_blank" rel="noreferrer">Send it to our bot</a>}>Grading, workload and weekly topics appear here once someone shares the syllabus.</Empty>
           ) : (
             <div className="stack" style={{ "--gap": "48px" } as React.CSSProperties}>
@@ -166,12 +171,16 @@ export default async function CoursePage({ params, searchParams }: Props) {
         </section>
 
         <section id="files" className="section">
+          {!user ? (
+            <><SectionHead title="Files" /><SignInGate title="Sign in to see the files" note="Past exams, notes and solutions for this course are available to NewUU students." /></>
+          ) : (<>
           <SectionHead title="Files" href={files.length > 5 ? `/files?q=${code}` : undefined} action={`All ${files.length} files`} />
           {kinds.length > 1 && <div className="row" style={{ "--gap": "8px" } as React.CSSProperties}>
             <Link className={`chip small-chip ${!kind ? "on" : ""}`} href={`/courses/${code}#files`} scroll={false}>All {files.length}</Link>
             {kinds.map((item) => <Link key={item} className={`chip small-chip ${kind === item ? "on" : ""}`} href={`/courses/${code}?files=${item}#files`} scroll={false}>{item[0].toUpperCase() + item.slice(1)} {files.filter((file) => file.type === item).length}</Link>)}
           </div>}
           {files.length === 0 ? <Empty title="No files yet" action={<a className="key btn" href="https://t.me/pupressfbot" target="_blank" rel="noreferrer">Send on Telegram</a>}>Got past exams or notes? Send them to our bot.</Empty> : <div className="stack" style={{ "--gap": "12px" } as React.CSSProperties}>{shownFiles.slice(0, 5).map((file) => <FileRow key={file.id} file={file} />)}</div>}
+          </>)}
         </section>
       </div>
 

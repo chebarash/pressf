@@ -2,7 +2,9 @@ import Link from "next/link";
 import { FileRow } from "@/components/Cards";
 import { FilterSelect } from "@/components/FilterSelect";
 import { Pager } from "@/components/Pager";
+import { SignInGate } from "@/components/SignInGate";
 import { Arrow, Empty, PageSearch } from "@/components/ui";
+import { getUser } from "@/lib/auth";
 import { getCatalog } from "@/lib/catalog";
 import { publishedFiles, schoolOfCourse } from "@/lib/content";
 import { groupByCourse, termOrder } from "@/lib/files";
@@ -17,6 +19,17 @@ const PREVIEW = 3;
 
 export default async function Files({ searchParams }: Props) {
   const { type, term, mine, school, course, q = "", page = "1" } = await searchParams;
+  // Guests never receive the file list; the data is not fetched for them.
+  const user = await getUser();
+  if (!user) {
+    return (
+      <div className="wrap section">
+        <h1 className="d-title">Files</h1>
+        <p className="body-lg soft">Syllabi, past exams, mocks and solutions shared by students.</p>
+        <SignInGate title="Sign in to see the files" note="Files are available to NewUU students. Sign in with your university account to open them." lines={6} />
+      </div>
+    );
+  }
   const [all, group, catalog] = await Promise.all([publishedFiles(), currentGroup(), getCatalog()]);
   const myCodes = new Set(group ? catalog.timetable.filter((lesson) => lesson.class === group).map((lesson) => lesson.code) : []);
   const onlyMine = !!mine && myCodes.size > 0;
