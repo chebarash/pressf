@@ -363,3 +363,190 @@ export const searchEvents = pgTable(
   },
   (t) => [index("search_events_recent").on(t.createdAt, t.kind)]
 );
+
+/* ───────────────────────── Rebuild: shared data for every front end ───────────────────────── */
+
+export const role = pgEnum("role", ["student", "moderator", "admin"]);
+export const uploadTrust = pgEnum("upload_trust", ["normal", "trusted", "paused"]);
+
+/** Role and moderation settings per person; absent row = plain student. */
+export const userRoles = pgTable("user_roles", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  role: role("role").notNull().default("student"),
+  /** Set only when a moderator overrides the automatic trust level. */
+  manualTrust: uploadTrust("manual_trust"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const recommend = pgEnum("recommend", ["yes", "unsure", "no"]);
+
+/**
+ * One rating per student, course and semester. `rater` is an HMAC of the user
+ * id with a server secret: the student can find and edit their own rating, but
+ * the table alone does not say who rated what — not even to admins.
+ */
+export const courseRatings = pgTable(
+  "course_ratings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    rater: text("rater").notNull(),
+    courseId: text("course_id").notNull(),
+    courseCode: text("course_code"),
+    term: text("term").notNull(),
+    recommend: recommend("recommend").notNull(),
+    hours: text("hours"),
+    difficulty: integer("difficulty"),
+    tags: text("tags").array().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("course_ratings_once").on(t.rater, t.courseId, t.term), index("course_ratings_course").on(t.courseId)]
+);
+
+/** Per-teacher answers inside a course rating (a course can have several teachers by role). */
+export const teacherRatings = pgTable(
+  "teacher_ratings",
+  {
+    ratingId: uuid("rating_id").notNull().references(() => courseRatings.id, { onDelete: "cascade" }),
+    teacherId: text("teacher_id").notNull(),
+    role: text("role").notNull(),
+    pressF: boolean("press_f"),
+    tags: text("tags").array().notNull().default([]),
+  },
+  (t) => [primaryKey({ columns: [t.ratingId, t.teacherId, t.role] }), index("teacher_ratings_teacher").on(t.teacherId)]
+);
+
+/** How many times a student dismissed the rating ask, per semester. */
+export const ratingAsks = pgTable(
+  "rating_asks",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    term: text("term").notNull(),
+    dismissals: integer("dismissals").notNull().default(0),
+    lastDismissedAt: timestamp("last_dismissed_at", { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.term] })]
+);
+
+export const uploadStatus = pgEnum("upload_status", ["waiting", "live", "rejected", "hidden"]);
+
+/** Files students share through the bot, reviewed in the admin. */
+export const uploads = pgTable(
+  "uploads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    uploaderId: uuid("uploader_id").references(() => users.id, { onDelete: "set null" }),
+    courseId: text("course_id").notNull(),
+    courseCode: text("course_code"),
+    title: text("title").notNull(),
+    type: text("type").notNull(),
+    exam: text("exam"),
+    term: text("term"),
+    week: integer("week"),
+    showName: boolean("show_name").notNull().default(false),
+    status: uploadStatus("status").notNull().default("waiting"),
+    rejectReason: text("reject_reason"),
+    rejectNote: text("reject_note"),
+    /** Automatic checks at intake: duplicates, LMS match, personal data, live exam. */
+    checks: jsonb("checks").$type<Record<string, unknown>>().notNull().default({}),
+    fileName: text("file_name").notNull(),
+    mimeType: text("mime_type").notNull(),
+    size: integer("size").notNull(),
+    sha256: text("sha256").notNull(),
+    storageKey: text("storage_key"),
+    telegramFileId: text("telegram_file_id"),
+    opens: integer("opens").notNull().default(0),
+    reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("uploads_queue").on(t.status, t.createdAt),
+    index("uploads_course").on(t.courseId, t.status),
+    index("uploads_uploader").on(t.uploaderId),
+    uniqueIndex("uploads_sha").on(t.sha256, t.courseId),
+  ]
+);
+
+export const reportStatus = pgEnum("report_status", ["open", "hidden", "kept"]);
+
+/** Reports on Anonymous posts and student files. Reporters are HMACs, like raters. */
+export const reports = pgTable(
+  "reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    targetKind: text("target_kind").notNull(),
+    targetId: text("target_id").notNull(),
+    reason: text("reason").notNull(),
+    reporter: text("reporter").notNull(),
+    status: reportStatus("status").notNull().default("open"),
+    resolvedBy: uuid("resolved_by").references(() => users.id, { onDelete: "set null" }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("reports_once").on(t.targetKind, t.targetId, t.reporter), index("reports_open").on(t.status, t.createdAt)]
+);
+
+/** The unified feed per student (LMS announcements, grades, absences, files, …). */
+export const feedItems = pgTable(
+  "feed_items",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    id: text("id").notNull(),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    courseId: text("course_id"),
+    href: text("href"),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    read: boolean("read").notNull().default(false),
+    needsAck: boolean("needs_ack").notNull().default(false),
+    /** When the bot delivered it; null = not sent (settings or quiet hours). */
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.id] }), index("feed_items_recent").on(t.userId, t.at)]
+);
+
+/** Alert settings and last-seen snapshots (grades, absences) used to detect what is new. */
+export const userState = pgTable("user_state", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  alerts: jsonb("alerts").$type<Record<string, boolean>>().notNull().default({}),
+  snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull().default({}),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One-time codes that carry a session between the desktop and Telegram. Only the HMAC is kept. */
+export const linkTokens = pgTable("link_tokens", {
+  hash: text("hash").primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+});
+
+/** Every admin and moderator action. Read-only in the admin. */
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    action: text("action").notNull(),
+    target: text("target"),
+    detail: jsonb("detail").$type<Record<string, unknown>>().notNull().default({}),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("audit_log_recent").on(t.at)]
+);
+
+/** Messages to many students: bot message and, optionally, an in-app banner. */
+export const broadcasts = pgTable("broadcasts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  audience: jsonb("audience").$type<{ years?: number[]; schools?: string[]; courseIds?: string[]; unrated?: string }>().notNull().default({}),
+  text: text("text").notNull(),
+  button: jsonb("button").$type<{ label: string; target: string } | null>(),
+  bannerUntil: timestamp("banner_until", { withTimezone: true }),
+  sendAt: timestamp("send_at", { withTimezone: true }).notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  stats: jsonb("stats").$type<{ targeted?: number; delivered?: number; opened?: number }>().notNull().default({}),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
