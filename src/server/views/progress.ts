@@ -1,0 +1,178 @@
+import { attendance, attendanceEvents, attendanceLine, type AttendanceStatus, type Mark } from "@/core/attendance";
+import { tier } from "@/core/grades";
+import { DAY_MS, shortDate, weekdayName } from "@/core/time";
+import type { SyncedCourse } from "@/server/sync/types";
+import { rateQueueFor } from "./rate";
+import { coursesByIds, deadlines, deadlineView, sameCourse, teachersByIds, type DeadlineView } from "./shared";
+import { loadStudent, type Student, type SyncState } from "./student";
+import { db } from "@/lib/db";
+import { lmsCourseTeachers } from "@/lib/db/schema";
+import { inArray } from "drizzle-orm";
+import { roleOf } from "@/core/people";
+
+/** Progress (Figma 5.1–5.6): marks, absences and work per course, from the LMS gradebook. */
+
+export type AbsencesView = { missed: number; left: number; limit: number; status: AttendanceStatus; line: string };
+
+export type ProgressCourse = {
+  courseId: string;
+  code: string;
+  name: string;
+  /** The number on the left: the running average, or the final mark once in. */
+  mark: number | null;
+  tier: ReturnType<typeof tier>;
+  average: number | null;
+  rating: number | null;
+  final: number | null;
+  passed: boolean | null;
+  fx: boolean;
+  absences: AbsencesView | null;
+  next: DeadlineView | null;
+  href: string;
+};
+
+export type ProgressView = {
+  state: SyncState;
+  gpa: number | null;
+  ectsEarned: number | null;
+  ectsTotal: number | null;
+  /** How many semesters the student has been enrolled, counting this one. */
+  semesterNumber: number | null;
+  currentTerm: string | null;
+  courses: ProgressCourse[];
+  earlier: Array<{ term: string; courses: number; ects: number | null; gpa: number | null }>;
+  rate: { term: string | null; waiting: number; rated: number };
+  /** No marks yet anywhere (Figma 5.3). */
+  empty: boolean;
+  /** All final marks of the current semester are in (Figma 5.6). */
+  results: { term: string; courses: Array<{ courseId: string; name: string; mark: number | null; passed: boolean | null; fx: boolean }> } | null;
+};
+
+const absencesOf = (c: SyncedCourse): AbsencesView | null => {
+  const a = attendance(c.admit);
+  return a ? { missed: a.missed, left: a.left, limit: a.limit, status: a.status, line: attendanceLine(a) } : null;
+};
+
+/** The current semester's courses with marks, absences and the next deadline. */
+export async function progressCourses(student: Student, now: Date): Promise<ProgressCourse[]> {
+  const open = new Set(student.sync.semesters.filter((s) => s.open).map((s) => s.id));
+  const current = student.sync.courses.filter((c) => open.has(c.semesterId));
+  const refs = await coursesByIds(current.map((c) => c.subjectId));
+  const work = deadlines(student.sync.homework).filter((d) => (d.status === "todo" || d.status === "in-progress") && d.due >= now);
+  const rows: ProgressCourse[] = current.map((c) => {
+    const ref = refs.get(c.subjectId);
+    const name = ref?.name ?? c.name;
+    const next = work.filter((d) => sameCourse(d.course, name) || sameCourse(d.course, c.name)).sort((a, b) => a.due.getTime() - b.due.getTime())[0];
+    const mark = c.final ?? c.average;
+    return {
+      courseId: c.subjectId, code: ref?.code ?? "", name, mark, tier: tier(mark), average: c.average, rating: c.rating, final: c.final,
+      passed: c.passed, fx: c.fx, absences: absencesOf(c), next: next ? deadlineView(next, now) : null, href: `/progress/${c.subjectId}`,
+    };
+  });
+  if (rows.length || !student.cache?.enrollment) return rows;
+  // Before the first gradebook sync: the enrolled courses, without marks.
+  return student.cache.enrollment.courses.map((c) => ({
+    courseId: c.code, code: c.code, name: c.subject, mark: null, tier: "None", average: null, rating: null, final: null, passed: null, fx: false, absences: null, next: null, href: `/progress`,
+  }));
+}
+
+export async function progress(userId: string, now = new Date()): Promise<ProgressView | null> {
+  const student = await loadStudent(userId);
+  if (!student) return null;
+  const [courses, queue] = await Promise.all([progressCourses(student, now), rateQueueFor(student, now)]);
+  const profile = student.cache?.profile ?? null;
+  const open = student.sync.semesters.find((s) => s.open) ?? null;
+  const past = student.sync.semesters.filter((s) => !s.open).sort((a, b) => Number(b.id) - Number(a.id));
+  const earlier = past.length
+    ? past.map((s) => ({ term: s.term, courses: student.sync.courses.filter((c) => c.semesterId === s.id).length, ects: null, gpa: null }))
+    : (profile?.semesters ?? []).filter((s) => !s.open).map((s) => ({ term: s.name, courses: s.courses.length, ects: null, gpa: null }));
+  const allFinal = courses.length > 0 && courses.every((c) => c.final !== null);
+  return {
+    state: student.state,
+    gpa: profile?.gpa ?? null,
+    ectsEarned: profile?.ectsEarned ?? null,
+    ectsTotal: profile?.ectsTotal ?? null,
+    semesterNumber: student.sync.semesters.length || profile?.semesters.length || null,
+    currentTerm: queue.currentTerm,
+    courses,
+    earlier,
+    rate: { term: queue.ask.term, waiting: queue.waiting.length, rated: queue.rated.length },
+    empty: courses.every((c) => c.mark === null) && !profile?.gpa,
+    results: allFinal && open ? { term: open.term, courses: courses.map((c) => ({ courseId: c.courseId, name: c.name, mark: c.final, passed: c.passed, fx: c.fx })) } : null,
+  };
+}
+
+export type ClassMark = { lesson: string; kind: "lecture" | "lab" | "practice"; at: string | null; dateLabel: string | null; mark: Mark; viaQr: boolean; score: number | null };
+
+export type CourseProgressView = {
+  state: SyncState;
+  course: ProgressCourse;
+  term: string | null;
+  teacher: string | null;
+  events: ClassMark[];
+};
+
+/** Figma 5.2: one course's marks and class-by-class attendance. */
+export async function courseProgress(userId: string, courseId: string, now = new Date()): Promise<CourseProgressView | null> {
+  const student = await loadStudent(userId);
+  if (!student) return null;
+  const synced = student.sync.courses.find((c) => c.subjectId === courseId);
+  if (!synced) return null;
+  const [rows, links] = await Promise.all([
+    progressCourses(student, now),
+    db().select().from(lmsCourseTeachers).where(inArray(lmsCourseTeachers.courseId, [courseId])),
+  ]);
+  const lead = links.find((l) => roleOf(l.role) === "lecture") ?? links[0];
+  const people = await teachersByIds(lead ? [lead.teacherId] : []);
+  const refs = rows.find((r) => r.courseId === courseId) ? null : await coursesByIds([courseId]);
+  const ref = refs?.get(courseId);
+  const course = rows.find((r) => r.courseId === courseId) ?? {
+    courseId, code: ref?.code ?? "", name: ref?.name ?? synced.name, mark: synced.final ?? synced.average, tier: tier(synced.final ?? synced.average),
+    average: synced.average, rating: synced.rating, final: synced.final, passed: synced.passed, fx: synced.fx, absences: absencesOf(synced), next: null, href: `/progress/${courseId}`,
+  };
+  const marks = attendanceEvents(synced.events);
+  const events: ClassMark[] = marks
+    .map((e, i) => {
+      const raw = Number(synced.events[i]?.mark);
+      return {
+        lesson: e.lesson, kind: e.kind, at: e.at?.toISOString() ?? null,
+        dateLabel: e.at ? `${weekdayName(e.at).slice(0, 3)} ${shortDate(e.at)}` : null,
+        mark: e.mark, viaQr: e.viaQr, score: synced.events[i]?.mark === null || synced.events[i]?.mark === undefined || synced.events[i]?.mark === "" || !Number.isFinite(raw) ? null : raw,
+      };
+    })
+    .sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""));
+  return {
+    state: student.state,
+    course,
+    term: student.sync.semesters.find((s) => s.id === synced.semesterId)?.term ?? null,
+    teacher: lead ? people.get(lead.teacherId)?.name ?? null : null,
+    events,
+  };
+}
+
+export type AssignmentsView = {
+  state: SyncState;
+  dueThisWeek: DeadlineView[];
+  later: DeadlineView[];
+  waiting: DeadlineView[];
+  graded: DeadlineView[];
+  missed: DeadlineView[];
+};
+
+/** Figma 5.4: assignments by state, from the LMS homework list. */
+export async function assignments(userId: string, now = new Date()): Promise<AssignmentsView | null> {
+  const student = await loadStudent(userId);
+  if (!student) return null;
+  const list = deadlines(student.sync.homework).sort((a, b) => a.due.getTime() - b.due.getTime());
+  const open = list.filter((d) => (d.status === "todo" || d.status === "in-progress") && d.due >= now);
+  const week = now.getTime() + 7 * DAY_MS;
+  const view = (xs: typeof list) => xs.map((d) => deadlineView(d, now));
+  return {
+    state: student.state,
+    dueThisWeek: view(open.filter((d) => d.due.getTime() <= week)),
+    later: view(open.filter((d) => d.due.getTime() > week)),
+    waiting: view(list.filter((d) => d.status === "submitted")),
+    graded: view(list.filter((d) => d.status === "checked").reverse()),
+    missed: view(list.filter((d) => d.status === "missed" || ((d.status === "todo" || d.status === "in-progress") && d.due < now)).reverse()),
+  };
+}
