@@ -16,8 +16,12 @@ describe("lms/client", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("returns the token from a successful login", async () => {
-    mockFetch(200, { token: "abc" });
+    const fetchMock = mockFetch(200, { token: "abc" });
     expect(await login("a@newuu.uz", "pw")).toEqual({ token: "abc" });
+    // The LMS names the password field `pass`; sending `password` fails silently.
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body).toMatchObject({ email: "a@newuu.uz", pass: "pw" });
+    expect(body.password).toBeUndefined();
   });
 
   it("treats a login without a token as an auth failure", async () => {
