@@ -3,6 +3,7 @@ import type {
   LmsDepartment,
   LmsGradebookData,
   LmsGradebookSemester,
+  LmsIepRow,
   LmsLessonFull,
   LmsMyList,
   LmsProgram,
@@ -92,6 +93,10 @@ export const departments = (s: LmsSession) =>
 export const programs = (s: LmsSession) =>
   request<{ educationPrograms?: LmsProgram[] }>("/education-program/list", { token: s.token })
     .then((b) => b.educationPrograms ?? []);
+
+/** The signed-in student's individual education plan, one row per semester. */
+export const individualPlan = (s: LmsSession) =>
+  request<LmsIepRow[]>("/individual-education-plan/my", { token: s.token });
 
 /** `/subject/get-by-id` returns an array of one; any university course id works. */
 export async function subject(s: LmsSession, subjectId: string | number): Promise<LmsSubject | null> {

@@ -88,6 +88,24 @@ export const lmsTeachers = pgTable("lms_teachers", {
   fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export type LmsCurriculumData = {
+  programId: string | null;
+  semesters: Array<{ semesterId: string; year: number | null; courses: Array<{ id: string; code: string | null; name: string; ects: number | null }> }>;
+};
+
+/**
+ * A program cohort's curriculum, keyed by the LMS work-education-plan id (one
+ * plan per entry year). Built from students' individual education plans as they
+ * sign in, so a cohort fills in over time.
+ */
+export const lmsCurricula = pgTable("lms_curricula", {
+  workEducationPlanId: text("work_education_plan_id").primaryKey(),
+  programId: text("program_id"),
+  data: jsonb("data").$type<LmsCurriculumData>().notNull(),
+  learnerId: text("learner_id"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 /** Which teacher teaches which course, with the LMS role (Lecture, Laboratory…). */
 export const lmsCourseTeachers = pgTable(
   "lms_course_teachers",
