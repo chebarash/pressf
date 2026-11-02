@@ -46,3 +46,5 @@ next-env.d.ts
 /data/syllabi-seed.json
 /test-results/
 /playwright-report/
+
+.claude/worktrees/
