@@ -4,7 +4,9 @@ import type {
   LmsEmployeeDetail,
   LmsGradebookData,
   LmsGradebookSemester,
+  LmsHomework,
   LmsIepRow,
+  LmsNotificationsPayload,
   LmsScheduleDay,
   LmsLessonFull,
   LmsMyList,
@@ -130,6 +132,47 @@ export const gradebookSemesters = (s: LmsSession) =>
 /** Per-semester grades, keyed by subject id, including the final mark. */
 export const gradebookData = (s: LmsSession, semesterId: string | number) =>
   request<LmsGradebookData>(`/gradebook/gradebook-data?semester_id=${semesterId}`, { token: s.token });
+
+/** LMS bell: announcements, informers and system notes in one payload. */
+export const notifications = (s: LmsSession) =>
+  request<LmsNotificationsPayload>("/notification/get-notification", { token: s.token });
+
+export const notificationCount = (s: LmsSession) =>
+  request<{ count?: number | string } | number>("/notification/count", { token: s.token });
+
+/** Mark read in the LMS too, so the student never sees it twice. */
+export const markNotificationRead = (s: LmsSession, id: string | number) =>
+  request<unknown>("/notification/change-read", {
+    token: s.token, method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }),
+  });
+
+/** "Got it" on announcements the LMS asks the student to acknowledge. */
+export const acknowledgeNotification = (s: LmsSession, id: string | number) =>
+  request<unknown>("/notification/change-acquainted", {
+    token: s.token, method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }),
+  });
+
+/** Assignments with deadline and status. */
+export const homework = (s: LmsSession, page = 1, limit = 50) =>
+  request<{ data?: LmsHomework[] }>(`/homework/list?page=${page}&limit=${limit}`, { token: s.token }).then((b) => b.data ?? []);
+
+/** Semester phases (cohort selection, schedule builder, studies, add/drop) with dates. */
+export const semesterCalendar = (s: LmsSession, semesterId: string | number) =>
+  request<unknown>(`/semester/calendar?semester_id=${semesterId}`, { token: s.token });
+
+/**
+ * Activate a classroom QR code for the signed-in student. Returns the HTTP
+ * status with the body, because 404 (unknown code) is an answer, not a failure.
+ */
+export async function activateQr(s: LmsSession, token: string): Promise<{ status: number; body: unknown }> {
+  try {
+    const body = await request<unknown>(`/q-r/code-active?url=${encodeURIComponent(token)}`, { token: s.token });
+    return { status: 200, body };
+  } catch (e) {
+    if (e instanceof LmsError && e.status > 0 && e.status !== 401) return { status: e.status, body: e.body };
+    throw e;
+  }
+}
 
 /** Download a lesson material's bytes. `fileFullUrl` already starts with `/v1`. */
 export async function downloadFile(s: LmsSession, fileFullUrl: string): Promise<{ bytes: Buffer; contentType: string }> {
