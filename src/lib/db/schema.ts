@@ -39,6 +39,70 @@ export const users = pgTable("users", {
 });
 
 /**
+ * The university catalog harvested from the LMS: courses, teachers, departments
+ * and programs for the whole university. This is the source Press F moves to,
+ * replacing the bot API. Each row keeps `raw` for fields the UI does not use yet.
+ */
+export const lmsDepartments = pgTable("lms_departments", {
+  id: text("id").primaryKey(),
+  code: text("code"),
+  parentId: text("parent_id"),
+  typeId: text("type_id"),
+  name: text("name"),
+  shortName: text("short_name"),
+});
+
+export const lmsPrograms = pgTable("lms_programs", {
+  id: text("id").primaryKey(),
+  name: text("name"),
+  departmentId: text("department_id"),
+  groupId: text("group_id"),
+  description: text("description"),
+});
+
+export const lmsCourses = pgTable(
+  "lms_courses",
+  {
+    /** LMS subject id. */
+    id: text("id").primaryKey(),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    credits: integer("credits"),
+    lectureHours: integer("lecture_hours"),
+    labHours: integer("lab_hours"),
+    practiceHours: integer("practice_hours"),
+    departmentId: text("department_id"),
+    semesterId: text("semester_id"),
+    raw: jsonb("raw").notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("lms_courses_code").on(t.code)]
+);
+
+export const lmsTeachers = pgTable("lms_teachers", {
+  /** LMS employee id. */
+  id: text("id").primaryKey(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  surName: text("sur_name"),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Which teacher teaches which course, with the LMS role (Lecture, Laboratory…). */
+export const lmsCourseTeachers = pgTable(
+  "lms_course_teachers",
+  {
+    courseId: text("course_id").notNull(),
+    teacherId: text("teacher_id").notNull(),
+    role: text("role"),
+  },
+  (t) => [
+    uniqueIndex("lms_course_teacher_role").on(t.courseId, t.teacherId, t.role),
+    index("lms_course_teacher_teacher").on(t.teacherId),
+  ]
+);
+
+/**
  * A student's saved LMS login. The password is sealed by lms/crypto so the
  * server can re-login when the 72h token expires; the token is cached to avoid
  * logging in on every request. `status` goes to "invalid" when a stored login

@@ -1,9 +1,11 @@
 import { env } from "@/lib/env";
 import type {
+  LmsDepartment,
   LmsGradebookData,
   LmsGradebookSemester,
   LmsLessonFull,
   LmsMyList,
+  LmsProgram,
   LmsSubject,
   LmsTranscript,
   LmsUser,
@@ -81,6 +83,15 @@ export const currentUser = (s: LmsSession) =>
 
 export const myList = (s: LmsSession) =>
   request<LmsMyList>("/subject/my-list", { token: s.token });
+
+/** All departments (the school/faculty hierarchy, via parent_id). */
+export const departments = (s: LmsSession) =>
+  request<LmsDepartment[]>("/education-program/department", { token: s.token });
+
+/** All education programs. */
+export const programs = (s: LmsSession) =>
+  request<{ educationPrograms?: LmsProgram[] }>("/education-program/list", { token: s.token })
+    .then((b) => b.educationPrograms ?? []);
 
 /** `/subject/get-by-id` returns an array of one; any university course id works. */
 export async function subject(s: LmsSession, subjectId: string | number): Promise<LmsSubject | null> {

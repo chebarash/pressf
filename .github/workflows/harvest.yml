@@ -1,0 +1,24 @@
+name: Weekly LMS harvest
+
+# The university catalog changes at most once a term, so once a week is plenty.
+# Walking the LMS subject ids takes a few minutes, hence the long timeout.
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harvest the LMS catalog into the site
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          result=$(curl --fail --silent --show-error --max-time 900 -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/harvest")
+          echo "$result"
+          test "$(echo "$result" | jq -e '.courses >= 0')" = "true"

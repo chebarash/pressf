@@ -66,6 +66,23 @@ export type LmsLessonFull = LmsLesson & {
   links?: unknown[];
 };
 
+export type LmsDepartment = {
+  id: string;
+  code?: string;
+  parent_id?: string;
+  department_type_id?: string;
+  name: string | null;
+  short_name?: string;
+};
+
+export type LmsProgram = {
+  id: string;
+  name: string;
+  department_id?: string;
+  education_program_group_id?: string;
+  description?: string;
+};
+
 export type LmsSubject = {
   id: string;
   name: string;
