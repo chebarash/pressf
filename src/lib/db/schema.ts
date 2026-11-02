@@ -150,6 +150,17 @@ export const lmsCourseTeachers = pgTable(
 );
 
 /**
+ * A per-student snapshot of their LMS data (enrollment, timetable, academic
+ * record), filled at sign-in and refreshed in the background. Pages read this
+ * instead of calling the slow LMS on every render.
+ */
+export const lmsCache = pgTable("lms_cache", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  data: jsonb("data").notNull(),
+  syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
  * A student's saved LMS login. The password is sealed by lms/crypto so the
  * server can re-login when the 72h token expires; the token is cached to avoid
  * logging in on every request. `status` goes to "invalid" when a stored login

@@ -125,7 +125,7 @@ async function lmsCatalog() {
  * until those move too. Before the first LMS harvest, everything falls back to
  * the bot so the site is never empty.
  */
-export const getCatalog = cache(async (): Promise<Catalog> => {
+async function buildCatalog(): Promise<Catalog> {
   const [bot, lms] = await Promise.all([botCatalog(), lmsCatalog()]);
   if (lms) {
     bot.courses = lms.courses;
@@ -140,6 +140,21 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
   const names = new Map(bot.teachers.map((teacher) => [teacher.id, teacher.display_name]));
   bot.timetable = bot.timetable.map((lesson) => ({ ...lesson, teacher_name: names.get(lesson.teacher ?? "") ?? lesson.teacher_name }));
   return bot;
+}
+
+// The catalog changes at most weekly (harvest), so it is built at most once per
+// TTL for the whole server instead of scanning the tables on every request.
+// `cache` still dedupes within a single request.
+let snapshot: { at: number; data: Catalog } | undefined;
+const CATALOG_TTL_MS = 5 * 60 * 1000;
+
+const useSnapshot = process.env.NODE_ENV !== "test";
+
+export const getCatalog = cache(async (): Promise<Catalog> => {
+  if (useSnapshot && snapshot && Date.now() - snapshot.at < CATALOG_TTL_MS) return snapshot.data;
+  const data = await buildCatalog();
+  if (useSnapshot) snapshot = { at: Date.now(), data };
+  return data;
 });
 
 export const normalizeCode = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "");

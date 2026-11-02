@@ -5,13 +5,13 @@ import { calendarHint, currentWeek } from "@/lib/calendar";
 import { getCatalog } from "@/lib/catalog";
 import { courseCards, postsAboutCourses, publishedFiles } from "@/lib/content";
 import type { Enrollment } from "@/lib/lms/enrollment";
-import { studentTimetable } from "@/lib/lms/schedule";
+import type { Lesson } from "@/lib/catalog/types";
 
 const WEEKDAY = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-/** Home for a signed-in student: their real semester from the LMS. */
-export async function MySemester({ userId, enrollment }: { userId: string; enrollment: Enrollment }) {
-  const [catalog, files, lessons] = await Promise.all([getCatalog(), publishedFiles(), studentTimetable(userId)]);
+/** Home for a signed-in student: their real semester, served from the cache. */
+export async function MySemester({ enrollment, lessons }: { enrollment: Enrollment; lessons: Lesson[] }) {
+  const [catalog, files] = await Promise.all([getCatalog(), publishedFiles()]);
   const codes = enrollment.codes;
   const courses = codes.map((code) => catalog.courses.find((c) => c.code === code)).filter((c) => !!c);
   const [cards, posts] = await Promise.all([courseCards(courses, catalog), postsAboutCourses(codes, 3)]);

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { after } from "next/server";
 import { CourseCard, FileRow, MentionCard, TeacherRow } from "@/components/Cards";
 import { GroupSemester } from "@/components/GroupSemester";
 import { MySemester } from "@/components/MySemester";
@@ -10,7 +11,7 @@ import { calendarHint } from "@/lib/calendar";
 import { getCatalog } from "@/lib/catalog";
 import { channelPosts, courseCards, faceMap, fileCounts, popularCourses, publishedFiles, teacherCourses, teacherLine } from "@/lib/content";
 import { currentGroup } from "@/lib/group";
-import { studentSemester } from "@/lib/lms/enrollment";
+import { preloadUser, userData } from "@/lib/lms/cache";
 import { teacherRatings } from "@/lib/ratings";
 
 type Props = { searchParams: Promise<{ list?: string }> };
@@ -19,8 +20,9 @@ export default async function Home({ searchParams }: Props) {
   // A signed-in student lands on their own semester, drawn from the LMS.
   const user = await getUser();
   if (user) {
-    const enrollment = await studentSemester(user.id);
-    if (enrollment?.courses.length) return <MySemester userId={user.id} enrollment={enrollment} />;
+    const { data, stale } = await userData(user.id, user.email);
+    if (stale) after(() => preloadUser(user.id, user.email).catch(() => {}));
+    if (data.enrollment?.courses.length) return <MySemester enrollment={data.enrollment} lessons={data.timetable} />;
   }
   // Fallback until the bot catalog and group picker are removed.
   const group = await currentGroup();

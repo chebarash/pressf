@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { env, isAdminEmail, STUDENT_DOMAIN } from "@/lib/env";
 import { login } from "@/lib/lms/client";
+import { preloadUser } from "@/lib/lms/cache";
 import { persistAccount } from "@/lib/lms/store";
 import { verifyInitData } from "@/lib/telegram/webapp";
 
@@ -38,6 +39,8 @@ export const authOptions: NextAuthOptions = {
           .onConflictDoUpdate({ target: users.email, set: { email } })
           .returning();
         await persistAccount(row.id, password, session);
+        // Warm the cache now so the first page loads instantly from it.
+        await preloadUser(row.id, row.email).catch(() => {});
         return { id: row.id, email: row.email };
       },
     }),
