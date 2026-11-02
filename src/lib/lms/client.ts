@@ -65,7 +65,9 @@ export async function login(email: string, password: string): Promise<LmsSession
   const body = await request<{ token?: string; error?: unknown }>("/users/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    // The LMS login form names the password field `pass` (not `password`) and
+    // keeps a `remember` flag; sending `password` logs no one in.
+    body: JSON.stringify({ email, pass: password, remember: true }),
   });
   if (!body?.token) throw new LmsError("LMS login returned no token", 401, body);
   return { token: body.token };
