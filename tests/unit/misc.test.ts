@@ -100,13 +100,13 @@ describe("deep links", () => {
     expect(startPath(startParam(`/files/${id}`))).toBe(`/files?open=${id}`);
   });
   it("goes straight to the app when the bot has a Main Mini App", () => {
-    expect(deepLink("/courses/MATH111", true)).toBe("https://t.me/pupressfbot?startapp=course_MATH111");
+    expect(deepLink("/courses/MATH111", true)).toBe("https://t.me/pressfapp?startapp=course_MATH111");
   });
   it("goes through the bot when it does not", () => {
-    expect(deepLink("/courses/MATH111", false)).toBe("https://t.me/pupressfbot?start=course_MATH111");
+    expect(deepLink("/courses/MATH111", false)).toBe("https://t.me/pressfapp?start=course_MATH111");
   });
   it("opens the bare app for anything it cannot carry", () => {
-    expect(deepLink("/professors/gon%C3%A7alo", true)).toBe("https://t.me/pupressfbot?startapp");
-    expect(deepLink("", false)).toBe("https://t.me/pupressfbot");
+    expect(deepLink("/professors/gon%C3%A7alo", true)).toBe("https://t.me/pressfapp?startapp");
+    expect(deepLink("", false)).toBe("https://t.me/pressfapp");
   });
 });

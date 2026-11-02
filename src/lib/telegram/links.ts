@@ -1,7 +1,7 @@
 import { env } from "@/lib/env";
 import { startParam } from "./start";
 
-const BOT = "https://t.me/pupressfbot";
+const BOT = "https://t.me/pressfapp";
 const site = () => env().NEXTAUTH_URL.replace(/\/$/, "");
 
 /**
