@@ -194,7 +194,7 @@ export async function brandXlsx(bytes: Uint8Array, meta: CoverMeta): Promise<Uin
   if (!wb || !wbRels || !types || !styles) return null;
   const sheetTags = [...wb.matchAll(/<sheet\b[^>]*\/>/g)].map((m) => m[0]);
   if (!sheetTags.length || wb.includes(`name="${esc(ABOUT_SHEET)}"`)) return null;
-  const names = sheetTags.map((t) => t.match(/name="([^"]*)"/)?.[1] ?? "").map((n) => n.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"'));
+  const names = sheetTags.map((t) => t.match(/name="([^"]*)"/)?.[1] ?? "").map((n) => n.replace(/&(amp|lt|gt|quot|apos);/g, (_, e: string) => ({ amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" })[e]!));
   const sheetIds = sheetTags.map((t) => Number(t.match(/sheetId="(\d+)"/)?.[1] ?? 0));
 
   // Styles: title (serif on teal), label (semibold), value, link (accent).
