@@ -1,0 +1,1 @@
+ALTER TABLE "lms_teachers" ADD COLUMN "position" text;

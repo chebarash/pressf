@@ -85,6 +85,8 @@ export const lmsTeachers = pgTable("lms_teachers", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   surName: text("sur_name"),
+  /** Academic position/title from the LMS employee detail (academicStatus.name). */
+  position: text("position"),
   fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

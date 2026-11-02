@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 import type {
   LmsDepartment,
+  LmsEmployeeDetail,
   LmsGradebookData,
   LmsGradebookSemester,
   LmsIepRow,
@@ -102,6 +103,12 @@ export const individualPlan = (s: LmsSession) =>
 export async function subject(s: LmsSession, subjectId: string | number): Promise<LmsSubject | null> {
   const rows = await request<LmsSubject[]>(`/subject/get-by-id?id=${subjectId}`, { token: s.token });
   return rows?.[0] ?? null;
+}
+
+/** `/employee/get-by-id` returns a rich teacher profile, directly or as an array of one. */
+export async function employee(s: LmsSession, id: string | number): Promise<LmsEmployeeDetail | null> {
+  const body = await request<LmsEmployeeDetail | LmsEmployeeDetail[]>(`/employee/get-by-id?id=${id}`, { token: s.token });
+  return (Array.isArray(body) ? body[0] : body) ?? null;
 }
 
 export const lesson = (s: LmsSession, lessonId: string | number) =>
