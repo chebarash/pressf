@@ -94,7 +94,6 @@ export default function Professor({ data }: { data: ProfessorView }) {
           ))}
         </section>
       ) : null}
-      <div style={{ height: 95 }} aria-hidden />
       {data.signedIn ? <MainButton text={`Press F for ${data.name}`} href="/rate" /> : <MainButton text="Sign in to press F" href={`/sign-in?next=${encodeURIComponent(`/p/${data.id}`)}`} />}
     </Screen>
   );

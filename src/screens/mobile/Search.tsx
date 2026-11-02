@@ -24,7 +24,7 @@ export default function Search({ data, programHref = "/schools" }: { data: Searc
     { label: "All professors", href: "/professors" },
   ];
   return (
-    <Screen>
+    <Screen className={s.noTopBar}>
       <SearchBar query={data.q} first={first?.href ?? null} />
       {data.nothing ? (
         <div style={{ paddingTop: 32 }}>

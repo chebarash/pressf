@@ -29,7 +29,7 @@ const SEMESTER: Row[] = [
 /** Mobile Alerts settings (Figma 8.5): what the bot sends, per type. Quiet hours from core (22:00–08:00). */
 export default function Alerts({ data }: { data: ProfileView }) {
   return (
-    <Screen>
+    <Screen className={s.noTopBar}>
       <div className={cx(s.body, s.tight)}>
         <h1 className={cx(s.title, "t-mobile-title")}>Alerts</h1>
         <p className={cx(s.p0, s.t14, s.soft)} style={{ lineHeight: 1.4 }}>

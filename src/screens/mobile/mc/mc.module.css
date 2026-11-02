@@ -176,6 +176,9 @@
 .link { color: var(--text-accent); text-decoration: none; }
 .link:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; border-radius: 4px; }
 .plainButton { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: inherit; cursor: pointer; }
+/* Search (7.1–7.3), Profile (8.1) and Alerts (8.5) have no App/TopBar in Figma: hide the shell's while they show. */
+.noTopBar { min-height: 0; }
+:global(.sh-mobile):has(.noTopBar) :global(.sh-topbar) { display: none; }
 .rateBig { gap: 6px; padding: 14px 16px; box-shadow: var(--shadow-key-lg); }
 .rateTitle { font-family: var(--font-serif); font-size: 26px; line-height: 1.08; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

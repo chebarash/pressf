@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import type { AttendanceStatus } from "@/core/attendance";
-import { fontVars } from "./fonts";
 import { ChevronRightIcon } from "./kit";
 import s from "./mc.module.css";
 
@@ -10,7 +9,7 @@ export const cx = (...names: Array<string | false | null | undefined>) => names.
 /** Screen root: page background, tokens, fonts. */
 export function Screen({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
   return (
-    <div className={cx(s.screen, fontVars, className)} style={style}>
+    <div className={cx(s.screen, className)} style={style}>
       {children}
     </div>
   );

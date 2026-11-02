@@ -10,7 +10,7 @@ import c from "./mc/screens.module.css";
 export default function Settings({ data }: { data: ProfileView }) {
   const alertsOn = Object.values(data.alerts).some(Boolean);
   return (
-    <Screen>
+    <Screen className={s.noTopBar}>
       <div className={s.body}>
         <h1 className={cx(s.title, "t-mobile-title")}>Profile</h1>
         <div className={c.me}>
