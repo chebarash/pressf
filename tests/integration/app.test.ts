@@ -2,6 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const user = vi.hoisted(() => ({ current: null as null | { id: string; email: string; group: string | null; isAdmin: boolean } }));
 const jar = vi.hoisted(() => ({ values: new Map<string, string>() }));
+const lmsLogin = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/lms/client", async (original) => ({
+  ...(await original<typeof import("@/lib/lms/client")>()),
+  login: lmsLogin,
+}));
 
 vi.mock("@/lib/auth", async (original) => ({
   ...(await original<typeof import("@/lib/auth")>()),
@@ -23,7 +29,10 @@ import { authOptions } from "@/lib/auth";
 import type { Teacher } from "@/lib/catalog";
 import { channelPosts, courseDetails, mentionsFor, popularCourses, programsWith, publishedFiles, resolveRequirement, teacherLine, unlocks } from "@/lib/content";
 import { db } from "@/lib/db";
-import { materials, mentionLinks, mentions, ratings, respects, searchEvents, syllabi, users } from "@/lib/db/schema";
+import { lmsAccounts, materials, mentionLinks, mentions, ratings, respects, searchEvents, syllabi, users } from "@/lib/db/schema";
+import { LmsError } from "@/lib/lms/client";
+import { open as openSealed } from "@/lib/lms/crypto";
+import { eq } from "drizzle-orm";
 import { courseRatings, ownRatings, pairRatings, respectCount, teacherRatings, userRatings } from "@/lib/ratings";
 import { syllabus } from "../fixtures/catalog";
 import { resetDb, seedCatalog } from "../fixtures/db";
@@ -40,18 +49,38 @@ beforeEach(async () => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-describe("signIn callback", () => {
-  const check = (email: string, profile: object) => authOptions.callbacks!.signIn!({ user: { id: "1", email }, profile, account: null } as never);
-  it("lets verified student accounts in", async () => {
-    expect(await check("a@newuu.uz", { hd: "newuu.uz", email_verified: true })).toBe(true);
+describe("lms sign-in", () => {
+  // next-auth keeps the provider's authorize at the top level of the config object.
+  const provider = authOptions.providers.find((p) => (p as { options?: { id?: string } }).options?.id === "lms") as unknown as {
+    options: { authorize: (c: Record<string, string>) => Promise<{ id: string; email: string } | null> };
+  };
+  const authorize = (email: string, password: string) => provider.options.authorize({ email, password });
+
+  beforeEach(() => lmsLogin.mockReset());
+
+  it("signs in a valid LMS login and seals the password", async () => {
+    lmsLogin.mockResolvedValue({ token: "e30.e30.sig" });
+    const result = await authorize("A@newuu.uz", "pw-9");
+    expect(result?.email).toBe("a@newuu.uz");
+    expect(lmsLogin).toHaveBeenCalledWith("a@newuu.uz", "pw-9");
+    const [row] = await db().select().from(lmsAccounts).where(eq(lmsAccounts.userId, result!.id));
+    expect(row.sealedPassword).not.toContain("pw-9");
+    expect(openSealed(row.sealedPassword)).toBe("pw-9");
   });
-  it("sends everyone else to the error screen", async () => {
-    for (const [email, profile] of [
-      ["a@gmail.com", { email_verified: true }],
-      ["a@newuu.uz", { email_verified: true }],
-      ["a@newuu.uz", { hd: "newuu.uz", email_verified: false }],
-      ["a@newuu.uz.evil.com", { hd: "newuu.uz", email_verified: true }],
-    ] as const) expect(await check(email, profile)).toBe("/sign-in?error=domain");
+
+  it("rejects a wrong password without saving anything", async () => {
+    lmsLogin.mockRejectedValueOnce(new LmsError("no token", 401));
+    expect(await authorize("a@newuu.uz", "wrong")).toBeNull();
+    expect(await db().select().from(lmsAccounts)).toHaveLength(0);
+  });
+
+  it("rejects non-student emails before hitting the LMS", async () => {
+    expect(await authorize("a@gmail.com", "pw")).toBeNull();
+    expect(lmsLogin).not.toHaveBeenCalled();
+  });
+
+  it("rejects empty credentials", async () => {
+    expect(await authorize("", "")).toBeNull();
   });
 });
 

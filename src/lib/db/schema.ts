@@ -38,6 +38,29 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * A student's saved LMS login. The password is sealed by lms/crypto so the
+ * server can re-login when the 72h token expires; the token is cached to avoid
+ * logging in on every request. `status` goes to "invalid" when a stored login
+ * stops working (e.g. the student changed their LMS password), which prompts a
+ * fresh password on next sign-in and drops the account from background refresh.
+ */
+export const lmsAccountStatus = pgEnum("lms_account_status", ["active", "invalid"]);
+
+export const lmsAccounts = pgTable("lms_accounts", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  /** The LMS user id from /users/current, so harvests can attribute a source. */
+  lmsUserId: text("lms_user_id"),
+  /** Sealed password: v1.<iv>.<tag>.<ciphertext>, base64url. Never stored plain. */
+  sealedPassword: text("sealed_password").notNull(),
+  token: text("token"),
+  tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+  status: lmsAccountStatus("status").notNull().default("active"),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const ratings = pgTable(
   "ratings",
   {

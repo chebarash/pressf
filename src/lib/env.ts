@@ -20,6 +20,10 @@ const schema = z.object({
   TELEGRAM_FILES_WEBHOOK_SECRET: z.string().default(""),
   TELEGRAM_FILES_REVIEW_CHAT_ID: z.string().default(""),
   ANTHROPIC_API_KEY: z.string().optional(),
+  /** NewUU LMS the site wraps; defaults to the live API in the client. */
+  LMS_API_URL: z.string().optional(),
+  /** Seals stored LMS passwords (AES-256-GCM). Keep it off the database host. */
+  CREDENTIAL_KEY: z.string().optional(),
   /** Local only: signs every request in as this email, without Google. */
   DEV_LOGIN_EMAIL: z.string().optional(),
 });

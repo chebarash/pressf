@@ -1,23 +1,48 @@
 import { eq } from "drizzle-orm";
 import { getServerSession, type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { env, isAdminEmail, STUDENT_DOMAIN } from "@/lib/env";
+import { login } from "@/lib/lms/client";
+import { persistAccount } from "@/lib/lms/store";
 import { verifyInitData } from "@/lib/telegram/webapp";
 
 const isStudent = (email?: string | null) => !!email && email.toLowerCase().endsWith(`@${STUDENT_DOMAIN}`);
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: env().GOOGLE_CLIENT_ID,
-      clientSecret: env().GOOGLE_CLIENT_SECRET,
-      authorization: { params: { hd: STUDENT_DOMAIN, prompt: "select_account" } },
+    // Press F signs in through the university LMS: the password is verified
+    // against hero.study and sealed so the server can read the student's courses
+    // and keep background refresh working after the 72h token expires.
+    CredentialsProvider({
+      id: "lms",
+      name: "NewUU",
+      credentials: { email: {}, password: {} },
+      async authorize(credentials) {
+        const email = credentials?.email?.trim().toLowerCase();
+        const password = credentials?.password;
+        if (!email || !password || !isStudent(email)) return null;
+        // Any failure — wrong password or the LMS being down — just blocks
+        // sign-in; the form shows one message for both.
+        let session;
+        try {
+          session = await login(email, password);
+        } catch {
+          return null;
+        }
+        const [row] = await db()
+          .insert(users)
+          .values({ email })
+          .onConflictDoUpdate({ target: users.email, set: { email } })
+          .returning();
+        await persistAccount(row.id, password, session);
+        return { id: row.id, email: row.email };
+      },
     }),
-    // Google refuses embedded browsers, so the mini app signs in as the account linked once in a real browser.
+    // The mini app reuses the account once its Telegram is linked, so it signs
+    // in silently from the Telegram initData instead of asking again.
     CredentialsProvider({
       id: "telegram",
       name: "Telegram",
@@ -32,15 +57,6 @@ export const authOptions: NextAuthOptions = {
   ],
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/sign-in", error: "/sign-in" },
-  callbacks: {
-    /** The hd parameter is only a hint, so the domain is checked here on the server. */
-    async signIn({ account, profile, user }) {
-      if (account?.provider === "telegram") return true;
-      const google = profile as { hd?: string; email_verified?: boolean } | undefined;
-      const allowed = isStudent(user.email) && google?.hd === STUDENT_DOMAIN && google?.email_verified === true;
-      return allowed ? true : "/sign-in?error=domain";
-    },
-  },
 };
 
 export type CurrentUser = { id: string; email: string; group: string | null; isAdmin: boolean };
