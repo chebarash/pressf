@@ -1,8 +1,11 @@
 import { cache } from "react";
 import { shortName } from "./names";
 import { db } from "@/lib/db";
-import { catalogCache, lmsCourseTeachers, lmsCourses, lmsDepartments, lmsTeachers } from "@/lib/db/schema";
-import type { Catalog, Course, Semesters, Teacher } from "./types";
+import { catalogCache, lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers } from "@/lib/db/schema";
+import type { Catalog, Course, Curriculum, School, Semesters, Teacher } from "./types";
+
+const slugify = (s: string) =>
+  s.toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-") || "x";
 
 export * from "./types";
 
@@ -28,13 +31,15 @@ async function botCatalog(): Promise<Catalog> {
   return catalog;
 }
 
-/** Courses and teachers built from the harvested LMS catalog. */
+/** Courses, teachers, schools and curricula built from the harvested LMS catalog. */
 async function lmsCatalog() {
-  const [courses, teachers, links, departments] = await Promise.all([
+  const [courses, teachers, links, departments, progs, curricula] = await Promise.all([
     db().select().from(lmsCourses),
     db().select().from(lmsTeachers),
     db().select().from(lmsCourseTeachers),
     db().select().from(lmsDepartments),
+    db().select().from(lmsPrograms),
+    db().select().from(lmsCurricula),
   ]);
   if (!courses.length) return null;
 
@@ -70,7 +75,48 @@ async function lmsCatalog() {
     };
   });
 
-  return { courses: [...byCode.values()], teachers: builtTeachers };
+  // Schools = the top department each program hangs under (walk parent_id up).
+  const deptById = new Map(departments.map((d) => [d.id, d]));
+  const rootOf = (id: string | null): { id: string; name: string } | null => {
+    const seen = new Set<string>();
+    let d = id ? deptById.get(id) : undefined;
+    while (d && d.parentId && deptById.has(d.parentId) && !seen.has(d.id)) { seen.add(d.id); d = deptById.get(d.parentId); }
+    return d ? { id: d.id, name: d.name ?? "School" } : null;
+  };
+
+  // One curriculum per program: the harvested cohort plan with the most courses.
+  const planByProgram = new Map<string, (typeof curricula)[number]>();
+  for (const row of curricula) {
+    if (!row.programId) continue;
+    const best = planByProgram.get(row.programId);
+    const size = (p?: (typeof curricula)[number]) => p?.data.semesters.reduce((n, s) => n + s.courses.length, 0) ?? 0;
+    if (!best || size(row) > size(best)) planByProgram.set(row.programId, row);
+  }
+
+  const schoolMap = new Map<string, School>();
+  const builtCurricula: Record<string, Curriculum> = {};
+  for (const p of progs) {
+    const pName = p.name ?? "Program";
+    const slug = slugify(pName);
+    const root = rootOf(p.departmentId ?? null) ?? { id: p.departmentId ?? slug, name: "School" };
+    const schoolSlug = slugify(root.name);
+    const school = schoolMap.get(schoolSlug) ?? { slug: schoolSlug, name: root.name, programs: [] };
+    if (!school.programs.some((pr) => pr.slug === slug)) school.programs.push({ slug, name: pName, degree: "" });
+    schoolMap.set(schoolSlug, school);
+
+    const plan = planByProgram.get(p.id);
+    if (plan) {
+      builtCurricula[slug] = {
+        program: slug, source_url: null, academic_year: null,
+        semesters: plan.data.semesters.map((s, i) => ({
+          number: i + 1, year: s.year ?? Math.ceil((i + 1) / 2), term: i % 2 === 0 ? "fall" : "spring",
+          courses: s.courses.map((c) => ({ code: c.code ?? "", subject: c.name, credits: c.ects, type: "core" as const, elective_group: null, prerequisites: null })),
+        })),
+      };
+    }
+  }
+
+  return { courses: [...byCode.values()], teachers: builtTeachers, schools: [...schoolMap.values()], curricula: builtCurricula };
 }
 
 /**
@@ -84,6 +130,10 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
   if (lms) {
     bot.courses = lms.courses;
     bot.teachers = lms.teachers;
+    // Schools and curricula come from the LMS too once programs are harvested;
+    // until then keep the bot's so school and curriculum pages still work.
+    if (lms.schools.length) bot.schools = lms.schools;
+    if (Object.keys(lms.curricula).length) bot.curricula = lms.curricula;
   } else {
     bot.teachers = bot.teachers.map((teacher) => ({ ...teacher, display_name: shortName(teacher) }));
   }
