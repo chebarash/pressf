@@ -298,7 +298,7 @@ describe("uploads, roles, people, grades, deadlines", () => {
     expect(routeUpload("paused", 0.5)).toBe("refuse");
     expect(canMove("waiting", "live")).toBe(true);
     expect(canMove("live", "waiting")).toBe(false);
-    expect(rejectMessage("Physics 1 notes", "Physics 1", "unreadable")).toMatch(/^Not accepted: Physics 1 notes · Physics 1\.\nWe couldn't open/);
+    expect(rejectMessage("Physics 1 notes", "Physics 1", "unreadable")).toMatch(/^Not accepted: Physics 1 notes\nReason: We couldn't open/);
     expect(shownAs(false, "Aziz T.")).toBe("From students");
     expect(shownAs(true, "Aziz T.")).toBe("From Aziz T.");
   });

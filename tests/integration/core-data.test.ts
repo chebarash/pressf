@@ -92,7 +92,7 @@ describe("uploads", () => {
     expect(pub.upload).toMatchObject({ status: "live", week: 8 });
     expect(pub.message).toMatch(/Midterm exam, Fall 2025 · Calculus 1/);
     const rej = await reject(b.upload.id, mod, "in-lms", "", "Calculus 1");
-    expect(rej.message).toMatch(/^Not accepted: Notes · Calculus 1/);
+    expect(rej.message).toMatch(/^Not accepted: Notes\nReason: /);
     await expect(publish(a.upload.id, mod)).rejects.toThrow(/Cannot move/);
     expect((await liveFor("77")).map((u) => u.title)).toEqual(["Midterm exam, Fall 2025"]);
     expect((await recentAudit()).map((r) => r.action).sort()).toEqual(["upload.publish", "upload.reject"]);
