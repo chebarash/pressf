@@ -2,7 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useOptimistic, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { addToHomeScreen, confirm, haptic, homeScreenStatus, setTheme } from "@/platform/client";
 import { Switch } from "@/ui/components";
 import { signOutWithConfirm } from "@/ui/shell/signOut";
@@ -84,33 +84,50 @@ export function SignOutRow() {
   );
 }
 
-/** Delete my data (8.7): a destructive confirm, then the account goes and the session ends. */
-export function DeleteRow() {
+/** 8.7: Telegram's destructive popup (the shell's dialog on the web), then delete and sign out. */
+function useDeleteMyData() {
   const router = useRouter();
   const [busy, start] = useTransition();
+  const run = async () => {
+    const ok = await confirm("Your account, saved LMS password and ratings are removed for good. Anonymous posts stay anonymous.", {
+      title: "Delete your data?",
+      ok: "Delete",
+      cancel: "Cancel",
+      destructive: true,
+    });
+    if (!ok) return false;
+    start(async () => {
+      const res = await deleteMyData();
+      if (!res.ok) return haptic.notify("error");
+      haptic.notify("success");
+      await signOut({ redirect: false });
+      router.replace("/");
+    });
+    return true;
+  };
+  return { busy, run };
+}
+
+/** /me/delete: asks right away; cancelling goes back to the profile. */
+export function DeleteConfirm() {
+  const router = useRouter();
+  const { run } = useDeleteMyData();
+  const asked = useRef(false);
+  useEffect(() => {
+    if (asked.current) return;
+    asked.current = true;
+    void run().then((ok) => {
+      if (!ok) router.replace("/me");
+    });
+  });
+  return null;
+}
+
+/** Delete my data row on the profile (8.7). */
+export function DeleteRow() {
+  const { busy, run } = useDeleteMyData();
   return (
-    <button
-      type="button"
-      className={cx(c.setting, s.plainButton)}
-      style={{ width: "100%" }}
-      disabled={busy}
-      onClick={async () => {
-        const ok = await confirm("Your account, saved LMS password and ratings are removed for good. Anonymous posts stay anonymous.", {
-          title: "Delete your data?",
-          ok: "Delete",
-          cancel: "Cancel",
-          destructive: true,
-        });
-        if (!ok) return;
-        start(async () => {
-          const res = await deleteMyData();
-          if (!res.ok) return haptic.notify("error");
-          haptic.notify("success");
-          await signOut({ redirect: false });
-          router.replace("/");
-        });
-      }}
-    >
+    <button type="button" className={cx(c.setting, s.plainButton)} style={{ width: "100%" }} disabled={busy} onClick={() => void run()}>
       <p className={cx(s.t15sb, c.danger, s.grow)}>{busy ? "Deleting…" : "Delete my data"}</p>
     </button>
   );

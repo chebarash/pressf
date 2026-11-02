@@ -1,7 +1,6 @@
-import { Placeholder } from "@/ui/shell/Placeholder";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Curriculum" };
-
-export default function Page() {
-  return <Placeholder title="Curriculum" />;
+/** /programs → the student's own curriculum (or the best cohort plan for guests). */
+export default function ProgramsPage() {
+  redirect("/programs/mine/curriculum");
 }
