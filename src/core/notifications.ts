@@ -37,14 +37,22 @@ export type LmsNotification = {
 
 const truthy = (v: unknown) => v === true || v === 1 || v === "1" || v === "true";
 
-const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'", apos: "'", nbsp: " " };
+// "<" and ">" never come back as real angle brackets: the result is plain text,
+// and a decoded "&lt;script&gt;" must not turn into markup in the bot or the app.
+const ENTITIES: Record<string, string> = { amp: "&", lt: "‹", gt: "›", quot: '"', "#39": "'", apos: "'", nbsp: " " };
 
-/** LMS bodies are HTML; the feed and the bot get plain text. */
+/** LMS bodies are HTML; the feed and the bot get plain text with no tags left in it. */
 export function plainText(html: string | null | undefined) {
-  return (html ?? "")
+  let text = (html ?? "")
     .replace(/<(br|\/p|\/div|\/li)\s*\/?>/gi, "\n")
-    .replace(/<li[^>]*>/gi, "• ")
-    .replace(/<[^>]+>/g, "")
+    .replace(/<li[^>]*>/gi, "• ");
+  // Strip until nothing changes, so nested pieces like "<scr<b>ipt>" cannot reassemble a tag.
+  for (let prev = ""; prev !== text; ) {
+    prev = text;
+    text = text.replace(/<[^<>]*>/g, "");
+  }
+  return text
+    .replace(/[<>]/g, (c) => (c === "<" ? "‹" : "›"))
     .replace(/&(#?\w+);/g, (m, e) => ENTITIES[e] ?? m)
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n+/g, "\n")

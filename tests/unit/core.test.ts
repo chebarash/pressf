@@ -239,6 +239,8 @@ describe("ratings", () => {
 describe("notifications", () => {
   it("turns LMS HTML into text and flags acknowledgements", () => {
     expect(plainText("<p>Quiz 6 &amp; 7</p><ul><li>one</li></ul>")).toBe("Quiz 6 & 7\n• one");
+    expect(plainText("<scr<b>ipt>alert(1)</script>")).not.toMatch(/[<>]/);
+    expect(plainText("&lt;script&gt;x")).toBe("‹script›x");
     const item = fromLms({ id: 5, title: "<b>Quiz</b>", body: "<p>Opens 09:00</p>", publicate_at: "2026-11-02 18:00:00", read: 1, required: 1, acquainted: 0 });
     expect(item).toMatchObject({ id: "lms:5", title: "Quiz", body: "Opens 09:00", needsAck: true, read: false });
     expect(item.at.toISOString()).toBe("2026-11-02T13:00:00.000Z");
