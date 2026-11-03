@@ -213,7 +213,7 @@ export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData
     prevHref: `/timetable?day=${addDays(monday, -7)}`,
     nextHref: `/timetable?day=${addDays(monday, 7)}`,
     todayHref: "/timetable",
-    days: v.week.map((d) => ({ label: `${d.label} ${d.date.split(" ")[0]}`, today: d.today, href: `/timetable?day=${d.day}`, count: d.classes, loaded: weekLoaded || d.selected })),
+    days: v.week.map((d) => ({ label: `${d.label} ${d.date.split(" ")[0]}`, today: d.today, href: `/timetable?day=${d.day}`, count: d.classes, loaded: weekLoaded || d.selected, off: d.classes ? null : (d.off ?? null) })),
     startHour,
     endHour,
     now: todayIdx >= 0 ? { day: todayIdx, minutes: localMinutes(now) } : null,

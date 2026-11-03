@@ -6,7 +6,7 @@
  * data that shows the face.
  */
 import { eq, notInArray, sql } from "drizzle-orm";
-import { FaceSpecSchema, parseFaceSpec, renderFace, type FaceSpec } from "@/core/face-parts";
+import { FaceSpecSchema, migrateFaceSpec, parseFaceSpec, renderFace, type FaceSpec } from "@/core/face-parts";
 import { checkFace } from "@/core/faces";
 import { displayName } from "@/core/people";
 import { createIndex } from "@/core/search";
@@ -50,7 +50,8 @@ export async function setFace(actorId: string, teacherId: string, bytes: Uint8Ar
 /** Saves a face built in the constructor: the server draws the SVG from the parts (a drawing from the browser is not trusted). */
 export async function buildFace(actorId: string, teacherId: string, input: unknown) {
   await authorize(actorId, "admin:catalog");
-  const parsed = FaceSpecSchema.safeParse(input);
+  // Specs from an older page (renamed options, fewer parts) are brought up to date first.
+  const parsed = FaceSpecSchema.safeParse(migrateFaceSpec(input));
   if (!parsed.success) throw new AdminError("Pick an option for every part");
   return setFace(actorId, teacherId, new TextEncoder().encode(renderFace(parsed.data)), parsed.data);
 }
