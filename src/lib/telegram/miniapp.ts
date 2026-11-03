@@ -6,7 +6,7 @@ import { users } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 
 /**
- * Helpers for the Mini App's bot actions (/api/telegram/share, /api/telegram/upload):
+ * Helpers for the Mini App's bot actions (/api/telegram/share, /upload, /send-file):
  * who is asking (a signed-in student with Telegram linked), a per-user rate
  * limit, and signed share receipts.
  */
@@ -39,6 +39,29 @@ export function limiter(max: number, windowMs: number) {
       return true;
     },
     reset: () => hits.clear(),
+  };
+}
+
+/**
+ * Joins repeats of the same job inside `windowMs`: a second call with the same
+ * key gets the first call's result instead of running again (a double-tapped
+ * Download sends one file). Failed results are forgotten so a retry runs. In
+ * memory only, like limiter.
+ */
+export function dedupe<T>(windowMs: number, failed: (result: T) => boolean) {
+  const runs = new Map<string, { at: number; result: Promise<T> }>();
+  return {
+    run(key: string, job: () => Promise<T>, now = Date.now()): Promise<T> {
+      const hit = runs.get(key);
+      if (hit && now - hit.at < windowMs) return hit.result;
+      if (runs.size > 5000) for (const [k, v] of runs) if (now - v.at >= windowMs) runs.delete(k);
+      const result = job();
+      runs.set(key, { at: now, result });
+      const forget = () => { if (runs.get(key)?.result === result) runs.delete(key); };
+      void result.then((r) => { if (failed(r)) forget(); }, forget);
+      return result;
+    },
+    reset: () => runs.clear(),
   };
 }
 
