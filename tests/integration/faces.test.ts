@@ -17,8 +17,8 @@ import { auditLog, faces, lmsCurricula, lmsPrograms, lmsTeachers, teacherAliases
 import { GET as faceRoute } from "@/app/faces/[id]/route";
 import { setRole } from "@/server/identity";
 import { DEFAULT_FACE_SPEC, renderFace } from "@/core/face-parts";
-import { PhotoFaceError } from "@/lib/face-photo";
-import { buildFace, faceFromPhoto, facesPage, removeFace, setFace } from "@/server/admin/faces";
+import { parsePastedFaceSpec } from "@/core/face-paste";
+import { buildFace, facesPage, removeFace, setFace } from "@/server/admin/faces";
 import { Forbidden } from "@/server/admin/ops";
 import * as views from "@/server/views";
 import { resetDb } from "../fixtures/db";
@@ -141,36 +141,16 @@ describe("admin faces", () => {
     expect(row.spec).toEqual(migrated);
   });
 
-  it("reads parts from a photo in memory only, admins only", async () => {
-    const jpeg = new Uint8Array(4096);
-    jpeg.set([0xff, 0xd8, 0xff, 0xe0]);
-    const { tone: _tone, ...parts } = DEFAULT_FACE_SPEC;
-    const describe = vi.fn(async () => ({ spec: { ...parts, hair: "hijab" as const }, note: "Clear photo." }));
-    const logs = [vi.spyOn(console, "log"), vi.spyOn(console, "error"), vi.spyOn(console, "warn"), vi.spyOn(console, "info")];
-
-    await expect(faceFromPhoto(mod, jpeg, describe)).rejects.toBeInstanceOf(Forbidden);
-    await expect(faceFromPhoto(admin, new TextEncoder().encode("%PDF-1.7 not a photo at all"), describe)).rejects.toThrow(/JPEG, PNG/);
-    await expect(faceFromPhoto(admin, svg(), describe)).rejects.toThrow(/JPEG, PNG/);
-    await expect(faceFromPhoto(admin, new Uint8Array(9 * 1024 * 1024).fill(0xff), describe)).rejects.toThrow(/8 MB/);
-    expect(describe).not.toHaveBeenCalled();
-
-    const out = await faceFromPhoto(admin, jpeg, describe);
-    expect(out.spec.hair).toBe("hijab");
-    expect(describe).toHaveBeenCalledWith(jpeg, "image/jpeg");
-
-    // Nothing was written: no bucket object, no face row, no audit entry, nothing logged.
-    expect(bucket.objects.size).toBe(0);
-    expect(await db().select().from(faces)).toEqual([]);
-    expect(await db().select().from(auditLog)).toEqual([]);
-    for (const spy of logs) expect(spy).not.toHaveBeenCalled();
-
-    // A failing reader comes back as a message; the photo still goes nowhere.
-    const broke = vi.fn(async () => {
-      throw new PhotoFaceError("The Anthropic account is out of credit, so photos can't be read right now. Top up the balance, or build the face by hand.");
-    });
-    await expect(faceFromPhoto(admin, jpeg, broke)).rejects.toThrow(/out of credit/);
-    expect(bucket.objects.size).toBe(0);
-    for (const spy of logs) spy.mockRestore();
+  it("saves a pasted spec through the server's check, admins only", async () => {
+    const pasted = parsePastedFaceSpec('{"hair": "hijab"}', DEFAULT_FACE_SPEC);
+    expect(pasted.ok).toBe(true);
+    if (!pasted.ok) return;
+    await expect(buildFace(mod, "T1", pasted.spec)).rejects.toBeInstanceOf(Forbidden);
+    await buildFace(admin, "T1", pasted.spec);
+    const [row] = await db().select().from(faces).where(eq(faces.teacherId, "T1"));
+    expect(row.spec).toMatchObject({ hair: "hijab" });
+    // A spec edited around the paste box is still checked by the server.
+    await expect(buildFace(admin, "T1", { ...pasted.spec, hair: "mohawk" })).rejects.toThrow(/every part/);
   });
 
   it("lists professors with and without a face", async () => {

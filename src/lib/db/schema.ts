@@ -247,6 +247,27 @@ export const syllabi = pgTable(
   (t) => [index("syllabi_course").on(t.courseCode, t.matched)]
 );
 
+/**
+ * Syllabus files waiting to be read by the operator, who submits the parsed
+ * fields (POST /api/admin/syllabus). One row per file; submitting clears it.
+ */
+export const syllabusQueue = pgTable(
+  "syllabus_queue",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    courseCode: text("course_code").notNull(),
+    /** What the stored syllabus will be keyed by: "lms:<file id>" or the import's "tg:<channel>:<post>". */
+    sourceKey: text("source_key").notNull().unique(),
+    /** The LMS file id or the upload id. */
+    fileId: text("file_id"),
+    storageKey: text("storage_key").notNull(),
+    name: text("name").notNull(),
+    origin: text("origin").$type<"lms" | "import">().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("syllabus_queue_course").on(t.courseCode)]
+);
+
 /** Admin edits per field. A new syllabus never overwrites them. */
 export const courseOverrides = pgTable("course_overrides", {
   code: text("code").primaryKey(),

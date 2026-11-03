@@ -18,7 +18,7 @@ import { PDFDocument, StandardFonts } from "pdf-lib";
 import { POST as commitRoute } from "@/app/api/admin/import/commit/route";
 import { POST as planRoute } from "@/app/api/admin/import/plan/route";
 import { db } from "@/lib/db";
-import { lmsFiles, uploads, users } from "@/lib/db/schema";
+import { lmsFiles, syllabusQueue, uploads, users } from "@/lib/db/schema";
 import { resetDb, seedCatalog } from "../fixtures/db";
 
 const CHANNEL = { id: "2486971545", name: "PU Materials" };
@@ -154,8 +154,13 @@ describe("commit", () => {
     expect(await db().select().from(uploads)).toHaveLength(0);
   });
 
-  it("skips syllabus parsing quietly without a parser key", async () => {
+  it("queues an imported syllabus for the operator", async () => {
     const out = await (await call(commitRoute, form({ ...meta, postId: 8, fileName: "Syllabus.pdf", text: "Calculus 2 - Syllabus" }, await pdf("syllabus"), { course: "MATH 211", type: "syllabus", title: "Syllabus" }))).json();
-    expect(out).toMatchObject({ result: "created", syllabus: "skipped: no parser key" });
+    expect(out).toMatchObject({ result: "created", syllabus: "queued" });
+    const queue = await db().select().from(syllabusQueue);
+    expect(queue).toEqual([expect.objectContaining({ courseCode: "MATH211", sourceKey: "tg:2486971545:8", fileId: out.id, name: "Syllabus.pdf", origin: "import", storageKey: expect.stringMatching(/^uploads\/[0-9a-f]{64}\.pdf$/) })]);
+    // The same post again: still one item.
+    await call(commitRoute, form({ ...meta, postId: 8, fileName: "Syllabus.pdf", text: "Calculus 2 - Syllabus" }, await pdf("syllabus"), { course: "MATH 211", type: "syllabus", title: "Syllabus" }));
+    expect(await db().select().from(syllabusQueue)).toHaveLength(1);
   });
 });

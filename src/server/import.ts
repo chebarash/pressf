@@ -15,13 +15,11 @@ import {
 } from "@/core/import";
 import { extensionOf, type FileType } from "@/core/files";
 import { courseTitle } from "@/core/people";
-import { getCatalog } from "@/lib/catalog";
 import { db } from "@/lib/db";
-import { lmsCourses, lmsFiles, syllabi, uploads } from "@/lib/db/schema";
-import { env } from "@/lib/env";
+import { lmsCourses, lmsFiles, uploads } from "@/lib/db/schema";
 import { objectExists, putObject } from "@/lib/storage";
-import { extractSyllabus, findSyllabusCourse, syllabusFlags } from "@/lib/syllabus";
 import { LMS_MATCH_AT, lmsScore, pdfText } from "@/server/upload-checks";
+import { enqueueSyllabus } from "@/server/syllabus-queue";
 import { invalidateUpload } from "@/server/views/cache";
 
 export type ImportMeta = {
@@ -241,27 +239,10 @@ export async function commitImport(meta: ImportMeta, bytes: Uint8Array, decision
   if (existing?.courseCode && existing.courseCode !== course.code) invalidateUpload(existing.courseCode);
 
   const out: CommitResult = { result, sourceKey, id: row.id, courseCode: course.code };
-  if (decision.type === "syllabus" && isPdf(fileName, meta.mime, bytes)) out.syllabus = await parseSyllabus(sourceKey, course.code, bytes);
-  return out;
-}
-
-/** Into the course page's syllabus, when the parser has credit; any failure is skipped and reported. */
-async function parseSyllabus(sourceKey: string, code: string, bytes: Uint8Array): Promise<string> {
-  if (!env().ANTHROPIC_API_KEY) return "skipped: no parser key";
-  const [already] = await db().select({ id: syllabi.id }).from(syllabi).where(eq(syllabi.sourceName, sourceKey));
-  if (already) return "already parsed";
-  try {
-    const { is_syllabus: isSyllabus, ...data } = await extractSyllabus(Buffer.from(bytes));
-    if (!isSyllabus) return "skipped: not a syllabus";
-    const { courses } = await getCatalog();
-    const found = findSyllabusCourse(data, courses);
-    const flags = syllabusFlags(data, courses);
-    await db().insert(syllabi).values({ courseCode: code, sourceName: sourceKey, data, flags: found && found !== code ? [...flags, `names ${found}`] : flags, matched: true }).onConflictDoNothing();
-    invalidateUpload(code);
-    return "parsed";
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn("Imported syllabus not parsed", sourceKey, message.slice(0, 200));
-    return `skipped: ${/credit|billing|balance/i.test(message) ? "no parser credit" : "parser failed"}`;
+  if (decision.type === "syllabus" && isPdf(fileName, meta.mime, bytes)) {
+    // Read by the operator, not here: queued with the stored file for download.
+    const queued = await enqueueSyllabus({ courseCode: course.code, sourceKey, fileId: row.id, storageKey, name: fileName, origin: "import" });
+    out.syllabus = queued ? "queued" : "already parsed";
   }
+  return out;
 }

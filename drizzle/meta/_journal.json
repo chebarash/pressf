@@ -204,6 +204,13 @@
       "when": 1793745597929,
       "tag": "0028_calendar_feeds",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793746966666,
+      "tag": "0029_syllabus_queue",
+      "breakpoints": true
     }
   ]
 }
