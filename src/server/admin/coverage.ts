@@ -35,10 +35,10 @@ async function catalogAndMaterials() {
     )
     select
       (select coalesce(json_agg(json_build_object('id', id, 'name', name, 'starts', starts, 'ends', ends)), '[]') from lms_semesters) as semesters,
-      (select coalesce(json_agg(json_build_object('id', id, 'parentId', parent_id, 'name', name)), '[]') from lms_departments) as departments,
+      (select coalesce(json_agg(json_build_object('id', id, 'parentId', parent_id, 'name', coalesce(nullif(trim(name), ''), nullif(trim(short_name), '')))), '[]') from lms_departments) as departments,
       (select coalesce(json_agg(json_build_object('id', id, 'name', name, 'departmentId', department_id)), '[]') from lms_programs) as programs,
       (select coalesce(json_agg(json_build_object('id', work_education_plan_id, 'programId', program_id, 'data', data)), '[]') from lms_curricula) as plans,
-      (select coalesce(json_agg(json_build_object('id', id, 'code', code, 'name', name, 'departmentId', department_id, 'semesterId', semester_id)), '[]') from lms_courses) as courses,
+      (select coalesce(json_agg(json_build_object('id', id, 'code', code, 'name', name, 'departmentId', department_id, 'semesterId', semester_id, 'departmentName', raw->'department'->>'name')), '[]') from lms_courses) as courses,
       (select coalesce(json_agg(json_build_object(
         'code', k.code, 'lmsFiles', coalesce(f.n, 0), 'uploads', coalesce(u.n, 0), 'exams', coalesce(u.exams, 0),
         'syllabus', s.code is not null, 'lastFile', greatest(f.last, u.last))), '[]')

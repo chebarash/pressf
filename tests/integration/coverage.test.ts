@@ -168,4 +168,21 @@ describe("coverage rules", () => {
     expect(r.faculties.map((f) => f.name).sort()).toEqual(["School of Law", "Unassigned"]);
     expect(r.totals.noCohort).toBe(2);
   });
+
+  it("skips unnamed departments and names one from its courses' own department label", () => {
+    const r = coverageReport({
+      ...base,
+      departments: [{ id: "u", parentId: null, name: null }, { id: "m", parentId: "u", name: "" }, { id: "x", parentId: null, name: "Agrotechnology" }],
+      programs: [],
+      courses: [
+        { id: "1", code: "ME1", name: "Statics", departmentId: "m", semesterId: "181", departmentName: "Mechanical Engineering" },
+        { id: "2", code: "AG1", name: "Soil", departmentId: "x", semesterId: "181" },
+        { id: "3", code: "Z1", name: "Z", departmentId: "gone", semesterId: "181", departmentName: "Physics" },
+      ],
+      materials: [],
+      plans: [],
+      activeAccounts: 0,
+    });
+    expect(r.courses.map((c) => [c.code, c.faculty, c.department])).toEqual([["AG1", "Agrotechnology", "Agrotechnology"], ["ME1", "Mechanical Engineering", "Mechanical Engineering"], ["Z1", "Physics", "Physics"]]);
+  });
 });
