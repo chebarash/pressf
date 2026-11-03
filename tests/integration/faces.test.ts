@@ -16,7 +16,9 @@ import { db } from "@/lib/db";
 import { auditLog, faces, lmsCurricula, lmsPrograms, lmsTeachers, teacherAliases, users } from "@/lib/db/schema";
 import { GET as faceRoute } from "@/app/faces/[id]/route";
 import { setRole } from "@/server/identity";
-import { facesPage, removeFace, setFace } from "@/server/admin/faces";
+import { DEFAULT_FACE_SPEC, renderFace } from "@/core/face-parts";
+import { PhotoFaceError } from "@/lib/face-photo";
+import { buildFace, faceFromPhoto, facesPage, removeFace, setFace } from "@/server/admin/faces";
 import { Forbidden } from "@/server/admin/ops";
 import * as views from "@/server/views";
 import { resetDb } from "../fixtures/db";
@@ -103,6 +105,59 @@ describe("admin faces", () => {
     expect((await views.professor("T1", null))!.face).toBeNull();
     await expect(removeFace(admin, "T1")).rejects.toThrow("No face to remove");
     expect((await db().select().from(auditLog)).map((a) => a.action)).toEqual(["face.set", "face.replace", "face.remove"]);
+  });
+
+  it("builds a face from parts: the server draws it, stores the parts, audits it", async () => {
+    const spec = { ...DEFAULT_FACE_SPEC, hair: "curly", glasses: "round" } as const;
+    await expect(buildFace(mod, "T1", spec)).rejects.toBeInstanceOf(Forbidden);
+    await expect(buildFace(admin, "T1", { ...spec, hair: "mohawk" })).rejects.toThrow("Pick an option");
+    await buildFace(admin, "T1", spec);
+    const [row] = await db().select().from(faces).where(eq(faces.teacherId, "T1"));
+    expect(row.storageKey).toMatch(/^faces\/T1\/[a-z0-9]+\.svg$/);
+    expect(row.spec).toEqual(spec);
+    const stored = bucket.objects.get(row.storageKey)!;
+    expect(stored.type).toBe("image/svg+xml");
+    expect(new TextDecoder().decode(stored.body)).toBe(renderFace(spec));
+    expect((await facesPage("with", "", "T1")).selected).toMatchObject({ format: "Built", spec });
+    const [entry] = await db().select().from(auditLog);
+    expect(entry).toMatchObject({ action: "face.set" });
+
+    // Replacing it with an upload forgets the parts.
+    await new Promise((r) => setTimeout(r, 5));
+    await setFace(admin, "T1", svg());
+    expect((await facesPage("with", "", "T1")).selected).toMatchObject({ format: "SVG", spec: null });
+  });
+
+  it("reads parts from a photo in memory only, admins only", async () => {
+    const jpeg = new Uint8Array(4096);
+    jpeg.set([0xff, 0xd8, 0xff, 0xe0]);
+    const { tone: _tone, ...parts } = DEFAULT_FACE_SPEC;
+    const describe = vi.fn(async () => ({ spec: { ...parts, hair: "hijab" as const }, note: "Clear photo." }));
+    const logs = [vi.spyOn(console, "log"), vi.spyOn(console, "error"), vi.spyOn(console, "warn"), vi.spyOn(console, "info")];
+
+    await expect(faceFromPhoto(mod, jpeg, describe)).rejects.toBeInstanceOf(Forbidden);
+    await expect(faceFromPhoto(admin, new TextEncoder().encode("%PDF-1.7 not a photo at all"), describe)).rejects.toThrow(/JPEG, PNG/);
+    await expect(faceFromPhoto(admin, svg(), describe)).rejects.toThrow(/JPEG, PNG/);
+    await expect(faceFromPhoto(admin, new Uint8Array(9 * 1024 * 1024).fill(0xff), describe)).rejects.toThrow(/8 MB/);
+    expect(describe).not.toHaveBeenCalled();
+
+    const out = await faceFromPhoto(admin, jpeg, describe);
+    expect(out.spec.hair).toBe("hijab");
+    expect(describe).toHaveBeenCalledWith(jpeg, "image/jpeg");
+
+    // Nothing was written: no bucket object, no face row, no audit entry, nothing logged.
+    expect(bucket.objects.size).toBe(0);
+    expect(await db().select().from(faces)).toEqual([]);
+    expect(await db().select().from(auditLog)).toEqual([]);
+    for (const spy of logs) expect(spy).not.toHaveBeenCalled();
+
+    // A failing reader comes back as a message; the photo still goes nowhere.
+    const broke = vi.fn(async () => {
+      throw new PhotoFaceError("The Anthropic account is out of credit, so photos can't be read right now. Top up the balance, or build the face by hand.");
+    });
+    await expect(faceFromPhoto(admin, jpeg, broke)).rejects.toThrow(/out of credit/);
+    expect(bucket.objects.size).toBe(0);
+    for (const spy of logs) spy.mockRestore();
   });
 
   it("lists professors with and without a face", async () => {
