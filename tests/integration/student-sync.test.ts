@@ -86,9 +86,9 @@ describe("syncStudent", () => {
     lmsReturns({ gradebook: gradebook({ average: 76, admit: { absence_count_all: 10, avaibale_count_all: 5, lessons_count: 60 }, events: [{ lesson_name: "Lecture 14", lesson_type: 0, status: 3, time: unix("2026-10-26T10:00:00+05:00") }, { lesson_name: "Quiz 6", lesson_type: 1, status: 1, time: unix("2026-11-01T10:00:00+05:00"), mark: 9 }] }) });
     lms.scheduleList.mockResolvedValue([{ events: [{ begin_time: unix("2026-11-03T13:00:00+05:00"), end_time: unix("2026-11-03T14:20:00+05:00"), subject_id: "101", auditorium: "A-108", lesson_id: "L16", employee_id: "T1" }] }]);
     await syncStudent(userId, new Date(DAY.getTime() + 30 * 60_000));
-    expect(sentTitles().sort()).toEqual(["Marked absent: Calculus 1", "New grade: 9", "Room change for tomorrow"]);
+    expect(sentTitles().sort()).toEqual(["Marked absent in Calculus 1", "New grade in Calculus 1", "Room change for tomorrow"]);
     const grade = tg.send.mock.calls.find((c) => (c[1] as { text: string }).text.includes("New grade"))![1] as { text: string; keyboard: { inline_keyboard: Array<Array<{ text: string; web_app?: { url: string } }>> } };
-    expect(grade.text).toBe("<b>New grade: 9</b>\nCalculus 1 · quiz 6 · average now 76");
+    expect(grade.text).toBe("<b>New grade in Calculus 1</b>\n🟢 Quiz 6: 9\nAverage now 76");
     expect(grade.keyboard.inline_keyboard[0][0].text).toBe("See progress");
     expect(grade.keyboard.inline_keyboard[0][0].web_app?.url).toMatch(/\/progress\/101$/);
 
@@ -305,7 +305,7 @@ describe("in-process scheduler", () => {
       });
       vi.setSystemTime(new Date(DAY.getTime() + 30 * 60_000));
       await runJob(students);
-      expect(sentTitles().sort()).toEqual(["LMS · Midterm room list", "Marked absent: Calculus 1"]);
+      expect(sentTitles().sort()).toEqual(["LMS · Midterm room list", "Marked absent in Calculus 1"]);
 
       // 23:30 Tashkent: a new announcement waits for the morning.
       tg.send.mockClear();
