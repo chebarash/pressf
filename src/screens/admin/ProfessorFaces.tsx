@@ -67,7 +67,7 @@ export function ProfessorFaces({ data }: { data: FacesData }) {
           <input type="hidden" name="tab" value="faces" />
           <input type="hidden" name="show" value={data.show} />
           <input ref={search} name="q" defaultValue={data.q} placeholder="Professor's name" aria-label="Search professors" autoComplete="off" />
-          <kbd className={s.key}>/</kbd>
+          <kbd className={s.key}>/ to filter</kbd>
         </form>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div className={cx(s.tr, s.trHead)}>

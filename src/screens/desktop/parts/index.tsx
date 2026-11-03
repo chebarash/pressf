@@ -17,10 +17,10 @@ export const cx = (...c: Array<string | false | null | undefined>) => c.filter(B
 
 /* ---------- Keys ---------- */
 
-/** Quiet key hint ("G T", "⌘K"). */
+/** Quiet key hint ("T", "⌘K"). */
 export const Hint = ({ children, className }: { children: ReactNode; className?: string }) => <kbd className={cx(s.hint, className)}>{children}</kbd>;
 
-/** Real keycaps in a row, for chords ("G", "K"). */
+/** Real keycaps in a row, for combinations ("⇧", "R"). */
 export const Keys = ({ keys, className }: { keys: string[]; className?: string }) => (
   <span className={cx(s.keys, className)}>
     {keys.map((k) => (
@@ -31,9 +31,12 @@ export const Keys = ({ keys, className }: { keys: string[]; className?: string }
   </span>
 );
 
-/** Gives a key to whatever control it wraps (the keyboard layer clicks the first link or button inside). */
+/**
+ * Gives a key to whatever control it wraps (the keyboard layer clicks the first
+ * link or button inside). Two-key sequences are gone: an old "g f" binds plain "f".
+ */
 export const KeyTo = ({ k, children }: { k: string; children: ReactNode }) => (
-  <span data-key={k} className={s.contents}>
+  <span data-key={k.replace(/^g (?=\S)/, "")} className={s.contents}>
     {children}
   </span>
 );

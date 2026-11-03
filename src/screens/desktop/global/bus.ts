@@ -17,7 +17,7 @@ export function toggleTheme() {
   setTheme(current === "dark" ? "light" : "dark");
 }
 
-/** Where the G-chords go: the sidebar's own table (src/ui/shell/nav.ts). */
+/** The one-letter section keys: the sidebar's own table (src/ui/shell/nav.ts). */
 export const GO_TO: Array<{ key: string; label: string; href: string }> = NAV.filter((n) => n.badge !== "new").map((n) => ({ key: n.key, label: n.label, href: n.href }));
 
 /** True while the user types in a field: shortcuts never fire then. */

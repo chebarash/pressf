@@ -6,12 +6,17 @@ import { GO_TO, isTyping, openPalette, openShortcuts, toggleTheme } from "./bus"
 import { isLetterKey, keyName } from "@/platform/keys";
 
 /**
- * Desktop keyboard: G-chords between sections, ⌘K / F for the palette, ? for the
- * shortcuts sheet, ⇧D for the theme, J/K (and ↑/↓) inside lists, and page keys.
+ * Desktop keyboard, one shortcut per action: ⌘K / Ctrl+K for search and
+ * commands, one plain letter per section (the sidebar's table in
+ * src/ui/shell/nav.ts, no prefix), ? for the shortcuts sheet, ⇧D for the
+ * theme, J/K (and ↑/↓) inside lists, and page keys. Plain keys never fire while
+ * typing in a field or with ⌘/Ctrl/Alt held, and are read from the physical key
+ * (any keyboard layout).
  *
  * Pages declare their own keys in markup, no wiring needed:
- * - `data-key="r"` (or "shift+r", "Enter", "mod+Enter", "ArrowLeft", "Escape", "/", "g f") on a
- *   link or button: the key clicks it (an input gets focus instead).
+ * - `data-key="r"` (or "shift+r", "Enter", "mod+Enter", "ArrowLeft", "Escape", "/") on a
+ *   link or button: the key clicks it (an input gets focus instead). A page key
+ *   never reuses a section letter (tests/unit/shortcuts.test.ts checks).
  * - `data-nav-list` around `data-nav-item` elements: J/K (and ↑/↓ inside it, or anywhere
  *   when the list also has `data-nav-arrows`) move focus; with
  *   `data-nav-list="select"` moving also clicks the item (split views follow the cursor).
@@ -21,9 +26,6 @@ export function DesktopKeyboard() {
   const router = useRouter();
 
   useEffect(() => {
-    let chord: number | null = null;
-    let chordTimer = 0;
-
     const visible = (el: Element) => (el as HTMLElement).offsetParent !== null || (el as HTMLElement).getClientRects().length > 0;
     const CONTROL = "a, button, input, textarea, select";
     // A `data-key` sits on the control itself or on a wrapper around a kit component.
@@ -54,8 +56,8 @@ export function DesktopKeyboard() {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       const mod = e.metaKey || e.ctrlKey;
-      // ⌘K works everywhere, even in fields.
-      if (mod && keyName(e) === "k") {
+      // ⌘K / Ctrl+K works everywhere, even in fields.
+      if (mod && !e.altKey && keyName(e) === "k") {
         e.preventDefault();
         openPalette();
         return;
@@ -75,28 +77,6 @@ export function DesktopKeyboard() {
       const name = keyName(e);
       const key = isLetterKey(e) && e.shiftKey ? `shift+${name}` : name;
 
-      if (chord !== null) {
-        window.clearTimeout(chordTimer);
-        chord = null;
-        const local = byKey(`g ${key}`);
-        if (local) {
-          e.preventDefault();
-          local.click();
-          return;
-        }
-        const go = GO_TO.find((g) => g.key === key);
-        if (go) {
-          e.preventDefault();
-          router.push(go.href);
-        }
-        return;
-      }
-
-      if (key === "g") {
-        chord = 1;
-        chordTimer = window.setTimeout(() => (chord = null), 1200);
-        return;
-      }
       if (key === "?") {
         e.preventDefault();
         openShortcuts();
@@ -126,17 +106,15 @@ export function DesktopKeyboard() {
         else target.click();
         return;
       }
-      if (key === "f") {
+      const go = GO_TO.find((g) => g.key === key);
+      if (go) {
         e.preventDefault();
-        openPalette();
+        router.push(go.href);
       }
     };
 
     window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.clearTimeout(chordTimer);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [router]);
 
   return null;

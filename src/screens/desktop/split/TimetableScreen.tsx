@@ -27,7 +27,7 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
             <Link href={data.prevHref} className={t.navBtn} data-key="ArrowLeft" aria-label="Previous week">
               ‹
             </Link>
-            <Link href={data.todayHref} className={t.navBtn} data-key="t">
+            <Link href={data.todayHref} className={t.navBtn}>
               This week
             </Link>
             <Link href={data.nextHref} className={t.navBtn} data-key="ArrowRight" aria-label="Next week">

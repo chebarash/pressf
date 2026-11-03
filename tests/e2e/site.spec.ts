@@ -28,9 +28,8 @@ test("the shell frames every screen", async ({ page, isMobile }) => {
   }
   const nav = page.getByRole("navigation", { name: "Press F" });
   await expect(nav.getByRole("link", { name: /Timetable/ })).toHaveAttribute("aria-current", "page");
-  // G then C jumps to Courses (keys work once the page is interactive, so retry).
+  // C alone jumps to Courses (keys work once the page is interactive, so retry).
   await expect(async () => {
-    await page.keyboard.press("g");
     await page.keyboard.press("c");
     await expect(page).toHaveURL(/\/courses$/, { timeout: 2000 });
   }).toPass();

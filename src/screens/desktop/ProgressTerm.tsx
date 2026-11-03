@@ -70,7 +70,7 @@ export function ProgressTermScreen({ data }: { data: TermResultsData }) {
       )}
 
       <section className={cx(g.bottom, !data.rate && g.bottomOne)}>
-        <Link href={data.curriculum.href} className={cx(css.card, g.semesters, g.curriculum)} data-key="c">
+        <Link href={data.curriculum.href} className={cx(css.card, g.semesters, g.curriculum)}>
           <span className={g.curriculumText}>
             <h2 className={g.cardTitle}>{data.curriculum.title}</h2>
             <span className={g.rateLine}>{data.curriculum.line}</span>

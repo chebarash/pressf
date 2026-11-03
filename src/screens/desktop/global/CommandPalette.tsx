@@ -7,14 +7,14 @@ import s from "../parts/parts.module.css";
 import { GO_TO, openShortcuts, PALETTE_EVENT, toggleTheme } from "./bus";
 import { paletteSearch, type PaletteHit } from "./actions";
 import o from "./overlay.module.css";
-import { keyName } from "@/platform/keys";
+import { modLabel } from "@/platform/keys";
 
 type Item = { id: string; group: "Courses" | "Actions" | "People" | "Files"; icon: IconName; title: string; meta?: string; keys?: string[]; href?: string; run?: () => void };
 
 const ICONS: Record<string, IconName> = { Today: "pin", Timetable: "clock", Courses: "book", Progress: "check", Calendar: "calendar", Notifications: "mail", Professors: "users", Curriculum: "file" };
 
 const ACTIONS: Item[] = [
-  ...GO_TO.map((g) => ({ id: `go-${g.key}`, group: "Actions" as const, icon: ICONS[g.label] ?? "chevron-right", title: `Go to ${g.label}`, keys: ["G", g.key.toUpperCase()], href: g.href })),
+  ...GO_TO.map((g) => ({ id: `go-${g.key}`, group: "Actions" as const, icon: ICONS[g.label] ?? "chevron-right", title: `Go to ${g.label}`, keys: [g.key.toUpperCase()], href: g.href })),
   { id: "search", group: "Actions", icon: "search", title: "Search everything", href: "/search" },
   { id: "rate", group: "Actions", icon: "check", title: "Rate last semester", href: "/rate" },
   { id: "next", group: "Actions", icon: "calendar", title: "Next semester", href: "/next" },
@@ -29,7 +29,7 @@ const GROUP = { course: "Courses", person: "People", file: "Files" } as const;
 const fromSearch = (hits: PaletteHit[]): Item[] =>
   hits.map((h) => ({ id: `${h.kind}-${h.id}`, group: GROUP[h.kind], icon: h.kind === "course" ? "book" : h.kind === "person" ? "users" : "file", title: h.title, meta: h.meta || undefined, href: h.href }));
 
-/** D2 Command palette: ⌘K or F anywhere on desktop. Courses, actions, people and files in one list. */
+/** D2 Command palette: ⌘K / Ctrl+K anywhere on desktop (the one search shortcut). Courses, actions, people and files in one list. */
 export function CommandPalette() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -74,9 +74,9 @@ export function CommandPalette() {
     const needle = q.trim().toLowerCase();
     const actions = needle ? ACTIONS.filter((a) => a.id !== "search" && a.title.toLowerCase().includes(needle)) : ACTIONS.slice(0, 6);
     const searchAll: Item[] = needle ? [{ id: "search-q", group: "Actions", icon: "search", title: `Search for “${q.trim()}”`, href: `/search?q=${encodeURIComponent(q.trim())}` }] : [];
-    // The best course match also gets its files as an action (Figma D2: "Calculus 1 · all files", G F).
+    // The best course match also gets its files as an action (Figma D2: "Calculus 1 · all files").
     const top = needle ? hits.find((h) => h.group === "Courses") : undefined;
-    const files: Item[] = top?.href ? [{ id: `files-${top.id}`, group: "Actions", icon: "file", title: `${top.title} · all files`, keys: ["G", "F"], href: `${top.href}/files` }] : [];
+    const files: Item[] = top?.href ? [{ id: `files-${top.id}`, group: "Actions", icon: "file", title: `${top.title} · all files`, href: `${top.href}/files` }] : [];
     const all = [...(needle ? hits : []), ...actions, ...files, ...searchAll];
     return ORDER.flatMap((g) => all.filter((i) => i.group === g));
   }, [hits, q]);
@@ -102,10 +102,10 @@ export function CommandPalette() {
     if (e.key === "Escape") {
       e.preventDefault();
       close();
-    } else if (e.key === "ArrowDown" || (e.ctrlKey && keyName(e) === "n")) {
+    } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setCursor((c) => Math.min(items.length - 1, c + 1));
-    } else if (e.key === "ArrowUp" || (e.ctrlKey && keyName(e) === "p")) {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setCursor((c) => Math.max(0, c - 1));
     } else if (e.key === "Enter") {
@@ -192,10 +192,7 @@ export function CommandPalette() {
             <kbd className={s.key}>↵</kbd>open
           </span>
           <span>
-            <kbd className={s.key}>⌘↵</kbd>open in new tab
-          </span>
-          <span>
-            <kbd className={s.key}>?</kbd>all shortcuts
+            <kbd className={s.key}>{modLabel()}↵</kbd>open in new tab
           </span>
         </div>
       </div>

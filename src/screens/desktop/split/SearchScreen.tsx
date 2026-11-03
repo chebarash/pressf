@@ -20,7 +20,7 @@ export function SearchScreen({ data }: { data: SearchData }) {
     <main data-desktop-screen className={cx(css.screen, x.main)}>
       <form action="/search" className={x.bar} role="search">
         <Icon name="search" size={20} />
-        <input name="q" defaultValue={data.q} placeholder="Search courses, professors and files" aria-label="Search" autoFocus={!typed} data-key="/" />
+        <input name="q" defaultValue={data.q} placeholder="Search courses, professors and files" aria-label="Search" autoFocus={!typed} />
         {typed && <span className={x.count}>{data.total} {data.total === 1 ? "result" : "results"}</span>}
       </form>
 

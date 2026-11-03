@@ -4,15 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import s from "../parts/parts.module.css";
 import { GO_TO, SHORTCUTS_EVENT } from "./bus";
 import o from "./overlay.module.css";
-import { keyName } from "@/platform/keys";
+import { keyName, modLabel } from "@/platform/keys";
 
-const COLUMNS: Array<{ title: string; rows: Array<[string, string[]]> }> = [
-  { title: "Go to", rows: GO_TO.filter((g) => g.key !== "u").map((g) => [g.label, ["G", g.key.toUpperCase()]]) },
+/** One shortcut per action. Section letters work on their own, no prefix. */
+const columns = (mod: string): Array<{ title: string; rows: Array<[string, string[]]> }> => [
+  { title: "Go to", rows: GO_TO.map((g) => [g.label, [g.key.toUpperCase()]]) },
   {
     title: "Anywhere",
     rows: [
-      ["Search and commands", ["⌘", "K"]],
-      ["Same, Press F style", ["F"]],
+      ["Search and commands", [mod, "K"]],
       ["This list", ["?"]],
       ["Dark theme", ["⇧", "D"]],
       ["Close / back", ["Esc"]],
@@ -24,8 +24,10 @@ const COLUMNS: Array<{ title: string; rows: Array<[string, string[]]> }> = [
       ["Move in lists", ["J", "K"]],
       ["Open", ["↵"]],
       ["Rate this course", ["R"]],
+      ["Press F · course files", ["F"]],
       ["Previous / next week", ["←", "→"]],
-      ["Jump to today", ["T"]],
+      ["Filter the list", ["/"]],
+      ["Mark all read", ["⇧", "R"]],
     ],
   },
 ];
@@ -67,7 +69,7 @@ export function ShortcutsSheet() {
           </button>
         </div>
         <div className={o.columns}>
-          {COLUMNS.map((c) => (
+          {columns(modLabel()).map((c) => (
             <div key={c.title} className={o.column}>
               <h3>{c.title}</h3>
               {c.rows.map(([label, keys]) => (
@@ -85,7 +87,7 @@ export function ShortcutsSheet() {
             </div>
           ))}
         </div>
-        <p className={o.sheetNote}>Shortcuts never fire while you type in a field. On the phone everything is a tap.</p>
+        <p className={o.sheetNote}>Letters work on their own, no prefix, and never fire while you type in a field. On the phone everything is a tap.</p>
       </div>
     </div>
   );

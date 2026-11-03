@@ -21,7 +21,7 @@ export function Overview({ data, canSystem }: { data: OverviewData; canSystem: b
           <div className={s.hstack} style={{ paddingBottom: 8 }}>
             <h2 className={s.h3} style={{ flex: 1 }}>Needs you</h2>
             <Link href="/admin/uploads" className={s.link}>Open queue</Link>
-            <Key>G U</Key>
+            <Key>U</Key>
           </div>
           {data.rows.length === 0 && <p className={s.small}>Nothing waiting. Uploads and reports show up here.</p>}
           {data.rows.map((r) => (

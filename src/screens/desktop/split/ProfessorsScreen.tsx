@@ -20,7 +20,7 @@ export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
         <label className={x.filter}>
           <Icon name="search" size={16} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter by name, department or course" aria-label="Filter professors" data-key="/" />
-          <Hint>/</Hint>
+          <Hint>/ to filter</Hint>
         </label>
       </header>
       {data.schools.length > 1 && (

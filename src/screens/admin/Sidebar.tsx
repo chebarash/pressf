@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, useEffect } from "react";
 import { Chip, cx, s } from "./ui";
 import { keyName } from "@/platform/keys";
 
@@ -13,31 +13,30 @@ export type SidebarProps = {
 };
 
 const GROUPS = [["overview", "uploads", "reports"], ["courses", "professors", "people"], ["broadcasts", "audit", "system"]];
-const CHORD: Record<string, string> = { o: "overview", u: "uploads", r: "reports", c: "courses", p: "professors", e: "people", b: "broadcasts", l: "audit", s: "system" };
-const HINT: Record<string, string> = Object.fromEntries(Object.entries(CHORD).map(([k, id]) => [id, `G ${k.toUpperCase()}`]));
+/**
+ * One plain letter per section, no prefix. Pages never use these letters for
+ * their own keys (tests/unit/shortcuts.test.ts checks).
+ */
+export const SECTION_KEYS: Record<string, string> = { o: "overview", u: "uploads", r: "reports", c: "courses", p: "professors", e: "people", b: "broadcasts", l: "audit", s: "system" };
+const HINT: Record<string, string> = Object.fromEntries(Object.entries(SECTION_KEYS).map(([k, id]) => [id, k.toUpperCase()]));
 export const hrefOf = (id: string) => (id === "overview" ? "/admin" : `/admin/${id}`);
 
 export function Sidebar({ sections, counts, me }: SidebarProps) {
   const path = usePathname();
   const router = useRouter();
   const allowed = new Set(sections.map((x) => x.id));
-  const pending = useRef(0);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      if (e.metaKey || e.ctrlKey || e.altKey || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT") return;
-      const k = keyName(e);
-      if (Date.now() - pending.current < 1200 && CHORD[k]) {
-        pending.current = 0;
-        if (allowed.has(CHORD[k])) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          router.push(hrefOf(CHORD[k]));
-        }
-        return;
-      }
-      if (k === "g") pending.current = Date.now();
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || t.isContentEditable || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT") return;
+      // A dialog (reject reason, confirm) keeps its own keys.
+      if (document.querySelector("[aria-modal='true'], [aria-modal=''], dialog[open]")) return;
+      const id = SECTION_KEYS[keyName(e)];
+      if (!id || !allowed.has(id)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      router.push(hrefOf(id));
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
