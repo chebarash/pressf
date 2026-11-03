@@ -24,18 +24,17 @@ describe("rating window for this semester's courses (Figma 4.2)", () => {
   });
 });
 
-describe("Press F on a professor goes to the viewer's course with them (7.4, D9)", () => {
-  const taken = [
-    { subjectId: "old", semesterId: "10" },
-    { subjectId: "new", semesterId: "12" },
-    { subjectId: "other", semesterId: "12" },
-  ];
-  it("picks the newest course that teacher taught the viewer", () => {
-    expect(rateHrefFor(taken, ["old", "new"])).toBe("/rate/new");
+describe("Press F on a professor rates that professor's course, never another (7.4, D9)", () => {
+  const item = (courseId: string) => ({ courseId }) as never;
+  const queue = { waiting: [item("cn"), item("calc")], current: [item("now")], rated: [{ courseId: "old", canEdit: true } as never, { courseId: "locked", canEdit: false } as never] };
+  it("links the teacher's course from the queue: waiting, then this semester, then an editable rating", () => {
+    expect(rateHrefFor(queue, ["calc", "now"])).toBe("/rate/calc");
+    expect(rateHrefFor(queue, ["now"])).toBe("/rate/now");
+    expect(rateHrefFor(queue, ["old"])).toBe("/rate/old");
   });
-  it("skips a semester whose rating window has not opened, and falls back to the queue", () => {
-    expect(rateHrefFor(taken, ["old", "new"], new Set(["12"]))).toBe("/rate/old");
-    expect(rateHrefFor(taken, ["nope"])).toBe("/rate");
+  it("has no link when none of their courses can be rated (no fallback to the queue's first course)", () => {
+    expect(rateHrefFor(queue, ["locked"])).toBeNull();
+    expect(rateHrefFor(queue, ["nope"])).toBeNull();
   });
 });
 

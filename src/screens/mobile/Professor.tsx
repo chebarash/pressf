@@ -141,7 +141,7 @@ export default function Professor({ data }: { data: ProfessorView }) {
           ))}
         </section>
       ) : null}
-      {data.signedIn ? <MainButton text={`Press F for ${data.name}`} href={data.rateHref ?? "/rate"} /> : <MainButton text="Sign in to press F" href={`/sign-in?next=${encodeURIComponent(`/p/${data.id}`)}`} />}
+      {data.signedIn ? (data.rateHref ? <MainButton text={`Press F for ${data.name}`} href={data.rateHref} /> : null) : <MainButton text="Sign in to press F" href={`/sign-in?next=${encodeURIComponent(`/p/${data.id}`)}`} />}
     </Screen>
   );
 }

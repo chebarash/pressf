@@ -1,7 +1,8 @@
 import { eq, inArray } from "drizzle-orm";
+import { rateQueueFor, type RateQueueView } from "./rate";
 import { roleOf } from "@/core/people";
 import type { TeacherRole, TeacherSummary } from "@/core/ratings";
-import { ratingWindow, termOfDate } from "@/core/semester";
+import { termOfDate } from "@/core/semester";
 import { db } from "@/lib/db";
 import { lmsCourseTeachers, lmsCourses, lmsDepartments, lmsSemesters, lmsTeachers, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
 import { termName } from "@/server/sync/types";
@@ -45,7 +46,8 @@ export type ProfessorView = {
    * Where "Press F" goes: the rating of the viewer's own course with this
    * teacher (`/rate/<courseId>`, newest first), else the rating queue. Always set by the server.
    */
-  rateHref?: string;
+  /** /rate/<course> when one of this teacher's courses can be rated now; null otherwise. */
+  rateHref?: string | null;
 };
 
 type Dept = { id: string; parentId: string | null; name: string | null };
@@ -165,6 +167,7 @@ const professorPublic = publicCache(
 export async function professor(id: string, viewer: Viewer, now = new Date()): Promise<ProfessorView | null> {
   const [pub, student] = await Promise.all([professorPublic(id), viewer ? loadStudent(viewer.userId, { refresh: false }) : Promise.resolve(null)]);
   if (!pub) return null;
+  const queue = student ? await rateQueueFor(student, now) : null;
   const { sinceDay, courseIds, courses, when, ...rest } = pub;
   // Public data is cached across semesters, so "this semester" is decided per request.
   const term = termOfDate(now);
@@ -175,18 +178,20 @@ export async function professor(id: string, viewer: Viewer, now = new Date()): P
     years: sinceDay ? yearsSince(sinceDay, now) : null,
     signedIn: !!student,
     teachesYou: !!student?.cache?.timetable.some((l) => l.teacher === id),
-    rateHref: student ? rateHrefFor(student.sync.courses, courseIds, ratingWindow(now).open ? new Set() : new Set(student.sync.semesters.filter((s) => s.open).map((s) => s.id))) : "/rate",
+    // Press F only where this teacher's course can be rated right now; never another course from the queue.
+    rateHref: queue ? rateHrefFor(queue, courseIds) : null,
   };
 }
 
 /**
- * The viewer's newest course taught by this teacher that can be rated, as its
- * rating link (`closed`: semesters whose rating window has not opened); the rating queue when there is none.
+ * The rating link for this teacher's course in the viewer's rating queue:
+ * waiting first, then this semester's (window open), then an editable rating.
+ * Null when none of their courses can be rated now.
  */
-export function rateHrefFor(taken: Array<{ subjectId: string; semesterId: string }>, teacherCourseIds: string[], closed: Set<string> = new Set()): string {
+export function rateHrefFor(queue: Pick<RateQueueView, "waiting" | "current" | "rated">, teacherCourseIds: string[]): string | null {
   const ids = new Set(teacherCourseIds);
-  const hit = taken.filter((c) => ids.has(c.subjectId) && !closed.has(c.semesterId)).sort((a, b) => Number(b.semesterId) - Number(a.semesterId))[0];
-  return hit ? `/rate/${encodeURIComponent(hit.subjectId)}` : "/rate";
+  const hit = queue.waiting.find((w) => ids.has(w.courseId)) ?? (queue.current ?? []).find((w) => ids.has(w.courseId)) ?? queue.rated.find((r) => r.canEdit && ids.has(r.courseId));
+  return hit ? `/rate/${encodeURIComponent(hit.courseId)}` : null;
 }
 
 export type ProfessorsView = {
