@@ -136,7 +136,8 @@ export function TelegramBridge() {
       // t.me links stay in Telegram, other sites open in its browser.
       const onClick = (event: MouseEvent) => {
         const link = (event.target as HTMLElement).closest<HTMLAnchorElement>("a[href]");
-        if (!link || event.defaultPrevented) return;
+        // A link with its own handler (upload via the bot, bot-chat links) opens itself: handling it here too sent two messages.
+        if (!link || event.defaultPrevented || link.hasAttribute("data-own-click")) return;
         const url = new URL(link.href);
         if (url.hostname === "t.me") { event.preventDefault(); app.openTelegramLink(url.href); }
         else if (url.protocol.startsWith("http") && url.origin !== location.origin) { event.preventDefault(); app.openLink(url.href, { try_instant_view: true }); }
