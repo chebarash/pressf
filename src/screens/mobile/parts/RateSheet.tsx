@@ -50,7 +50,8 @@ export function RateSheet({ open, queue }: { open: NonNullable<RateScreen["open"
 
   const index = queue.findIndex((q) => q.courseId === item.courseId && q.term === item.term);
   const next = mode === "queue" && index !== -1 ? queue[index + 1] ?? null : null;
-  const close = useCallback(() => router.replace(returnHref, { scroll: false }), [router, returnHref]);
+  // Back to wherever the sheet was opened from (a professor, a course, Today); a direct link falls back to `returnHref`.
+  const close = useCallback(() => (cameFromApp() ? router.back() : router.replace(returnHref, { scroll: false })), [router, returnHref]);
 
   const show = (to: RateItem, f: FormState) => {
     setItem(to);
@@ -79,7 +80,8 @@ export function RateSheet({ open, queue }: { open: NonNullable<RateScreen["open"
     start(async () => {
       const res = await sendRating(rated.courseId, rated.term, answers).catch(() => ({ ok: false as const, reason: "failed" as const }));
       const back = mode === "queue" ? "/rate" : returnHref;
-      if (res.ok) router.replace(`${back}${back.includes("?") ? "&" : "?"}sent=1`, { scroll: false });
+      if (res.ok && cameFromApp()) router.back();
+      else if (res.ok) router.replace(`${back}${back.includes("?") ? "&" : "?"}sent=1`, { scroll: false });
       else if (res.reason === "sign-in") router.push(`/sign-in?next=${encodeURIComponent(rated.href)}`);
       else setError(true);
     });
@@ -236,4 +238,11 @@ function TeacherRow({ name, face, roleLabel, pressF, tags, onPress, onTag }: { n
       )}
     </div>
   );
+}
+
+/** True when this page was reached by navigating inside the app, so Back returns there. */
+function cameFromApp() {
+  const nav = (window as unknown as { navigation?: { canGoBack?: boolean } }).navigation;
+  if (typeof nav?.canGoBack === "boolean") return nav.canGoBack;
+  return window.history.length > 1;
 }
