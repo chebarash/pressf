@@ -109,7 +109,7 @@ export function TodayScreen({ data, actions }: { data: TodayData; actions?: Toda
             data.feed.items.length === 0 && <p className={t.quiet}>All read. Grades, absences and LMS announcements land here.</p>
           )}
           {data.feed.items.map((n) => (
-            <FeedLink key={n.id} kind={n.kind} title={n.title} meta={n.meta} unread={n.unread} href={n.href} files={n.files} />
+            <FeedLink key={n.id} kind={n.kind} title={n.title} meta={n.meta} unread={n.unread} href={n.href} files={n.files} mark={n.mark} />
           ))}
         </div>
 

@@ -6,9 +6,9 @@
 import type { TeacherRole } from "@/core/ratings";
 import type { SyllabusFold } from "@/server/views";
 import type { RatingSummaryProps } from "@/ui/components";
-import type { FeedFilesVM, FeedKind, FileRowData, Strip, Tier } from "./parts";
+import type { FeedFilesVM, FeedKind, FeedMarkVM, FileRowData, Strip, Tier } from "./parts";
 
-export type { FeedFilesVM, FeedKind, FileRowData, Strip, Tier };
+export type { FeedFilesVM, FeedKind, FeedMarkVM, FileRowData, Strip, Tier };
 
 export type Teacher = { id: string; name: string; face: string | null; href: string };
 
@@ -31,6 +31,8 @@ export type FeedItemVM = {
   open?: { label: string; href: string } | null;
   /** New-files items: the files (at most three, each opens the file) and "and N more" to the course's files. */
   files?: FeedFilesVM | null;
+  /** Grade and attendance items: the score in its tier, or the class, its mark and the absences left. */
+  mark?: FeedMarkVM | null;
 };
 
 

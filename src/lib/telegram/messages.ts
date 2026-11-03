@@ -1,3 +1,5 @@
+import type { AttendanceStatus } from "@/core/attendance";
+import { lessonLabel, markTier, type MarkTier } from "@/core/feed-marks";
 import { TYPE_LABEL, type FileType } from "@/core/files";
 import { path, type Target } from "@/core/links";
 import type { BotMessage, InlineButton, InlineKeyboard } from "./api";
@@ -105,17 +107,45 @@ export const classStarted = (a: { course: string }): BotMessage => ({
   keyboard: open("Scan QR", { to: "qr" }),
 });
 
-/** When the LMS marks an absence. */
-export const markedAbsent = (a: { course: string; courseId?: string; lesson: string; left?: number | null }): BotMessage => ({
-  text: card(`Marked absent: ${a.course}`, [a.lesson, a.left != null && `${a.left} ${a.left === 1 ? "absence" : "absences"} left in this course`].filter(Boolean).join(" · ")),
-  keyboard: open("See progress", { to: "progress", courseId: a.courseId }),
-});
+/** The app's colours in a chat: tier of a grade, mark of a class. */
+const TIER_DOT: Record<MarkTier, string> = { high: "🟢", mid: "🟡", low: "🔴" };
+const MARK_DOT = { absent: "🔴", late: "🟡" } as const;
 
-/** When a grade appears. */
-export const newGrade = (a: { grade: number | string; course: string; courseId?: string; item: string; average?: number | string | null }): BotMessage => ({
-  text: card(`New grade: ${a.grade}`, [a.course, a.item, a.average != null && `average now ${a.average}`].filter(Boolean).join(" · ")),
-  keyboard: open("See progress", { to: "progress", courseId: a.courseId }),
-});
+const absencesLeftLine = (left: number | null | undefined, status?: AttendanceStatus | null) => {
+  if (status === "over") return "⚠️ Over the absence limit in this course";
+  if (left == null) return null;
+  if (left === 0 || status === "last") return "⚠️ No absences left in this course";
+  const line = `${left} ${left === 1 ? "absence" : "absences"} left in this course`;
+  return left <= 2 || status === "low" ? `⚠️ ${line}` : line;
+};
+
+/**
+ * When the LMS marks an absence (or a late arrival): the course, the class
+ * with its mark and when it was ("🔴 Absent · Lecture 7 · Mon 3 Nov 13:30"),
+ * then the absences left, flagged when few or none are left.
+ */
+export const markedAbsent = (a: { course: string; courseId?: string; lesson: string; when?: string | null; mark?: "absent" | "late"; left?: number | null; status?: AttendanceStatus | null }): BotMessage => {
+  const mark = a.mark ?? "absent";
+  return {
+    text: card(`Marked ${mark} in ${a.course}`, [`${MARK_DOT[mark]} ${mark === "late" ? "Late" : "Absent"}`, lessonLabel(a.lesson), a.when].filter(Boolean).join(" · "), absencesLeftLine(a.left, a.status)),
+    keyboard: open("See progress", { to: "progress", courseId: a.courseId }),
+  };
+};
+
+/**
+ * When a grade appears: the course, what was graded with the score in its
+ * tier colour and out of what when known ("🟢 Midterm: 87 / 100"), then the
+ * course average.
+ */
+export const newGrade = (a: { grade: number | string; course: string; courseId?: string; item: string; max?: number | null; average?: number | string | null }): BotMessage => {
+  const score = Number(a.grade);
+  const dot = Number.isFinite(score) ? `${TIER_DOT[markTier(score, a.max ?? null)]} ` : "";
+  const what = a.item.trim() ? `${a.item.trim()[0].toUpperCase()}${a.item.trim().slice(1)}: ` : "";
+  return {
+    text: card(`New grade in ${a.course}`, `${dot}${what}${a.grade}${a.max ? ` / ${a.max}` : ""}`, a.average != null && `Average now ${a.average}`),
+    keyboard: open("See progress", { to: "progress", courseId: a.courseId }),
+  };
+};
 
 /**
  * When files appear (bundled per course, at most once an hour): the count and
@@ -185,7 +215,7 @@ export const addDropCloses = (a: { when: string; term: string; lmsUrl?: string }
 
 /** When an absence limit gets close (2 left). */
 export const absencesLeft = (a: { left: number; course: string; courseId?: string; used: number; limit: number }): BotMessage => ({
-  text: card(`Careful: ${a.left} ${a.left === 1 ? "absence" : "absences"} left`, `${a.course} · ${a.used} of ${a.limit} used`),
+  text: card(`Careful: ${a.left} ${a.left === 1 ? "absence" : "absences"} left in ${a.course}`, `⚠️ ${a.used} of ${a.limit} absences used`),
   keyboard: open("See progress", { to: "progress", courseId: a.courseId }),
 });
 

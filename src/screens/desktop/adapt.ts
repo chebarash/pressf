@@ -29,7 +29,8 @@ function feedItem(f: V.FeedView, section?: string): M.FeedItemVM {
     title: f.title,
     // D7 / D1: "LMS · Calculus 1 · 1 h ago · needs your OK"; the author shows when no course is named.
     // New files name the course in the title ("3 new files in Deep Learning"): "Week 8 · 1 h ago".
-    meta: f.files ? join(f.body, f.ago) : join(SOURCE[f.kind], f.courseName ?? f.author, f.ago, f.needsAck && !f.read && "needs your OK"),
+    // Grades and absences name it too ("New grade in Calculus 1"): just when.
+    meta: f.files ? join(f.body, f.ago) : marked(f) ? f.ago : join(SOURCE[f.kind], f.courseName ?? f.author, f.ago, f.needsAck && !f.read && "needs your OK"),
     unread: !f.read,
     href: `/notifications?open=${encodeURIComponent(f.id)}`,
     section,
@@ -40,8 +41,12 @@ function feedItem(f: V.FeedView, section?: string): M.FeedItemVM {
     acknowledged: !!f.acknowledged,
     open: openAction(f),
     files: f.files ? { shown: f.files.shown, more: f.files.more, moreHref: f.files.courseHref } : null,
+    mark: marked(f) ? { grade: f.grade ?? null, attendance: f.attendance ?? null, href: f.href?.startsWith("/progress") ? f.href : null } : null,
   };
 }
+
+/** A grade or attendance item with its course known: the title names it and the mark shows under it. */
+const marked = (f: V.FeedView) => !!(f.grade || f.attendance) && !!f.courseName;
 
 /**
  * D7: the reading pane's one action, named for where it goes ("Open Calculus 1",

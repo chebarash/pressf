@@ -1,0 +1,67 @@
+/* The grade or attendance under a grade/absence FeedItem, sized like FeedFiles. */
+.mark { display: flex; align-items: center; gap: var(--space-2); min-width: 0; font-family: var(--font-sans); color: var(--text-primary); }
+
+/* Score in its tier (Score 4008:1068 colours), a small keycap. */
+.score {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 30px;
+  padding: 0 var(--space-2);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-key-sm);
+  font: 600 15px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.high { background: var(--rating-high); color: var(--text-on-accent); }
+.mid { background: var(--rating-mid); color: var(--text-on-warm); }
+.low { background: var(--rating-low); color: var(--text-on-accent); }
+
+.text { display: flex; flex: 1 1 auto; flex-direction: column; gap: 1px; min-width: 0; }
+.what { overflow: hidden; font: 600 13px/1.25 var(--font-sans); white-space: nowrap; text-overflow: ellipsis; }
+.sub { color: var(--text-secondary); font: 500 12px/1.25 var(--font-sans); }
+
+/* Attendance: the class with its mark, then the absences left in a tone. */
+.att { flex-direction: column; align-items: stretch; gap: 6px; }
+.top { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.cls { min-width: 0; overflow: hidden; color: var(--text-primary); font: 500 13px/1.25 var(--font-sans); white-space: nowrap; text-overflow: ellipsis; }
+.pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  font: 600 12px/1 var(--font-sans);
+}
+/* Attendance colours (course progress dots): absent rust, late mustard, excused sunken. */
+.absent { background: var(--bg-danger); color: var(--text-on-accent); }
+.late { background: var(--mustard-500); color: var(--text-on-warm); }
+.excused { background: var(--bg-sunken); color: var(--text-secondary); }
+
+.bottom { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-width: 0; }
+.left { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font: 600 12px/1.25 var(--font-sans); }
+.dot { flex: none; width: 8px; height: 8px; border-radius: var(--radius-full); }
+.ok { color: var(--text-secondary); }
+.ok .dot { background: var(--school-medicine); }
+.warn { color: var(--text-primary); }
+.warn .dot { background: var(--mustard-500); }
+.danger { color: var(--bg-danger); }
+.danger .dot { background: var(--bg-danger); }
+
+.progress { display: inline-flex; flex: none; align-items: center; gap: 2px; margin-left: auto; color: var(--text-secondary); font: 500 12px/normal var(--font-sans); text-decoration: none; white-space: nowrap; }
+.link { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+@media (hover: hover) { .progress.link:hover { color: var(--text-primary); text-decoration: underline; } }
+.link:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 1px; border-radius: 4px; }
+
+/* In the reading pane or sheet: a bigger score and class line. */
+.pane .score { min-width: 56px; height: 44px; border-width: 2px; border-radius: var(--radius-md); box-shadow: var(--shadow-key-md); font: 400 26px/1 var(--font-serif); }
+.pane .what { font-size: 15px; }
+.pane .sub, .pane .left { font-size: 13px; }
+.pane .cls { font-size: 15px; }
+.pane .pill { height: 26px; padding: 0 10px; font-size: 13px; }
+.pane.att { gap: var(--space-2); }

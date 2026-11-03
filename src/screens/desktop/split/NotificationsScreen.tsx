@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import type { FeedItemVM, NotificationsData } from "../model";
 import n from "../notifications.module.css";
-import { FileRow } from "@/ui/components";
+import { FeedMark, FileRow } from "@/ui/components";
 import { Button, ButtonLink, css, cx, Empty, FeedRow, Hint, type FeedKind } from "../parts";
 
 const FILTERS: Array<{ id: "all" | FeedKind; label: string; kinds: FeedKind[] }> = [
@@ -95,6 +95,7 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
                     meta={i.meta}
                     unread={i.unread}
                     files={i.files}
+                    mark={i.mark}
                     selected={i.id === openId}
                     onClick={() => {
                       setOpenId(i.id);
@@ -120,6 +121,12 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
                 {open.body.map((p, i) => (
                   <p key={i}>{p}</p>
                 ))}
+              </div>
+            )}
+            {open.mark && (
+              // The pane's own button goes to the course's progress ("See grades", "See attendance").
+              <div className={n.mark}>
+                <FeedMark grade={open.mark.grade} attendance={open.mark.attendance} size="pane" />
               </div>
             )}
             {open.files && (

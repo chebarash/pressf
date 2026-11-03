@@ -172,7 +172,7 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
     lessonIds.length ? fileOverridesMap() : Promise.resolve({}),
   ]);
 
-  const feedRows = await feedViews(items.slice(0, 4), now, feedCourses);
+  const feedRows = await feedViews(items.slice(0, 4), now, feedCourses, student.sync.courses);
 
   const tight = courses.filter((c) => c.absences).sort((x, y) => x.absences!.left - y.absences!.left)[0];
   const firstExam = exams[0];

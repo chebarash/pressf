@@ -3,6 +3,7 @@ import { attendance, attendanceEvents, classTime, newAbsences, type LmsAdmit, ty
 import { personOf } from "@/core/people";
 import { remindersDue, type Deadline } from "@/core/deadlines";
 import { changedGrades, passedFinal } from "@/core/grades";
+import { lessonLabel } from "@/core/feed-marks";
 import { fileList } from "@/core/files";
 import { path } from "@/core/links";
 import { fromLms, type AlertSettings, type FeedItem, type LmsNotification } from "@/core/notifications";
@@ -220,7 +221,7 @@ export function gradeAlerts(prev: Record<string, number | null>, courses: Synced
     return {
       setting: "grade" as const,
       item: { id: `grade:${key}:${mark}`, kind: "grade" as const, title: `New grade: ${mark}${what ? ` for the ${what}` : ""}`, body: `${name} · ${shortDate(when)}`, courseId: subjectId, at, read: false, href: path({ to: "progress", courseId: subjectId }) },
-      message: msg.newGrade({ grade: mark, course: name, courseId: subjectId, item: what ?? "", average }),
+      message: msg.newGrade({ grade: mark, course: name, courseId: subjectId, item: part === "final" ? "Final grade" : lessonLabel(lesson.join(":")), max: part === "final" ? 100 : null, average }),
     };
   });
 }
@@ -237,7 +238,7 @@ export function absenceAlerts(prev: SyncedCourse[], next: SyncedCourse[], at: Da
       out.push({
         setting: "absence",
         item: { id: `absence:${c.subjectId}:${e.lesson}`, kind: "absence", title: `Marked absent${a ? ` · ${a.left} left` : ""}`, body: [name, e.lesson, date].filter(Boolean).join(" · "), courseId: c.subjectId, at, read: false, href: path({ to: "progress", courseId: c.subjectId }) },
-        message: msg.markedAbsent({ course: name, courseId: c.subjectId, lesson: e.lesson, left: a?.left ?? null }),
+        message: msg.markedAbsent({ course: name, courseId: c.subjectId, lesson: e.lesson, when: date && e.at ? `${date} ${clock(e.at)}` : null, left: a?.left ?? null, status: a?.status ?? null }),
       });
     }
     const was = attendance(before.admit);
@@ -269,7 +270,7 @@ export function historyAlerts(courses: SyncedCourse[], now: Date, named: Named):
         out.push({
           setting: "absence",
           item: { id: `absence:${c.subjectId}:${e.lesson}`, kind: "absence", title: "Marked absent", body: [name, e.lesson, date].filter(Boolean).join(" · "), courseId: c.subjectId, at, read: true, href: path({ to: "progress", courseId: c.subjectId }) },
-          message: msg.markedAbsent({ course: name, courseId: c.subjectId, lesson: e.lesson, left: null }),
+          message: msg.markedAbsent({ course: name, courseId: c.subjectId, lesson: e.lesson, when: date && e.at ? `${date} ${clock(e.at)}` : null, left: null }),
         });
       }
       const mark = num(c.events[i]?.mark);
@@ -278,7 +279,7 @@ export function historyAlerts(courses: SyncedCourse[], now: Date, named: Named):
         out.push({
           setting: "grade",
           item: { id: `grade:${key}:${mark}`, kind: "grade", title: `Grade: ${mark} for the ${e.lesson.toLowerCase()}`, body: [name, date].filter(Boolean).join(" · "), courseId: c.subjectId, at, read: true, href: path({ to: "progress", courseId: c.subjectId }) },
-          message: msg.newGrade({ grade: mark, course: name, courseId: c.subjectId, item: e.lesson.toLowerCase(), average: c.average }),
+          message: msg.newGrade({ grade: mark, course: name, courseId: c.subjectId, item: lessonLabel(e.lesson), average: c.average }),
         });
       }
     });
