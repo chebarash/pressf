@@ -1,5 +1,5 @@
 {
-  "id": "8651f121-eae6-4d9f-8fae-b54104626f96",
+  "id": "94974361-2164-443b-8fcf-89d220fdf47c",
   "prevId": "830aefa2-aa93-4ca2-8096-5642e364b5af",
   "version": "7",
   "dialect": "postgresql",
@@ -1790,6 +1790,12 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "matched_with": {
+          "name": "matched_with",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -2529,18 +2535,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "source_key": {
-          "name": "source_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_label": {
-          "name": "source_label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "opens": {
           "name": "opens",
           "type": "integer",
@@ -2658,21 +2652,6 @@
             },
             {
               "expression": "course_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "uploads_source_key": {
-          "name": "uploads_source_key",
-          "columns": [
-            {
-              "expression": "source_key",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

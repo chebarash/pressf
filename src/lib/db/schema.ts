@@ -267,6 +267,8 @@ export const mentions = pgTable(
     text: text("text").notNull(),
     /** Most posts come without a date, so ordering relies on the post id. */
     date: timestamp("date", { withTimezone: true }),
+    /** The matcher (rules + courses + teachers, src/core/mentions.ts) that made this post's links; another one re-matches it. */
+    matchedWith: text("matched_with"),
   },
   (t) => [index("mentions_date").on(t.date)]
 );
@@ -537,6 +539,8 @@ export const fileOverrides = pgTable("file_overrides", {
  * Small moderation and system flags keyed by (kind, target):
  * - `post-hidden` / `post-mute` on an Anonymous post id (a mute acts on the
  *   post's private author token, never on a person),
+ * - `mention-link-hidden` on "post|kind|target": a wrong course/professor link
+ *   on an Anonymous post, kept out of every re-match,
  * - `teachers-distinct` on a teacher pair that is not a duplicate,
  * - `signout` on a user id (sessions issued before `at` are void),
  * - `setting` on a key (`maintenance`, `sync-paused`).
