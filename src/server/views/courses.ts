@@ -20,7 +20,7 @@ import { nextSemesterEntry, type NextSemesterEntry } from "./curriculum";
 import { progressCourses, type AbsencesView, type ProgressCourse } from "./progress";
 import { myRatingFor, rateQueueFor } from "./rate";
 import {
-  courseFiles, lessonSlots, lmsFileDate, mentionsOf, ratingsByCode, recommendOf, ROLE_LABEL, slotsLabel, teacherSummaries, teachersByIds,
+  courseFiles, lessonSlots, lmsFileDate, mentionsOf, MENTIONS_PAGE, ratingsByCode, recommendOf, ROLE_LABEL, slotsLabel, teacherSummaries, teachersByIds,
   type FileItem, type MentionsView, type RatingSummaryView, type DeadlineView,
 } from "./shared";
 import { loadStudent, type Student, type SyncState } from "./student";
@@ -202,7 +202,7 @@ const coursePublic = publicCache(
       ratingsByCode([code]),
       semesterNames(),
       courseDetails(code),
-      mentionsOf("course", code),
+      mentionsOf("course", code, MENTIONS_PAGE),
       getCatalog(),
     ]);
     const teacherIds = [...new Set(links.map((l) => l.teacherId))];

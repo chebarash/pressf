@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MoreMentions } from "@/screens/shared/MoreMentions";
 import { Fragment } from "react";
 import type { ProfessorView } from "@/server/views";
 import { RatingSummary } from "@/ui/components";
@@ -122,7 +123,18 @@ export function ProfessorScreen({ data }: { data: ProfessorData }) {
 
         <section className={css.card}>
           <h2 className={p.cardTitle}>What Anonymous says</h2>
-          {data.mention ? <MentionCard m={data.mention} /> : <p className={p.fine}>Nothing on Anonymous yet.</p>}
+          {data.posts?.length ? (
+            <>
+              {data.posts.map((m) => (
+                <MentionCard key={m.href} m={m} />
+              ))}
+              <MoreMentions kind="teacher" target={data.id ?? ""} shown={data.posts.length} total={data.postsTotal ?? data.posts.length} variant="desktop" tag="Teacher" className={p.morePosts} />
+            </>
+          ) : data.mention ? (
+            <MentionCard m={data.mention} />
+          ) : (
+            <p className={p.fine}>Nothing on Anonymous yet.</p>
+          )}
         </section>
 
         {data.background.length > 0 && (
