@@ -60,11 +60,10 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
       <nav className={n.list} aria-label="Notifications">
         <div className={n.head}>
           <h1 className={n.title}>Notifications</h1>
-          {!allRead && (
-            <button type="button" className={n.readAll} onClick={() => read("all")} data-key="shift+r">
-              <Hint>⇧R read all</Hint>
-            </button>
-          )}
+          {/* Shown in D18 (all read) too; nothing to do then. */}
+          <button type="button" className={n.readAll} onClick={() => !allRead && read("all")} disabled={allRead} data-key="shift+r">
+            <Hint>⇧R read all</Hint>
+          </button>
         </div>
         <div className={css.chips} role="tablist" aria-label="Filter">
           {FILTERS.map((f) => (

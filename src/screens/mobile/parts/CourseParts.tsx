@@ -273,7 +273,7 @@ export function GhostWeeks() {
         {row(8, 120, true)}
         <div className={s.weekFiles}>
           {file("var(--bg-accent)")}
-          {file("var(--rating-mid)")}
+          {file("var(--mustard-500)")}
         </div>
       </div>
       {row(9, 240)}

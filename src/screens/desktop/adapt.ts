@@ -2,7 +2,7 @@
  * View model (src/server/views) → what the desktop frames draw (./model).
  * Pure functions: no fetching, no React. One per screen.
  */
-import { COURSE_TAGS } from "@/core/ratings";
+import { COURSE_TAG_ORDER } from "@/core/ratings";
 import { tier } from "@/core/grades";
 import { weekOf } from "@/core/semester";
 import { addDays, localDay, localMinutes, toLocal } from "@/core/time";
@@ -13,6 +13,9 @@ import type * as M from "./model";
 const TZ = "Asia/Tashkent";
 const join = (...parts: Array<string | number | null | undefined | false>) => parts.filter((p) => p !== null && p !== undefined && p !== false && p !== "").join(" · ");
 const KIND_LABEL: Record<string, string> = { lecture: "Lecture", practice: "Practice", lab: "Lab", exam: "Exam", other: "Class" };
+/** Anonymous post date as in Figma: "Mar 12, 2026". */
+const postDate = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: TZ }) : "");
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 /** "Fall 2024" → "F24". */
 const shortTerm = (term: string) => term.replace(/^(Fall|Spring|Summer)\s+\d{2}(\d{2})$/, (_, s: string, y: string) => `${s[0]}${y}`);
 
@@ -114,7 +117,8 @@ export function today(v: V.TodayView): M.TodayData {
       : null,
     day: day.map(({ at: _at, ...rest }) => rest),
     now: day.length ? { time: nowTime, before: before < 0 ? day.length : before } : null,
-    feed: { unread: v.notifications.unread, items: v.notifications.items.slice(0, 4).map((f) => feedItem(f)) },
+    // D15: LMS not answering and nothing cached yet → the card waits with skeletons, not "All read".
+    feed: { unread: v.notifications.unread, items: v.notifications.items.slice(0, 4).map((f) => feedItem(f)), loading: b?.kind === "lms-down" && v.notifications.items.length === 0 },
     due: v.dueSoon.slice(0, 3).map((d) => ({ title: d.title, meta: join(d.course, d.dueLabel), status: d.statusLabel, late: d.status === "todo" || d.status === "missed" })),
     exam: exam ? { when: exam.dayLabel, title: exam.label, meta: join(exam.time, exam.room) } : null,
     courses: v.courses.map(card),
@@ -204,10 +208,10 @@ export function course(v: V.CourseView): M.CourseData {
   const syllabus: M.CourseData["syllabus"] = [];
   if (s) {
     if (s.ects != null || s.totalHours != null) syllabus.push({ title: "Credits and workload", meta: join(s.ects != null && `${s.ects} ECTS`, s.totalHours != null && `${s.totalHours} hours`, s.hoursPerWeek != null && `about ${s.hoursPerWeek} a week`) });
-    if (s.outcomes.length) syllabus.push({ title: "What you'll learn", meta: `${s.outcomes.length} outcomes` });
+    if (s.outcomes.length) syllabus.push({ title: "What you'll learn", meta: plural(s.outcomes.length, "outcome") });
     if (s.books.length) syllabus.push({ title: "Books", meta: `${s.books.length} book${s.books.length === 1 ? "" : "s"}` });
     if (s.prerequisites.status !== "not_stated")
-      syllabus.push({ title: "Prerequisites", meta: join(s.prerequisites.needs.length ? `Needs ${s.prerequisites.needs.map((n) => n.text).join(", ")}` : "None", s.prerequisites.unlocks.length && `unlocks ${s.prerequisites.unlocks.map((u) => u.name).join(", ")}`) });
+      syllabus.push({ title: "Prerequisites", meta: join(s.prerequisites.needs.length ? `Needs ${s.prerequisites.needs.map((n) => n.text).join(", ")}` : "None", s.prerequisites.unlocks.length > 0 && `unlocks ${s.prerequisites.unlocks.map((u) => u.name).join(", ")}`) });
   }
   const you = v.you;
   const mention = v.anonymous.latest[0];
@@ -237,7 +241,7 @@ export function course(v: V.CourseView): M.CourseData {
           ? { average: you.mark, tier: tier(you.mark), line: join(you.term, you.passed === true ? "passed" : you.passed === false ? "not passed" : null, you.teacher), next: null, href: `/progress/${you.courseId}` }
           : null,
     summary: summaryProps(v.ratings, "Recommend by semester"),
-    mention: mention ? { date: mention.date ?? "", text: mention.text, tag: "Course", href: mention.url } : null,
+    mention: mention ? { date: postDate(mention.date), text: mention.text, tag: "Course", href: mention.url } : null,
     rateHref: v.rate?.canRate ? v.rate.href : null,
     rate: v.rate?.canRate ? { label: v.rate.rated ? "Edit your rating" : "Rate this course", opensIn: null } : v.rate?.opensIn ? { label: "Rate this course", opensIn: v.rate.opensIn } : null,
     // D4: the student's current courses next to the course.
@@ -319,7 +323,7 @@ export function professor(v: V.ProfessorView): M.ProfessorData {
     summary,
     courses: v.courses.map((c) => ({ code: c.code, name: c.name, role: c.roleLabel, pct: c.pressFPct, href: c.href })),
     tags: s.enough ? s.tags.map((t) => ({ tag: t.tag, pct: t.pct })) : [],
-    mention: mention ? { date: mention.date ?? "", text: mention.text, tag: "Teacher", href: mention.url } : null,
+    mention: mention ? { date: postDate(mention.date), text: mention.text, tag: "Teacher", href: mention.url } : null,
     background: background(v),
     // D9 "Press F if they taught you": straight to the rating of the viewer's course with them.
     rateHref: v.signedIn && (v.teachesYou || (v.rateHref && v.rateHref !== "/rate")) ? (v.rateHref ?? "/rate") : null,
@@ -364,7 +368,7 @@ export function progress(v: V.ProgressView): M.ProgressData {
   return {
     gpa: v.gpa != null ? { value: v.gpa.toFixed(2), delta: "", note: join(v.currentTerm, v.semesterNumber && `semester ${v.semesterNumber}`), trend: earlier.map((e) => e.gpa!).reverse() } : null,
     credits: v.ectsEarned != null && v.ectsTotal ? { done: v.ectsEarned, total: v.ectsTotal, note: `${Math.max(0, v.ectsTotal - v.ectsEarned)} to go` } : null,
-    attendance: closest ? { value: String(missed), note: `absences across ${v.courses.length} courses · closest: ${closest.name}, ${closest.absences!.left} left` } : null,
+    attendance: closest ? { value: String(missed), note: `absences across ${plural(v.courses.length, "course")} · closest: ${closest.name}, ${closest.absences!.left} left`, low: closest.absences!.status !== "ok" } : null,
     week: null,
     rows: v.courses.map(row),
     open: null,
@@ -450,22 +454,26 @@ export function search(v: V.SearchView): M.SearchData {
   ].filter((g) => g.items.length);
   const previews: M.SearchData["previews"] = {};
   for (const c of v.courses) previews[c.code] = { eyebrow: c.code, title: c.name, strip: { recommendPct: c.recommendPct, hours: null, difficulty: null, difficultyWord: null }, text: "", href: c.href };
-  return { q: v.q, total: groups.reduce((n, g) => n + g.items.length, 0), groups, previews, suggestion: v.nothing ? "Search professors, files and programs by name or by code, like MATH 211." : null };
+  const didYouMean = v.nothing ? (v.didYouMean ?? null) : null;
+  const suggestion = !v.nothing ? null : didYouMean ? "Or search professors, files and programs by code: MATH 211." : "Search professors, files and programs by name or by code, like MATH 211.";
+  return { q: v.q, total: groups.reduce((n, g) => n + g.items.length, 0), groups, previews, suggestion, didYouMean };
 }
 
 /* ---------- Next semester ---------- */
+
+const bestPct = (cohorts: Array<{ pressFPct: number | null }>) => Math.max(-1, ...cohorts.map((h) => h.pressFPct ?? -1));
 
 export function nextSemester(v: V.NextSemesterView): M.NextData {
   return {
     eyebrow: "Next semester · from your study plan",
     title: v.term ?? "Next semester",
-    dates: v.phases.map((p) => ({ title: p.label, note: p.title })),
+    dates: v.phases.map((p) => ({ title: p.label, note: p.kind === "add-drop" ? "Add / drop" : p.title })),
     rows: v.courses.map((c) => {
       const p = c.prerequisites[0];
       return {
         code: c.code ?? "",
         name: c.name,
-        meta: join(c.code, c.cohorts.length && `${c.cohorts.length} cohort${c.cohorts.length === 1 ? "" : "s"}`),
+        meta: join(c.code, c.cohorts.length > 0 && `${c.cohorts.length} cohort${c.cohorts.length === 1 ? "" : "s"}`),
         ects: c.ects,
         recommendPct: c.recommendPct,
         hours: c.ratings?.hoursLabel ?? "—",
@@ -475,7 +483,8 @@ export function nextSemester(v: V.NextSemesterView): M.NextData {
         detail: {
           eyebrow: join(c.code, c.ects != null && `${c.ects} ECTS`),
           strip: strip(c.ratings),
-          cohorts: c.cohorts.map((h, i) => ({ title: `Cohort ${i + 1} · ${h.name}`, line: join(h.when, h.room), note: "", ok: true, pct: h.pressFPct, face: null })),
+          // The best-rated cohort is highlighted (as on mobile 4.15); clash data isn't known.
+          cohorts: c.cohorts.map((h, i) => ({ title: `Cohort ${i + 1} · ${h.name}`, line: join(h.when, h.room), note: "", ok: h.pressFPct != null && h.pressFPct === bestPct(c.cohorts), pct: h.pressFPct, face: h.face ?? null })),
         },
       };
     }),
@@ -522,8 +531,8 @@ export function rate(v: V.RateQueueView, courseId?: string | null): M.RateData {
   return {
     course: item ? { id: item.courseId, name: item.name, term: item.term, href: `/c/${item.code}` } : null,
     waiting: v.waiting.length,
-    teachers: item ? item.teachers.map((t) => ({ id: t.id, name: t.name, role: t.roleLabel, kind: t.role, face: null })) : [],
-    tags: [...COURSE_TAGS],
+    teachers: item ? item.teachers.map((t) => ({ id: t.id, name: t.name, role: t.roleLabel, kind: t.role, face: t.face ?? null })) : [],
+    tags: [...COURSE_TAG_ORDER],
     initial: answers ? initialFrom(answers) : null,
   };
 }
@@ -545,7 +554,7 @@ export function initialFrom(a: NonNullable<V.RatedItem["answers"]>): NonNullable
 export function curriculum(v: V.CurriculumView): M.CurriculumData {
   return {
     program: v.program?.name ?? "Curriculum",
-    line: join(v.years.length && `${v.years.length} years`, v.years.reduce((n, y) => n + y.terms.reduce((a, t) => a + t.courses.reduce((e, c) => e + (c.ects ?? 0), 0), 0), 0) + " ECTS"),
+    line: join(v.years.length > 0 && plural(v.years.length, "year"), v.years.reduce((n, y) => n + y.terms.reduce((a, t) => a + t.courses.reduce((e, c) => e + (c.ects ?? 0), 0), 0), 0) + " ECTS"),
     programs: v.programs.map((p) => ({ id: p.id, name: p.name, href: `/programs/${p.id}`, on: p.id === v.program?.id })),
     years: v.years.map((y) => ({
       label: `Year ${y.year}`,

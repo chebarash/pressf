@@ -95,7 +95,7 @@ function CourseDetail({ data }: { data: CourseData }) {
               All {data.weeksTotal} weeks <Icon name="chevron-right" size={18} />
             </Link>
             <Link href={data.tabs.filesHref} className={c.more}>
-              All {data.filesTotal} files <Icon name="chevron-right" size={18} />
+              {data.filesTotal === 1 ? "1 file" : `All ${data.filesTotal} files`} <Icon name="chevron-right" size={18} />
             </Link>
           </div>
           )}

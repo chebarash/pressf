@@ -1,12 +1,15 @@
 import Link from "next/link";
 import type { FileView } from "@/server/views";
+import { FILE_FLAG } from "@/ui/components";
 import * as adapt from "./adapt";
 import c from "./course/course.module.css";
 import { CourseLayout } from "./course/CourseView";
 import type { FileData } from "./model";
 import { AnchorButton, css, cx, Empty, Hint, Icon, KeyTo } from "./parts";
 
-const FLAG: Record<string, string> = { lecture: "var(--bg-accent)", practice: "var(--school-humanities)", lab: "var(--school-humanities)", exam: "var(--rating-mid)", mock: "var(--rating-mid)", assignment: "var(--bg-danger)", notes: "var(--school-medicine)" };
+/** Same flag colours as File/Row v2 (Figma 4153:2357), by the shared FILE_FLAG families. */
+const FAMILY_COLOR = { exam: "var(--bg-danger)", mock: "var(--mustard-500)", lecture: "var(--bg-accent)", notes: "var(--plum-500)", syllabus: "var(--moss-500)", other: "var(--border-subtle)" } as const;
+const flagOf = (type: string) => FAMILY_COLOR[(FILE_FLAG as Record<string, keyof typeof FAMILY_COLOR>)[type] ?? "other"];
 
 /** D12 File preview. D downloads, ⌘↵ opens in a new tab, Esc goes back to the course. */
 export default function DesktopFile({ data }: { data: FileView }) {
@@ -37,7 +40,7 @@ function FilePreview({ file, back, crumb }: { file: NonNullable<FileData["file"]
         </Link>
       )}
       <div className={c.fileHead}>
-        <span className={c.fileFlag} style={{ background: FLAG[file.type] ?? "var(--border-strong)" }} />
+        <span className={c.fileFlag} style={{ background: flagOf(file.type) }} />
         <span className={c.boxText}>
           <span className={c.fileTitle}>{file.title}</span>
           <span className={c.fileMeta}>{file.meta}</span>

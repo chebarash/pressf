@@ -189,10 +189,11 @@
   height: 30px;
   padding: 0 12px;
   background: var(--bg-surface);
-  border: 1.5px solid var(--border-strong);
+  /* Chip S (4007:1257): 2px ink, Key/SM, Label/SM. */
+  border: 2px solid var(--border-strong);
   border-radius: var(--radius-full);
-  box-shadow: 0 2px 0 var(--shadow-key);
-  font: 600 13px/normal var(--font-sans);
+  box-shadow: 0 3px 0 var(--shadow-key);
+  font: 500 13px/1.3 var(--font-sans);
   color: var(--text-primary);
   white-space: nowrap;
   cursor: pointer;

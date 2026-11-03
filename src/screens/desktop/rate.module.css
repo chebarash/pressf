@@ -6,7 +6,7 @@
 .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .esc { appearance: none; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 6px; }
 .esc:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; }
-.title { font: 400 40px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.title { font: 400 40px/1.04 var(--font-serif); margin: 0; }
 .sub { font: 400 13px/normal var(--font-sans); color: var(--text-secondary); }
 .q { display: grid; grid-template-columns: 210px minmax(0, 1fr); align-items: center; gap: 16px; border-radius: 12px; }
 .qLabel { font: 600 15px/normal var(--font-sans); }

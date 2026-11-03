@@ -19,7 +19,7 @@ export function SearchScreen({ data }: { data: SearchData }) {
   return (
     <main data-desktop-screen className={cx(css.screen, x.main)}>
       <form action="/search" className={x.bar} role="search">
-        <Icon name="search" size={22} />
+        <Icon name="search" size={20} />
         <input name="q" defaultValue={data.q} placeholder="Search courses, professors and files" aria-label="Search" autoFocus={!typed} data-key="/" />
         {typed && <span className={x.count}>{data.total} {data.total === 1 ? "result" : "results"}</span>}
       </form>
@@ -35,7 +35,19 @@ export function SearchScreen({ data }: { data: SearchData }) {
 
       {typed && data.groups.length === 0 ? (
         <div className={x.nothing}>
-          <EmptyState title={`Nothing for “${data.q}”`} text={data.suggestion ?? undefined} />
+          <EmptyState
+            className={x.empty}
+            title={`Nothing for “${data.q}”`}
+            text={
+              data.didYouMean ? (
+                <>
+                  Did you mean <Link href={`/search?q=${encodeURIComponent(data.didYouMean)}`} className={x.mean}>{data.didYouMean}</Link>? {data.suggestion}
+                </>
+              ) : (
+                (data.suggestion ?? undefined)
+              )
+            }
+          />
         </div>
       ) : (
         <div className={x.body}>

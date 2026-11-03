@@ -38,7 +38,8 @@ export type TodayData = {
   day: Array<{ time: string; title: string; meta: string; tone: "class" | "next" | "deadline"; href?: string }>;
   /** The red now-line goes before `day[before]`. */
   now: { time: string; before: number } | null;
-  feed: { unread: number; items: FeedItemVM[] };
+  /** `loading`: LMS down with nothing cached (D15 skeletons). */
+  feed: { unread: number; items: FeedItemVM[]; loading?: boolean };
   due: Array<{ title: string; meta: string; status: string; late: boolean; href?: string }>;
   exam: null | { when: string; title: string; meta: string; href?: string };
   courses: CourseCardVM[];
@@ -164,7 +165,8 @@ export type ProgressRow = {
 export type ProgressData = {
   gpa: { value: string; delta: string; note: string; trend: number[] } | null;
   credits: { done: number; total: number; note: string } | null;
-  attendance: { value: string; note: string } | null;
+  /** `low`: the closest course is near its limit; the note turns rust (D6). */
+  attendance: { value: string; note: string; low?: boolean } | null;
   week: { title: string; note: string } | null;
   rows: ProgressRow[];
   open: string | null;
@@ -196,6 +198,8 @@ export type SearchData = {
   groups: Array<{ id: "courses" | "professors" | "files"; label: string; items: SearchItem[] }>;
   previews: Record<string, { eyebrow: string; title: string; strip: Strip; text: string; href: string }>;
   suggestion: string | null;
+  /** Closest course name to a typo, shown as "Did you mean …?" (D17). */
+  didYouMean?: string | null;
 };
 
 export type NextRow = {
