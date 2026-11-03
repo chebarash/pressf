@@ -84,9 +84,10 @@ img, svg { display: block; }
   font: 400 15px/normal var(--font-sans);
   white-space: nowrap;
   overflow: hidden;
+  transition: transform var(--motion-fast) var(--ease-gentle), box-shadow var(--motion-fast) var(--ease-gentle), background-color var(--motion-fast) var(--ease-standard);
 }
 .sh-search svg { color: var(--text-primary); flex-shrink: 0; }
-.sh-search:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow-key); }
+.sh-search:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow-key); transition-duration: var(--motion-press); transition-timing-function: var(--ease-standard); }
 .sh-avatar { width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-full); }
 .sh-avatar img { width: 100%; height: 100%; object-fit: contain; }
 /* Drawn faces in dark mode: no disc, a thin white outline that follows the head (same as the kit Face). */
@@ -190,8 +191,9 @@ img, svg { display: block; }
   font: 600 15px/normal var(--font-sans);
   box-shadow: var(--shadow-key-md);
   white-space: nowrap;
+  transition: transform var(--motion-fast) var(--ease-gentle), box-shadow var(--motion-fast) var(--ease-gentle), background-color var(--motion-fast) var(--ease-standard);
 }
-.sh-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow-key); }
+.sh-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow-key); transition-duration: var(--motion-press); transition-timing-function: var(--ease-standard); }
 .sh-btn--primary { background: var(--bg-accent); color: var(--text-on-accent); }
 .sh-btn--lg { padding: 10px 20px; border-radius: 14px; font: 500 18px/1.3 var(--font-sans); }
 .sh-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
@@ -219,6 +221,8 @@ img, svg { display: block; }
 .sh-logo { display: flex; align-items: center; gap: 10px; }
 .sh-logo img { width: 40px; height: 40px; object-fit: contain; }
 .sh-logo span { font: 400 34px/1.04 var(--font-serif); color: var(--bg-inverse); white-space: nowrap; }
+/* The logo breathes before the search field (20px with the sidebar gap). */
+.sh-sidebar > .sh-logo { margin-bottom: var(--space-4); }
 .sh-sidebar__search {
   display: flex;
   align-items: center;
@@ -322,7 +326,7 @@ img, svg { display: block; }
 }
 
 /* ---------- Overlays ---------- */
-.sh-scrim { position: fixed; inset: 0; z-index: 50; background: var(--scrim); }
+.sh-scrim { position: fixed; inset: 0; z-index: 50; background: var(--scrim); animation: sh-fade var(--motion-base) var(--ease-standard); }
 .sh-sheet {
   position: fixed;
   inset: auto 0 0 0;
@@ -336,15 +340,17 @@ img, svg { display: block; }
   border-bottom: 0;
   border-radius: 24px 24px 0 0;
   background: var(--bg-page);
-  animation: sh-rise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: sh-up var(--motion-sheet) var(--ease-emphasized);
 }
 .sh-sheet:focus, .sh-dialog:focus { outline: none; }
 .sh-sheet__grab { justify-self: center; width: 40px; height: 4px; margin-bottom: 4px; border-radius: 2px; background: var(--border-subtle); }
 .sh-sheet__title { font: 400 34px/1.04 var(--font-serif); }
 .sh-sheet__text { font: 400 14px/1.4 var(--font-sans); color: var(--text-secondary); }
 .sh-sheet__fine { font: 400 12px/1.32 var(--font-sans); color: var(--text-secondary); }
-@keyframes sh-rise { from { transform: translateY(24px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .sh-sheet, .sh-toast, .sh-dialog { animation: none; } }
+@keyframes sh-up { from { transform: translateY(100%); } }
+@keyframes sh-rise { from { transform: translateY(8px); opacity: 0; } }
+@keyframes sh-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sh-scrim, .sh-sheet, .sh-toast, .sh-dialog, .sh-popup { animation: none; } }
 /* The sheet ends where the bottom buttons start. */
 .sh-mobile:has(.sh-bottombar) .sh-sheet, .sh-auth-mobile:has(.sh-bottombar) .sh-sheet { --sh-sheet-bar: 95px; }
 .sh-mobile .sh-bottombar, .sh-auth-mobile .sh-bottombar { z-index: 52; }
@@ -357,7 +363,7 @@ img, svg { display: block; }
   background: var(--bg-surface);
   text-align: center;
   overflow: hidden;
-  animation: sh-pop 0.16s ease-out;
+  animation: sh-pop var(--motion-base) var(--ease-emphasized);
 }
 .sh-popup__body { display: grid; gap: 4px; padding: 16px 16px 16px; }
 .sh-popup__title { font: 600 17px/normal var(--font-sans); }
@@ -365,7 +371,7 @@ img, svg { display: block; }
 .sh-popup__actions { display: flex; border-top: 1px solid var(--border-subtle); margin-top: 10px; }
 .sh-popup__actions button { flex: 1; height: 44px; font: 500 16px/normal var(--font-sans); color: var(--text-accent); }
 .sh-popup__actions button[data-type="destructive"] { color: var(--rating-low); font-weight: 600; }
-@keyframes sh-pop { from { transform: scale(0.96); opacity: 0; } }
+@keyframes sh-pop { from { transform: scale(0.98); opacity: 0; } }
 
 .sh-dialog {
   display: flex;
@@ -376,7 +382,7 @@ img, svg { display: block; }
   border-radius: var(--radius-lg);
   background: var(--bg-page);
   box-shadow: var(--shadow-float-lg);
-  animation: sh-pop 0.16s ease-out;
+  animation: sh-pop var(--motion-base) var(--ease-emphasized);
 }
 
 /* ---------- Toast (1.11, D20) ---------- */
@@ -394,7 +400,7 @@ img, svg { display: block; }
   background: var(--bg-inverse);
   color: var(--text-inverse);
   font: 500 14px/1.4 var(--font-sans);
-  animation: sh-rise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: sh-rise var(--motion-base) var(--ease-emphasized);
 }
 .sh-toast p { flex: 1; }
 /* 1.11 hand-off toast on the phone: 13px Medium, 1.32. */
@@ -468,7 +474,7 @@ img, svg { display: block; }
 .sh-signin__actions .sh-btn { height: 48px; padding: 0 24px; border-width: 2px; border-radius: var(--radius-md); box-shadow: 0 5px 0 var(--shadow-key); font: 500 18px/1.3 var(--font-sans); }
 /* D10: Key/LG on hover — the cap lifts to an 8px shadow (Figma Button hover). */
 @media (hover: hover) { .sh-signin__actions .sh-btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 8px 0 var(--shadow-key); } }
-.sh-signin__actions .sh-btn:active { transform: translateY(5px); box-shadow: none; }
+.sh-signin__actions .sh-btn:active { transform: translateY(5px); box-shadow: none; transition-duration: var(--motion-press); transition-timing-function: var(--ease-standard); }
 .sh-signin__guest { display: flex; justify-content: center; align-items: center; gap: 6px; font: 400 13px/normal var(--font-sans); color: var(--text-secondary); }
 .sh-signin__guest .sh-link { display: inline-flex; align-items: center; gap: 4px; }
 .sh-signin--card .sh-sheet__fine { font-size: 11px; }
@@ -545,3 +551,30 @@ img, svg { display: block; }
 .sh-welcome__form { display: grid; place-items: center; padding: 48px 24px; }
 .sh-welcome__card { width: min(420px, 100%); padding: 28px 28px 24px; border: 2px solid var(--border-strong); border-radius: 24px; background: var(--bg-surface); box-shadow: var(--shadow-float-lg); }
 @media (max-width: 1024px) { .sh-welcome { grid-template-columns: 1fr; } .sh-welcome__pitch { padding: 48px 32px; } }
+
+/* ---------- Motion ----------
+   Durations and curves are tokens (tokens.css: --motion-*, --ease-*); under
+   prefers-reduced-motion every duration is 0. Only transform and opacity move. */
+
+/* Page change (PageTransition): the screen fades on mobile and lifts 6px; on
+   desktop the pane cross-fades in place, so the list beside it stays still. The
+   rest of the page is never captured, and input passes through at once. */
+:root { view-transition-name: none; }
+::view-transition { pointer-events: none; }
+::view-transition-group(.pf-screen),
+::view-transition-group(.pf-pane) { animation-duration: var(--motion-base); animation-timing-function: var(--ease-standard); }
+::view-transition-old(.pf-screen) { animation: pf-out var(--motion-fast) var(--ease-exit) both; }
+::view-transition-new(.pf-screen) { animation: pf-in var(--motion-base) var(--ease-standard) both; }
+::view-transition-old(.pf-pane) { animation: pf-out var(--motion-base) var(--ease-standard) both; }
+::view-transition-new(.pf-pane) { animation: pf-fade var(--motion-base) var(--ease-standard) both; }
+@keyframes pf-out { to { opacity: 0; } }
+@keyframes pf-fade { from { opacity: 0; } }
+@keyframes pf-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+/* Lists on the first paint only: the boot script marks <html data-enter> until the
+   page has loaded, and the first eight rows of a list (card.module.css, desktop
+   parts) rise in 10 ms apart, 190 ms in all. Client navigation, back and
+   re-renders never stagger: the data is already there. */

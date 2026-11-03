@@ -266,7 +266,7 @@ a.entry { color: inherit; text-decoration: none; }
   background: var(--bg-sunken);
   appearance: none;
   cursor: pointer;
-  transition: background-color 150ms;
+  transition: background-color var(--motion-fast) var(--ease-standard);
 }
 .toggle::after {
   content: "";
@@ -278,7 +278,7 @@ a.entry { color: inherit; text-decoration: none; }
   border: 1.5px solid var(--border-strong);
   border-radius: 50%;
   background: var(--bg-surface);
-  transition: transform 150ms;
+  transition: transform var(--motion-fast) var(--ease-gentle);
 }
 .toggle:checked { background: var(--bg-accent); }
 .toggle:checked::after { transform: translateX(20px); }

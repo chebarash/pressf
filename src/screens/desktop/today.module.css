@@ -10,7 +10,11 @@
 .side { display: flex; flex-direction: column; gap: var(--space-4); }
 
 /* Next class */
-.next { background: var(--bg-accent-soft); justify-content: space-between; gap: 0; }
+/* Label, title and time line read as one block; materials and the button sit below with room. */
+.next { background: var(--bg-accent-soft); gap: var(--space-2); padding: var(--space-5) var(--space-6) var(--space-6); }
+.next .nextTitle { margin-top: var(--space-1); }
+.next .nextLine { margin-bottom: var(--space-2); }
+.next .actions { margin-top: auto; padding-top: var(--space-3); }
 .nextLabel { display: flex; align-items: center; gap: var(--space-2); font: 600 12px/normal var(--font-sans); color: var(--text-accent); text-transform: uppercase; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bg-accent); flex: none; }
 .nextTitle { font: 400 56px/1.04 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); margin: 0; }

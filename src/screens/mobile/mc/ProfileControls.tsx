@@ -144,8 +144,8 @@ export function AlertSwitch({ name, label, hint, on }: { name: string; label: st
       description={hint}
       checked={value}
       onChange={(e) => {
+        // The switch tick comes from the Telegram bridge (every role="switch").
         const next = e.target.checked;
-        haptic.select();
         start(async () => {
           setValue(next);
           await setAlert(name, next);
