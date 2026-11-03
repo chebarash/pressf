@@ -378,7 +378,9 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
       ? null
       : you.status === "took"
         ? { canRate: !!waitingHere || !!rated, rated: !!rated, term: waitingHere?.term ?? rated?.term ?? you.term, href: `/rate/${taken.subjectId}`, answers: rated?.answers ?? null, opensIn: null }
-        : nowRate(taken.subjectId, rated, queue),
+        : (pub.teachersByCourse[taken.subjectId] ?? []).length
+          ? nowRate(taken.subjectId, rated, queue)
+          : null, // no teachers (internship, graduation project): nothing to rate
   };
 }
 
