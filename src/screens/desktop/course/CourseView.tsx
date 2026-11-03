@@ -254,10 +254,8 @@ function CourseInspector({ data }: { data: CourseData }) {
           <Hint>R</Hint>
         </div>
       ) : data.rate?.opensIn ? (
-        <div className={c.rate}>
-          <Button disabled>{data.rate.label}</Button>
-          <span className={c.boxMeta}>Opens in week {data.rate.opensIn}</span>
-        </div>
+        // Not a button before the window opens: only when it will be possible.
+        <p className={c.boxMeta}>You can rate this course from week {data.rate.opensIn}.</p>
       ) : null}
     </aside>
   );
