@@ -184,6 +184,8 @@ export type AssignmentsView = {
   waiting: DeadlineView[];
   graded: DeadlineView[];
   missed: DeadlineView[];
+  /** Course progress page per homework course name (the rows' chevron, Figma 5.4). */
+  courseHref?: Record<string, string>;
 };
 
 /** Figma 5.4: assignments by state, from the LMS homework list. */
@@ -194,7 +196,13 @@ export async function assignments(userId: string, now = new Date()): Promise<Ass
   const open = list.filter((d) => (d.status === "todo" || d.status === "in-progress") && d.due >= now);
   const week = now.getTime() + 7 * DAY_MS;
   const view = (xs: typeof list) => xs.map((d) => deadlineView(d, now));
+  const courseHref: Record<string, string> = {};
+  for (const d of list) {
+    const c = student.sync.courses.find((x) => sameCourse(x.name, d.course));
+    if (c) courseHref[d.course] = `/progress/${c.subjectId}`;
+  }
   return {
+    courseHref,
     state: student.state,
     dueThisWeek: view(open.filter((d) => d.due.getTime() <= week)),
     later: view(open.filter((d) => d.due.getTime() > week)),

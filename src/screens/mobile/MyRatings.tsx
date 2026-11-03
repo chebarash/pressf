@@ -12,7 +12,7 @@ export default function MyRatings({ data }: { data: RateQueueView }) {
   return (
     <Screen>
       <div className={cx(s.body, s.tight)}>
-        <h1 className={cx(s.title, "t-mobile-title")}>My ratings</h1>
+        <h1 className={s.title54}>My ratings</h1>
         <p className={cx(s.p0, s.t14, s.soft)} style={{ lineHeight: 1.4 }}>
           Only you can see this. Edit until the end of next semester.
         </p>
@@ -38,12 +38,12 @@ function Row({ href, title, line, action, strong }: { href: string | null; title
   const body = (
     <>
       <div className={s.lines}>
-        <p className={s.t16sb}>{title}</p>
+        <p className={s.t15sb}>{title}</p>
         <p className={cx(s.t12, s.soft)} style={{ lineHeight: 1.32 }}>
           {line}
         </p>
       </div>
-      {action ? <span className={cx(s.t15sb, strong ? s.accentText : s.soft)}>{action}</span> : null}
+      {action ? <span className={cx(s.t14sb, strong ? s.accentText : s.soft)}>{action}</span> : null}
     </>
   );
   const cls = cx(s.rowCard, !strong && s.quiet, href && s.pressable);

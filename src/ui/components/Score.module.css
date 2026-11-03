@@ -4,8 +4,9 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  border: 1.5px solid var(--border-strong);
-  box-shadow: var(--shadow-key-md);
+  /* Base component: 2px ink border, Key/MD 0 5px (Figma 4008:1056). */
+  border: 2px solid var(--border-strong);
+  box-shadow: 0 5px 0 var(--shadow-key);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }

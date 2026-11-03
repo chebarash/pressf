@@ -31,6 +31,7 @@
 .t15sb { font-size: 15px; font-weight: 600; line-height: normal; }
 .t15m { font-size: 15px; font-weight: 500; line-height: normal; }
 .t14 { font-size: 14px; font-weight: 400; line-height: normal; }
+.t14sb { font-size: 14px; font-weight: 600; line-height: normal; }
 .t13sb { font-size: 13px; font-weight: 600; line-height: normal; }
 .t13m { font-size: 13px; font-weight: 500; line-height: normal; }
 .t13 { font-size: 13px; font-weight: 400; line-height: normal; }
@@ -106,7 +107,8 @@
 .absRow p { margin: 0; }
 .bar { position: relative; height: 8px; border-radius: 4px; background: var(--border-subtle); overflow: hidden; }
 .fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--bg-accent); }
-.fillLow { background: var(--rating-mid); }
+/* Figma uses the mustard-500 primitive here, the same in both themes. */
+.fillLow { background: var(--mustard-500); }
 .fillDanger { background: var(--bg-danger); }
 
 /* Status pills (Attended / Absent / Excused). */

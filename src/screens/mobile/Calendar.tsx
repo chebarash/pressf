@@ -9,7 +9,7 @@ import c from "./mc/screens.module.css";
 const NOUN: Record<CalLayer, string> = { classes: "classes", exams: "exams", deadlines: "deadlines", holidays: "holidays", registration: "registration windows" };
 
 /** Mobile Calendar (Figma 6.1, 6.2 nothing in these layers, 6.3 added to phone). Layers live in ?layers=. */
-export default function Calendar({ data }: { data: CalendarView }) {
+export default function Calendar({ data, subscribed }: { data: CalendarView; /** Dev preview of 6.3: open with the toast showing. */ subscribed?: boolean }) {
   const on = data.layers.filter((l) => l.on).map((l) => l.id);
   return (
     <Screen>
@@ -40,7 +40,8 @@ export default function Calendar({ data }: { data: CalendarView }) {
             text={`${data.empty.text === "Nothing coming up in these layers." ? "" : `${data.empty.text} `}Turn other layers back on to see classes and exams.`}
           />
         ) : null}
-        <Subscribe href={data.icsHref} />
+        {/* 6.2 has no subscribe button under the empty state. */}
+        {data.empty ? null : <Subscribe href={data.icsHref} subscribed={subscribed} />}
       </div>
     </Screen>
   );
