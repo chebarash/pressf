@@ -173,6 +173,17 @@ describe("old faces", () => {
     expect((await db().select().from(faces)).map((f) => f.teacherId)).toEqual(["T2"]);
   });
 
+  it("gives one drawing to the same person kept twice in the LMS", async () => {
+    await db().insert(lmsTeachers).values([
+      { id: "M1", firstName: "Mubina", surName: "Pirmuxamedova" }, { id: "M2", firstName: "Mubina", surName: "Pirmuxamedova" },
+      { id: "F1", firstName: "Fakhriddin", surName: "Tojiboev" }, { id: "F2", firstName: "Faxriddin", surName: "Tojiboev" },
+    ]);
+    await oldCatalog([{ id: "m-p", display_name: "Pirmuxamedova Mubina Abduvali" }, { id: "f-t", display_name: "Tojiboyev Faxriddin Abduqodir" }]);
+    await db().insert(faces).values([{ teacherId: "m-p", storageKey: "faces/m.png" }, { teacherId: "f-t", storageKey: "faces/f.png" }]);
+    expect(await transferOldFaces()).toMatchObject({ moved: 2, waiting: 0 });
+    expect((await db().select().from(faces)).map((f) => `${f.teacherId}:${f.storageKey}`).sort()).toEqual(["F1:faces/f.png", "F2:faces/f.png", "M1:faces/m.png", "M2:faces/m.png"]);
+  });
+
   it("leaves two old faces wanting one professor for the admin", async () => {
     await oldCatalog([{ id: "a", display_name: "Emily Carter" }, { id: "b", display_name: "Carter Emily" }]);
     await db().insert(faces).values([{ teacherId: "a", storageKey: "faces/a.png" }, { teacherId: "b", storageKey: "faces/b.png" }]);
