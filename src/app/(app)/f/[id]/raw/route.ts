@@ -4,7 +4,7 @@ import { deliverUrl, downloadAllowed, fileSource } from "@/server/covers/source"
 /**
  * The same bytes as /download (the branded copy, else the original), served
  * from our origin for the in-page PDF viewer: pdf.js fetches the file from
- * script, and the bucket gives no CORS headers. Same access as /download —
+ * script, which needs CORS on a cross-origin bucket URL; same origin needs none. Same access as /download —
  * session cookie or the signed link. The body is piped, never buffered.
  */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
