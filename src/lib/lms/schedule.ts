@@ -4,6 +4,7 @@ import { lmsCourses, lmsTeachers } from "@/lib/db/schema";
 import { scheduleList } from "@/lib/lms/client";
 import { sessionFor } from "@/lib/lms/store";
 import type { Lesson } from "@/lib/catalog/types";
+import { kindOf } from "@/core/agenda";
 
 /**
  * The signed-in student's own weekly timetable, read live from the LMS. The LMS
@@ -51,16 +52,18 @@ export async function studentTimetable(userId: string): Promise<Lesson[] | null>
   // The LMS splits one class into consecutive hour-long entries. Collect the
   // distinct pieces per weekday+course+teacher, then merge back-to-back ones
   // into a single session spanning the whole time.
-  type Piece = { day: number; code: string; subject: string; teacher: string | null; teacher_name: string | null; room: string | null; startMin: number; endMin: number; starts: string; ends: string };
+  type Piece = { day: number; code: string; subject: string; kind: Lesson["kind"]; teacher: string | null; teacher_name: string | null; room: string | null; startMin: number; endMin: number; starts: string; ends: string };
   const byClass = new Map<string, Map<string, Piece>>();
   for (const e of events) {
     const c = course.get(e.subject_id!);
     if (!c) continue;
     const start = at(Number(e.begin_time));
     const end = e.end_time ? at(Number(e.end_time)) : null;
-    const groupKey = `${start.day}|${c.code}|${e.employee_id ?? ""}`;
+    // The class type keeps a lecture and the lab after it apart, even with the same teacher.
+    const kind = kindOf((e as { subjectType?: { name?: string } | null }).subjectType?.name);
+    const groupKey = `${start.day}|${c.code}|${e.employee_id ?? ""}|${kind}`;
     const piece: Piece = {
-      day: start.day, code: c.code, subject: c.name,
+      day: start.day, code: c.code, subject: c.name, kind,
       teacher: e.employee_id ?? null, teacher_name: e.employee_id ? teacher.get(e.employee_id) ?? null : null,
       room: roomOf(e.auditorium), startMin: start.min, endMin: end?.min ?? start.min, starts: start.time, ends: end?.time ?? "",
     };
@@ -72,7 +75,7 @@ export async function studentTimetable(userId: string): Promise<Lesson[] | null>
   for (const pieces of byClass.values()) {
     const sorted = [...pieces.values()].sort((a, b) => a.startMin - b.startMin);
     let run: Piece | null = null;
-    const flush = () => { if (run) lessons.push({ class: "", day: run.day, starts: run.starts, ends: run.ends, subject: run.subject, code: run.code, teacher: run.teacher, teacher_name: run.teacher_name, room: run.room }); };
+    const flush = () => { if (run) lessons.push({ class: "", day: run.day, starts: run.starts, ends: run.ends, subject: run.subject, code: run.code, kind: run.kind, teacher: run.teacher, teacher_name: run.teacher_name, room: run.room }); };
     for (const p of sorted) {
       if (run && p.startMin - run.endMin <= MERGE_GAP_MIN) {
         if (p.endMin > run.endMin) { run.endMin = p.endMin; run.ends = p.ends; }

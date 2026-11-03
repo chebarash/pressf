@@ -159,8 +159,15 @@
     {
       "idx": 22,
       "version": "7",
-      "when": 1793739168207,
-      "tag": "0022_newuu_profiles",
+      "when": 1793738707466,
+      "tag": "0022_drop_old_version_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793739713399,
+      "tag": "0023_newuu_profiles",
       "breakpoints": true
     }
   ]

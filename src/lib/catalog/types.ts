@@ -33,6 +33,8 @@ export type Lesson = {
   teacher: string | null;
   teacher_name: string | null;
   room: string | null;
+  /** Lecture, lab, practice… from the LMS class type; absent in caches written before it was kept. */
+  kind?: "lecture" | "lab" | "practice" | "exam" | "other";
 };
 
 export type Program = { slug: string; name: string; degree: string };
