@@ -170,7 +170,7 @@ export function scheduleClasses(days: LmsScheduleDay[], previous: SyncedClass[])
     seen.add(key);
     const room = roomOf(e.auditorium);
     const prior = before.get(`${e.subject_id}|${lessonId ?? start.toISOString()}`);
-    const moved = prior && prior.start === start.toISOString() && (prior.room ?? "") !== (room ?? "") ? prior.room : prior && prior.start !== start.toISOString() ? clock(new Date(prior.start)) : null;
+    const moved = prior && prior.start === start.toISOString() && !sameRoom(prior.room, room) ? prior.room : prior && prior.start !== start.toISOString() ? clock(new Date(prior.start)) : null;
     const type = typeof e.lesson_type === "string" ? e.lesson_type : e.lesson_type?.name;
     out.push({
       subjectId: String(e.subject_id), start: start.toISOString(), end: end.toISOString(), room, teacherId: e.employee_id ?? null, lessonId,
@@ -284,6 +284,19 @@ export function historyAlerts(courses: SyncedCourse[], now: Date, named: Named):
   return out;
 }
 
+/**
+ * The same room however it is written: "306" (older syncs) and "MATH 306" (with
+ * the building) are one room, so a change of format never reads as a move.
+ */
+export function sameRoom(a: string | null | undefined, b: string | null | undefined) {
+  const bare = (r: string | null | undefined) => (r ?? "").trim().toUpperCase().split(/\s+/).pop() ?? "";
+  const x = (a ?? "").trim().toUpperCase();
+  const y = (b ?? "").trim().toUpperCase();
+  if (x === y) return true;
+  // One side lacks the building: compare the room numbers.
+  return (!x.includes(" ") || !y.includes(" ")) && bare(x) === bare(y);
+}
+
 /** Upcoming classes (next 2 days) whose room or time changed since the last sync. */
 export function roomAlerts(classes: SyncedClass[], prev: SyncedClass[], now: Date, named: Named): Alert[] {
   const today = localDay(now);
@@ -292,7 +305,7 @@ export function roomAlerts(classes: SyncedClass[], prev: SyncedClass[], now: Dat
     .filter((c) => c.was && new Date(c.start) > now && localDay(new Date(c.start)) <= addDays(today, 1))
     .filter((c) => {
       const p = was.get(`${c.subjectId}|${c.lessonId ?? c.start}`);
-      return !p || p.room !== c.room || p.start !== c.start; // only the run that sees the move
+      return !p || !sameRoom(p.room, c.room) || p.start !== c.start; // only the run that sees the move
     })
     .map((c) => {
       const start = new Date(c.start);

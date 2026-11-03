@@ -211,6 +211,13 @@
       "when": 1793746966666,
       "tag": "0029_syllabus_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793747432703,
+      "tag": "0030_reset_schedules_room_alerts",
+      "breakpoints": true
     }
   ]
 }
