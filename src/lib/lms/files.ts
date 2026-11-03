@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import { lmsDate } from "@/lib/lms/semesters";
 import { db } from "@/lib/db";
@@ -65,16 +65,21 @@ async function parseSyllabus(session: LmsSession, code: string, materials: Array
   if (!env().ANTHROPIC_API_KEY) return;
   const hit = materials.find(({ m }) => /syllab/i.test(m.name) && m.file_extension?.toLowerCase() === "pdf" && m.fileFullUrl);
   if (!hit) return;
-  const [already] = await db().select({ id: syllabi.id }).from(syllabi).where(eq(syllabi.sourceName, hit.m.name));
+  // Keyed by the LMS file, not its name: many courses call theirs "Syllabus.pdf".
+  const source = `lms:${hit.m.id}`;
+  const [already] = await db().select({ id: syllabi.id }).from(syllabi).where(or(eq(syllabi.sourceName, source), and(eq(syllabi.sourceName, hit.m.name), eq(syllabi.courseCode, code))));
   if (already) return;
   try {
     const { bytes } = await downloadFile(session, hit.m.fileFullUrl!);
     const { is_syllabus: _ignored, ...data } = await extractSyllabus(bytes);
     const { courses } = await getCatalog();
+    // The file sits on this course's LMS page, so it is this course's syllabus. A
+    // document naming another course (a shared or copied syllabus) is kept but flagged.
     const found = findSyllabusCourse(data, courses);
+    const flags = syllabusFlags(data, courses);
     await db().insert(syllabi).values({
-      courseCode: found ?? code, sourceName: hit.m.name, data,
-      flags: syllabusFlags(data, courses), matched: found !== null,
+      courseCode: code, sourceName: source, data,
+      flags: found && found !== code ? [...flags, `names ${found}`] : flags, matched: true,
     }).onConflictDoNothing();
   } catch (error) {
     console.error("Could not parse LMS syllabus", error);

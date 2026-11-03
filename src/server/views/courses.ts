@@ -12,7 +12,6 @@ import { lmsCourseTeachers, lmsCourses, lmsFiles, lmsSemesters, uploads, userSta
 import { termName } from "@/server/sync/types";
 import { describeFile, downloadName, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
 import { shownAs } from "@/core/uploads";
-import { signedUrl } from "@/lib/storage";
 import { downloadLink } from "@/server/covers/source";
 import { shortDate } from "@/core/time";
 import { DECISION_TAGS, fileOverride, overlay } from "@/server/decisions";
@@ -428,15 +427,6 @@ export type FileView =
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function sign(key: string | null, name: string) {
-  if (!key) return null;
-  try {
-    return await signedUrl(key, name);
-  } catch {
-    return null;
-  }
-}
-
 /** D12 beside a file: the course's lecturer and the other files of the same week (signed-in only). */
 async function fileContext(code: string, courseId: string, week: number | null, id: string) {
   const [links, files] = await Promise.all([
@@ -469,7 +459,9 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
     const type = (u.type as FileType) ?? "other";
     const ext = meta.format === "other" ? "" : u.fileName.match(/\.([A-Za-z0-9]{1,5})$/)?.[1] ?? "";
     const name = downloadName(u.title, course.name, meta.format, ext);
-    const [url, ctx, around] = await Promise.all([sign(u.storageKey, name), fileContext(course.code, u.courseId, u.week, id), fileCourse(course.code, viewer)]);
+    // Preview, "Open in new tab" and Download all go through /f/<id>/download: the copy with the Press F cover.
+    const url = u.storageKey ? downloadLink(id) : null;
+    const [ctx, around] = await Promise.all([fileContext(course.code, u.courseId, u.week, id), fileCourse(course.code, viewer)]);
     return {
       ...ctx,
       ...around,
@@ -488,7 +480,8 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
   const shown = overlay({ title: meta.title, type: meta.type, week: meta.week ?? lessonWeek }, edit)!;
   const name = downloadName(shown.title, course.name, meta.format, f.extension ?? "");
   const week = shown.week;
-  const [url, ctx, around] = await Promise.all([sign(f.storageKey, name), fileContext(f.code, f.courseId, week, id), fileCourse(f.code, viewer)]);
+  const url = f.storageKey ? downloadLink(id) : null;
+  const [ctx, around] = await Promise.all([fileContext(f.code, f.courseId, week, id), fileCourse(f.code, viewer)]);
   return {
     ...ctx,
     ...around,
