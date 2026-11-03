@@ -16,7 +16,7 @@
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 80ms ease-out, box-shadow 80ms ease-out, background-color 120ms;
+  transition: transform var(--motion-fast) var(--ease-gentle), box-shadow var(--motion-fast) var(--ease-gentle), background-color var(--motion-fast) var(--ease-standard);
 }
 .s { height: 36px; padding: 0 var(--space-4); }
 
@@ -44,7 +44,7 @@
 .ghost[data-state="hover"] { background: var(--bg-accent-soft); }
 
 .btn:not(.ghost):active:not(:disabled, [aria-disabled="true"]),
-.btn:not(.ghost)[data-state="pressed"] { transform: translateY(3px); box-shadow: none; }
+.btn:not(.ghost)[data-state="pressed"] { transform: translateY(3px); box-shadow: none; transition-duration: var(--motion-press); transition-timing-function: var(--ease-standard); }
 
 .btn:focus-visible,
 .btn[data-state="focus"] {

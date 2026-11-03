@@ -5,8 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { parseStartParam, path as pathFor } from "@/core/links";
 import { usePlatform } from "./hooks";
+import { haptic } from "./native";
 import { backButton, mainButton, secondaryButton, telegramReady, type BottomButton } from "./store";
 import { token, whenWebApp, type NativeBottomButton, type WebApp } from "./telegram";
+
+/** Controls that tick under the finger in the Mini App (see the click listener below). */
+const HAPTIC_TARGET = '[data-haptic], [role="switch"], [role="tab"], [aria-pressed], [aria-expanded], button[type="submit"]';
+const HAPTIC_QUIET = ':disabled, [aria-disabled="true"], [aria-current="page"], [aria-current="true"], [aria-selected="true"]';
 
 /** Paints Telegram's chrome in our page colour and follows its theme. */
 function paint(app: WebApp) {
@@ -57,7 +62,11 @@ function syncButton(native: NativeBottomButton | undefined, button: BottomButton
   });
   if (button.loading) native.showProgress(false);
   else native.hideProgress();
-  const click = () => { if (!button.loading && enabled) button.onClick(); };
+  const click = () => {
+    if (button.loading || !enabled) return;
+    haptic.impact("light");
+    button.onClick();
+  };
   native.onClick(click);
   last.current = click;
 }
@@ -132,6 +141,18 @@ export function TelegramBridge() {
       };
       document.addEventListener("click", onClick, true);
       cleanups.push(() => document.removeEventListener("click", onClick, true));
+
+      // Haptics, Mini App only: a selection tick on tabs, chips, switches and toggles,
+      // a light tap on submit buttons. Already-selected and disabled controls stay quiet.
+      const onTap = (event: MouseEvent) => {
+        const el = (event.target as Element | null)?.closest?.(HAPTIC_TARGET);
+        if (!el || el.matches(HAPTIC_QUIET)) return;
+        const kind = el.getAttribute("data-haptic") ?? (el.matches('button[type="submit"]') ? "impact" : "select");
+        if (kind === "impact") haptic.impact("light");
+        else haptic.select();
+      };
+      document.addEventListener("click", onTap, true);
+      cleanups.push(() => document.removeEventListener("click", onTap, true));
 
       // startapp=… → the matching page (once per launch).
       const start = parseStartParam(app.initDataUnsafe?.start_param);

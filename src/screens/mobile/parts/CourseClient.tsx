@@ -5,7 +5,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { byWeek } from "@/core/files";
 import { openTelegramLink } from "@/platform/client";
-import { Chip, cx, Tag } from "@/ui/components";
+import { Chip, Collapse, cx, Tag } from "@/ui/components";
 import { Sheet } from "@/ui/shell/overlays";
 import { CalendarIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon } from "@/ui/icons";
 import b from "./base.module.css";
@@ -78,8 +78,8 @@ export function WeekList({ weeks: all, filesHref, filesTotal, extra, teachingWee
               <span className={s.weekTopic}>{w.topic ?? (w.files.length ? `${w.files.length} ${w.files.length === 1 ? "file" : "files"}` : "No topic listed")}</span>
               {w.current ? <Tag tone="dark">This week</Tag> : <ChevronDownIcon size={18} />}
             </button>
-            {isOpen ? (
-              w.files.length ? (
+            <Collapse open={isOpen}>
+              {w.files.length ? (
                 <div className={s.weekFiles}>
                   {w.files.map((f) => (
                     <FileItemRow key={f.id} file={f} />
@@ -87,8 +87,8 @@ export function WeekList({ weeks: all, filesHref, filesTotal, extra, teachingWee
                 </div>
               ) : (
                 <p className={s.weekEmpty}>No files for this week yet.</p>
-              )
-            ) : null}
+              )}
+            </Collapse>
           </div>
         );
       })}

@@ -84,6 +84,26 @@
   --shadow-key-md: 0 3px 0 var(--shadow-key);
   --shadow-key-lg: 0 4px 0 var(--shadow-key);
   --shadow-float-lg: 0 6px 0 var(--shadow-key);
+  --motion-press: 80ms;
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 240ms;
+  --motion-sheet: 280ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-gentle: cubic-bezier(0.34, 1.32, 0.64, 1);
+}
+
+/* Reduced motion: every duration token is zero, so transitions and animations built on them end at once. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-press: 0ms;
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+    --motion-sheet: 0ms;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
