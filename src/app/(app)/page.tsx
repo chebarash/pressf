@@ -17,6 +17,6 @@ export default async function TodayPage() {
   const [user, platform] = await Promise.all([getUser(), getPlatform()]);
   const data: TodayData = (user && (await views.today(user.id))) || (await guest());
   if (isMobile(platform)) return <MobileToday data={data} />;
-  // Desktop Today takes a student's view; guests get the hero.
+  // Desktop Today takes the student view only; guests get the public hero.
   return "guest" in data ? <GuestHero /> : <DesktopToday data={data} />;
 }
