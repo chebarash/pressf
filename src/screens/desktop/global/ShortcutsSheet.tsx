@@ -24,7 +24,6 @@ const COLUMNS: Array<{ title: string; rows: Array<[string, string[]]> }> = [
       ["Move in lists", ["J", "K"]],
       ["Open", ["↵"]],
       ["Rate this course", ["R"]],
-      ["Got it", ["E"]],
       ["Previous / next week", ["←", "→"]],
       ["Jump to today", ["T"]],
     ],

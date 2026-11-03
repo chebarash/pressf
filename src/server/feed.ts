@@ -30,11 +30,12 @@ export async function feed(userId: string, limit = 100): Promise<FeedItem[]> {
   return rows.map((r) => ({ id: r.id, kind: r.kind as FeedItem["kind"], title: r.title, body: r.body ?? undefined, courseId: r.courseId ?? undefined, courseName: r.courseName ?? undefined, author: r.author ?? undefined, href: r.href ?? undefined, at: r.at, read: r.read, needsAck: r.needsAck }));
 }
 
-export async function markRead(userId: string, ids: string[], acknowledge = false) {
+/** Reads items. `needsAck` stays: read + needsAck means the student confirmed it. */
+export async function markRead(userId: string, ids: string[]) {
   if (!ids.length) return;
   await db()
     .update(feedItems)
-    .set({ read: true, ...(acknowledge ? { needsAck: false } : {}) })
+    .set({ read: true })
     .where(and(eq(feedItems.userId, userId), inArray(feedItems.id, ids)));
 }
 

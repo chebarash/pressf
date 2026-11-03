@@ -7,7 +7,7 @@ import { getUser } from "@/lib/auth";
 import { activateQr, LmsError } from "@/lib/lms/client";
 import { sessionFor } from "@/lib/lms/store";
 import { dismissAsk } from "@/server/ratings";
-import { acknowledge, markAllRead, readNotification } from "@/server/sync/actions";
+import { markAllRead, readNotification } from "@/server/sync/actions";
 import { syncNowFor } from "@/server/sync/manual";
 import { courseAttendance } from "@/server/views/progress";
 
@@ -30,30 +30,23 @@ const refresh = () => {
 
 const cleanId = (id: unknown) => (typeof id === "string" && id.length > 0 && id.length < 200 ? id : null);
 
-/** Opening a notification: read here and in the LMS, after the response is sent. */
+/**
+ * Opening a notification: read here at once, and in the LMS after the response
+ * (with the acknowledgement, when the LMS asked the student to confirm it).
+ */
 export async function markFeedRead(id: string) {
   const user = await student();
   const clean = cleanId(id);
   if (!clean) return;
-  after(() => readNotification(user.id, clean).catch(() => {}));
+  await readNotification(user.id, clean, { later: after }).catch(() => {});
   refresh();
 }
 
-/** "Mark all read" (items waiting for "Got it" stay). */
+/** "Mark all read" (announcements the LMS wants confirmed stay until opened). */
 export async function markAllFeedRead() {
   const user = await student();
   await markAllRead(user.id);
   refresh();
-}
-
-/** "Got it": read, and the acknowledgement the LMS asked for. */
-export async function acknowledgeFeed(id: string): Promise<{ ok: boolean }> {
-  const user = await student();
-  const clean = cleanId(id);
-  if (!clean) return { ok: false };
-  const { lms } = await acknowledge(user.id, clean);
-  refresh();
-  return { ok: lms > 0 || !clean.startsWith("lms:") };
 }
 
 export async function dismissRating(term: string) {

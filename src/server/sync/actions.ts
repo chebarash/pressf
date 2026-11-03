@@ -30,21 +30,34 @@ async function toLms(userId: string, ids: string[], call: typeof lmsMarkRead) {
   return done;
 }
 
-/** Opening a notification marks it read here and in the LMS. */
-export async function readNotification(userId: string, id: string) {
+/**
+ * Opening a notification reads it, here and in the LMS. When the LMS asked the
+ * student to confirm it (`needsAck`), opening is the confirmation: the LMS gets
+ * the acknowledgement too, and our row keeps `needsAck` so the screen can say
+ * "Acknowledged" (read + needsAck = confirmed). No "Got it" needed.
+ */
+export async function readNotification(userId: string, id: string, opts: { later?: (task: () => Promise<unknown>) => void } = {}) {
+  const [row] = await db().select({ read: feedItems.read, needsAck: feedItems.needsAck }).from(feedItems).where(and(eq(feedItems.userId, userId), eq(feedItems.id, id)));
+  // Unknown or already read: nothing to write (reopening never calls the LMS again).
+  if (!row || row.read) return { lms: 0 };
   await markRead(userId, [id]);
-  return { lms: await toLms(userId, [id], lmsMarkRead) };
+  const writeBack = async () => {
+    const read = await toLms(userId, [id], lmsMarkRead);
+    if (!row.needsAck) return read;
+    return Math.min(read, await toLms(userId, [id], lmsAcknowledge));
+  };
+  // Screens pass `after`: our copy is read before the response, the LMS after it.
+  if (opts.later) {
+    opts.later(() => writeBack().catch(() => 0));
+    return { lms: 0 };
+  }
+  return { lms: await writeBack() };
 }
 
-/** "Got it" on an announcement the teacher asked to confirm (Figma 2.10). */
-export async function acknowledge(userId: string, id: string) {
-  await markRead(userId, [id], true);
-  const read = await toLms(userId, [id], lmsMarkRead);
-  const acked = await toLms(userId, [id], lmsAcknowledge);
-  return { lms: Math.min(read, acked) };
-}
+/** The old "Got it": the same as opening it. */
+export const acknowledge = readNotification;
 
-/** "Mark all read". Items that need an acknowledgement stay until "Got it". */
+/** "Mark all read". Announcements the LMS wants confirmed stay unread until they are opened. */
 export async function markAllRead(userId: string) {
   const rows = await db().select({ id: feedItems.id }).from(feedItems).where(and(eq(feedItems.userId, userId), eq(feedItems.read, false), eq(feedItems.needsAck, false)));
   const ids = rows.map((r) => r.id);

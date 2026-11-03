@@ -1,10 +1,12 @@
 name: Student sync and reminders
 
-# Keeps every student's LMS data fresh in the background (pages never call the
-# LMS) and sends the bot reminders. GitHub may start scheduled runs a few minutes late.
+# Backup only: the web server runs these jobs itself (src/server/scheduler.ts:
+# reminders every minute, student sync every five). GitHub's schedule is
+# unreliable, so this only nudges the same routes every 30 minutes; the routes
+# share the server's advisory locks, so a nudge never doubles a running job.
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions: {}

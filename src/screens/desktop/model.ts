@@ -24,6 +24,8 @@ export type FeedItemVM = {
   eyebrow?: string;
   body?: string[];
   needsAck?: boolean;
+  /** The LMS asked for a confirmation and opening it gave it. */
+  acknowledged?: boolean;
   /** Where "Open …" goes from the detail pane. */
   open?: { label: string; href: string } | null;
 };

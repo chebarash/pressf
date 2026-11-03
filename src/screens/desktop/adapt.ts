@@ -35,6 +35,7 @@ function feedItem(f: V.FeedView, section?: string): M.FeedItemVM {
     eyebrow: join(KIND_EYEBROW[f.kind], f.courseName, f.author, f.ago),
     body: f.body ? f.body.split(/\n{2,}|\n/).map((p) => p.trim()).filter(Boolean) : [],
     needsAck: f.needsAck,
+    acknowledged: !!f.acknowledged,
     open: openAction(f),
   };
 }

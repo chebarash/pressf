@@ -25,6 +25,7 @@ import { feed, setAlerts } from "@/server/feed";
 import { acknowledge, markAllRead, readNotification } from "@/server/sync/actions";
 import { runRemindersBatch, runSyncBatch } from "@/server/sync/batch";
 import { runReminders } from "@/server/sync/reminders";
+import { JOBS, runJob, schedulerEnabled, withJobLock } from "@/server/scheduler";
 import { syncStudent } from "@/server/sync/student";
 import { SNAPSHOT_KEY, emptySnapshot, type SyncSnapshot } from "@/server/sync/types";
 import * as views from "@/server/views";
@@ -216,12 +217,29 @@ describe("feed actions write back to the LMS", () => {
       { userId, id: "lms:56", kind: "announcement", title: "News", at: DAY },
       { userId, id: "grade:x", kind: "grade", title: "New grade", at: DAY },
     ]);
-    expect(await readNotification(userId, "lms:56")).toEqual({ lms: 1 });
+    // Mark all read leaves the one the LMS wants confirmed.
+    expect(await markAllRead(userId)).toEqual({ count: 2, lms: 1 });
     expect(lms.markNotificationRead).toHaveBeenCalledWith({ token: "t" }, "56");
-    expect(await acknowledge(userId, "lms:55")).toEqual({ lms: 1 });
+    expect(lms.acknowledgeNotification).not.toHaveBeenCalled();
+    expect((await feed(userId)).find((i) => i.id === "lms:55")?.read).toBe(false);
+    // Opening it reads and acknowledges it, here and in the LMS: no Got it.
+    expect(await readNotification(userId, "lms:55")).toEqual({ lms: 1 });
+    expect(lms.markNotificationRead).toHaveBeenCalledWith({ token: "t" }, "55");
     expect(lms.acknowledgeNotification).toHaveBeenCalledWith({ token: "t" }, "55");
-    expect(await markAllRead(userId)).toEqual({ count: 1, lms: 0 });
-    expect((await feed(userId)).every((i) => i.read && !i.needsAck)).toBe(true);
+    expect((await feed(userId)).every((i) => i.read)).toBe(true);
+    // The screen says "Acknowledged"; reopening never calls the LMS again.
+    const v = await views.notifications(userId);
+    expect(v!.sections.flatMap((s) => s.items).find((i) => i.id === "lms:55")).toMatchObject({ read: true, needsAck: false, acknowledged: true });
+    lms.acknowledgeNotification.mockClear();
+    expect(await acknowledge(userId, "lms:55")).toEqual({ lms: 0 });
+    expect(lms.acknowledgeNotification).not.toHaveBeenCalled();
+  });
+
+  it("a notification opened from a link shows as read and acknowledged at once", async () => {
+    await db().insert(feedItems).values({ userId, id: "lms:58", kind: "announcement", title: "Confirm", at: DAY, needsAck: true });
+    const v = await views.notifications(userId, { open: "lms:58" });
+    expect(v!.open).toMatchObject({ read: true, needsAck: false, acknowledged: true });
+    expect(v!.unread).toBe(0);
   });
 
   it("keeps the local read when the LMS fails", async () => {
@@ -230,6 +248,83 @@ describe("feed actions write back to the LMS", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await readNotification(userId, "lms:57")).toEqual({ lms: 0 });
     expect((await feed(userId))[0].read).toBe(true);
+  });
+});
+
+describe("in-process scheduler", () => {
+  it("runs only where it should: never on build or in tests, on in production", () => {
+    const base = { DATABASE_URL: "postgres://x" } as unknown as NodeJS.ProcessEnv;
+    expect(schedulerEnabled({ ...base, NODE_ENV: "production" })).toBe(true);
+    expect(schedulerEnabled({ ...base, NODE_ENV: "production", NEXT_PHASE: "phase-production-build" })).toBe(false);
+    expect(schedulerEnabled({ ...base, NODE_ENV: "production", SCHEDULER: "off" })).toBe(false);
+    expect(schedulerEnabled({ ...base, NODE_ENV: "development" })).toBe(false);
+    expect(schedulerEnabled({ ...base, NODE_ENV: "development", SCHEDULER: "on" })).toBe(true);
+    expect(schedulerEnabled({ NODE_ENV: "production" } as unknown as NodeJS.ProcessEnv)).toBe(false);
+    expect(schedulerEnabled()).toBe(false); // vitest
+  });
+
+  it("lets one run hold a job at a time and frees the lock after, even on errors", async () => {
+    let release!: () => void;
+    const first = withJobLock("test-job", () => new Promise<string>((r) => (release = () => r("done"))));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await withJobLock("test-job", async () => "second")).toEqual({ locked: true });
+    // Another job is not blocked.
+    expect(await withJobLock("other-job", async () => 1)).toEqual({ locked: false, result: 1 });
+    release();
+    expect(await first).toEqual({ locked: false, result: "done" });
+    await expect(withJobLock("test-job", async () => { throw new Error("x"); })).rejects.toThrow("x");
+    expect(await withJobLock("test-job", async () => "again")).toEqual({ locked: false, result: "again" });
+  });
+
+  it("the cron route answers `locked` while the scheduler runs the same job", async () => {
+    let release!: () => void;
+    const held = withJobLock("reminders", () => new Promise<void>((r) => (release = r)));
+    await new Promise((r) => setTimeout(r, 50));
+    const res = await remindersCron(new Request("https://x/api/cron/reminders", { method: "POST", headers: { authorization: "Bearer cron-secret" } }));
+    expect(await res.json()).toEqual({ locked: true });
+    release();
+    await held;
+  });
+
+  it("the student job delivers new-grade, absence and announcement alerts to the linked chat, by settings and quiet hours", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const students = JOBS.find((j) => j.name === "students")!;
+    vi.useFakeTimers({ toFake: ["Date"], now: DAY });
+    try {
+      await runJob(students);
+      expect(sentTitles()).toEqual(["LMS · Quiz 6 opens tomorrow at 09:00"]);
+      expect(tg.send.mock.calls.every((c) => c[0] === "111")).toBe(true);
+      expect(log.mock.calls.at(-1)?.[0]).toMatch(/^\[scheduler\] students \d+ms processed=1 ok=1/);
+
+      // Grades off: absences and announcements still come; grades don't.
+      tg.send.mockClear();
+      await setAlerts(userId, { grade: false });
+      lmsReturns({
+        notes: [{ id: 60, title: "Midterm room list", publicate_at: unix("2026-11-02T11:00:00+05:00"), read: 0 }],
+        gradebook: gradebook({ admit: { absence_count_all: 10, avaibale_count_all: 5, lessons_count: 60 }, events: [{ lesson_name: "Lecture 14", lesson_type: 0, status: 3, time: unix("2026-10-26T10:00:00+05:00") }, { lesson_name: "Quiz 6", lesson_type: 1, status: 1, time: unix("2026-11-01T10:00:00+05:00"), mark: 9 }] }),
+      });
+      vi.setSystemTime(new Date(DAY.getTime() + 30 * 60_000));
+      await runJob(students);
+      expect(sentTitles().sort()).toEqual(["LMS · Midterm room list", "Marked absent: Calculus 1"]);
+
+      // 23:30 Tashkent: a new announcement waits for the morning.
+      tg.send.mockClear();
+      lms.notifications.mockResolvedValue({ all: [{ id: 61, title: "Late news", publicate_at: unix("2026-11-02T23:10:00+05:00"), read: 0 }] });
+      vi.setSystemTime(at("2026-11-02T18:30:00Z"));
+      await runJob(students);
+      expect(tg.send).not.toHaveBeenCalled();
+      vi.setSystemTime(at("2026-11-03T03:30:00Z")); // 08:30
+      await runJob(students);
+      expect(sentTitles()).toContain("LMS · Late news");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("the reminders job sends to linked students", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const r = await runJob(JOBS.find((j) => j.name === "reminders")!);
+    expect(r).toMatchObject({ locked: false, result: { processed: 1 } });
   });
 });
 
