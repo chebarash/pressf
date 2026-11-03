@@ -105,3 +105,10 @@ export async function checkIn(text: string, course?: string | null): Promise<Che
     return { kind: "error", message: "LMS error" };
   }
 }
+
+/** Live search for the mobile Search screen: results without a page navigation, so the field keeps focus. */
+export async function searchLive(q: string) {
+  const user = await getUser();
+  const { search } = await import("@/server/views");
+  return search(String(q ?? "").slice(0, 120), user ? { userId: user.id } : null);
+}

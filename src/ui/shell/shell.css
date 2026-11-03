@@ -578,3 +578,6 @@ img, svg { display: block; }
    page has loaded, and the first eight rows of a list (card.module.css, desktop
    parts) rise in 10 ms apart, 190 ms in all. Client navigation, back and
    re-renders never stagger: the data is already there. */
+
+/* Takes focus during the tap on the top-bar search so iOS opens the keyboard; never seen. 16px avoids the iOS zoom. */
+.sh-focus-catcher { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; pointer-events: none; }
