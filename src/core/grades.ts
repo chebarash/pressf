@@ -23,11 +23,12 @@ export const passedFinal = (final: number | null | undefined, positive?: boolean
 
 /**
  * NewUU grade points (4.5 scale), as the LMS transcript prints them: A+ 4.5,
- * A 4, B+ 3.5, B 3, C+ 2.75, C 2.5, D 2, F 0. Lowest final of each band, as
- * read off real transcripts (it reproduces the transcript's semester GPAs).
+ * A 4, B+ 3.5, B 3, C+ 2.75, C 2.5, D 2, F 0. Bands from the university's
+ * official grading scale: A+ 93–100, A 85–92.9, B+ 75–84.9, B 65–74.9,
+ * C+ 60–64.9, C 50–59.9, D 40–49.9, F 0–39.9.
  */
 export const GRADE_SCALE: ReadonlyArray<{ min: number; letter: string; points: number }> = [
-  { min: 95, letter: "A+", points: 4.5 },
+  { min: 93, letter: "A+", points: 4.5 },
   { min: 85, letter: "A", points: 4 },
   { min: 75, letter: "B+", points: 3.5 },
   { min: 65, letter: "B", points: 3 },
