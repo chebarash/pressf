@@ -16,6 +16,7 @@ vi.mock("@/lib/auth", async (original) => ({
 import { eq } from "drizzle-orm";
 import { POST as cron } from "@/app/api/cron/sync/route";
 import { GET as health } from "@/app/api/health/route";
+import { GET as rawFile } from "@/app/(app)/f/[id]/raw/route";
 import { authOptions } from "@/lib/auth";
 import { getCatalog } from "@/lib/catalog";
 import { courseDetails, resolveRequirement, unlocks } from "@/lib/content";
@@ -116,5 +117,19 @@ describe("routes", () => {
   it("protects the sync job", async () => {
     expect((await cron(new Request("https://x", { method: "POST" }))).status).toBe(401);
     expect((await cron(new Request("https://x", { method: "POST", headers: { authorization: "Bearer wrong-secret" } }))).status).toBe(401);
+  });
+});
+
+describe("in-page file preview bytes (/f/<id>/raw)", () => {
+  const get = (id: string, q = "") => rawFile(new Request(`https://x/f/${id}/raw${q}`), { params: Promise.resolve({ id }) });
+
+  it("is for signed-in students or a valid signed link only", async () => {
+    user.current = null;
+    expect((await get("F1")).status).toBe(401);
+    expect((await get("F1", `?exp=${Math.floor(Date.now() / 1000) + 600}&sig=forged`)).status).toBe(401);
+  });
+
+  it("answers 404 for a file that does not exist", async () => {
+    expect((await get("nope")).status).toBe(404);
   });
 });
