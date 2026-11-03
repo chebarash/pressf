@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { runRemindersBatch, runSyncBatch } from "@/server/sync/batch";
 import { runBroadcasts } from "@/server/sync/broadcasts";
+import { refreshDueSources } from "@/server/exams";
 
 /**
  * Background jobs, run inside the web server (started from instrumentation):
@@ -58,6 +59,12 @@ export const JOBS: Job[] = [
       const r = await runSyncBatch({ limit: 25, budgetMs: 4 * 60_000 });
       return { ...r, errors: r.errors.length };
     },
+  },
+  {
+    // Linked exam sheets while their window is upcoming or running (unchanged sheets cost one fetch).
+    name: "exams",
+    everyMs: 60 * 60_000,
+    run: () => refreshDueSources(),
   },
 ];
 

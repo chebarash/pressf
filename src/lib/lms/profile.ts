@@ -31,6 +31,8 @@ export type LmsProfile = {
    * pass/fail, from the individual education plan. Used to compute semester GPAs.
    */
   plan?: Record<string, PlanCourse>;
+  /** The university student ID (LMS `external_id`), matched against exam seat lists; never shown to others. */
+  studentId?: string | null;
 };
 
 export type PlanCourse = { ects: number | null; passFail: boolean };
@@ -64,6 +66,12 @@ export function semesterGpas(payload: unknown): Record<string, number> {
   }
   return out;
 }
+
+/** The university student ID from `/users/current` (`external_id`), normalised. */
+export const studentIdOf = (me: { external_id?: string | number | null } | null | undefined) => {
+  const id = String(me?.external_id ?? "").replace(/\.0+$/, "").replace(/\s+/g, "").toUpperCase();
+  return id && id !== "NULL" && id !== "0" ? id : null;
+};
 
 const num = (v?: string | null) => {
   const n = Number(v);
@@ -110,5 +118,6 @@ export async function lmsProfile(userId: string, email: string): Promise<LmsProf
     semesters: built,
     semesterGpa: semesterGpas(tr),
     plan: planCourses(iep),
+    studentId: studentIdOf(me),
   };
 }

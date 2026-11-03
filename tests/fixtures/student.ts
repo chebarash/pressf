@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { lmsAccounts, lmsCache, lmsCourseTeachers, lmsCourses, lmsFiles, lmsTeachers, uploads, userState, users } from "@/lib/db/schema";
+import { examWindows, lmsAccounts, lmsCache, lmsCourseTeachers, lmsCourses, lmsFiles, lmsTeachers, uploads, userState, users } from "@/lib/db/schema";
 import type { UserCache } from "@/lib/lms/cache";
 import { SNAPSHOT_KEY, emptySnapshot, type SyncSnapshot } from "@/server/sync/types";
 
@@ -58,6 +58,9 @@ export async function seedStudent(opts: { snapshot?: SyncSnapshot; telegramId?: 
   await db().insert(lmsCache).values({ userId: user.id, data: cache, syncedAt: new Date(NOW.getTime() - 10 * 60_000) });
   await db().insert(userState).values({ userId: user.id, snapshot: { [SNAPSHOT_KEY]: opts.snapshot ?? snapshot() } });
   await db().insert(lmsAccounts).values({ userId: user.id, sealedPassword: "v1.x.y.z", status: "active" });
+  // NOW falls in the Fall 2026 midterm week, which hides regular classes; these
+  // fixtures are about regular classes, so the window shows them (exam tests drop this row).
+  await db().insert(examWindows).values({ key: "midterm:2026-11-02", kind: "midterm", name: "Midterm exams", starts: "2026-11-02", ends: "2026-11-06", classes: "show" }).onConflictDoNothing();
   return user.id;
 }
 

@@ -146,6 +146,8 @@ export type LmsUser = {
   sur_name?: string;
   avatar_version?: string;
   avatar_extension?: string;
+  /** The university student ID ("230081", "26M2607"), as printed on exam lists. */
+  external_id?: string | number | null;
 };
 
 export type LmsScheduleEvent = {

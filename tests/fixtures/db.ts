@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { lmsCourseTeachers, lmsCourses, lmsTeachers } from "@/lib/db/schema";
 import { catalog } from "./catalog";
 
-const TABLES = ["mention_links", "mentions", "lms_accounts", "lms_course_teachers", "lms_courses", "lms_teachers", "lms_departments", "lms_programs", "lms_curricula", "lms_semesters", "lms_files", "lms_cache", "users", "syllabi", "course_overrides", "faces", "search_events", "teacher_aliases", "course_ratings", "teacher_ratings", "rating_asks", "uploads", "reports", "feed_items", "user_state", "link_tokens", "audit_log", "broadcasts", "user_roles", "bot_chats", "telegram_files", "file_overrides", "admin_marks", "faculty_people", "teacher_overrides", "course_placements", "syllabus_queue"];
+const TABLES = ["mention_links", "mentions", "lms_accounts", "lms_course_teachers", "lms_courses", "lms_teachers", "lms_departments", "lms_programs", "lms_curricula", "lms_semesters", "lms_files", "lms_cache", "users", "syllabi", "course_overrides", "faces", "search_events", "teacher_aliases", "course_ratings", "teacher_ratings", "rating_asks", "uploads", "reports", "feed_items", "user_state", "link_tokens", "audit_log", "broadcasts", "user_roles", "bot_chats", "telegram_files", "file_overrides", "admin_marks", "faculty_people", "teacher_overrides", "course_placements", "syllabus_queue", "exam_windows", "exam_sources", "exam_slots", "exam_seats"];
 
 export const resetDb = () => db().execute(sql.raw(`truncate ${TABLES.join(", ")} cascade`));
 
