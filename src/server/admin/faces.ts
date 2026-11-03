@@ -8,12 +8,14 @@
  */
 import { eq, notInArray, sql } from "drizzle-orm";
 import { FaceSpecSchema, migrateFaceSpec, parseFaceSpec, renderFace, type FaceSpec } from "@/core/face-parts";
+import { NotionFaceSchema, type NotionFace } from "@/core/notion-faces";
 import { checkFace } from "@/core/faces";
 import { displayName } from "@/core/people";
 import { createIndex } from "@/core/search";
 import { db } from "@/lib/db";
 import { faces, lmsCourseTeachers, lmsTeachers, teacherAliases } from "@/lib/db/schema";
 import { putObject } from "@/lib/storage";
+import { composeNotionFace } from "@/server/notion-faces";
 import { audit } from "@/server/audit";
 import { invalidate, TAGS } from "@/server/views/cache";
 import { faceUrl } from "@/server/views/shared";
@@ -32,7 +34,7 @@ async function teacher(id: string) {
  * Uploads a drawn face (PNG with transparency, or SVG) and assigns it, replacing any earlier one.
  * `spec` is set when the face came from the constructor, so it can be reopened and edited.
  */
-export async function setFace(actorId: string, teacherId: string, bytes: Uint8Array, spec: FaceSpec | null = null) {
+export async function setFace(actorId: string, teacherId: string, bytes: Uint8Array, spec: NotionFace | FaceSpec | null = null) {
   await authorize(actorId, "admin:catalog");
   await teacher(teacherId);
   const check = checkFace(bytes);
@@ -47,9 +49,16 @@ export async function setFace(actorId: string, teacherId: string, bytes: Uint8Ar
   return { message: before ? "Face replaced" : "Face added" };
 }
 
-/** Saves a face built in the constructor: the server draws the SVG from the parts (a drawing from the browser is not trusted). */
+/**
+ * Saves a face built in the constructor; the server draws it from the parts (a
+ * drawing from the browser is not trusted). A Notion Faces spec (v3) becomes a
+ * PNG composed like faces.notion.com; an older drawn spec (v2) still draws as SVG.
+ */
 export async function buildFace(actorId: string, teacherId: string, input: unknown) {
   await authorize(actorId, "admin:catalog");
+  const notion = NotionFaceSchema.safeParse(input);
+  if (notion.success) return setFace(actorId, teacherId, await composeNotionFace(notion.data), notion.data);
+  if (input && typeof input === "object" && "v" in input) throw new AdminError("Pick an option for every part");
   // Specs from an older page (renamed options, fewer parts) are brought up to date first.
   const parsed = FaceSpecSchema.safeParse(migrateFaceSpec(input));
   if (!parsed.success) throw new AdminError("Pick an option for every part");
@@ -67,6 +76,13 @@ export async function removeFace(actorId: string, teacherId: string) {
 }
 
 /* ───────── view ───────── */
+
+/** A stored spec: Notion's parameters (v3), or a drawn v2 spec read leniently. */
+function storedSpec(value: unknown): NotionFace | FaceSpec | null {
+  const notion = NotionFaceSchema.safeParse(value);
+  if (notion.success) return notion.data;
+  return value && typeof value === "object" && "v" in value ? null : parseFaceSpec(value);
+}
 
 export type FacesShow = "missing" | "with";
 
@@ -88,7 +104,7 @@ export async function facesPage(show: FacesShow, q: string, selectedId: string |
       courses: courses.get(t.id) ?? 0,
       face: t.faceAt ? faceUrl(t.id, t.faceAt) : null,
       key: t.key,
-      spec: parseFaceSpec(t.spec),
+      spec: storedSpec(t.spec),
       updatedAt: t.faceAt?.toISOString() ?? null,
     }))
     // Busiest professors first: their faces show up most.
