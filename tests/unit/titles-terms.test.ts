@@ -31,3 +31,16 @@ describe("hyphens inside words stay", () => {
     expect(cleanTitle("Week 3: Graphs.pdf")).toBe("Graphs");
   });
 });
+
+import { kindOf, mergeBlocks } from "@/core/agenda";
+describe("a lecture and the lab after it stay two classes", () => {
+  it("does not merge different kinds, even back to back in one room", () => {
+    const d = (h: number, m = 0) => new Date(Date.UTC(2026, 10, 2, h, m));
+    const blocks = mergeBlocks([
+      { courseId: "906", courseName: "Deep Learning", kind: kindOf("Lecture"), start: d(3, 30), end: d(4, 25), room: "306" },
+      { courseId: "906", courseName: "Deep Learning", kind: kindOf("Lecture"), start: d(4, 30), end: d(5, 25), room: "306" },
+      { courseId: "906", courseName: "Deep Learning", kind: kindOf("Laboratory"), start: d(5, 30), end: d(6, 25), room: "306" },
+    ]);
+    expect(blocks.map((b) => b.kind)).toEqual(["lecture", "lab"]);
+  });
+});

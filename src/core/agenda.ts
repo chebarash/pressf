@@ -8,6 +8,17 @@ import { localDay } from "./time";
 
 export type ClassKind = "lecture" | "practice" | "lab" | "exam" | "other";
 
+/** The LMS class type name ("Lecture", "Laboratory", "Tutorial", "Mid Term Exam") as our kind. */
+export function kindOf(name: string | null | undefined): ClassKind {
+  const t = (name ?? "").toLowerCase();
+  if (/exam|midterm|final|quiz|control/.test(t)) return "exam";
+  if (t.startsWith("lect")) return "lecture";
+  if (t.startsWith("lab")) return "lab";
+  if (/prac|tut|sem/.test(t)) return "practice";
+  return "other";
+}
+
+
 export type ClassEvent = {
   courseId: string;
   courseName: string;
