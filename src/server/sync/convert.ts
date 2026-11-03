@@ -5,6 +5,7 @@ import { changedGrades } from "@/core/grades";
 import { path } from "@/core/links";
 import { fromLms, type AlertSettings, type FeedItem, type LmsNotification } from "@/core/notifications";
 import { addDays, clock, localDay, shortDate, weekdayName } from "@/core/time";
+import { lmsDay } from "@/lib/lms/semesters";
 import type { LmsGradebookData, LmsGradebookSemester, LmsNotificationsPayload, LmsScheduleDay } from "@/lib/lms/types";
 import * as msg from "@/lib/telegram/messages";
 import { termName, type SyncedClass, type SyncedCourse, type SyncedSemester } from "./types";
@@ -27,7 +28,7 @@ export function num(v: unknown): number | null {
 export const semesterRows = (rows: LmsGradebookSemester[]): SyncedSemester[] =>
   rows.map((s) => ({
     id: String(s.semester_id), term: termName(s.semester_name) || `Semester ${s.semester_id}`, year: s.year_of_study ?? null,
-    open: s.is_open === 1 || String(s.is_open) === "1", starts: s.study_start ?? null, ends: s.study_end ?? null,
+    open: s.is_open === 1 || String(s.is_open) === "1", starts: lmsDay(s.study_start), ends: lmsDay(s.study_end),
   }));
 
 type GradeRow = NonNullable<LmsGradebookData["resultSubjects"]>[string] & Record<string, unknown>;

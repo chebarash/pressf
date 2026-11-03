@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { keyName } from "@/platform/keys";
 
 const typing = (t: EventTarget | null) => {
   const el = t as HTMLElement | null;
@@ -21,7 +22,7 @@ export function useKeys(map: Record<string, (e: KeyboardEvent) => void>, enabled
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey) return;
       const mod = e.metaKey || e.ctrlKey;
-      const name = mod ? `mod+${e.key}` : e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      const name = mod ? `mod+${e.key.length === 1 ? keyName(e) : e.key}` : keyName(e);
       if (typing(e.target) && name !== "Escape" && name !== "mod+Enter") return;
       if (mod && name !== "mod+Enter") return;
       const fn = ref.current[name];

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import s from "../parts/parts.module.css";
 import { GO_TO, SHORTCUTS_EVENT } from "./bus";
 import o from "./overlay.module.css";
+import { keyName } from "@/platform/keys";
 
 const COLUMNS: Array<{ title: string; rows: Array<[string, string[]]> }> = [
   { title: "Go to", rows: GO_TO.filter((g) => g.key !== "u").map((g) => [g.label, ["G", g.key.toUpperCase()]]) },
@@ -45,7 +46,7 @@ export function ShortcutsSheet() {
     if (!open) return;
     close.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "?") {
+      if (e.key === "Escape" || keyName(e) === "?") {
         e.preventDefault();
         setOpen(false);
       }

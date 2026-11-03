@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { GO_TO, isTyping, openPalette, openShortcuts, toggleTheme } from "./bus";
+import { isLetterKey, keyName } from "@/platform/keys";
 
 /**
  * Desktop keyboard: G-chords between sections, ⌘K / F for the palette, ? for the
@@ -54,7 +55,7 @@ export function DesktopKeyboard() {
       if (e.defaultPrevented) return;
       const mod = e.metaKey || e.ctrlKey;
       // ⌘K works everywhere, even in fields.
-      if (mod && e.key.toLowerCase() === "k") {
+      if (mod && keyName(e) === "k") {
         e.preventDefault();
         openPalette();
         return;
@@ -71,8 +72,8 @@ export function DesktopKeyboard() {
       }
       if (e.altKey || mod) return;
 
-      const letter = e.key.length === 1 && /[a-z]/i.test(e.key);
-      const key = e.key.length === 1 ? (letter && e.shiftKey ? `shift+${e.key.toLowerCase()}` : e.key.toLowerCase()) : e.key;
+      const name = keyName(e);
+      const key = isLetterKey(e) && e.shiftKey ? `shift+${name}` : name;
 
       if (chord !== null) {
         window.clearTimeout(chordTimer);
@@ -96,7 +97,7 @@ export function DesktopKeyboard() {
         chordTimer = window.setTimeout(() => (chord = null), 1200);
         return;
       }
-      if (e.key === "?") {
+      if (key === "?") {
         e.preventDefault();
         openShortcuts();
         return;

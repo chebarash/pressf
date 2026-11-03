@@ -7,6 +7,7 @@ import s from "../parts/parts.module.css";
 import { GO_TO, openShortcuts, PALETTE_EVENT, toggleTheme } from "./bus";
 import { paletteSearch, type PaletteHit } from "./actions";
 import o from "./overlay.module.css";
+import { keyName } from "@/platform/keys";
 
 type Item = { id: string; group: "Courses" | "Actions" | "People" | "Files"; icon: IconName; title: string; meta?: string; keys?: string[]; href?: string; run?: () => void };
 
@@ -101,10 +102,10 @@ export function CommandPalette() {
     if (e.key === "Escape") {
       e.preventDefault();
       close();
-    } else if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
+    } else if (e.key === "ArrowDown" || (e.ctrlKey && keyName(e) === "n")) {
       e.preventDefault();
       setCursor((c) => Math.min(items.length - 1, c + 1));
-    } else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
+    } else if (e.key === "ArrowUp" || (e.ctrlKey && keyName(e) === "p")) {
       e.preventDefault();
       setCursor((c) => Math.max(0, c - 1));
     } else if (e.key === "Enter") {
