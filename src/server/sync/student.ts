@@ -2,10 +2,12 @@ import { and, eq, inArray } from "drizzle-orm";
 import { describeFile } from "@/core/files";
 import { addDays, localDay } from "@/core/time";
 import { db } from "@/lib/db";
-import { feedItems, lmsFiles } from "@/lib/db/schema";
+import { feedItems, lmsFiles, lmsSemesters } from "@/lib/db/schema";
 import { preloadUser } from "@/lib/lms/cache";
 import * as lms from "@/lib/lms/client";
 import { filesAreStale, harvestCourseFiles } from "@/lib/lms/files";
+import { parseSemesters, refreshCalendars, saveSemesters, upcomingSemesterIds } from "@/lib/lms/semesters";
+import type { LmsGradebookSemester } from "@/lib/lms/types";
 import { sessionFor } from "@/lib/lms/store";
 import { markRead, saveSnapshot } from "@/server/feed";
 import { invalidateHarvest } from "@/server/views/cache";
@@ -14,7 +16,7 @@ import { loadStudent } from "@/server/views/student";
 import { absenceAlerts, announcementAlerts, fileAlert, gradeAlerts, gradebookCourses, lmsNotifications, marksOf, roomAlerts, scheduleClasses, semesterRows, type Alert } from "./convert";
 import { deliver, flushPending, remind, saveSent, sentKeys, type Recipient } from "./deliver";
 import { syncStopped } from "@/lib/telegram/messages";
-import { SNAPSHOT_KEY, type SyncSnapshot, type SyncedCourse } from "./types";
+import { SNAPSHOT_KEY, termName, type SyncSnapshot, type SyncedCourse } from "./types";
 
 /**
  * One student's sync: pull notifications, gradebook (marks and attendance),
@@ -69,8 +71,13 @@ export async function syncStudent(userId: string, now = new Date()): Promise<Syn
 
   const payload = await attempt(failures, "notifications", () => lms.notifications(session));
   const semesterList = await attempt(failures, "semesters", () => lms.gradebookSemesters(session));
-  const semesters = semesterList ? semesterRows(semesterList) : prev.semesters;
+  const semesters = semesterList ? await namedSemesters(semesterList) : prev.semesters;
   const open = semesters.filter((s) => s.open);
+  // Semester calendars (cohort selection, add/drop…) are shared: fetched once a day for everyone.
+  if (semesterList) {
+    const ids = await upcomingSemesterIds(open.map((s) => s.id)).catch(() => open.map((s) => s.id));
+    await refreshCalendars(session, ids, now).catch(() => 0);
+  }
   const pastDue = !prev.pastAt || now.getTime() - Date.parse(prev.pastAt) > PAST_REFRESH_MS;
   const wanted = pastDue ? semesters : open;
 
@@ -138,6 +145,17 @@ export async function syncStudent(userId: string, now = new Date()): Promise<Syn
   const flushed = await flushPending(to, now);
   await saveSent(userId, sent, now);
   return { userId, ok: !everythingFailed, error: everythingFailed ? next.error ?? undefined : undefined, alerts: result.fresh, sent: result.sent + flushed };
+}
+
+/** Gradebook semesters, stored as shared names; a nameless one takes the harvested LMS name. */
+async function namedSemesters(list: LmsGradebookSemester[]) {
+  await saveSemesters(parseSemesters(list)).catch(() => 0);
+  const rows = semesterRows(list);
+  const unnamed = rows.filter((s) => /^Semester \d+$/.test(s.term)).map((s) => s.id);
+  if (!unnamed.length) return rows;
+  const known = await db().select({ id: lmsSemesters.id, name: lmsSemesters.name }).from(lmsSemesters).where(inArray(lmsSemesters.id, unnamed));
+  const names = new Map(known.filter((k) => k.name).map((k) => [k.id, termName(k.name) || k.name!]));
+  return rows.map((s) => (names.has(s.id) ? { ...s, term: names.get(s.id)! } : s));
 }
 
 async function namer(ids: string[]) {

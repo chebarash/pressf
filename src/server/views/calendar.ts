@@ -1,7 +1,7 @@
 import { HOLIDAYS, nextHoliday, WEEKS, type WeekKind } from "@/core/semester";
 import { addDays, clock, localDay, shortDate, weekdayName } from "@/core/time";
 import { classesBetween } from "./classes";
-import { deadlines } from "./shared";
+import { deadlines, semesterPhases } from "./shared";
 import { loadStudent, type SyncState } from "./student";
 import type { Viewer } from "./courses";
 
@@ -88,6 +88,12 @@ export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = n
     }
   }
   if (on.has("registration")) {
+    // The LMS semester calendar: cohort selection, schedule builder, add/drop.
+    for (const p of await semesterPhases(today)) {
+      if (p.kind === "studies" || p.kind === "other" || p.startDay > to) continue;
+      const where = p.semester ? ` · ${p.semester}` : "";
+      events.push({ key: `lms-phase:${p.semesterId}:${p.kind}:${p.startDay}`, layer: "registration", title: p.title, sub: `Registration${where} · Until ${shortDate(p.endDay)}`, day: p.startDay, endDay: p.endDay, time: null, href: "/next" });
+    }
     for (const p of phases(REG_KINDS, today, to)) {
       events.push({ key: `phase:${p.kind}:${p.starts}`, layer: "registration", title: PHASE_TITLE[p.kind] ?? "Registration", sub: `Registration · Until ${shortDate(p.ends)}`, day: p.starts, endDay: p.ends, time: null, href: "/next" });
     }

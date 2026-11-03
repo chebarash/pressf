@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { ClassKind } from "@/core/agenda";
 import { deadline, type Deadline, type DeadlineStatus } from "@/core/deadlines";
 import { describeFile, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
@@ -9,7 +9,8 @@ import { weekOf as calendarWeekOf } from "@/core/semester";
 import { ago, clock, localDay, localWeekday, shortDate, toLocal, until } from "@/core/time";
 import { shownAs } from "@/core/uploads";
 import { db } from "@/lib/db";
-import { courseRatings, lmsCourses, lmsFiles, lmsTeachers, mentionLinks, mentions, teacherRatings, uploads } from "@/lib/db/schema";
+import { courseRatings, faces, lmsCourses, lmsFiles, lmsSemesters, lmsTeachers, mentionLinks, mentions, teacherRatings, uploads, type LmsSemesterPhase } from "@/lib/db/schema";
+import { termName } from "@/server/sync/types";
 import type { LmsHomework, LmsLesson, LmsSubject } from "@/lib/lms/types";
 import { publicCache, TAGS } from "./cache";
 
@@ -54,14 +55,28 @@ export async function coursesByCodes(codes: string[]): Promise<CourseRef[]> {
   return db().select(courseCols).from(lmsCourses).where(inArray(lmsCourses.code, unique));
 }
 
-export type TeacherRef = { id: string; name: string; position: string | null };
+export type TeacherRef = {
+  id: string;
+  name: string;
+  position: string | null;
+  department: string | null;
+  /** Drawn face URL (`/faces/<id>`), null when none is assigned. */
+  face: string | null;
+};
 
 export async function teachersByIds(ids: string[]): Promise<Map<string, TeacherRef>> {
   const unique = [...new Set(ids.filter(Boolean))];
   if (!unique.length) return new Map();
-  const rows = await db().select().from(lmsTeachers).where(inArray(lmsTeachers.id, unique));
-  return new Map(rows.map((t) => [t.id, { id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }), position: t.position }]));
+  const rows = await db()
+    .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, position: lmsTeachers.position, department: lmsTeachers.department, face: faces.teacherId })
+    .from(lmsTeachers)
+    .leftJoin(faces, eq(faces.teacherId, lmsTeachers.id))
+    .where(inArray(lmsTeachers.id, unique));
+  return new Map(rows.map((t) => [t.id, { id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }), position: t.position, department: t.department, face: t.face ? faceUrl(t.id) : null }]));
 }
+
+/** The drawn face (never a photo), served by the faces route. */
+export const faceUrl = (teacherId: string) => `/faces/${encodeURIComponent(teacherId)}`;
 
 export const ROLE_LABEL: Record<TeacherRole, string> = { lecture: "Lectures", tutorial: "Tutorials", lab: "Labs", practice: "Practice", other: "Teaching" };
 
@@ -111,6 +126,38 @@ export function slotsLabel(slots: Array<{ weekday: number; time: string }>): str
 
 /** Teaching week of a date, from the academic calendar (never date arithmetic). */
 export const teachingWeek = (at: Date) => calendarWeekOf(localDay(at))?.week ?? null;
+
+/* ───────────── semester calendar (LMS phases) ───────────── */
+
+export type SemesterPhaseView = {
+  semesterId: string;
+  /** "Spring 2027", when the LMS named the semester. */
+  semester: string | null;
+  kind: LmsSemesterPhase["kind"];
+  /** "Cohort selection", "Schedule builder", "Add/drop", "Classes start". */
+  title: string;
+  /** ISO date-times and Tashkent days (YYYY-MM-DD). */
+  starts: string;
+  ends: string;
+  startDay: string;
+  endDay: string;
+};
+
+export const PHASE_TITLE: Record<LmsSemesterPhase["kind"], string> = {
+  "cohort-selection": "Cohort selection", "schedule-builder": "Schedule builder", "add-drop": "Add/drop", studies: "Classes start", other: "",
+};
+
+/** Every stored semester-calendar phase that has not ended by `today`, soonest first. Postgres only. */
+export async function semesterPhases(today: string): Promise<SemesterPhaseView[]> {
+  const rows = await db().select({ id: lmsSemesters.id, name: lmsSemesters.name, calendar: lmsSemesters.calendar }).from(lmsSemesters).where(isNotNull(lmsSemesters.calendar));
+  return rows
+    .flatMap((r) => (r.calendar ?? []).map((p) => ({
+      semesterId: r.id, semester: r.name ? termName(r.name) || r.name : null, kind: p.kind, title: PHASE_TITLE[p.kind] || p.name,
+      starts: p.starts, ends: p.ends, startDay: localDay(new Date(p.starts)), endDay: localDay(new Date(p.ends)),
+    })))
+    .filter((p) => p.endDay >= today)
+    .sort((a, b) => a.starts.localeCompare(b.starts));
+}
 
 /* ───────────── ratings (public, cached) ───────────── */
 
@@ -204,25 +251,31 @@ export type FileItem = {
   format: FileFormat;
   formatCode: string;
   week: number | null;
-  /** When it reached Press F, ISO. */
+  /** When it was posted: the LMS upload date for LMS files, the upload time for student files. ISO. */
   date: string;
   dateLabel: string;
   /** "LMS" or "From students" (or the uploader's name when they chose to show it). */
   from: string;
   lessonId: string | null;
   size: number | null;
+  /** PDF page count, when known (LMS files). Always set by the server; optional for fixtures. */
+  pages?: number | null;
   href: string;
 };
 
 type LmsFileRow = typeof lmsFiles.$inferSelect;
 type UploadRow = typeof uploads.$inferSelect;
 
+/** The date an LMS file was posted: its LMS upload date, else its last LMS change, else when we pulled it. */
+export const lmsFileDate = (f: Pick<LmsFileRow, "lmsCreatedAt" | "lmsUpdatedAt" | "fetchedAt">) => f.lmsCreatedAt ?? f.lmsUpdatedAt ?? f.fetchedAt;
+
 export function lmsFileItem(f: LmsFileRow, course: { code: string; name: string }, lessonWeek: Map<string, number | null>): FileItem {
   const meta = describeFile(f.name, { courseCode: course.code, courseName: course.name, extension: f.extension ?? undefined });
+  const date = lmsFileDate(f);
   return {
     id: f.id, source: "lms", title: meta.title, type: meta.type, typeLabel: TYPE_LABEL[meta.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
-    week: meta.week ?? (f.lessonId ? lessonWeek.get(f.lessonId) ?? null : null), date: f.fetchedAt.toISOString(), dateLabel: shortDate(f.fetchedAt),
-    from: "LMS", lessonId: f.lessonId, size: f.size, href: `/f/${f.id}`,
+    week: meta.week ?? (f.lessonId ? lessonWeek.get(f.lessonId) ?? null : null), date: date.toISOString(), dateLabel: shortDate(date),
+    from: "LMS", lessonId: f.lessonId, size: f.size, pages: f.pages, href: `/f/${f.id}`,
   };
 }
 
@@ -231,7 +284,7 @@ export function uploadItem(u: UploadRow): FileItem {
   const meta = describeFile(u.fileName);
   return {
     id: u.id, source: "students", title: u.title, type, typeLabel: TYPE_LABEL[type] ?? "File", format: meta.format, formatCode: FORMAT_CODE[meta.format],
-    week: u.week, date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), from: shownAs(u.showName, null), lessonId: null, size: u.size, href: `/f/${u.id}`,
+    week: u.week, date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), from: shownAs(u.showName, null), lessonId: null, size: u.size, pages: null, href: `/f/${u.id}`,
   };
 }
 
@@ -271,6 +324,10 @@ export type FeedView = {
   body: string | null;
   courseId: string | null;
   courseName: string | null;
+  /** Who posted it (LMS announcements), "Gonçalo Pinto". Always set by the server; optional for fixtures. */
+  author?: string | null;
+  /** The source line for LMS announcements: "LMS · Calculus 1 · Gonçalo Pinto" (null for other kinds). Always set by the server. */
+  byline?: string | null;
   at: string;
   ago: string;
   read: boolean;
@@ -279,9 +336,11 @@ export type FeedView = {
 };
 
 export function feedView(i: FeedItem, now: Date, names: Map<string, CourseRef>): FeedView {
+  const courseName = (i.courseId ? names.get(i.courseId)?.name : null) ?? i.courseName ?? null;
+  const author = i.author ?? null;
   return {
-    id: i.id, kind: i.kind, title: i.title, body: i.body ?? null, courseId: i.courseId ?? null,
-    courseName: (i.courseId ? names.get(i.courseId)?.name : null) ?? i.courseName ?? null,
+    id: i.id, kind: i.kind, title: i.title, body: i.body ?? null, courseId: i.courseId ?? null, courseName, author,
+    byline: i.kind === "announcement" ? ["LMS", courseName, author].filter(Boolean).join(" · ") : null,
     at: i.at.toISOString(), ago: ago(i.at, now), read: i.read, needsAck: !!i.needsAck, href: i.href ?? null,
   };
 }

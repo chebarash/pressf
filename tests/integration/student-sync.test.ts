@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const lms = vi.hoisted(() => ({
   notifications: vi.fn(), gradebookSemesters: vi.fn(), gradebookData: vi.fn(), homework: vi.fn(), scheduleList: vi.fn(),
-  markNotificationRead: vi.fn(), acknowledgeNotification: vi.fn(),
+  markNotificationRead: vi.fn(), acknowledgeNotification: vi.fn(), semesterCalendar: vi.fn(),
 }));
 const store = vi.hoisted(() => ({ sessionFor: vi.fn() }));
 const tg = vi.hoisted(() => ({ send: vi.fn() }));

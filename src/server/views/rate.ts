@@ -1,5 +1,5 @@
 import { desc, eq, inArray } from "drizzle-orm";
-import { askLevel, canEdit, rateQueue as queueOf, termKey, type Recommend, type TeacherRole } from "@/core/ratings";
+import { askLevel, canEdit, rateQueue as queueOf, termKey, type RatingInput, type Recommend, type StoredRating, type TeacherRole } from "@/core/ratings";
 import { roleOf } from "@/core/people";
 import { daysBetween, localDay, shortDate } from "@/core/time";
 import { db } from "@/lib/db";
@@ -34,6 +34,8 @@ export type RatedItem = RateItem & {
   updatedAt: string;
   updatedLabel: string;
   canEdit: boolean;
+  /** The student's saved answers, to prefill "Edit your rating". Always set by the server. */
+  answers?: RatingInput;
 };
 
 export type RateAsk = { level: "none" | "card" | "banner" | "shine"; term: string | null; waiting: RateItem[] };
@@ -97,6 +99,7 @@ export async function rateQueueFor(student: Student, now = new Date()): Promise<
     updatedAt: r.updatedAt.toISOString(),
     updatedLabel: shortDate(r.updatedAt),
     canEdit: term ? canEdit(r.term, term) : true,
+    answers: answersOf(r, answers),
   }));
 
   const askTerm = waiting.length ? [...waiting].sort((a, b) => termKey(b.term) - termKey(a.term))[0].term : null;
@@ -114,6 +117,18 @@ export async function rateQueueFor(student: Student, now = new Date()): Promise<
   };
 }
 
+type RatingRow = typeof courseRatings.$inferSelect;
+type AnswerRow = typeof teacherRatings.$inferSelect;
+
+/** A stored rating as the form's answers (recommend, hours, difficulty, tags, per-teacher Press F and tags). */
+export const answersOf = (r: RatingRow, answers: AnswerRow[]): RatingInput => ({
+  recommend: r.recommend,
+  hours: (r.hours as RatingInput["hours"]) ?? null,
+  difficulty: (r.difficulty as RatingInput["difficulty"]) ?? null,
+  tags: r.tags as RatingInput["tags"],
+  teachers: answers.filter((a) => a.ratingId === r.id).map((a) => ({ teacherId: a.teacherId, role: a.role as TeacherRole, pressF: a.pressF, tags: a.tags as StoredRating["teachers"][number]["tags"] })),
+});
+
 /** Figma 4.10 "To rate" and 8.6 "My ratings". Null when the user does not exist. */
 export async function rateQueue(userId: string, now = new Date()): Promise<RateQueueView | null> {
   const student = await loadStudent(userId);
@@ -121,13 +136,15 @@ export async function rateQueue(userId: string, now = new Date()): Promise<RateQ
 }
 
 /** Whether this student already rated a course in a term (for "Edit your rating"). */
-export async function myRatingFor(userId: string, courseIds: string[]) {
+export async function myRatingFor(userId: string, courseIds: string[], term?: string | null) {
   if (!courseIds.length) return null;
   const [row] = await db()
-    .select({ term: courseRatings.term, recommend: courseRatings.recommend })
+    .select()
     .from(courseRatings)
-    .where(and(eq(courseRatings.rater, pseudonym(userId, "rater")), inArray(courseRatings.courseId, courseIds)))
+    .where(and(eq(courseRatings.rater, pseudonym(userId, "rater")), inArray(courseRatings.courseId, courseIds), ...(term ? [eq(courseRatings.term, term)] : [])))
     .orderBy(desc(courseRatings.updatedAt))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  const answers = await db().select().from(teacherRatings).where(eq(teacherRatings.ratingId, row.id));
+  return { term: row.term, recommend: row.recommend, courseId: row.courseId, answers: answersOf(row, answers) };
 }

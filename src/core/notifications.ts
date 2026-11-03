@@ -15,6 +15,8 @@ export type FeedItem = {
   body?: string;
   courseId?: string;
   courseName?: string;
+  /** Who posted it (LMS announcements). */
+  author?: string;
   at: Date;
   read: boolean;
   /** The LMS asks the student to confirm they have read it ("Got it"). */
@@ -28,6 +30,10 @@ export type LmsNotification = {
   title?: string | null;
   body?: string | null;
   author?: string | null;
+  /** The course an announcement is about, when the LMS sends one (name, object or separate field). */
+  subject?: string | { name?: string | null; name_en?: string | null } | null;
+  subject_name?: string | null;
+  subject_id?: string | number | null;
   created_at?: string | number | null;
   publicate_at?: string | number | null;
   read?: number | string | boolean | null;
@@ -66,6 +72,19 @@ const asDate = (v: string | number | null | undefined) => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
+/** "PINTO GONÇALO" / "gonçalo pinto" → "Pinto Gonçalo" / "Gonçalo Pinto"; mixed case is kept. */
+export function personName(raw: string | null | undefined) {
+  const text = plainText(raw).replace(/\s+/g, " ").trim();
+  if (!text) return undefined;
+  if (text !== text.toUpperCase() && text !== text.toLowerCase()) return text;
+  return text.toLowerCase().replace(/(^|[\s'-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
+}
+
+const subjectOf = (n: LmsNotification) => {
+  const s = typeof n.subject === "string" ? n.subject : n.subject?.name_en || n.subject?.name || n.subject_name;
+  return plainText(s) || undefined;
+};
+
 export function fromLms(n: LmsNotification): FeedItem {
   const needsAck = truthy(n.required) && !truthy(n.acquainted);
   return {
@@ -73,6 +92,9 @@ export function fromLms(n: LmsNotification): FeedItem {
     kind: "announcement",
     title: plainText(n.title) || "LMS announcement",
     body: plainText(n.body) || undefined,
+    author: personName(n.author),
+    courseName: subjectOf(n),
+    ...(n.subject_id !== undefined && n.subject_id !== null && n.subject_id !== "" ? { courseId: String(n.subject_id) } : {}),
     at: asDate(n.publicate_at) ?? asDate(n.created_at) ?? new Date(0),
     read: truthy(n.read) && !needsAck,
     needsAck,

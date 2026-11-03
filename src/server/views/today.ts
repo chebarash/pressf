@@ -32,7 +32,8 @@ export type CourseCard = {
   name: string;
   /** "% recommend" from 5 ratings, else null. */
   recommendPct: number | null;
-  teacher: { id: string; name: string } | null;
+  /** `face`: drawn face URL, null when none is assigned. */
+  teacher: { id: string; name: string; face?: string | null } | null;
   /** "Mon, Wed 10:00 · B-204". */
   when: string | null;
   mark: number | null;

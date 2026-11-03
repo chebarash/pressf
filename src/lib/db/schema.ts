@@ -101,6 +101,11 @@ export const lmsFiles = pgTable(
     storageKey: text("storage_key").notNull(),
     size: integer("size"),
     mimeType: text("mime_type"),
+    /** PDF page count, read when the file is downloaded; null for other formats. */
+    pages: integer("pages"),
+    /** The material's own dates in the LMS (upload and last change). */
+    lmsCreatedAt: timestamp("lms_created_at", { withTimezone: true }),
+    lmsUpdatedAt: timestamp("lms_updated_at", { withTimezone: true }),
     fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("lms_files_code").on(t.code), index("lms_files_course").on(t.courseId), index("lms_files_lesson").on(t.lessonId)]
@@ -114,7 +119,42 @@ export const lmsTeachers = pgTable("lms_teachers", {
   surName: text("sur_name"),
   /** Academic position/title from the LMS employee detail (academicStatus.name). */
   position: text("position"),
+  /** Department from the LMS employee profile (departmentTree), deepest unit. */
+  department: text("department"),
+  /** Degrees and publications from the LMS employee profile. Never the photo. */
+  education: jsonb("education").$type<LmsTeacherEducation[]>(),
+  publications: jsonb("publications").$type<LmsTeacherPublication[]>(),
+  /** Research area (science_direction). */
+  scienceDirection: text("science_direction"),
   fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type LmsTeacherEducation = { degree: string | null; field: string | null; institution: string | null; year: string | null };
+export type LmsTeacherPublication = { title: string; year: string | null; venue: string | null; url: string | null };
+
+/** A semester phase from `/semester/calendar` (cohort selection, schedule builder, studies, add/drop). */
+export type LmsSemesterPhase = {
+  kind: "cohort-selection" | "schedule-builder" | "studies" | "add-drop" | "other";
+  name: string;
+  /** ISO date-times. */
+  starts: string;
+  ends: string;
+};
+
+/**
+ * Semesters as the LMS names them, shared by everyone: the name ("Fall 2026"),
+ * study dates and the semester calendar phases (fetched once per semester).
+ */
+export const lmsSemesters = pgTable("lms_semesters", {
+  /** LMS semester id. */
+  id: text("id").primaryKey(),
+  name: text("name"),
+  /** Study start and end, YYYY-MM-DD. */
+  starts: text("starts"),
+  ends: text("ends"),
+  calendar: jsonb("calendar").$type<LmsSemesterPhase[]>(),
+  calendarFetchedAt: timestamp("calendar_fetched_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type LmsCurriculumData = {
@@ -502,6 +542,9 @@ export const feedItems = pgTable(
     at: timestamp("at", { withTimezone: true }).notNull(),
     read: boolean("read").notNull().default(false),
     needsAck: boolean("needs_ack").notNull().default(false),
+    /** LMS announcements: who posted it and for which course. */
+    author: text("author"),
+    courseName: text("course_name"),
     /** When the bot delivered it; null = not sent (settings or quiet hours). */
     sentAt: timestamp("sent_at", { withTimezone: true }),
   },
