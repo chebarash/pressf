@@ -1,4 +1,5 @@
 import type { ClassKind } from "@/core/agenda";
+import { kindOfLessonType } from "@/core/agenda";
 import { attendance, attendanceEvents, classTime, newAbsences, type LmsAdmit, type LmsAttendanceEvent } from "@/core/attendance";
 import { personOf } from "@/core/people";
 import { remindersDue, type Deadline } from "@/core/deadlines";
@@ -177,7 +178,7 @@ export function scheduleClasses(days: LmsScheduleDay[], previous: SyncedClass[])
     const type = typeof e.lesson_type === "string" ? e.lesson_type : e.lesson_type?.name;
     out.push({
       subjectId: String(e.subject_id), start: start.toISOString(), end: end.toISOString(), room, teacherId: e.employee_id ?? null, lessonId,
-      kind: kindFromType(e.subjectType?.name ?? type), was: moved ?? prior?.was ?? null,
+      kind: kindOfLessonType((e.subjectType as { type?: string | number } | null | undefined)?.type, e.subjectType?.name ?? type), was: moved ?? prior?.was ?? null,
     });
   }
   return out.sort((a, b) => a.start.localeCompare(b.start));
