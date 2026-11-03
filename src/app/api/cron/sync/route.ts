@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { syncCatalog } from "@/lib/catalog/sync";
+import { nightlySync } from "@/lib/mentions";
 import { env } from "@/lib/env";
 
 export async function POST(request: Request) {
@@ -8,5 +8,5 @@ export async function POST(request: Request) {
   if (!env().CRON_SECRET || expected.length !== received.length || !timingSafeEqual(expected, received)) {
     return new Response(null, { status: 401 });
   }
-  return Response.json(await syncCatalog());
+  return Response.json(await nightlySync());
 }

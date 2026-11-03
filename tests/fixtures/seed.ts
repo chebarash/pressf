@@ -11,11 +11,10 @@ async function main() {
   const { resetDb, seedCatalog } = await import("./db");
   const { syllabus } = await import("./catalog");
   const { db } = await import("../../src/lib/db");
-  const { materials, syllabi, teacherAliases, mentions, mentionLinks } = await import("../../src/lib/db/schema");
+  const { syllabi, teacherAliases, mentions, mentionLinks } = await import("../../src/lib/db/schema");
   await resetDb();
   await seedCatalog();
   await db().insert(syllabi).values({ courseCode: "MATH111", sourceName: "calc.pdf", data: syllabus(), matched: true });
-  await db().insert(materials).values({ status: "approved", courseCode: "MATH111", courseName: "Calculus 1", type: "midterm", term: "Fall 2023", fileName: "Calculus 1 midterm.pdf", mimeType: "application/pdf", size: 10, storageKey: "k", publishedAt: new Date() });
   await db().insert(teacherAliases).values({ oldId: "gonçalo-pinto", teacherId: "g-pinto" });
   await db().insert(mentions).values({ postId: 1, url: "https://t.me/x/1", text: "Is MATH111 hard?", date: new Date() });
   await db().insert(mentionLinks).values({ postId: 1, kind: "course", target: "MATH111" });

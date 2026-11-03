@@ -11,43 +11,18 @@ export const course = (code: string, subject: string, extra: Partial<Course> = {
   code, subject, aliases: [], same_name_codes: [], teachers: [], classes: [], ...extra,
 });
 
-export const catalog: Omit<Catalog, "updatedAt"> = {
+/** A small catalog: two teachers and four courses, seeded into the LMS tables by seedCatalog. */
+export const catalog: Pick<Catalog, "teachers" | "courses"> = {
   teachers: [
-    teacher("g-pinto", { display_name: "Gonçalo Pinto", teaches: ["MATH111", "MATH211"], office: "B-312" }),
-    teacher("e-carter", { display_name: "Emily Carter", teaches: ["PHYS101"], department: null, school: null }),
+    teacher("g-pinto", { display_name: "Gonçalo Pinto", teaches: ["MATH111", "MATH211"] }),
+    teacher("e-carter", { display_name: "Emily Carter", teaches: ["PHYS101"] }),
   ],
   courses: [
     course("MATH101", "Precalculus"),
-    course("MATH111", "Calculus 1", { teachers: ["g-pinto"], classes: ["FCS 1"] }),
+    course("MATH111", "Calculus 1", { teachers: ["g-pinto"] }),
     course("MATH211", "Calculus 2", { teachers: ["g-pinto"] }),
-    course("PHYS101", "Physics 1", { teachers: ["e-carter"], classes: ["FCS 1"] }),
+    course("PHYS101", "Physics 1", { teachers: ["e-carter"] }),
   ],
-  timetable: [
-    { class: "FCS 1", day: 0, starts: "10:00", ends: "11:20", subject: "Calculus 1", code: "MATH111", teacher: "g-pinto", teacher_name: "Gonçalo Pinto", room: "B-204" },
-    { class: "FCS 1", day: 1, starts: "13:00", ends: "14:20", subject: "Physics 1", code: "PHYS101", teacher: "e-carter", teacher_name: "Emily Carter", room: "A-108" },
-  ],
-  groups: [
-    { class: "FCS 1", program: "bsc-cyber-security", year: 1 },
-    { class: "TESOL 1", program: null, year: null },
-  ],
-  semesters: {
-    current: { id: "fall-2026", name: "Fall 2026", starts: "2026-09-07", ends: "2027-01-15" },
-    next: { id: "spring-2027", name: "Spring 2027", starts: "2027-02-22", ends: "2027-06-11" },
-  },
-  schools: [
-    { slug: "computing", name: "School of Computing", programs: [{ slug: "bsc-cyber-security", name: "Cyber Security", degree: "B.Sc." }] },
-    { slug: "medicine", name: "School of Medicine", programs: [{ slug: "md-doctor-of-medicine", name: "Doctor of Medicine", degree: "M.D." }] },
-  ],
-  curricula: {
-    "bsc-cyber-security": {
-      program: "bsc-cyber-security", source_url: "https://newuu.uz/x", academic_year: null,
-      semesters: [
-        { number: 1, year: 1, term: "fall", courses: [{ code: "MATH111", subject: "Calculus 1", credits: 6, type: "core", elective_group: null, prerequisites: null }] },
-        { number: 2, year: 1, term: "spring", courses: [{ code: "MATH211", subject: "Calculus 2", credits: 6, type: "core", elective_group: null, prerequisites: null }, { code: "PHYS101", subject: "Physics 1", credits: 8, type: "elective", elective_group: null, prerequisites: null }] },
-      ],
-    },
-    "md-doctor-of-medicine": { program: "md-doctor-of-medicine", source_url: "https://newuu.uz/md", academic_year: null, semesters: [] },
-  },
 };
 
 export const syllabus = (extra: Partial<SyllabusData> = {}): SyllabusData => ({

@@ -1,9 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { downloadName, formatOf } from "@/core/files";
 import { path } from "@/core/links";
-import { publishedFile } from "@/lib/content";
 import { db } from "@/lib/db";
-import { lmsCourses, lmsFiles, materials, telegramFiles, uploads, users } from "@/lib/db/schema";
+import { lmsCourses, lmsFiles, telegramFiles, uploads, users } from "@/lib/db/schema";
 import { signedUrl } from "@/lib/storage";
 import { fileOverride } from "@/server/decisions";
 import { sendDocument, type InlineKeyboard } from "@/lib/telegram/api";
@@ -76,24 +75,9 @@ async function lmsFile(id: string): Promise<Sendable | null> {
   };
 }
 
-/** A file from the old review flow. */
-async function material(id: string): Promise<Sendable | null> {
-  const file = await publishedFile(id);
-  if (!file) return null;
-  return {
-    storageKey: file.storageKey!,
-    fileName: file.fileName,
-    size: file.size,
-    caption: `<b>${esc(file.fileName.replace(/\.[a-z0-9]+$/i, ""))}</b>`,
-    buttons: { inline_keyboard: file.courseCode ? [[appButton("Open course", `/courses/${file.courseCode}#files`)]] : [] },
-    fileId: file.sharedFileId,
-    remember: (fileId) => db().update(materials).set({ sharedFileId: fileId }).where(eq(materials.id, file.id)),
-  };
-}
-
 /**
- * Sends a file to the Mini App user's chat with the bot: a live student upload,
- * an LMS file (signed-in students only) or an old published file. The first send
+ * Sends a file to the Mini App user's chat with the bot: a live student upload
+ * or an LMS file (signed-in students only). The first send
  * uploads it; Telegram's file_id is kept so every later send is instant.
  */
 export async function POST(request: Request) {
@@ -102,7 +86,7 @@ export async function POST(request: Request) {
   if (!chat) return Response.json({ error: "unauthorized" }, { status: 401 });
   const fileId = id ?? "";
 
-  let file = (await upload(fileId)) ?? (await material(fileId));
+  let file = await upload(fileId);
   if (!file) {
     const lms = await lmsFile(fileId);
     if (lms) {

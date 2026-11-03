@@ -1,6 +1,6 @@
 import { env } from "@/lib/env";
 
-export type InlineButton = { text: string; callback_data?: string; url?: string; web_app?: { url: string }; switch_inline_query_current_chat?: string };
+export type InlineButton = { text: string; callback_data?: string; url?: string; web_app?: { url: string } };
 
 export type InlineKeyboard = {
   inline_keyboard: InlineButton[][];
@@ -42,11 +42,10 @@ export type TelegramUpdate = {
   update_id: number;
   message?: TelegramMessage;
   callback_query?: TelegramCallbackQuery;
-  inline_query?: { id: string; query: string; offset: string };
 };
 
 const url = (method: string) =>
-  `https://api.telegram.org/bot${env().TELEGRAM_FILES_BOT_TOKEN}/${method}`;
+  `https://api.telegram.org/bot${env().TELEGRAM_BOT_TOKEN}/${method}`;
 
 async function parse<T>(response: Response, method: string): Promise<T> {
   const body = await response.json();
@@ -99,17 +98,6 @@ export const editKeyboard = (chatId: number | string, messageId: number, replyMa
 export const sendPhoto = (chatId: number | string, photo: string, caption: string, replyMarkup?: InlineKeyboard) =>
   call<TelegramMessage>("sendPhoto", { chat_id: chatId, photo, caption, parse_mode: "HTML", reply_markup: replyMarkup });
 
-export const answerInlineQuery = (id: string, results: object[], nextOffset: string, site: string, buttonText: string) =>
-  call<boolean>("answerInlineQuery", {
-    inline_query_id: id,
-    results,
-    next_offset: nextOffset,
-    cache_time: 300,
-    button: { text: buttonText, web_app: { url: site } },
-  });
-
-export const getMe = () => call<{ has_main_web_app?: boolean }>("getMe", {});
-
 export const answerCallback = (id: string, text?: string, alert = !!text) =>
   call<boolean>("answerCallbackQuery", {
     callback_query_id: id,
@@ -159,7 +147,7 @@ export async function downloadFile(fileId: string): Promise<Buffer> {
     file_id: fileId,
   });
   const response = await fetch(
-    `https://api.telegram.org/file/bot${env().TELEGRAM_FILES_BOT_TOKEN}/${file_path}`
+    `https://api.telegram.org/file/bot${env().TELEGRAM_BOT_TOKEN}/${file_path}`
   );
   if (!response.ok) {
     // The URL holds the bot token, so it must not end up in the error or logs.

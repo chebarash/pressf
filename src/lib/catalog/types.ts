@@ -1,4 +1,4 @@
-/** Shapes follow docs/BOT_API_REQUEST.md. */
+/** The catalog shapes, built from the harvested LMS tables (see ./index.ts). */
 export type Teacher = {
   id: string;
   name: string;
@@ -35,9 +35,6 @@ export type Lesson = {
   room: string | null;
 };
 
-export type Group = { class: string; program: string | null; year: number | null };
-export type Semester = { id: string; name: string; starts: string; ends: string };
-export type Semesters = { current: Semester | null; next: Semester | null };
 export type Program = { slug: string; name: string; degree: string };
 export type School = { slug: string; name: string; programs: Program[] };
 
@@ -65,10 +62,6 @@ export type Curriculum = {
 export type Catalog = {
   teachers: Teacher[];
   courses: Course[];
-  timetable: Lesson[];
-  groups: Group[];
-  semesters: Semesters;
   schools: School[];
   curricula: Record<string, Curriculum>;
-  updatedAt: Date | null;
 };

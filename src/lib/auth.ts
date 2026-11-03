@@ -116,7 +116,7 @@ export const authOptions: NextAuthOptions = {
   pages: { signIn: "/sign-in", error: "/sign-in" },
 };
 
-export type CurrentUser = { id: string; email: string; group: string | null; isAdmin: boolean };
+export type CurrentUser = { id: string; email: string; isAdmin: boolean };
 
 export const getUser = cache(async (): Promise<CurrentUser | null> => {
   const dev = process.env.NODE_ENV !== "production" ? env().DEV_LOGIN_EMAIL : undefined;
@@ -124,7 +124,7 @@ export const getUser = cache(async (): Promise<CurrentUser | null> => {
   if (!email || (!dev && !isStudent(email))) return null;
   const [row] = await db().insert(users).values({ email: email.toLowerCase() })
     .onConflictDoUpdate({ target: users.email, set: { email: email.toLowerCase() } }).returning();
-  return { id: row.id, email: row.email, group: row.group, isAdmin: isAdminEmail(row.email) };
+  return { id: row.id, email: row.email, isAdmin: isAdminEmail(row.email) };
 });
 
 export async function requireAdmin() {

@@ -12,7 +12,7 @@ export default defineConfig({
       DATABASE_URL: process.env.TEST_DATABASE_URL ?? "postgres://pressf@127.0.0.1:5544/pressf_test",
       BOT_API_URL: "https://bot.test", BOT_API_TOKEN: "bot-token", CRON_SECRET: "cron-secret",
       ADMIN_EMAILS: "boss@newuu.uz, Second@newuu.uz", NEXTAUTH_URL: "https://pressf.test",
-      TELEGRAM_FILES_BOT_TOKEN: "tg-token", TELEGRAM_FILES_WEBHOOK_SECRET: "hook-secret", TELEGRAM_FILES_REVIEW_CHAT_ID: "-100",
+      TELEGRAM_BOT_TOKEN: "tg-token", TELEGRAM_WEBHOOK_SECRET: "hook-secret",
       CREDENTIAL_KEY: "test-credential-key-0123456789",
     },
   },

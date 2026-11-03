@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
  * Telegram id. See https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
  */
 export function verifyInitData(initData: string, maxAgeSeconds = 86_400): string | null {
-  const token = env().TELEGRAM_FILES_BOT_TOKEN;
+  const token = env().TELEGRAM_BOT_TOKEN;
   if (!token || !initData) return null;
   const params = new URLSearchParams(initData);
   const hash = params.get("hash");

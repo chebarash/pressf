@@ -1,31 +1,50 @@
 # Press F
 
-Student guide to New Uzbekistan University: courses, teachers, files, timetables.
-Next.js on Railway with Postgres and S3-compatible storage.
+Student app for New Uzbekistan University, in Telegram and on desktop: timetable,
+courses, files, grades, ratings and professors. It wraps the university LMS
+(hero.study). Next.js on Railway with Postgres and S3-compatible storage.
 
 ## Data
 
-- Teachers, courses, timetable, groups, schools and curricula come from the
-  `anonymous` bot API (`docs/BOT_API_REQUEST.md`) and are never edited here.
-- `POST /api/cron/sync` copies them into `catalog_cache` nightly. The site reads only
-  its own database, so it opens when the bot is down.
-- Ratings hang on teacher ids. Sync moves them when `previous_ids` changes an id, and
-  old `/professors/{id}` links redirect through `teacher_aliases`.
-- Syllabi are read automatically (`src/lib/syllabus.ts`). A syllabus shows only when both
-  code and title match the catalog; the rest waits in `/admin`.
-- `data/academic-calendar-2026-2027.json` drives week numbers and hints. Replace it yearly.
+- Students sign in with their LMS email and password (`src/lib/auth.ts`). The password
+  is sealed with `CREDENTIAL_KEY` so background sync keeps working; it is never logged.
+- Courses, teachers, departments, programs and lesson files are harvested from the LMS
+  into the `lms_*` tables (`src/lib/lms`). Pages read Postgres only, never the LMS.
+- Ratings live in `course_ratings` and `teacher_ratings`; student files in `uploads`.
+- Posts from the Anonymous channel that mention a course or professor come from the
+  channel bot's API (`docs/BOT_API_REQUEST.md`, `src/lib/mentions.ts`).
+- Syllabi found in LMS files are read automatically (`src/lib/syllabus.ts`).
+- `data/academic-calendar-2026-2027.json` feeds `/calendar.ics`. Replace it yearly.
+
+## Scheduled jobs (GitHub Actions)
+
+| Workflow | Calls | When |
+| --- | --- | --- |
+| `harvest.yml` | `POST /api/cron/harvest` | Mondays 03:00 UTC |
+| `students.yml` | `POST /api/cron/reminders`, `POST /api/cron/students` | every 5 minutes |
+| `sync.yml` | `POST /api/cron/sync` (Anonymous posts, while `MENTIONS_SYNC=on`) | 02:30 UTC |
+
+Each sends `Authorization: Bearer $CRON_SECRET`; set the `CRON_SECRET` secret and the
+`SITE_URL` variable on GitHub.
 
 ## Run
 
     cp .env.example .env
     npm install
     npm run db:migrate
-    npx tsx scripts/sync.ts
-    npx tsx scripts/seed-syllabi.ts
     npm run dev
+
+`DEV_LOGIN_EMAIL` signs every local request in as that student. The UI kit (`/kit`) and
+screen previews (`/screens/*`) exist only in development.
+
+Tests need a Postgres at `127.0.0.1:5544` (or `TEST_DATABASE_URL`): `npm test`.
+
+Scripts: `scripts/lms-harvest.ts` (harvest by hand), `scripts/lms-seed.ts` (save the
+harvest account), `scripts/sync.ts` (the nightly sync by hand), `scripts/faces-export.ts`,
+`npm run tokens` (design tokens to CSS).
 
 ## Deploy on Railway
 
 1. Add Postgres and a bucket, set the variables from `.env.example`.
-2. Set the `CRON_SECRET` secret and `SITE_URL` variable on GitHub. `.github/workflows/sync.yml` calls `/api/cron/sync` at 02:30 UTC, after the bot finishes its rebuild.
-3. Run `npx tsx scripts/files-bot-setup.ts https://pressf.chebarash.uz`.
+2. Point the bot's webhook at the site:
+   `https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://pressf.chebarash.uz/api/telegram/files&secret_token=<TELEGRAM_WEBHOOK_SECRET>`
