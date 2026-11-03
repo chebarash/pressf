@@ -4,7 +4,7 @@ import { planCourses } from "@/lib/lms/profile";
 
 describe("semester GPA (NewUU 4.5 scale, as the transcript computes it)", () => {
   it("maps finals to grade points", () => {
-    expect([100, 95, 94, 85, 84, 75, 74, 65, 64, 60, 59, 50, 49, 40, 39, 0].map(gradePoints)).toEqual([4.5, 4.5, 4, 4, 3.5, 3.5, 3, 3, 2.75, 2.75, 2.5, 2.5, 2, 2, 0, 0]);
+    expect([100, 93, 92.9, 85, 84.9, 75, 74.9, 65, 64.9, 60, 59.9, 50, 49.9, 40, 39.9, 0].map(gradePoints)).toEqual([4.5, 4.5, 4, 4, 3.5, 3.5, 3, 3, 2.75, 2.75, 2.5, 2.5, 2, 2, 0, 0]);
     expect(gradePoints(null)).toBeNull();
   });
 

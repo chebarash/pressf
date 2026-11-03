@@ -2,7 +2,7 @@ export { Banner, type BannerProps } from "./Banner";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./Button";
 export { Chip, type ChipProps } from "./Chip";
 export { CourseCard, type CourseCardProps } from "./CourseCard";
-export { Disclosure, type DisclosureProps } from "./Disclosure";
+export { Collapse, Disclosure, type DisclosureProps } from "./Disclosure";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { Face, type FaceProps } from "./Face";
 export { FeedFiles, type FeedFilesProps } from "./FeedFiles";
