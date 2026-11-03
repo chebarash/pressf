@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { miniAppUrl } from "@/core/links";
 import { getPlatform, isMobile } from "@/platform/server";
 import { BottomBar } from "./BottomBar";
@@ -6,6 +7,7 @@ import { DesktopChrome } from "./DesktopChrome";
 import { DialogHost } from "./DialogHost";
 import { MobileExtras } from "./MobileExtras";
 import { qrPath } from "./qr";
+import { SystemBanner } from "./SystemBanner";
 import { TopBar } from "./TopBar";
 
 /**
@@ -19,6 +21,9 @@ export async function Shell({ children }: { children: React.ReactNode }) {
     return (
       <div className="sh-mobile">
         <TopBar signedIn={!!user} />
+        <Suspense fallback={null}>
+          <SystemBanner />
+        </Suspense>
         <main className="sh-main" id="main">{children}</main>
         <MobileExtras signedIn={!!user} needsReauth={!!user?.needsReauth} email={user?.email} />
         <BottomBar />
@@ -33,6 +38,9 @@ export async function Shell({ children }: { children: React.ReactNode }) {
         inviteQr={qrPath(miniAppUrl({ to: "today" }))}
       />
       <div className="sh-desktop__main">
+        <Suspense fallback={null}>
+          <SystemBanner />
+        </Suspense>
         <main className="sh-main" id="main">{children}</main>
         <MobileExtras signedIn={!!user} needsReauth={!!user?.needsReauth} email={user?.email} desktop />
         <BottomBar />

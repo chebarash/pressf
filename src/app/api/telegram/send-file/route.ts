@@ -5,6 +5,7 @@ import { publishedFile } from "@/lib/content";
 import { db } from "@/lib/db";
 import { lmsCourses, lmsFiles, materials, telegramFiles, uploads, users } from "@/lib/db/schema";
 import { signedUrl } from "@/lib/storage";
+import { fileOverride } from "@/server/decisions";
 import { sendDocument, type InlineKeyboard } from "@/lib/telegram/api";
 import { esc } from "@/lib/telegram/html";
 import { appButton } from "@/lib/telegram/links";
@@ -61,13 +62,14 @@ async function lmsFile(id: string): Promise<Sendable | null> {
   if (!/^[\w-]{1,64}$/.test(id)) return null;
   const [row] = await db().select({ f: lmsFiles, courseName: lmsCourses.name }).from(lmsFiles)
     .leftJoin(lmsCourses, eq(lmsCourses.id, lmsFiles.courseId)).where(eq(lmsFiles.id, id));
-  if (!row) return null;
+  const edit = row ? await fileOverride(id) : null;
+  if (!row || edit?.hidden) return null;
   const key = `lms:${row.f.id}:${row.f.version ?? ""}`;
   return {
     storageKey: row.f.storageKey,
     fileName: row.f.extension && !row.f.name.toLowerCase().endsWith(`.${row.f.extension.toLowerCase()}`) ? `${row.f.name}.${row.f.extension}` : row.f.name,
     size: row.f.size ?? 0,
-    caption: `<b>${esc(row.f.name.replace(/\.[a-z0-9]+$/i, ""))}</b>${row.courseName ? `\n${esc(row.courseName)}` : ""}`,
+    caption: `<b>${esc(edit?.title?.trim() || row.f.name.replace(/\.[a-z0-9]+$/i, ""))}</b>${row.courseName ? `\n${esc(row.courseName)}` : ""}`,
     buttons: courseButtons(row.f.code),
     fileId: await cached(key),
     remember: rememberAs(key),

@@ -8,6 +8,7 @@ import { env, isAdminEmail, STUDENT_DOMAIN } from "@/lib/env";
 import { login, LmsError } from "@/lib/lms/client";
 import { persistAccount } from "@/lib/lms/store";
 import { verifyInitData } from "@/lib/telegram/webapp";
+import { markRelinked, revokedAt, sessionRevoked, telegramLoginBlocked } from "@/server/decisions";
 import { redeemLink } from "@/server/link";
 
 const isStudent = (email?: string | null) => !!email && email.toLowerCase().endsWith(`@${STUDENT_DOMAIN}`);
@@ -53,6 +54,8 @@ export const authOptions: NextAuthOptions = {
           .onConflictDoUpdate({ target: users.email, set: { email } })
           .returning();
         await persistAccount(row.id, password, session);
+        // The password was proven again: the Mini App may sign in silently after a "Sign out everywhere".
+        await markRelinked(row.id);
         // Signing in inside the Mini App links this Telegram to the account.
         const telegramId = verifyInitData(credentials?.initData ?? "", 3600);
         if (telegramId) await linkTelegram(row.id, telegramId);
@@ -69,7 +72,10 @@ export const authOptions: NextAuthOptions = {
         const telegramId = verifyInitData(credentials?.initData ?? "");
         if (!telegramId) return null;
         const [row] = await db().select().from(users).where(eq(users.telegramId, telegramId));
-        return row ? { id: row.id, email: row.email } : null;
+        if (!row) return null;
+        // After "Sign out everywhere" the Mini App asks for the LMS password once more.
+        if (await telegramLoginBlocked(row.id)) return null;
+        return { id: row.id, email: row.email };
       },
     }),
     // Desktop → Telegram hand-off: the Mini App redeems a one-time code issued on
@@ -86,10 +92,24 @@ export const authOptions: NextAuthOptions = {
         const [row] = await db().select().from(users).where(eq(users.id, userId));
         if (!row) return null;
         await linkTelegram(row.id, telegramId);
+        await markRelinked(row.id);
         return { id: row.id, email: row.email };
       },
     }),
   ],
+  callbacks: {
+    // `issued` is set once at sign-in (`iat` moves on every refresh). A session
+    // issued before an admin's "Sign out everywhere" is void: throwing here
+    // makes next-auth clear the cookie and getServerSession return null.
+    async jwt({ token, user }) {
+      if (user) {
+        token.issued = Date.now();
+        return token;
+      }
+      if (token.sub && sessionRevoked(token.issued as number | undefined, await revokedAt(token.sub))) throw new Error("Session revoked");
+      return token;
+    },
+  },
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/sign-in", error: "/sign-in" },
 };

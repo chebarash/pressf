@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { extensionOf } from "@/core/files";
 import { shownAs } from "@/core/uploads";
 import { putObject } from "@/lib/storage";
+import { checkFlag } from "@/server/admin/rules";
+import { uploadChecks } from "@/server/upload-checks";
 import { submitUpload, UploadRefused } from "@/server/uploads";
 import { downloadFile, send, type BotMessage } from "./api";
 import { titleOf, type Draft } from "./conversation";
@@ -46,6 +48,15 @@ async function store(userId: string, d: Draft): Promise<{ result: IntakeResult; 
     }
   }
 
+  // Automatic checks for the moderator; never block the upload when they fail.
+  const checks = await uploadChecks({
+    courseId: course.id, courseCode: course.code, courseName: course.name, fileName: file.name, size: buffer.length, sha256,
+    type: d.type!, exam: d.exam ?? null, term: d.term ?? null, bytes: ext === "pdf" ? new Uint8Array(buffer) : null,
+  }).catch((error) => {
+    console.warn("Upload checks failed", error);
+    return {};
+  });
+
   try {
     const out = await submitUpload({
       uploaderId: userId,
@@ -56,14 +67,14 @@ async function store(userId: string, d: Draft): Promise<{ result: IntakeResult; 
       exam: d.exam ?? null,
       term: d.term ?? null,
       showName: d.showName,
-      checks: { originalKey: original },
+      checks: { ...checks, originalKey: original },
       fileName: file.name,
       mimeType: file.mime,
       size: buffer.length,
       sha256,
       storageKey,
       telegramFileId: file.fileId,
-    });
+    }, undefined, { hold: checkFlag(checks) !== null });
     if (out.duplicate) return { result: "duplicate", message: alreadyShared(course.name) };
     if (out.status === "live") return { result: "live", message: fileLive(title, course.name, course.code) };
     return { result: "waiting", message: sentForReview() };

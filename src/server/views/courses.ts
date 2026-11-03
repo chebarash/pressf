@@ -11,6 +11,7 @@ import { describeFile, downloadName, FORMAT_CODE, TYPE_LABEL, type FileFormat, t
 import { shownAs } from "@/core/uploads";
 import { signedUrl } from "@/lib/storage";
 import { shortDate } from "@/core/time";
+import { DECISION_TAGS, fileOverride, overlay } from "@/server/decisions";
 import { publicCache, TAGS } from "./cache";
 import { progressCourses, type AbsencesView, type ProgressCourse } from "./progress";
 import { myRatingFor, rateQueueFor } from "./rate";
@@ -237,7 +238,7 @@ const coursePublic = publicCache(
       terms, ratings: ratings[code], anonymous, teachersByCourse, syllabus, topics, totalWeeks: 16,
     };
   },
-  (code) => [TAGS.course(code), TAGS.ratings, TAGS.catalog],
+  (code) => [TAGS.course(code), TAGS.ratings, TAGS.catalog, DECISION_TAGS.moderation],
 );
 
 /**
@@ -394,19 +395,20 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
     };
   }
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
-  const [f] = await db().select().from(lmsFiles).where(eq(lmsFiles.id, id));
-  if (!f) return null;
+  const [[f], edit] = await Promise.all([db().select().from(lmsFiles).where(eq(lmsFiles.id, id)), fileOverride(id)]);
+  if (!f || edit?.hidden) return null;
   const [c] = await db().select({ name: lmsCourses.name, raw: lmsCourses.raw }).from(lmsCourses).where(eq(lmsCourses.id, f.courseId));
   const course = { code: f.code, name: c?.name ?? f.code };
   if (!viewer) return { locked: true, id, course };
   const meta = describeFile(f.name, { courseCode: f.code, courseName: course.name, extension: f.extension ?? undefined });
   const lessonWeek = f.lessonId && c ? lessonSlots(c.raw).filter((s) => s.lessonId === f.lessonId).map((s) => dayInfo(new Date(s.at)).week?.week ?? null)[0] ?? null : null;
-  const name = downloadName(meta.title, course.name, meta.format, f.extension ?? "");
-  const week = meta.week ?? lessonWeek;
+  const shown = overlay({ title: meta.title, type: meta.type, week: meta.week ?? lessonWeek }, edit)!;
+  const name = downloadName(shown.title, course.name, meta.format, f.extension ?? "");
+  const week = shown.week;
   const [url, ctx] = await Promise.all([sign(f.storageKey, name), fileContext(f.code, f.courseId, week, id)]);
   return {
     ...ctx,
-    locked: false, id, source: "lms", title: meta.title, course, week, type: meta.type, typeLabel: TYPE_LABEL[meta.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
+    locked: false, id, source: "lms", title: shown.title, course, week, type: shown.type, typeLabel: TYPE_LABEL[shown.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
     from: "LMS", date: lmsFileDate(f).toISOString(), dateLabel: shortDate(lmsFileDate(f)), size: f.size, pages: f.pages, mimeType: f.mimeType, downloadName: name, url,
   };
 }

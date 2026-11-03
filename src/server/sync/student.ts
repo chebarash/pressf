@@ -9,6 +9,7 @@ import { filesAreStale, harvestCourseFiles } from "@/lib/lms/files";
 import { parseSemesters, refreshCalendars, saveSemesters, upcomingSemesterIds } from "@/lib/lms/semesters";
 import type { LmsGradebookSemester } from "@/lib/lms/types";
 import { sessionFor } from "@/lib/lms/store";
+import { settingIsOn } from "@/server/decisions";
 import { markRead, saveSnapshot } from "@/server/feed";
 import { invalidateHarvest } from "@/server/views/cache";
 import { coursesByIds } from "@/server/views/shared";
@@ -26,7 +27,7 @@ import { SNAPSHOT_KEY, termName, type SyncSnapshot, type SyncedCourse } from "./
  * files for at most one course per run.
  */
 
-export type SyncResult = { userId: string; ok: boolean; skipped?: "no-user" | "no-login"; error?: string; alerts: number; sent: number };
+export type SyncResult = { userId: string; ok: boolean; skipped?: "no-user" | "no-login" | "paused"; error?: string; alerts: number; sent: number };
 
 /** The sign-in snapshot (enrollment, weekly timetable, profile) is refreshed this often by the sync. */
 const CACHE_REFRESH_MS = 6 * 3600_000;
@@ -50,6 +51,8 @@ async function attempt<T>(failures: string[], what: string, call: () => Promise<
 }
 
 export async function syncStudent(userId: string, now = new Date()): Promise<SyncResult> {
+  // An admin paused syncing (System): no LMS calls at all until it is turned back on.
+  if (await settingIsOn("sync-paused")) return { userId, ok: true, skipped: "paused", alerts: 0, sent: 0 };
   const student = await loadStudent(userId, { refresh: false });
   if (!student) return { userId, ok: false, skipped: "no-user", alerts: 0, sent: 0 };
   const to: Recipient = { userId, telegramId: student.telegramId, alerts: student.alerts };

@@ -91,6 +91,10 @@ img, svg { display: block; }
 .sh-avatar img { width: 100%; height: 100%; object-fit: contain; }
 .sh-main { flex: 1; min-width: 0; }
 
+/* Maintenance / broadcast banner over every screen (A10 caption, 9.4 StatusBannerMobile). */
+.sh-banner { padding: 0 var(--space-4) var(--space-3); }
+.sh-desktop .sh-banner { padding: 0 0 var(--space-5); max-width: 720px; }
+
 /* Page header pattern (App/TopBar + title). */
 .sh-header { display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-4) var(--space-4); }
 .sh-desktop .sh-header { padding: 0 0 var(--space-5); }

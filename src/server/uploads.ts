@@ -20,9 +20,11 @@ export class UploadRefused extends Error {}
  * Takes a new upload from the bot. The same file for the same course is kept
  * once. Returns where it went so the bot can answer.
  */
-export async function submitUpload(input: NewUpload, roll = Math.random()) {
+export async function submitUpload(input: NewUpload, roll = Math.random(), opts: { hold?: boolean } = {}) {
   const trust = input.uploaderId ? await trustFor(input.uploaderId) : "normal";
-  const route = routeUpload(trust, roll);
+  let route = routeUpload(trust, roll);
+  // A flagged automatic check (in LMS, exam running, personal data…) waits for a moderator, even from trusted uploaders.
+  if (route === "live" && opts.hold) route = "waiting";
   if (route === "refuse") throw new UploadRefused("Sharing is paused for this account");
   const [row] = await db()
     .insert(uploads)
