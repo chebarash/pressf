@@ -174,7 +174,7 @@
   justify-content: center;
   border: 1.5px solid var(--border-strong);
   border-radius: 12px;
-  color: var(--text-on-warm);
+  color: var(--text-primary);
 }
 .feedText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .feedTitle { font: 600 15px/normal var(--font-sans); }
