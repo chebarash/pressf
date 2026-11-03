@@ -98,6 +98,17 @@ describe("course", () => {
     expect(await views.file("F1", { userId })).toMatchObject({ locked: false, title: "Midterm review slides", week: 8, from: "LMS", downloadName: "Midterm review slides — Calculus 1.pdf" });
     expect(await views.file("nope", { userId })).toBeNull();
   });
+
+  it("downloads go through the branded route with a signed link (no cookie needed, e.g. Telegram's downloader)", async () => {
+    const { downloadAllowed } = await import("@/server/covers/source");
+    const v = await views.file("F1", { userId });
+    const link = new URL((v as { downloadUrl: string }).downloadUrl, "https://x");
+    expect(link.pathname).toBe("/f/F1/download");
+    expect(downloadAllowed("F1", link.searchParams.get("exp"), link.searchParams.get("sig"))).toBe(true);
+    expect(downloadAllowed("F2", link.searchParams.get("exp"), link.searchParams.get("sig"))).toBe(false);
+    expect(downloadAllowed("F1", link.searchParams.get("exp"), "forged")).toBe(false);
+    expect(downloadAllowed("F1", link.searchParams.get("exp"), link.searchParams.get("sig"), new Date(Date.now() + 2 * 3600_000))).toBe(false);
+  });
 });
 
 describe("professor and search", () => {

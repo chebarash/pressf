@@ -10,6 +10,7 @@ import { termName } from "@/server/sync/types";
 import { describeFile, downloadName, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
 import { shownAs } from "@/core/uploads";
 import { signedUrl } from "@/lib/storage";
+import { downloadLink } from "@/server/covers/source";
 import { shortDate } from "@/core/time";
 import { DECISION_TAGS, fileOverride, overlay } from "@/server/decisions";
 import { publicCache, TAGS } from "./cache";
@@ -389,8 +390,10 @@ export type FileView =
       courseDetail?: CourseView | null;
       mimeType: string | null;
       downloadName: string;
-      /** Signed bucket URL (1 h), null when storage is not configured. */
+      /** Signed bucket URL of the original (1 h), for the preview; null when storage is not configured. */
       url: string | null;
+      /** Download: /f/<id>/download with a 1 h signature, giving the branded copy (works without a cookie, e.g. Telegram's downloader). */
+      downloadUrl?: string;
     };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -441,7 +444,7 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
       ...ctx,
       ...around,
       locked: false, id, source: "students", title: u.title, course, week: u.week, type, typeLabel: TYPE_LABEL[type] ?? "File", format: meta.format, formatCode: FORMAT_CODE[meta.format],
-      from: shownAs(u.showName, null), date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), size: u.size, pages: null, mimeType: u.mimeType, downloadName: name, url,
+      from: shownAs(u.showName, null), date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), size: u.size, pages: null, mimeType: u.mimeType, downloadName: name, url, downloadUrl: downloadLink(id),
     };
   }
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
@@ -460,7 +463,7 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
     ...ctx,
     ...around,
     locked: false, id, source: "lms", title: shown.title, course, week, type: shown.type, typeLabel: TYPE_LABEL[shown.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
-    from: "LMS", date: lmsFileDate(f).toISOString(), dateLabel: shortDate(lmsFileDate(f)), size: f.size, pages: f.pages, mimeType: f.mimeType, downloadName: name, url,
+    from: "LMS", date: lmsFileDate(f).toISOString(), dateLabel: shortDate(lmsFileDate(f)), size: f.size, pages: f.pages, mimeType: f.mimeType, downloadName: name, url, downloadUrl: downloadLink(id),
   };
 }
 

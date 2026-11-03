@@ -44,7 +44,7 @@ export default function File({ data }: { data: FileView }) {
           <p className={b.sub}>{data.url ? "Download it to open it on your phone." : "We're still copying it from LMS. Try again in a few minutes."}</p>
         </div>
       )}
-      {data.url ? <FileActions url={`/f/${data.id}/download`} name={data.downloadName} /> : null}
+      {data.url ? <FileActions url={data.downloadUrl ?? `/f/${data.id}/download`} name={data.downloadName} /> : null}
     </div>
   );
 }

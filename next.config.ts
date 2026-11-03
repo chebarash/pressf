@@ -11,7 +11,9 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/telegram/files": ["./src/lib/telegram/fonts/*.ttf", "./src/server/covers/assets/*"],
     "/og/[...slug]": ["./src/server/covers/assets/*"],
-  },
+    // Routes that brand files (the cover reads these fonts and the mascot at run time).
+    "/f/[id]/download": ["./src/server/covers/assets/*"],
+    "/api/telegram/send-file": ["./src/server/covers/assets/*"],  },
 };
 
 export default nextConfig;

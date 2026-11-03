@@ -327,8 +327,8 @@ export function file(v: V.FileView): M.FileData {
   const weekFiles = [me, ...(v.sameWeek ?? [])].map((f) => fileRow(f));
   const code = v.course.code;
   return {
-    // D12: "Week 8 · 2 Nov · LMS · 24 pages · 3.1 MB".
-    file: { id: v.id, title: v.title, meta: join(v.week != null && `Week ${v.week}`, v.dateLabel, v.from, pages ?? v.formatCode, sizeLabel(v.size)), type: v.type, previewUrl: v.url && v.format === "pdf" ? v.url : null, downloadHref: href, openHref: href },
+    // D12: "Week 8 · 2 Nov · LMS · 24 pages · 3.1 MB". The preview and Open show the original; Download gives the branded copy.
+    file: { id: v.id, title: v.title, meta: join(v.week != null && `Week ${v.week}`, v.dateLabel, v.from, pages ?? v.formatCode, sizeLabel(v.size)), type: v.type, previewUrl: v.url && v.format === "pdf" ? v.url : null, downloadHref: v.downloadUrl ?? `/f/${v.id}/download`, openHref: href },
     // D12: your courses on the left, the course as on its page in the middle (from file()).
     course: v.courseDetail
       ? { ...course(v.courseDetail), myCourses: v.myCourses?.length ? v.myCourses.map(listItem) : null }

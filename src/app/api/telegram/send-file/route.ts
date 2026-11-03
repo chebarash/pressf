@@ -8,6 +8,7 @@ import { sendDocument, type InlineKeyboard } from "@/lib/telegram/api";
 import { esc } from "@/lib/telegram/html";
 import { appButton } from "@/lib/telegram/links";
 import { verifyInitData } from "@/lib/telegram/webapp";
+import { COVER_VERSION } from "@/server/covers";
 import { deliverUrl, fileSource } from "@/server/covers/source";
 
 // Telegram fetches up to 20 MB by URL and accepts up to 50 MB when a bot uploads.
@@ -28,6 +29,13 @@ type Sendable = {
   remember: (fileId: string) => Promise<unknown>;
 };
 
+/**
+ * Telegram file_ids are remembered per cover version: ids stored before files
+ * were branded (or under an older cover) point at the original, so a new
+ * version starts a fresh cache and the next send uploads the branded copy.
+ */
+const BRANDED = `cover${COVER_VERSION}:`;
+
 const isUuid = (id: string) => /^[0-9a-f-]{36}$/.test(id);
 const courseButtons = (code: string | null | undefined): InlineKeyboard => ({
   inline_keyboard: code ? [[appButton("Open course", path({ to: "course", code, tab: "files" }))]] : [],
@@ -45,7 +53,7 @@ async function upload(id: string): Promise<Sendable | null> {
   if (!row?.u.storageKey) return null;
   const courseName = row.courseName ?? row.u.courseCode ?? "";
   const ext = row.u.fileName.match(/\.([A-Za-z0-9]{1,5})$/)?.[1] ?? "";
-  const key = `upload:${row.u.id}`;
+  const key = `${BRANDED}upload:${row.u.id}`;
   return {
     url: async () => { const src = await fileSource(id, null); if (!src) throw new Error("missing"); return deliverUrl(src); },
     fileName: downloadName(row.u.title, courseName, formatOf(row.u.fileName), ext),
@@ -64,7 +72,7 @@ async function lmsFile(id: string): Promise<Sendable | null> {
     .leftJoin(lmsCourses, eq(lmsCourses.id, lmsFiles.courseId)).where(eq(lmsFiles.id, id));
   const edit = row ? await fileOverride(id) : null;
   if (!row || edit?.hidden) return null;
-  const key = `lms:${row.f.id}:${row.f.version ?? ""}`;
+  const key = `${BRANDED}lms:${row.f.id}:${row.f.version ?? ""}`;
   return {
     url: async () => { const src = await fileSource(id, null); if (!src) throw new Error("missing"); return deliverUrl(src); },
     fileName: row.f.extension && !row.f.name.toLowerCase().endsWith(`.${row.f.extension.toLowerCase()}`) ? `${row.f.name}.${row.f.extension}` : row.f.name,
