@@ -8,6 +8,7 @@ import { DEFAULT_FACE_SPEC, FACE_OPTION_LABELS, FACE_PART_LABELS, FACE_PART_ORDE
 import type { facesPage } from "@/server/admin/faces";
 import f from "./faces.module.css";
 import { Btn, Chip, Head, KV, Label, cx, s } from "./ui";
+import { ProfessorTabs } from "./ProfessorProfiles";
 import { useKeys } from "./useKeys";
 import type { SortColumns } from "@/core/sort";
 import { SortHeader, useSortedRows } from "@/ui/table/Sort";
@@ -57,11 +58,7 @@ export function ProfessorFaces({ data }: { data: FacesData }) {
     <>
       <section className={cx(s.main, s.mainFixed)} style={{ width: 560 }}>
         <Head title="Professors" sub={`${data.counts.with} of ${data.total} have a drawn face`} />
-        <div className={s.tabs}>
-          <Link href="/admin/professors" className={s.chip}>Duplicates</Link>
-          <Link href="/admin/professors?tab=all" className={s.chip}>All</Link>
-          <span className={cx(s.chip, s.chipInverse)}>Faces</span>
-        </div>
+        <ProfessorTabs active="faces" />
         <div className={s.tabs}>
           {tabs.map((t) => (
             <Link key={t.id} href={`/admin/professors?tab=faces&show=${t.id}`} className={cx(s.chip, data.show === t.id && s.chipInverse)}>

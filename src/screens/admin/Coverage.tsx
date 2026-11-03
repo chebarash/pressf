@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { cohortLabel, materialTotals, type CoverageCourse, type CoverageFaculty, type CoverageReport, type CoverageUnit } from "@/core/coverage";
-import { sortRows, type SortColumns } from "@/core/sort";
+import { useState, useTransition } from "react";
+import { moveCourse } from "@/app/admin/actions";
+import { cohortLabel, materialTotals, type CoverageCourse, type CoverageReport, type CoverageSchool, type CoverageUnit } from "@/core/coverage";
+import { MOVE_TARGETS, PLACED_BY_LABEL, SCHOOLS, UNASSIGNED } from "@/core/placement";
+import type { SortColumns } from "@/core/sort";
 import { shortDate } from "@/core/time";
 import { SortHeader, useSortedRows, type SortState } from "@/ui/table/Sort";
 import { Chip, Head, Key, Label, cx, s } from "./ui";
 import { useKeys } from "./useKeys";
 
-type Filter = { faculty: string; program: string; year: string; show: "" | "none" | "lms" };
+type Filter = { school: string; program: string; year: string; show: "" | "none" | "lms" };
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 
@@ -18,9 +20,9 @@ type UnitKey = "name" | "running" | "covered" | "missing" | "pct" | "students";
 const UNIT_COLUMNS: SortColumns<CoverageUnit, UnitKey> = {
   name: (u) => u.name, running: (u) => u.running, covered: (u) => u.covered, missing: (u) => u.running - u.covered, pct: (u) => u.pct, students: (u) => u.students,
 };
-type MatKey = "faculty" | "courses" | "lms" | "uploads" | "exams" | "syllabi" | "noFiles" | "lmsOnly";
+type MatKey = "school" | "courses" | "lms" | "uploads" | "exams" | "syllabi" | "noFiles" | "lmsOnly";
 const TOTAL_COLUMNS: SortColumns<ReturnType<typeof materialTotals> & { name: string }, MatKey> = {
-  faculty: (x) => x.name, courses: (x) => x.courses, lms: (x) => x.lmsFiles, uploads: (x) => x.uploads, exams: (x) => x.exams, syllabi: (x) => x.syllabi, noFiles: (x) => x.noFiles, lmsOnly: (x) => x.lmsOnly,
+  school: (x) => x.name, courses: (x) => x.courses, lms: (x) => x.lmsFiles, uploads: (x) => x.uploads, exams: (x) => x.exams, syllabi: (x) => x.syllabi, noFiles: (x) => x.noFiles, lmsOnly: (x) => x.lmsOnly,
 };
 type CourseKey = "code" | "course" | "cohort" | "lms" | "uploads" | "exams" | "syllabus" | "lastFile";
 const COURSE_COLUMNS: SortColumns<CoverageCourse, CourseKey> = {
@@ -33,11 +35,10 @@ const COURSE_COLUMNS: SortColumns<CoverageCourse, CourseKey> = {
  * student (whose sign-in pulls the course's LMS files, lessons and syllabus), who
  * to recruit next, and what materials each course has. Counts only.
  */
-export function Coverage({ data, tab, filter }: { data: CoverageReport; tab: "faculty" | "materials"; filter: Filter }) {
+export function Coverage({ data, tab, filter, canMove }: { data: CoverageReport; tab: "school" | "materials"; filter: Filter; canMove: boolean }) {
   const router = useRouter();
-  const go = (t: "faculty" | "materials") => router.replace(t === "materials" ? "/admin/coverage?tab=materials" : "/admin/coverage");
-  useKeys({ "1": () => go("faculty"), "2": () => go("materials") });
-  const byCode = useMemo(() => new Map(data.courses.map((c) => [c.code, c])), [data.courses]);
+  const go = (t: "school" | "materials") => router.replace(t === "materials" ? "/admin/coverage?tab=materials" : "/admin/coverage");
+  useKeys({ "1": () => go("school"), "2": () => go("materials") });
   const t = data.totals;
   const sem = data.semester.name ?? "This semester";
 
@@ -52,7 +53,7 @@ export function Coverage({ data, tab, filter }: { data: CoverageReport; tab: "fa
       </div>
       <div className={s.hstack}>
         <div className={s.tabs} role="tablist">
-          <button type="button" role="tab" aria-selected={tab === "faculty"} className={cx(s.chip, tab === "faculty" && s.chipInverse)} onClick={() => go("faculty")}>By faculty</button>
+          <button type="button" role="tab" aria-selected={tab === "school"} className={cx(s.chip, tab === "school" && s.chipInverse)} onClick={() => go("school")}>By school</button>
           <button type="button" role="tab" aria-selected={tab === "materials"} className={cx(s.chip, tab === "materials" && s.chipInverse)} onClick={() => go("materials")}>Materials</button>
           <Key>1</Key>
           <Key>2</Key>
@@ -66,8 +67,8 @@ export function Coverage({ data, tab, filter }: { data: CoverageReport; tab: "fa
           <h2 className={s.emptyTitle}>No courses for {sem} yet</h2>
           <p className={s.emptyText}>They appear after the catalog harvest or once a student syncs this semester.</p>
         </section>
-      ) : tab === "faculty" ? (
-        <ByFaculty data={data} byCode={byCode} />
+      ) : tab === "school" ? (
+        <BySchool data={data} canMove={canMove} />
       ) : (
         <Materials data={data} initial={filter} />
       )}
@@ -93,10 +94,10 @@ function Meter({ pct, width = 120 }: { pct: number; width?: number }) {
   );
 }
 
-function UnitRow({ u, level }: { u: CoverageUnit; level: 0 | 1 }) {
+function UnitRow({ u }: { u: CoverageUnit }) {
   return (
-    <div className={cx(s.tr, level === 1 && s.trSub)}>
-      <span className={cx(s.td, s.tdGrow, level === 0 && s.tdStrong)} title={u.name}>{u.name}</span>
+    <div className={s.tr}>
+      <span className={cx(s.td, s.tdGrow)} title={u.name}>{u.name}</span>
       <span className={cx(s.td, s.tdNum)} style={{ width: 70 }}>{u.running}</span>
       <span className={cx(s.td, s.tdNum)} style={{ width: 70 }}>{u.covered}</span>
       <span className={cx(s.td, s.tdNum)} style={{ width: 70 }}>{u.running - u.covered}</span>
@@ -109,38 +110,32 @@ function UnitRow({ u, level }: { u: CoverageUnit; level: 0 | 1 }) {
   );
 }
 
-function ByFaculty({ data, byCode }: { data: CoverageReport; byCode: Map<string, CoverageCourse> }) {
+type PlaceKey = "code" | "course" | "department" | "by" | "cohort" | "students";
+const PLACE_COLUMNS: SortColumns<CoverageCourse, PlaceKey> = {
+  code: (c) => c.code, course: (c) => c.name, department: (c) => c.department, by: (c) => c.placedBy, cohort: (c) => (c.cohorts.length ? c.cohorts.map(cohortLabel).join(", ") : null), students: (c) => c.students,
+};
+
+function BySchool({ data, canMove }: { data: CoverageReport; canMove: boolean }) {
+  const placed = data.totals.running - data.totals.unassigned;
   return (
     <div className={s.row2}>
       <div style={{ flex: "1 0 0", minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
-        {data.faculties.map((f) => (
-          <section key={f.key} className={s.card} aria-label={f.name}>
+        <p className={s.small} style={{ margin: 0 }}>
+          {placed} of {data.totals.running} courses placed: by an admin&apos;s move, else the LMS department, else the department most of its teachers belong to on newuu.uz, else its code.
+          {data.totals.unassigned > 0 && ` ${data.totals.unassigned} still unassigned.`}
+        </p>
+        {data.schools.map((sc) => (
+          <section key={sc.key} className={s.card} aria-label={sc.name}>
             <div className={s.hstack} style={{ gap: 12 }}>
-              <h2 className={s.h4} style={{ flex: 1, minWidth: 0 }}>{f.name}</h2>
-              <Meter pct={f.pct} width={160} />
-              <span className={s.kpiLabel}>{f.pct}%</span>
+              <h2 className={s.h4} style={{ flex: 1, minWidth: 0 }}>{sc.name}</h2>
+              <Meter pct={sc.pct} width={160} />
+              <span className={s.kpiLabel}>{sc.pct}%</span>
             </div>
             <div className={s.small}>
-              {f.covered} of {f.running} courses covered · {f.students} student{f.students === 1 ? "" : "s"} on Press F take{f.students === 1 ? "s" : ""} its courses
+              {sc.covered} of {sc.running} courses covered · {sc.students} student{sc.students === 1 ? "" : "s"} on Press F take{sc.students === 1 ? "s" : ""} its courses
             </div>
-            <Schools schools={f.schools} />
-            {f.uncovered.length > 0 && (
-              <details className={s.details}>
-                <summary>{f.uncovered.length} uncovered course{f.uncovered.length === 1 ? "" : "s"}</summary>
-                <div className={s.table} style={{ padding: 0, gap: 0 }}>
-                  {f.uncovered.map((code) => byCode.get(code)).filter((c): c is CoverageCourse => !!c).map((c) => (
-                    <Link key={c.code} href={`/admin/courses/${encodeURIComponent(c.code)}`} prefetch={false} className={cx(s.tr, s.trLink)}>
-                      <span className={cx(s.td, s.tdStrong)} style={{ width: 90 }}>{c.code}</span>
-                      <span className={cx(s.td, s.tdGrow)} title={c.name}>{c.name}</span>
-                      <span className={s.td} style={{ width: 150 }} title={c.department}>{c.department}</span>
-                      <span className={s.td} style={{ width: 210 }} title={c.cohorts.map(cohortLabel).join(", ")}>
-                        {c.cohorts.length ? c.cohorts.map(cohortLabel).join(", ") : "No cohort plan yet"}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </details>
-            )}
+            {sc.name !== UNASSIGNED && <Departments school={sc} />}
+            <CourseList list={data.courses.filter((c) => c.school === sc.name)} open={sc.name === UNASSIGNED} canMove={canMove} />
           </section>
         ))}
       </div>
@@ -149,26 +144,109 @@ function ByFaculty({ data, byCode }: { data: CoverageReport; byCode: Map<string,
   );
 }
 
-/** A faculty's schools with their departments under them: a sort orders the schools, and the departments within each. */
-function Schools({ schools }: { schools: CoverageFaculty["schools"] }) {
-  const { rows, state } = useSortedRows(schools, UNIT_COLUMNS);
+/** A school's departments (hidden when the school is its only department). */
+function Departments({ school }: { school: CoverageSchool }) {
+  const { rows, state } = useSortedRows(school.departments, UNIT_COLUMNS);
+  if (school.departments.length === 1 && school.departments[0].name === school.name) return null;
   return (
     <div className={s.table} style={{ padding: 0, gap: 0 }}>
       <div className={cx(s.tr, s.trHead)} role="row">
-        <SortHeader state={state} k="name" className={cx(s.td, s.tdGrow)}>SCHOOL · DEPARTMENT</SortHeader>
+        <SortHeader state={state} k="name" className={cx(s.td, s.tdGrow)}>DEPARTMENT</SortHeader>
         <SortHeader state={state} k="running" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>RUNNING</SortHeader>
         <SortHeader state={state} k="covered" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>COVERED</SortHeader>
         <SortHeader state={state} k="missing" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>MISSING</SortHeader>
         <SortHeader state={state} k="pct" className={s.td} style={{ width: 170 }}>COVERAGE</SortHeader>
         <SortHeader state={state} k="students" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>STUDENTS</SortHeader>
       </div>
-      {rows.map((sc) => (
-        <div key={sc.key}>
-          <UnitRow u={sc} level={0} />
-          {sortRows(sc.departments.filter((d) => d.name !== sc.name || sc.departments.length > 1), state.sort, UNIT_COLUMNS).map((d) => <UnitRow key={d.key} u={d} level={1} />)}
-        </div>
-      ))}
+      {rows.map((d) => <UnitRow key={d.key} u={d} />)}
     </div>
+  );
+}
+
+const HINT = {
+  override: "Moved here by an admin",
+  lms: "The course's department on the LMS",
+  teachers: "The department most of its teachers belong to on newuu.uz (lecturers count most)",
+  code: "Guessed from the course code",
+} as const;
+
+/** Every course of a school: where its placement came from, and (for admins) a move. */
+function CourseList({ list, open, canMove }: { list: CoverageCourse[]; open: boolean; canMove: boolean }) {
+  const { rows, state } = useSortedRows(list, PLACE_COLUMNS);
+  const uncovered = list.filter((c) => !c.covered).length;
+  return (
+    <details className={s.details} open={open}>
+      <summary>{list.length} course{list.length === 1 ? "" : "s"} · {uncovered} uncovered</summary>
+      <div className={s.table} style={{ padding: 0, gap: 0 }}>
+        <div className={cx(s.tr, s.trHead)} role="row">
+          <SortHeader state={state} k="code" className={s.td} style={{ width: 90 }}>CODE</SortHeader>
+          <SortHeader state={state} k="course" className={cx(s.td, s.tdGrow)}>COURSE</SortHeader>
+          <SortHeader state={state} k="department" className={s.td} style={{ width: 150 }}>DEPARTMENT</SortHeader>
+          <SortHeader state={state} k="by" className={s.td} style={{ width: 84 }}>FROM</SortHeader>
+          <SortHeader state={state} k="cohort" className={s.td} style={{ width: 190 }}>COHORT</SortHeader>
+          <SortHeader state={state} k="students" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>STUDENTS</SortHeader>
+          {canMove && <span className={s.td} style={{ width: 150 }} />}
+        </div>
+        {rows.map((c) => (
+          <div key={c.code} className={s.tr}>
+            <Link href={`/admin/courses/${encodeURIComponent(c.code)}`} prefetch={false} className={cx(s.td, s.tdStrong)} style={{ width: 90 }}>{c.code}</Link>
+            <span className={cx(s.td, s.tdGrow)} title={c.name}>{c.name}</span>
+            <span className={s.td} style={{ width: 150 }} title={c.department}>{c.placedBy ? c.department : "—"}</span>
+            <span className={cx(s.td, s.tdChip)} style={{ width: 84 }} title={c.placedBy ? HINT[c.placedBy] : "No LMS department, no teacher with a known department, no known code prefix"}>
+              {c.placedBy ? <Chip tone={c.placedBy === "override" ? "plum" : c.placedBy === "code" ? "mustard" : "plain"}>{PLACED_BY_LABEL[c.placedBy]}</Chip> : <Chip tone="rust">none</Chip>}
+            </span>
+            <span className={s.td} style={{ width: 190 }} title={c.cohorts.map(cohortLabel).join(", ")}>
+              {c.cohorts.length ? c.cohorts.map(cohortLabel).join(", ") : "No cohort plan yet"}
+            </span>
+            <span className={cx(s.td, s.tdNum, c.covered && s.tdStrong)} style={{ width: 70 }}>{c.students}</span>
+            {canMove && <MoveTo course={c} />}
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+const AUTO = "auto";
+const PROMPT = "move";
+const targetValue = (school: string, department: string | null) => `${school}|${department ?? ""}`;
+
+/** "Move to…": pins the course to a school/department (wins over everything), or back to automatic. Audited. */
+function MoveTo({ course }: { course: CoverageCourse }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const change = (value: string) =>
+    start(async () => {
+      setError(null);
+      const [school, department] = value === AUTO ? [null, null] : value.split("|");
+      const r = await moveCourse(course.code, school, department || null);
+      if (!r.ok) setError(r.error);
+      router.refresh();
+    });
+  const pinned = course.placedBy === "override" ? MOVE_TARGETS.find((t) => t.school === course.school && (t.department ?? "School-wide") === course.department) : undefined;
+  return (
+    <span className={s.td} style={{ width: 150 }}>
+      <select
+        className={s.chip}
+        value={pinned ? targetValue(pinned.school, pinned.department) : PROMPT}
+        disabled={pending}
+        onChange={(e) => change(e.target.value)}
+        aria-label={`Move ${course.code} to`}
+        title={error ?? undefined}
+        style={{ maxWidth: 150 }}
+      >
+        <option value={PROMPT} disabled>{pending ? "Moving…" : error ? "Failed: retry" : "Move to…"}</option>
+        {pinned && <option value={AUTO}>Back to automatic</option>}
+        {SCHOOLS.map((sc) => (
+          <optgroup key={sc.name} label={sc.name}>
+            {MOVE_TARGETS.filter((t) => t.school === sc.name).map((t) => (
+              <option key={targetValue(t.school, t.department)} value={targetValue(t.school, t.department)}>{t.department ?? "School-wide"}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </span>
   );
 }
 
@@ -190,7 +268,7 @@ function Recruit({ data }: { data: CoverageReport }) {
               <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 14 }}>{cohortLabel(x)}</span>
               <Chip tone="moss">+{x.gain}</Chip>
             </div>
-            <span className={s.small}>{x.faculty} · {x.uncovered} of {x.total} courses uncovered</span>
+            <span className={s.small}>{x.school} · {x.uncovered} of {x.total} courses uncovered</span>
             <span className={s.codes}>{x.courses.map((c) => c.code).join(", ")}</span>
           </div>
         </div>
@@ -218,15 +296,15 @@ function Materials({ data, initial }: { data: CoverageReport; initial: Filter })
   };
   const list = data.courses.filter(
     (c) =>
-      (!f.faculty || c.faculty === f.faculty) &&
+      (!f.school || c.school === f.school) &&
       (!f.program || c.cohorts.some((h) => h.programId === f.program)) &&
       (!f.year || c.cohorts.some((h) => String(h.year) === f.year)) &&
       (f.show !== "none" || (!c.lmsFiles && !c.uploads)) &&
       (f.show !== "lms" || (c.lmsFiles > 0 && !c.uploads)),
   );
-  const faculties = data.faculties.map((x) => x.name).sort();
-  const totals = faculties
-    .map((name) => ({ name, ...materialTotals(list.filter((c) => c.faculty === name)) }))
+  const schools = data.schools.map((x) => x.name).sort();
+  const totals = schools
+    .map((name) => ({ name, ...materialTotals(list.filter((c) => c.school === name)) }))
     .filter((x) => x.courses > 0);
   const all = materialTotals(list);
   const sortedTotals = useSortedRows(totals, TOTAL_COLUMNS);
@@ -235,9 +313,9 @@ function Materials({ data, initial }: { data: CoverageReport; initial: Filter })
   return (
     <>
       <div className={s.hstack}>
-        <select className={s.chip} value={f.faculty} onChange={(e) => set({ faculty: e.target.value })} aria-label="Faculty">
-          <option value="">All faculties</option>
-          {faculties.map((x) => <option key={x} value={x}>{x}</option>)}
+        <select className={s.chip} value={f.school} onChange={(e) => set({ school: e.target.value })} aria-label="School">
+          <option value="">All schools</option>
+          {schools.map((x) => <option key={x} value={x}>{x}</option>)}
         </select>
         <select className={s.chip} value={f.program} onChange={(e) => set({ program: e.target.value })} aria-label="Program">
           <option value="">All programs</option>
@@ -254,9 +332,9 @@ function Materials({ data, initial }: { data: CoverageReport; initial: Filter })
         </select>
         <span className={s.note}>{list.length} of {data.courses.length} courses</span>
       </div>
-      <section className={cx(s.card, s.table)} aria-label="Totals per faculty">
+      <section className={cx(s.card, s.table)} aria-label="Totals per school">
         <div className={cx(s.tr, s.trHead)}>
-          <SortHeader state={sortedTotals.state} k="faculty" className={cx(s.td, s.tdGrow)}>FACULTY</SortHeader>
+          <SortHeader state={sortedTotals.state} k="school" className={cx(s.td, s.tdGrow)}>SCHOOL</SortHeader>
           <MatHead state={sortedTotals.state} />
           <SortHeader state={sortedTotals.state} k="noFiles" className={cx(s.td, s.tdNum)} style={{ width: 80 }}>NO FILES</SortHeader>
           <SortHeader state={sortedTotals.state} k="lmsOnly" className={cx(s.td, s.tdNum)} style={{ width: 80 }}>LMS ONLY</SortHeader>

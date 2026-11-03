@@ -580,6 +580,19 @@ export const facultyPeople = pgTable(
 );
 
 /**
+ * An admin's move of a course on the Coverage page: the course (by code) sits in
+ * this school and department whatever the LMS, its teachers or its code say.
+ * `department` null means the school as a whole. Every change is audited.
+ */
+export const coursePlacements = pgTable("course_placements", {
+  courseCode: text("course_code").primaryKey(),
+  school: text("school").notNull(),
+  department: text("department"),
+  updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
  * Admin edits to a professor's profile. Each set field wins over the imported
  * (faculty site) and LMS values and survives every harvest; null means "use
  * the imported or LMS value". `note` and `hours` are shown on the page.
