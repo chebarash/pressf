@@ -1,7 +1,7 @@
 import { shortDate } from "@/core/time";
 import type { AssignmentsView, DeadlineView } from "@/server/views";
 import { Banner, EmptyState } from "./mc/kit";
-import { cx, Screen } from "./mc/parts";
+import { cx, RowLink, Screen } from "./mc/parts";
 import { lowerDay, since } from "./mc/format";
 import s from "./mc/mc.module.css";
 
@@ -35,15 +35,25 @@ export default function Assignments({ data }: { data: AssignmentsView }) {
           .map(([title, items, line]) => (
             <section key={title} className={cx(s.stack, s.tight)} aria-label={title}>
               <h2 className={s.label}>{title}</h2>
-              {items.map((d) => (
-                <div key={d.id} className={s.rowCard}>
+              {items.map((d) => {
+                const lines = (
                   <div className={cx(s.lines, s.lines4)}>
                     <p className={s.t15sb}>{d.title}</p>
                     <p className={cx(s.t12, s.soft)}>{[d.course, line(d)].filter(Boolean).join(" · ")}</p>
                     <p className={cx(s.t12sb, TONE[d.status])}>{title === "Missed" ? "Missed" : d.statusLabel}</p>
                   </div>
-                </div>
-              ))}
+                );
+                const href = data.courseHref?.[d.course];
+                return href ? (
+                  <RowLink key={d.id} href={href}>
+                    {lines}
+                  </RowLink>
+                ) : (
+                  <div key={d.id} className={s.rowCard}>
+                    {lines}
+                  </div>
+                );
+              })}
             </section>
           ))}
       </div>

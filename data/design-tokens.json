@@ -15,7 +15,7 @@
     "face/backing": ["#f5f0d6", "#f5f0d6"], "shadow/key": ["#12110c", "#000000"], "scrim": ["#08080573", "#00000099"],
     "tg/chat-bg": ["#d1dec7", "#0e1621"], "tg/bar": ["#ffffff", "#17212b"], "tg/bubble-in": ["#ffffff", "#182533"], "tg/bubble-out": ["#e0f7d1", "#2b5278"], "tg/text": ["#12120d", "#f5f5f5"],
     "tg/text-secondary": ["#12120dad", "#f5f5f580"], "tg/separator": ["#12120d26", "#ffffff1a"], "tg/link": ["#1a6bb5", "#6ab3f3"], "tg/button": ["#3f5e45e5", "#ffffff1f"], "tg/button-selected": ["#1f4d33", "#2b5278"],
-    "native/white": ["#ffffff", "#ffffff"], "native/camera": ["#1f211f", "#1f211f"],
+    "native/white": ["#ffffff", "#ffffff"], "native/camera": ["#1f211f", "#1f211f"], "mustard/500": ["#d9a21b", "#d9a21b"], "plum/500": ["#6a4a8c", "#6a4a8c"], "moss/500": ["#3f6f32", "#3f6f32"],
     "doc/page": ["#ffffff", "#ffffff"], "doc/ink": ["#12120d", "#12120d"], "doc/line": ["#12120d1a", "#12120d1a"],
     "cover/line": ["#12120d29", "#ffffff33"], "cover/line-strong": ["#12120d6b", "#ffffff80"], "cover/media": ["#1a1a14e0", "#000000b2"]
   },

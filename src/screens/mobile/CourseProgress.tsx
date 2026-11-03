@@ -32,7 +32,7 @@ export default function CourseProgress({ data, behind }: { data: CourseProgressV
   return (
     <>
       {behind ? <Progress data={behind} /> : null}
-      <Sheet closeHref="/progress" title={k.name} footer={k.code ? <MainButton inline text={`Open ${k.name}`} href={`/c/${k.code}`} /> : null}>
+      <Sheet closeHref="/progress" title={k.name} className={c.progSheet} footer={k.code ? <MainButton inline text={`Open ${k.name}`} href={`/c/${k.code}`} /> : null}>
         <p className={cx(s.p0, s.t13, s.soft)}>{[data.term, data.teacher, "from the LMS gradebook"].filter(Boolean).join(" · ")}</p>
         <div className={c.numbers}>
           {numbers.map((x) => (

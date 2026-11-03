@@ -2,7 +2,7 @@ import Link from "next/link";
 import { tier } from "@/core/grades";
 import type { ProgressCourse, ProgressView } from "@/server/views";
 import { Banner, EmptyState, Score, type ScoreTier } from "./mc/kit";
-import { Absences, Chevron, cx, Screen, Stat } from "./mc/parts";
+import { Absences, Chevron, cx, RowLink, Screen, Stat } from "./mc/parts";
 import { lowerDay, since } from "./mc/format";
 import s from "./mc/mc.module.css";
 
@@ -44,14 +44,15 @@ export default function Progress({ data }: { data: ProgressView }) {
               <>
                 <h2 className={cx(s.section, "t-mobile-section")}>Earlier semesters</h2>
                 {data.earlier.map((e) => (
-                  <div key={e.term} className={cx(s.rowCard, s.quiet)}>
+                  // Figma 5.1: a quiet row with a chevron; the curriculum lists that term's courses and results.
+                  <RowLink key={e.term} href="/programs/mine/curriculum" quiet>
                     <div className={s.lines}>
                       <p className={s.t15sb}>{e.term}</p>
                       <p className={cx(s.t12, s.soft)}>
                         {[e.gpa !== null ? `GPA ${e.gpa.toFixed(2)}` : `${e.courses} ${e.courses === 1 ? "course" : "courses"}`, e.ects !== null ? `${e.ects} ECTS` : null].filter(Boolean).join(" · ")}
                       </p>
                     </div>
-                  </div>
+                  </RowLink>
                 ))}
               </>
             ) : null}
@@ -113,10 +114,11 @@ function Results({ data }: { data: ProgressView }) {
       <div className={cx(s.body, s.tight)}>
         <h1 className={s.title54}>{r.term} done</h1>
         <p className={cx(s.p0, s.t14, s.soft)}>
-          Final grades are in · {passed} of {r.courses.length} passed
+          Final grades are in · {r.gpa != null ? `semester GPA ${r.gpa.toFixed(2)}` : `${passed} of ${r.courses.length} passed`}
         </p>
         <div className={s.stats} style={{ gap: 24 }}>
-          {data.gpa !== null ? <Stat size="kpi" value={data.gpa.toFixed(2)} label="overall GPA" /> : null}
+          {r.gpa != null ? <Stat size="kpi" value={r.gpa.toFixed(2)} label="semester GPA" /> : null}
+          {data.gpa !== null ? <Stat size="kpi" value={data.gpa.toFixed(2)} label={r.gpa != null ? "overall" : "overall GPA"} /> : null}
           {data.ectsEarned !== null ? <Stat size="kpi" value={String(data.ectsEarned)} label={data.ectsTotal ? `of ${data.ectsTotal} ECTS` : "ECTS"} /> : null}
         </div>
         {r.courses.map((c) => {
@@ -127,7 +129,7 @@ function Results({ data }: { data: ProgressView }) {
               <Score value={c.fx ? "FX" : mark === null ? "—" : String(mark)} tier={t} label={`${c.name}: ${c.fx ? "FX" : mark ?? "no mark"}`} />
               <div className={s.lines}>
                 <p className={s.t15sb}>{c.name}</p>
-                <p className={cx(s.t12, s.soft)}>{[mark, c.fx ? "FX · resit" : c.passed ? "passed" : c.passed === false ? "not passed" : null].filter((x) => x !== null).join(" · ")}</p>
+                <p className={cx(s.t12, s.soft)}>{[mark, c.fx ? "resit" : c.passed ? "passed" : c.passed === false ? "not passed" : null].filter((x) => x !== null).join(" · ")}</p>
               </div>
             </Link>
           );

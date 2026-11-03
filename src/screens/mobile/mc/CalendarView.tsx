@@ -5,8 +5,8 @@ import { Button, Toast, ToastViewport } from "./kit";
 import c from "./screens.module.css";
 
 /** "Add to my phone calendar" (6.1) and the confirmation toast (6.3). */
-export function Subscribe({ href }: { href: string }) {
-  const [toast, setToast] = useState(false);
+export function Subscribe({ href, subscribed = false }: { href: string; subscribed?: boolean }) {
+  const [toast, setToast] = useState(subscribed);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(false), 4000);
@@ -27,8 +27,8 @@ export function Subscribe({ href }: { href: string }) {
         }}
       />
       {toast ? (
-        <ToastViewport>
-          <Toast>Subscribed. Exams, deadlines and holidays now show in your phone&apos;s calendar and stay in sync.</Toast>
+        <ToastViewport className={c.subViewport}>
+          <Toast className={c.subToast}>Subscribed. Exams, deadlines and holidays now show in your phone&apos;s calendar and stay in sync.</Toast>
         </ToastViewport>
       ) : null}
     </>

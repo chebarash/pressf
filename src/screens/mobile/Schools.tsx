@@ -21,13 +21,13 @@ export default function Schools({ data, schoolId }: { data: SchoolsView; schoolI
   return (
     <Screen>
       <div className={cx(s.body, s.tight)}>
-        <h1 className={cx(s.title, "t-mobile-title")}>{school?.name ?? "Schools"}</h1>
+        <h1 className={s.title54}>{school?.name ?? "Schools"}</h1>
         <p className={cx(s.p0, s.t14, s.soft)}>{line}</p>
         {items.length ? (
           items.map((i) => (
             <Link key={i.key} href={i.href} prefetch className={cx(s.rowCard, s.pressable, c.schoolCard, i.tone && c[i.tone])}>
               <div className={s.lines}>
-                <p className={s.t16sb}>{i.name}</p>
+                <p className={s.t15sb}>{i.name}</p>
                 {i.line ? <p className={cx(s.t12, s.soft)} style={{ lineHeight: 1.32 }}>{i.line}</p> : null}
               </div>
               <Chevron />

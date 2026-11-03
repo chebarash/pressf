@@ -30,8 +30,8 @@ const SEMESTER: Row[] = [
 export default function Alerts({ data }: { data: ProfileView }) {
   return (
     <Screen className={s.noTopBar}>
-      <div className={cx(s.body, s.tight)}>
-        <h1 className={cx(s.title, "t-mobile-title")}>Alerts</h1>
+      <div className={s.body} style={{ gap: 14 }}>
+        <h1 className={s.title54}>Alerts</h1>
         <p className={cx(s.p0, s.t14, s.soft)} style={{ lineHeight: 1.4 }}>
           What the Press F bot sends you in Telegram. Quiet hours 23:00–07:00.
         </p>
@@ -42,7 +42,8 @@ export default function Alerts({ data }: { data: ProfileView }) {
             ["Semester", SEMESTER],
           ] as const
         ).map(([title, rows]) => (
-          <section key={title} className={c.block8}>
+          // 8.5 lays headers and groups out flat, 14 apart.
+          <section key={title} style={{ display: "contents" }}>
             <h2 className={s.label}>{title}</h2>
             <SwitchGroup>
               {rows.map((r) => (

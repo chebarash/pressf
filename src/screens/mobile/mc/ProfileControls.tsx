@@ -34,7 +34,7 @@ export function ThemeRow() {
   };
   return (
     <button type="button" className={cx(c.setting, s.plainButton)} onClick={next} style={{ width: "100%" }}>
-      <p className={cx(s.t15sb, s.grow)}>Theme</p>
+      <p className={c.settingLabel}>Theme</p>
       <span className={c.settingValue}>{THEME_LABEL[theme]}</span>
     </button>
   );
@@ -57,7 +57,7 @@ export function HomeScreenRows() {
       }}
       disabled={status === "added"}
     >
-      <p className={cx(s.t15sb, s.grow)}>Press F on home screen</p>
+      <p className={c.settingLabel}>Press F on home screen</p>
       <span className={c.settingValue}>{status === "added" ? "Added" : "Add"}</span>
     </button>
   );
@@ -79,7 +79,7 @@ export function SignOutRow() {
         })
       }
     >
-      <p className={cx(s.t15sb, s.accentText, s.grow)}>Sign out</p>
+      <p className={cx(c.settingLabel, s.accentText)}>Sign out</p>
     </button>
   );
 }
@@ -128,7 +128,8 @@ export function DeleteRow() {
   const { busy, run } = useDeleteMyData();
   return (
     <button type="button" className={cx(c.setting, s.plainButton)} style={{ width: "100%" }} disabled={busy} onClick={() => void run()}>
-      <p className={cx(s.t15sb, c.danger, s.grow)}>{busy ? "Deleting…" : "Delete my data"}</p>
+      {/* No Figma trigger: styled exactly like the other profile rows. */}
+      <p className={c.settingLabel}>{busy ? "Deleting…" : "Delete my data"}</p>
     </button>
   );
 }

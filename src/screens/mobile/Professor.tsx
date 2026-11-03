@@ -33,6 +33,8 @@ export default function Professor({ data }: { data: ProfessorView }) {
   const line = [data.position, data.department, data.school].filter(Boolean).join(" · ");
   const chips = [...new Map(data.courses.map((k) => [k.code, k])).values()];
   const ratedCourses = data.courses.filter((k) => k.pressFPct !== null);
+  // 7.5: guests see no Education, Publications or the staff-profile note.
+  const staff = data.signedIn;
   return (
     <Screen>
       <div className={s.body} style={{ gap: 0, paddingBottom: 0 }}>
@@ -55,7 +57,7 @@ export default function Professor({ data }: { data: ProfessorView }) {
           ) : (
             <section className={c.fewBox} aria-label="Rating summary">
               <p className={c.fewTitle}>{sum.count ? `New here — ${sum.count} ${sum.count === 1 ? "rating" : "ratings"} so far` : "No ratings yet"}</p>
-              <p className={cx(s.t12, s.soft)} style={{ lineHeight: 1.32 }}>
+              <p className={c.fewText}>
                 We show the % pressed F from 5 ratings.{data.signedIn ? " Took a class with them? Press F below." : ""}
               </p>
             </section>
@@ -86,8 +88,8 @@ export default function Professor({ data }: { data: ProfessorView }) {
               </div>
             </section>
           ) : null}
-          {data.education?.length || data.research ? (
-            <section className={c.block12}>
+          {staff && (data.education?.length || data.research) ? (
+            <section className={cx(c.block12, c.entryTight)}>
               <h2 className={cx(s.section, "t-mobile-section")}>Education</h2>
               {(data.education ?? []).map((e, i) => (
                 <ProfileEntry key={i} title={degreeLine(e)} meta={[e.institution, e.year].filter(Boolean).join(" · ")} />
@@ -95,7 +97,7 @@ export default function Professor({ data }: { data: ProfessorView }) {
               {data.research ? <ProfileEntry title={data.research} meta="Research area" /> : null}
             </section>
           ) : null}
-          {data.publications?.length ? (
+          {staff && data.publications?.length ? (
             <section className={c.block8}>
               <h2 className={cx(s.section, "t-mobile-section")}>Publications</h2>
               {data.publications.slice(0, 2).map((p, i) => (
@@ -111,7 +113,7 @@ export default function Professor({ data }: { data: ProfessorView }) {
               ) : null}
             </section>
           ) : null}
-          {data.signedIn || data.education?.length || data.publications?.length ? (
+          {staff ? (
             <p className={cx(s.p0, s.t12, s.soft)} style={{ lineHeight: 1.32 }}>
               From the LMS staff profile. Photos are never shown — faces are drawn.
             </p>
