@@ -102,7 +102,8 @@ export async function rateQueueFor(student: Student, now = new Date()): Promise<
     return { courseId, code: c?.code ?? "", name: c?.name ?? "Course", term: t, teachers: teachersOf(courseId), href: `/rate/${courseId}` };
   };
 
-  const waiting = waitingRaw.map((w) => item(w.courseId, w.term));
+  // A course with no teachers (internship, graduation project) has nothing to rate.
+  const waiting = waitingRaw.map((w) => item(w.courseId, w.term)).filter((w) => w.teachers.length > 0);
   const rated: RatedItem[] = mine.map((r) => ({
     ...item(r.courseId, r.term),
     recommend: r.recommend,
@@ -124,7 +125,7 @@ export async function rateQueueFor(student: Student, now = new Date()): Promise<
     waiting,
     rated,
     total: waiting.length + new Set(taken.filter((t) => t.term !== term && ratedKeys.has(`${t.courseId}|${t.term}`)).map((t) => `${t.courseId}|${t.term}`)).size,
-    current: currentRaw.map((c) => item(c.courseId, c.term)),
+    current: currentRaw.map((c) => item(c.courseId, c.term)).filter((c) => c.teachers.length > 0),
     window,
     ask: { level, term: askTerm, waiting: waiting.filter((w) => w.term === askTerm) },
   };

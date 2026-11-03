@@ -39,9 +39,7 @@ export default function Course({ data }: { data: CourseScreen }) {
       ? null // Figma 4.7: the Files tab has no MainButton.
       : data.rate?.canRate
       ? { text: data.rate.rated || data.notice === "rating-sent" ? "Edit your rating" : "Rate this course", href: `${data.rate.href}?from=${encodeURIComponent(`/c/${data.code}`)}` }
-      : data.rate?.opensIn
-        ? { text: `Opens in week ${data.rate.opensIn}`, disabled: true }
-        : null;
+      : null; // Before the window opens there is no button; the course card says when.
 
   return (
     <div className={cx(b.screen, !action && b.noButton)}>
