@@ -16,8 +16,10 @@ const FILTERS: Array<{ id: "all" | FeedKind; label: string; kinds: FeedKind[] }>
 
 export type NotificationActions = {
   /** Server action: mark read (and confirm in the LMS when it asked for "Got it"). */
-  markRead?: (id: string) => Promise<void>;
-  markAllRead?: () => Promise<void>;
+  markRead?: (id: string) => Promise<unknown>;
+  /** Server action: "Got it" — read, and the acknowledgement the LMS asked for. */
+  acknowledge?: (id: string) => Promise<unknown>;
+  markAllRead?: () => Promise<unknown>;
 };
 
 /** D7 Notifications (D18 when all read) — list on the left, the open one on the right. J/K move, E "Got it", O opens the course, ⇧R reads all. */
@@ -47,6 +49,7 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
     startTransition(async () => {
       markRead(id);
       if (id === "all") await actions?.markAllRead?.();
+      else if (items.find((i) => i.id === id)?.needsAck && actions?.acknowledge) await actions.acknowledge(id);
       else await actions?.markRead?.(id);
     });
 

@@ -136,7 +136,15 @@ export type CourseView = {
   syllabus: SyllabusFold | null;
   you: YouInCourse | null;
   /** `answers`: the student's saved rating for this course, to prefill "Edit your rating" (null when not rated). */
-  rate: { canRate: boolean; rated: boolean; term: string | null; href: string; answers?: RatingInput | null } | null;
+  rate: {
+    canRate: boolean;
+    rated: boolean;
+    term: string | null;
+    href: string;
+    answers?: RatingInput | null;
+    /** This semester's course before its rating window: the teaching week it opens in ("Opens in week 14"). Always set by the server. */
+    opensIn?: number | null;
+  } | null;
   /** The viewer's current courses (same cards as myCourses()), for the desktop list pane (D4). Null for guests. */
   myCourses?: CourseCard[] | null;
 };
@@ -313,9 +321,28 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
     files: files ? { all: files.length, byType, items: files } : null,
     syllabus: signedIn ? pub.syllabus : null,
     you,
-    rate: taken && you?.status === "took"
-      ? { canRate: !!waitingHere || !!rated, rated: !!rated, term: waitingHere?.term ?? rated?.term ?? you.term, href: `/rate/${taken.subjectId}`, answers: rated?.answers ?? null }
-      : null,
+    rate: !taken || !you
+      ? null
+      : you.status === "took"
+        ? { canRate: !!waitingHere || !!rated, rated: !!rated, term: waitingHere?.term ?? rated?.term ?? you.term, href: `/rate/${taken.subjectId}`, answers: rated?.answers ?? null, opensIn: null }
+        : nowRate(taken.subjectId, rated, queue),
+  };
+}
+
+/**
+ * Rating this semester's course (Figma 4.2): open from the last 3 teaching weeks;
+ * before that, disabled with "Opens in week 14". Only a rating of this very
+ * course this term counts as "rated" (an earlier take of the same code doesn't).
+ */
+function nowRate(courseId: string, mine: Awaited<ReturnType<typeof myRatingFor>>, queue: Awaited<ReturnType<typeof rateQueueFor>> | null): NonNullable<CourseView["rate"]> {
+  const rated = mine && mine.courseId === courseId && mine.term === queue?.currentTerm ? mine : null;
+  return {
+    canRate: !!rated || !!queue?.current?.some((c) => c.courseId === courseId),
+    rated: !!rated,
+    term: rated?.term ?? queue?.currentTerm ?? null,
+    href: `/rate/${courseId}`,
+    answers: rated?.answers ?? null,
+    opensIn: rated ? null : (queue?.window?.opensIn ?? null),
   };
 }
 

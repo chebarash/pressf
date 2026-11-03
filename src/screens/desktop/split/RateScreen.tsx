@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { HOURS, MAX_TAGS, type CourseTag, type Hours, type RatingInput, type Recommend } from "@/core/ratings";
+import { HOURS, MAX_TAGS, type CourseTag, type Hours, type RatingInput, type Recommend, type TeacherTag } from "@/core/ratings";
 import { EmptyState, Sheet } from "@/ui/components";
 import type { RateData } from "../model";
 import { Button, cx, Face, Hint } from "../parts";
@@ -48,7 +48,7 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
       hours,
       difficulty,
       tags: tags as CourseTag[],
-      teachers: data.teachers.map((t) => ({ teacherId: t.id, role: t.kind, pressF: pressed.includes(t.id), tags: [] })),
+      teachers: data.teachers.map((t) => ({ teacherId: t.id, role: t.kind, pressF: pressed.includes(t.id), tags: (data.initial?.teacherTags?.[`${t.id}|${t.kind}`] ?? []) as TeacherTag[] })),
     };
     start(async () => {
       await actions?.submit?.(data.course!.id, input);

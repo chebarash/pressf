@@ -183,8 +183,8 @@ export const TODAY_STATES = {
 export const GUEST: GuestHomeData = {
   guest: true,
   popular: [
-    { code: "MATH111", name: "Calculus 1", href: "/c/MATH111", teacher: TEACHERS.MATH111, line: "≈ 6 h/wk · Hard-ish", recommendPct: 84 },
-    { code: "PHYS101", name: "Physics 1", href: "/c/PHYS101", teacher: TEACHERS.PHYS101, line: "≈ 8 h/wk · Hard", recommendPct: 62 },
+    { code: "MATH111", name: "Calculus 1", href: "/c/MATH111", teacher: { ...TEACHERS.MATH111, face: null }, line: "≈ 6 h/wk · Hard-ish", recommendPct: 84 },
+    { code: "PHYS101", name: "Physics 1", href: "/c/PHYS101", teacher: { ...TEACHERS.PHYS101, face: null }, line: "≈ 8 h/wk · Hard", recommendPct: 62 },
   ],
   freshFiles: [
     { id: "f1", title: "Midterm exam", type: "exam", course: "Physics 1", date: "Fall 2024", source: { label: "Channel", kind: "channel" }, href: "/f/f1" },

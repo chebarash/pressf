@@ -30,7 +30,7 @@ export default function Qr({ data, preview }: { data: TodayView | null; preview?
           Back to Today
         </Link>
       </div>
-      <QrFlow autoStart={!preview} initial={preview} classEnd={c?.endTime} classLine={c ? [c.name, c.room].filter(Boolean).join(" · ") : undefined} />
+      <QrFlow autoStart={!preview} initial={preview} course={c ? c.courseId ?? c.code : null} classEnd={c?.endTime} classLine={c ? [c.name, c.room].filter(Boolean).join(" · ") : undefined} />
     </div>
   );
 }

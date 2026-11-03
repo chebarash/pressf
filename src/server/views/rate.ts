@@ -1,6 +1,7 @@
 import { desc, eq, inArray } from "drizzle-orm";
 import { askLevel, canEdit, rateQueue as queueOf, termKey, type RatingInput, type Recommend, type StoredRating, type TeacherRole } from "@/core/ratings";
 import { roleOf } from "@/core/people";
+import { ratingWindow } from "@/core/semester";
 import { daysBetween, localDay, shortDate } from "@/core/time";
 import { db } from "@/lib/db";
 import { courseRatings, lmsCourseTeachers, ratingAsks, teacherRatings } from "@/lib/db/schema";
@@ -47,6 +48,13 @@ export type RateQueueView = {
   rated: RatedItem[];
   /** Courses taken in past semesters (waiting + rated). */
   total: number;
+  /**
+   * This semester's courses not rated yet, once the rating window is open (the
+   * last 3 teaching weeks onward, Figma 4.2 "Rate this course"). Not part of the ask. Always set by the server.
+   */
+  current?: RateItem[];
+  /** The window for this semester's courses: closed until teaching week `opensIn`. */
+  window?: { open: boolean; opensIn: number | null };
   ask: RateAsk;
 };
 
@@ -69,8 +77,10 @@ export async function rateQueueFor(student: Student, now = new Date()): Promise<
   ]);
   const ratedKeys = new Set(mine.map((r) => `${r.courseId}|${r.term}`));
   const waitingRaw = term ? queueOf(taken, ratedKeys, term) : [];
+  const window = ratingWindow(now);
+  const currentRaw = term && window.open ? taken.filter((c) => c.term === term && !ratedKeys.has(`${c.courseId}|${c.term}`)) : [];
 
-  const ids = [...new Set([...waitingRaw.map((w) => w.courseId), ...mine.map((r) => r.courseId)])];
+  const ids = [...new Set([...waitingRaw.map((w) => w.courseId), ...currentRaw.map((w) => w.courseId), ...mine.map((r) => r.courseId)])];
   const [courses, links, answers] = await Promise.all([
     coursesByIds(ids),
     ids.length ? db().select().from(lmsCourseTeachers).where(inArray(lmsCourseTeachers.courseId, ids)) : Promise.resolve([]),
@@ -112,7 +122,9 @@ export async function rateQueueFor(student: Student, now = new Date()): Promise<
     currentTerm: term,
     waiting,
     rated,
-    total: waiting.length + new Set(taken.filter((t) => ratedKeys.has(`${t.courseId}|${t.term}`)).map((t) => `${t.courseId}|${t.term}`)).size,
+    total: waiting.length + new Set(taken.filter((t) => t.term !== term && ratedKeys.has(`${t.courseId}|${t.term}`)).map((t) => `${t.courseId}|${t.term}`)).size,
+    current: currentRaw.map((c) => item(c.courseId, c.term)),
+    window,
     ask: { level, term: askTerm, waiting: waiting.filter((w) => w.term === askTerm) },
   };
 }

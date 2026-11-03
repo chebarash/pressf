@@ -148,6 +148,13 @@
 .whenRoom { flex: none; font-size: 14px; line-height: 1.4; color: var(--text-secondary); }
 .entry { display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-subtle); }
 .entry p { margin: 0; }
+a.entry { color: inherit; text-decoration: none; }
+.entryTitle { font-size: 15px; font-weight: 500; line-height: 1.4; }
+/* "All 12 publications" (Figma 4185:8019). */
+.more { font-size: 14px; font-weight: 600; line-height: normal; color: var(--text-accent); cursor: pointer; list-style: none; }
+.more::-webkit-details-marker { display: none; }
+.fold { display: flex; flex-direction: column; gap: var(--space-2); }
+.fold[open] > .more { display: none; }
 .band { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-7) var(--space-4); background: var(--bg-sunken); }
 .mention {
   display: flex;

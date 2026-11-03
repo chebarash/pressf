@@ -44,7 +44,7 @@ export default function Professors({ data, school }: { data: ProfessorsView; sch
 function Row({ p, strong }: { p: ProfessorRow; strong?: boolean }) {
   return (
     <Link href={p.href} prefetch={false} className={cx(s.rowCard, !strong && s.quiet, s.pressable, c.personRow)}>
-      <Face size={40} />
+      <Face src={p.face} size={40} />
       <div className={s.lines}>
         <p className={cx(s.t16sb, s.ellipsis)}>{p.name}</p>
         <p className={cx(s.t12, s.soft, s.ellipsis)}>{[p.department?.replace(/^Department of /i, ""), p.course].filter(Boolean).join(" · ") || "Teacher"}</p>

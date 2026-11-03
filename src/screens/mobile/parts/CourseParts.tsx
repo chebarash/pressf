@@ -104,7 +104,7 @@ export function FewRatings({ count }: { count: number }) {
 export function TeacherCard({ t }: { t: TeacherCardView }) {
   return (
     <Link href={t.href} className={s.teacher} prefetch>
-      <Face size={96} />
+      <Face src={t.face} size={96} />
       <span className={s.teacherBody}>
         <span className={s.teacherName}>{t.name}</span>
         <span className={s.teacherLine}>

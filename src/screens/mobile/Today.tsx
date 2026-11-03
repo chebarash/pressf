@@ -152,7 +152,7 @@ function StudentHome({ v }: { v: TodayView }) {
                 name={c.name}
                 href={c.href}
                 line={c.when ?? undefined}
-                teacher={c.teacher ? { name: c.teacher.name, face: null } : undefined}
+                teacher={c.teacher ? { name: c.teacher.name, face: c.teacher.face ?? null } : undefined}
                 recommend={c.recommendPct == null ? undefined : { pct: c.recommendPct }}
               />
             ))}
@@ -160,7 +160,7 @@ function StudentHome({ v }: { v: TodayView }) {
         )}
       </div>
 
-      <TodayBar checkIn={!!live} classEnd={live?.endTime} classLine={live ? [live.name, live.room].filter(Boolean).join(" · ") : undefined} rating={ask} />
+      <TodayBar checkIn={!!live} course={live ? live.courseId ?? live.code : null} classEnd={live?.endTime} classLine={live ? [live.name, live.room].filter(Boolean).join(" · ") : undefined} rating={ask} />
     </div>
   );
 }

@@ -40,7 +40,7 @@ export type TodayData = {
   due: Array<{ title: string; meta: string; status: string; late: boolean; href?: string }>;
   exam: null | { when: string; title: string; meta: string; href?: string };
   courses: CourseCardVM[];
-  rate: null | { eyebrow: string; title: string; text: string; href: string };
+  rate: null | { eyebrow: string; title: string; text: string; href: string; term: string | null };
 };
 
 export type ClassTone = "teal" | "mustard" | "plum" | "moss" | "rust";
@@ -102,10 +102,14 @@ export type CourseData = {
   summary: RatingSummaryProps | null;
   mention: Mention | null;
   rateHref: string | null;
+  /** The rate button: "Rate this course" / "Edit your rating"; `opensIn` = disabled until that teaching week. */
+  rate?: { label: string; opensIn: number | null } | null;
   /** The student's courses for the list pane, when the view sends them. */
   myCourses: CourseListItem[] | null;
   terms: CoursesData["terms"] | null;
   locked: boolean;
+  /** Next to a file (D12): only the file's week and teachers, with a link to the full course. */
+  context?: boolean;
 };
 
 export type FileData = {
@@ -223,7 +227,8 @@ export type RateData = {
   waiting: number;
   teachers: Array<{ id: string; name: string; role: string; kind: TeacherRole; face: string | null }>;
   tags: string[];
-  initial: null | { recommend: "yes" | "unsure" | "no" | null; hours: string | null; difficulty: number | null; tags: string[]; pressed: string[] };
+  /** Saved answers when editing a rating (`teacherTags` by "teacherId|role", kept as they were). */
+  initial: null | { recommend: "yes" | "unsure" | "no" | null; hours: string | null; difficulty: number | null; tags: string[]; pressed: string[]; teacherTags?: Record<string, string[]> };
 };
 
 export type ProfessorsData = {
