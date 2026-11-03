@@ -33,8 +33,8 @@ export const shellUser = cache(async (): Promise<ShellUser | null> => {
   const [row] = await db()
     .select({
       telegramId: users.telegramId, data: lmsCache.data, syncedAt: lmsCache.syncedAt, status: lmsAccounts.status,
-      // The background sync's time (grades, attendance, files), every ~20 min; the profile cache refreshes only every 6 h.
-      lastSync: sql<string | null>`${userState.snapshot}->>'at'`,
+      // The background sync's time (snapshot.lms.at) (grades, attendance, files), every ~20 min; the profile cache refreshes only every 6 h.
+      lastSync: sql<string | null>`${userState.snapshot}->'lms'->>'at'`,
     })
     .from(users)
     .leftJoin(lmsCache, eq(lmsCache.userId, users.id))
@@ -49,7 +49,7 @@ export const shellUser = cache(async (): Promise<ShellUser | null> => {
     subtitle: (data?.enrollment?.semesterName ? termName(data.enrollment.semesterName) : null) ?? user.email,
     telegramLinked: !!row?.telegramId,
     needsReauth: row?.status === "invalid",
-    syncedAt: [row?.syncedAt?.toISOString() ?? null, row?.lastSync ?? null].filter((v): v is string => !!v && !Number.isNaN(Date.parse(v))).sort().at(-1) ?? null,
+    syncedAt: [row?.syncedAt?.toISOString() ?? null, row?.lastSync ?? null].filter((v): v is string => !!v && !Number.isNaN(Date.parse(v))).sort((a, b) => Date.parse(a) - Date.parse(b)).at(-1) ?? null,
     email: user.email,
   };
 });
