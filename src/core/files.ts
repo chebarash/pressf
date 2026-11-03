@@ -107,7 +107,7 @@ export function cleanTitle(name: string, opts: { courseCode?: string; courseName
   t = t.replace(/(^|\s)L(\d{1,2}?)(\d{2})\b/g, (m, pre: string, a: string, b: string) => (Number(b) === Number(a) + 1 ? `${pre}Lectures ${a}\u2060${b}` : m));
   t = t.replace(/(^|\s)Lectures? (\d{1,2})(?:\s*[,&+\-–]\s*|\s+)(?:Lecture\s)?(\d{1,2})\b/g, (m, pre: string, a: string, b: string) => (Number(b) === Number(a) + 1 ? `${pre}Lectures ${a}\u2060${b}` : m));
   t = t.replace(/(^|\s)L\s?(\d+)\b/g, "$1Lecture $2").replace(/(^|\s)P\s?(\d+)\b/g, "$1Practice $2").replace(/(^|\s)LB\s?(\d+)\b/g, "$1Lab $2").replace(/(^|\s)T\s?(\d+)\b/g, "$1Tutorial $2");
-  t = t.replace(/\s*[-–—:]\s*/g, " — ").replace(/\s+/g, " ").replace(/^[\s—.]+|[\s—.]+$/g, "").replace(/\u2060/g, "–");
+  t = t.replace(/\s+[-–—:]\s*|\s*[–—:]\s+|\s*[–—]\s*|(?<=[^\s\d])-(?=\s)|(?<=\s)-(?=[^\s\d])/g, " — ").replace(/\s+/g, " ").replace(/^[\s—.]+|[\s—.]+$/g, "").replace(/\u2060/g, "–");
   return t ? cap(t) : "Untitled file";
 }
 

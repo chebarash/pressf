@@ -33,6 +33,14 @@ export function localized(row: Record<string, unknown> | null | undefined, field
 export const personOf = (row: Record<string, unknown> | null | undefined) =>
   displayName({ first_name_en: localized(row, "first_name"), last_name_en: localized(row, "last_name"), sur_name_en: localized(row, "sur_name") });
 
+const SMALL = new Set(["a", "an", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "the", "to", "with"]);
+
+/** A course name as shown: trimmed, single spaces, small connecting words in lower case ("Theory Of Computation" → "Theory of Computation"). */
+export function courseTitle(name: string | null | undefined): string {
+  const words = (name ?? "").trim().replace(/\s+/g, " ").split(" ");
+  return words.map((w, i) => (i > 0 && SMALL.has(w.toLowerCase()) && /^[A-Z][a-z]*$/.test(w) ? w.toLowerCase() : w)).join(" ");
+}
+
 /** "Gonçalo P." for compact places. */
 export const shortName = (full: string) => {
   const [given, ...rest] = full.split(/\s+/);

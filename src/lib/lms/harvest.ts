@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { plainText } from "@/core/notifications";
-import { localized } from "@/core/people";
+import { localized, courseTitle } from "@/core/people";
 import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers, type LmsCurriculumData, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
 import { departments, employee, individualPlan, programs, subject, type LmsSession } from "@/lib/lms/client";
 import { harvestSemesters, listOf, pick } from "@/lib/lms/semesters";
@@ -83,7 +83,7 @@ async function saveDepartmentsAndPrograms(session: LmsSession) {
 
 async function saveCourse(c: LmsSubject) {
   await db().insert(lmsCourses).values({
-    id: c.id, code: c.code, name: c.name ?? c.code,
+    id: c.id, code: c.code, name: courseTitle(c.name ?? c.code),
     credits: int(c.credit_count), lectureHours: int(c.lecture_hours), labHours: int(c.laboratory_hours), practiceHours: int(c.practice_hours),
     departmentId: c.department?.id ?? null, semesterId: c.semester_id ?? null, raw: c, fetchedAt: new Date(),
   }).onConflictDoUpdate({

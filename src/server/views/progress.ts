@@ -76,9 +76,11 @@ export async function progressCourses(student: Student, now: Date): Promise<Prog
     const ref = refs.get(c.subjectId);
     const name = ref?.name ?? c.name;
     const next = work.filter((d) => sameCourse(d.course, name) || sameCourse(d.course, c.name)).sort((a, b) => a.due.getTime() - b.due.getTime())[0];
-    const mark = headline(c);
+    // A running course with nothing graded comes back as average 0 / rating 0: that is "no marks yet", not a 0.
+    const unmarked = c.final == null && !c.average && !c.rating;
+    const mark = unmarked ? null : headline(c);
     return {
-      courseId: c.subjectId, code: ref?.code ?? "", name, mark, tier: tier(mark), average: c.average, rating: c.rating, final: c.final,
+      courseId: c.subjectId, code: ref?.code ?? "", name, mark, tier: tier(mark), average: unmarked ? null : c.average, rating: unmarked ? null : c.rating, final: c.final,
       passed: c.passed, fx: c.fx, ...extras(c), absences: absencesOf(c), next: next ? deadlineView(next, now) : null, href: `/progress/${c.subjectId}`,
     };
   });
