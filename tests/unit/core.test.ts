@@ -255,6 +255,7 @@ describe("notifications", () => {
   });
   it("keeps quiet hours except for absences", () => {
     expect(deliverNow("grade", 23 * 60)).toBe(false);
+    expect(deliverNow("grade", 22 * 60 + 30)).toBe(true);
     expect(deliverNow("absence", 23 * 60)).toBe(true);
     expect(deliverNow("grade", 9 * 60)).toBe(true);
   });

@@ -1,3 +1,4 @@
+import { isQuiet, QUIET_HOURS } from "@/core/notifications";
 /**
  * Pure admin rules: automatic upload checks, report reasons, broadcast timing
  * and duplicate professors. No database access here, so it is unit-tested.
@@ -72,20 +73,18 @@ export const MUTE_DAYS = 7;
 
 export type Audience = { years?: number[]; schools?: string[]; courseIds?: string[]; unrated?: string };
 
-export const QUIET_START = 22 * 60;
-export const QUIET_END = 8 * 60;
+/** One definition of quiet hours for the bot and broadcasts (Figma 8.5). */
+export const QUIET_START = QUIET_HOURS.from;
+export const QUIET_END = QUIET_HOURS.to;
 
-export const inQuietHours = (at: Date) => {
-  const m = localMinutes(at);
-  return m >= QUIET_START || m < QUIET_END;
-};
+export const inQuietHours = (at: Date) => isQuiet(localMinutes(at));
 
-/** The first moment at or after `at` outside quiet hours (22:00–08:00 Tashkent). */
+/** The first moment at or after `at` outside quiet hours (23:00–07:00 Tashkent). */
 export function nextSendable(at: Date): Date {
   if (!inQuietHours(at)) return at;
   const m = localMinutes(at);
   const day = localDay(at);
-  const base = Date.parse(`${day}T08:00:00Z`) - TZ_OFFSET_MS;
+  const base = Date.parse(`${day}T00:00:00Z`) - TZ_OFFSET_MS + QUIET_END * 60_000;
   return new Date(m >= QUIET_START ? base + DAY_MS : base);
 }
 

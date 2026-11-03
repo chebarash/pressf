@@ -127,7 +127,7 @@ export function Broadcasts({ data }: { data: BroadcastsData }) {
             {inQuietHours(when) ? `→ ${human(actual, now)} · quiet hours respected` : "· quiet hours respected"}
           </span>
         </div>
-        <p className={s.note} style={{ margin: 0 }}>Quiet hours 22:00–08:00. One broadcast per student per day.</p>
+        <p className={s.note} style={{ margin: 0 }}>Quiet hours 23:00–07:00. One broadcast per student per day.</p>
         {msg && <div className={msg.ok ? s.small : s.error}>{msg.text}</div>}
         <div className={s.spacer} />
         <div className={s.actions}>

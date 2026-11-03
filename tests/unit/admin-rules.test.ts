@@ -43,12 +43,12 @@ describe("reports", () => {
 });
 
 describe("broadcast timing", () => {
-  it("respects quiet hours 22:00–08:00", () => {
-    expect(inQuietHours(tashkent("2026-11-03T19:00:00"))).toBe(false);
-    expect(inQuietHours(tashkent("2026-11-03T22:30:00"))).toBe(true);
-    expect(inQuietHours(tashkent("2026-11-03T07:59:00"))).toBe(true);
-    expect(nextSendable(tashkent("2026-11-03T23:10:00"))).toEqual(tashkent("2026-11-04T08:00:00"));
-    expect(nextSendable(tashkent("2026-11-03T03:00:00"))).toEqual(tashkent("2026-11-03T08:00:00"));
+  it("respects quiet hours 23:00–07:00", () => {
+    expect(inQuietHours(tashkent("2026-11-03T22:30:00"))).toBe(false);
+    expect(inQuietHours(tashkent("2026-11-03T23:30:00"))).toBe(true);
+    expect(inQuietHours(tashkent("2026-11-03T06:59:00"))).toBe(true);
+    expect(nextSendable(tashkent("2026-11-03T23:10:00"))).toEqual(tashkent("2026-11-04T07:00:00"));
+    expect(nextSendable(tashkent("2026-11-03T03:00:00"))).toEqual(tashkent("2026-11-03T07:00:00"));
     const fine = tashkent("2026-11-03T19:00:00");
     expect(nextSendable(fine)).toBe(fine);
   });
