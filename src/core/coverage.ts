@@ -14,7 +14,7 @@ export type CoverageInput = {
   departments: Array<{ id: string; parentId: string | null; name: string | null }>;
   programs: Array<{ id: string; name: string | null; departmentId: string | null }>;
   /** Harvested LMS courses (one row per LMS subject id). */
-  courses: Array<{ id: string; code: string; name: string; departmentId: string | null; semesterId: string | null }>;
+  courses: Array<{ id: string; code: string; name: string; departmentId: string | null; semesterId: string | null; /** The course's own department label, used when the department table has no name. */ departmentName?: string | null }>;
   /** Materials per course code (any offering). */
   materials: Array<{ code: string; lmsFiles: number; uploads: number; exams: number; syllabus: boolean; lastFile: string | null }>;
   /** Cohort plans (lms_curricula). */
@@ -119,25 +119,31 @@ export function currentSemester(input: Pick<CoverageInput, "today" | "semesters"
   return ids[0] ?? null;
 }
 
-/** Department names from the top (faculty) down to `id`. A lone university-wide root is dropped. */
-function chains(departments: CoverageInput["departments"]) {
+/**
+ * Department names from the top (faculty) down to `id`. A lone university-wide
+ * root is dropped, and so are departments the LMS leaves unnamed (their name
+ * comes from the courses' own department label when the table has none).
+ */
+function chains(departments: CoverageInput["departments"], labels: Map<string, string>) {
   const byId = new Map(departments.map((d) => [d.id, d]));
   const roots = departments.filter((d) => !d.parentId || !byId.has(d.parentId));
   const dropRoot = roots.length === 1 && departments.some((d) => d.parentId === roots[0].id);
+  const nameOf = (id: string) => byId.get(id)?.name?.trim() || labels.get(id) || null;
   const memo = new Map<string, string[]>();
   return (id: string | null): string[] => {
-    if (!id || !byId.has(id)) return [];
+    if (!id) return [];
     const hit = memo.get(id);
     if (hit) return hit;
     const path: string[] = [];
     const seen = new Set<string>();
     let d = byId.get(id);
+    if (!d) path.push(id);
     while (d && !seen.has(d.id)) {
       seen.add(d.id);
       path.unshift(d.id);
       d = d.parentId ? byId.get(d.parentId) : undefined;
     }
-    const out = (dropRoot && path.length > 1 ? path.slice(1) : path).map((x) => byId.get(x)?.name?.trim() || "Department");
+    const out = (dropRoot && path.length > 1 ? path.slice(1) : path).map(nameOf).filter((x): x is string => !!x);
     memo.set(id, out);
     return out;
   };
@@ -173,7 +179,9 @@ export function suggest(cohorts: Array<Omit<Suggestion, "gain" | "uncovered" | "
 export function coverageReport(input: CoverageInput): CoverageReport {
   const semesterId = currentSemester(input);
   const semester = input.semesters.find((s) => s.id === semesterId);
-  const chainOf = chains(input.departments);
+  const labels = new Map<string, string>();
+  for (const c of input.courses) if (c.departmentId && c.departmentName?.trim() && !labels.has(c.departmentId)) labels.set(c.departmentId, c.departmentName.trim());
+  const chainOf = chains(input.departments, labels);
   const programs = new Map(input.programs.map((p) => [p.id, p]));
   const codeOfId = new Map(input.courses.map((c) => [c.id, up(c.code)]));
 
