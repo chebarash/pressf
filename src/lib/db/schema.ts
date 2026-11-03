@@ -307,8 +307,12 @@ export const mentionLinks = pgTable(
 export const faces = pgTable("faces", {
   teacherId: text("teacher_id").primaryKey(),
   storageKey: text("storage_key").notNull(),
-  /** The constructor parts the face was built from (src/core/face-parts.ts); null for an uploaded drawing. */
-  spec: jsonb("spec").$type<Record<string, string>>(),
+  /**
+   * The constructor parts the face was built from; null for an uploaded drawing.
+   * Notion Faces parameters ({ v: 3, skin, eyes, … }: src/core/notion-faces) or an
+   * older drawn spec (option names: src/core/face-parts.ts).
+   */
+  spec: jsonb("spec").$type<Record<string, string | number>>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

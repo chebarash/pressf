@@ -15,6 +15,8 @@ const schema = z.object({
   S3_BUCKET: z.string().optional(),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
+  /** Local only: read the Notion Faces parts from this folder instead of the bucket (e.g. .cache/notion-faces). */
+  NOTION_FACES_DIR: z.string().optional(),
   /** The Press F bot (@pressfapp). */
   TELEGRAM_BOT_TOKEN: z.string().default(""),
   TELEGRAM_WEBHOOK_SECRET: z.string().default(""),

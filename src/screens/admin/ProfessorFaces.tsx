@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { buildFace, removeFace, uploadFace, type Result } from "@/app/admin/actions";
-import { parsePastedFaceSpec } from "@/core/face-paste";
-import { DEFAULT_FACE_SPEC, FACE_OPTION_LABELS, FACE_PART_LABELS, FACE_PART_ORDER, FACE_PARTS, randomFaceSpec, renderFace, type FacePart, type FaceSpec } from "@/core/face-parts";
+import { DEFAULT_NOTION_FACE, isNotionFace, NOTION_ROWS, NOTION_TAGS, notionFacePreviewUrl, notionFaceString, notionThumbUrl, notionTileTransform, parseNotionFace, randomNotionFace, type NotionFace, type NotionField } from "@/core/notion-faces";
 import type { facesPage } from "@/server/admin/faces";
 import f from "./faces.module.css";
 import { Btn, Chip, Head, KV, Label, cx, s } from "./ui";
@@ -176,24 +175,33 @@ function FaceView({ sel, pending, run, note, build }: DetailProps & { build: () 
 /* ───────── Build a face ───────── */
 
 const PREVIEW_SIZES = [120, 64, 48, 32];
+const HAIR_STYLES = ["short", "long", "covered"] as const;
+const HAIR_COLOURS = ["light", "medium", "dark"] as const;
 
+/**
+ * The Notion Faces constructor: Notion's categories as rows of part tiles, in
+ * Notion's order. The preview is drawn by the server from the same parts the
+ * saved face uses. A face made on faces.notion.com can be pasted as a link.
+ */
 function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: () => void }) {
-  const [spec, setSpec] = useState<FaceSpec>(sel.spec ?? DEFAULT_FACE_SPEC);
-  const [pasted, setPasted] = useState("");
-  const [pasteNote, setPasteNote] = useState<{ ok: boolean; text: string } | null>(null);
-  const src = useMemo(() => `data:image/svg+xml,${encodeURIComponent(renderFace(spec))}`, [spec]);
-  const set = <K extends FacePart>(part: K, value: FaceSpec[K]) => setSpec((old) => ({ ...old, [part]: value }));
+  // A face drawn with the older constructor (v2) keeps its drawing until this one is saved.
+  const [face, setFace] = useState<NotionFace>(isNotionFace(sel.spec) ? sel.spec : DEFAULT_NOTION_FACE);
+  const [link, setLink] = useState("");
+  const [linkNote, setLinkNote] = useState<string | null>(null);
+  const src = notionFacePreviewUrl(face);
+  const set = (field: NotionField, id: number) => setFace((old) => ({ ...old, [field]: id }));
 
-  const applyPaste = () => {
-    const r = parsePastedFaceSpec(pasted, spec);
-    if (!r.ok) return setPasteNote({ ok: false, text: r.error });
-    setSpec(r.spec);
-    setPasteNote({ ok: true, text: `Filled in ${r.filled.length} part${r.filled.length === 1 ? "" : "s"} — check them before saving.` });
+  const paste = () => {
+    const pasted = parseNotionFace(link);
+    if (!pasted) return setLinkNote("That isn't a Notion Faces link: copy the address of a face on faces.notion.com");
+    setFace(pasted);
+    setLink("");
+    setLinkNote(null);
   };
 
   const save = () =>
     run(async () => {
-      const r = await buildFace(sel.id, spec);
+      const r = await buildFace(sel.id, face);
       if (r.ok) close();
       return r;
     });
@@ -215,36 +223,28 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
         ))}
       </div>
       <div className={s.actions}>
-        <Btn onClick={() => setSpec(randomFaceSpec())}>Randomize</Btn>
+        <Btn onClick={() => setFace(randomNotionFace())}>Randomize</Btn>
+        <a className={s.link} href={`https://faces.notion.com/?face=${notionFaceString(face)}`} target="_blank" rel="noreferrer">
+          Open on Notion Faces
+        </a>
       </div>
-      <p className={s.small} style={{ margin: 0 }}>From a photo: send the photo to the operator; the spec can be pasted here. Only the drawing is saved.</p>
-      <div className={s.hstack} style={{ alignItems: "flex-start" }}>
-        <textarea
-          className={s.input}
-          style={{ flex: "1 0 0", minHeight: 64, fontFamily: "var(--font-mono, monospace)", fontSize: 12 }}
-          value={pasted}
-          onChange={(e) => setPasted(e.target.value)}
-          placeholder='{"hair": "short", "glasses": "round", …}'
-          aria-label="Paste spec (JSON)"
-          spellCheck={false}
-        />
-        <Btn onClick={applyPaste} disabled={!pasted.trim()}>Paste spec (JSON)</Btn>
-      </div>
-      {pasteNote && <div className={pasteNote.ok ? s.small : s.error}>{pasteNote.text}</div>}
+      <form
+        className={s.hstack}
+        onSubmit={(e) => {
+          e.preventDefault();
+          paste();
+        }}
+      >
+        <input className={s.input} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://faces.notion.com/?face=…" aria-label="Notion Faces link" spellCheck={false} />
+        <Btn type="submit" disabled={!link.trim()}>Paste a Notion Faces link</Btn>
+      </form>
+      {linkNote && <div className={s.error}>{linkNote}</div>}
       <div className={f.parts}>
-        {FACE_PART_ORDER.map((part) => (
-          <div key={part} className={f.part} role="radiogroup" aria-label={FACE_PART_LABELS[part]}>
-            <span className={f.partLabel}>{FACE_PART_LABELS[part]}</span>
-            <div className={s.wrap}>
-              {(FACE_PARTS[part] as readonly FaceSpec[typeof part][]).map((value) => (
-                <button key={value} type="button" role="radio" aria-checked={spec[part] === value} className={cx(s.chip, spec[part] === value && s.chipInverse)} onClick={() => set(part, value)}>
-                  {(FACE_OPTION_LABELS[part] as Record<string, string>)[value]}
-                </button>
-              ))}
-            </div>
-          </div>
+        {NOTION_ROWS.map((row) => (
+          <PartRow key={row.field} row={row} value={face[row.field]} onPick={(id) => set(row.field, id)} />
         ))}
       </div>
+      <p className={s.small} style={{ margin: 0 }}>Parts from Notion Faces (faces.notion.com).</p>
       {note && !note.ok && <div className={s.error}>{note.text}</div>}
       <div className={s.spacer} />
       <div className={s.actions}>
@@ -252,5 +252,53 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
         <Btn onClick={close} disabled={pending}>Cancel</Btn>
       </div>
     </section>
+  );
+}
+
+/** One category: a "none" tile (all but skin tone) and every part's tile; hair gets Notion's style and colour filters. */
+function PartRow({ row, value, onPick }: { row: (typeof NOTION_ROWS)[number]; value: number; onPick: (id: number) => void }) {
+  const [style, setStyle] = useState<string | null>(null);
+  const [colour, setColour] = useState<string | null>(null);
+  const parts = useMemo(() => row.category.parts.filter((p) => (!style || p.style?.includes(style)) && (!colour || p.color?.includes(colour))), [row, style, colour]);
+  const tiles = useRef<HTMLDivElement>(null);
+  // Keep the chosen part in view (after Randomize or a pasted link it may be far down the list).
+  useEffect(() => {
+    const box = tiles.current, on = box?.querySelector<HTMLElement>('[aria-checked="true"]');
+    if (box && on) box.scrollTop = Math.max(0, on.offsetTop - 4);
+  }, [value]);
+  const filter = (tags: readonly string[], on: string | null, set: (t: string | null) => void) =>
+    tags.map((t) => (
+      <button key={t} type="button" className={cx(s.chip, on === t && s.chipInverse)} aria-pressed={on === t} onClick={() => set(on === t ? null : t)}>
+        {NOTION_TAGS[t] ?? t}
+      </button>
+    ));
+  return (
+    <div className={f.part} role="radiogroup" aria-label={row.category.label}>
+      <span className={f.partLabel}>
+        {row.category.label}
+        <span className={f.partCount}>{row.category.parts.length}</span>
+      </span>
+      <div className={f.partBody}>
+        {row.field === "hair" && (
+          <div className={s.wrap}>
+            {filter(HAIR_STYLES, style, setStyle)}
+            {filter(HAIR_COLOURS, colour, setColour)}
+          </div>
+        )}
+        <div ref={tiles} className={f.tiles}>
+          {row.optional && (
+            <button type="button" role="radio" aria-checked={value === 0} aria-label="None" title="None" className={cx(f.tile, f.tileNone, value === 0 && f.tileOn)} onClick={() => onPick(0)}>
+              None
+            </button>
+          )}
+          {parts.map((p) => (
+            <button key={p.id} type="button" role="radio" aria-checked={value === p.id} aria-label={p.label} title={p.label} className={cx(f.tile, value === p.id && f.tileOn)} onClick={() => onPick(p.id)}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={notionThumbUrl(row.field, p.id)} alt="" width={56} height={56} loading="lazy" decoding="async" style={{ transform: notionTileTransform(p) }} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

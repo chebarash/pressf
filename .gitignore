@@ -48,3 +48,6 @@ next-env.d.ts
 /playwright-report/
 
 .claude/worktrees/
+
+# Notion Faces parts downloaded by scripts/notion-faces-sync.ts (they live in the bucket)
+/.cache/
