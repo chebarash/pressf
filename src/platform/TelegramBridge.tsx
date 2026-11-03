@@ -114,11 +114,13 @@ export function TelegramBridge() {
       syncSecondary();
       cleanups.push(mainButton.subscribe(syncMain), secondaryButton.subscribe(syncSecondary));
 
-      // Back: a screen override, else shown off the root and going back.
+      // Back: a screen override, else back in history; opened straight on a page
+      // (a shared card, a deep link) there is no history, so go up to its section.
       const back = () => {
         const override = backButton.get();
         if (override?.onBack) override.onBack();
-        else router.back();
+        else if (inAppHistory.length > 1) router.back();
+        else router.replace(parentOf(window.location.pathname), { scroll: false });
       };
       app.BackButton.onClick(back);
       cleanups.push(() => app.BackButton.offClick(back));
@@ -182,6 +184,12 @@ export function TelegramBridge() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The screens visited since launch: a revisit of the previous one is a Back.
+  useEffect(() => {
+    if (inAppHistory.at(-2) === pathname) inAppHistory.pop();
+    else if (inAppHistory.at(-1) !== pathname) inAppHistory.push(pathname);
+  }, [pathname]);
+
   // BackButton visibility follows the route and any screen override.
   useEffect(() => {
     const update = () => {
@@ -199,4 +207,20 @@ export function TelegramBridge() {
   }, [pathname]);
 
   return null;
+}
+
+/** Pathnames visited in this Mini App session, oldest first. */
+const inAppHistory: string[] = [];
+
+/** Where Back goes when there is no history: the screen's section, else Today. */
+export function parentOf(pathname: string): string {
+  const [first, second] = pathname.split("/").filter(Boolean);
+  if (!first) return "/";
+  if (first === "c" || first === "f") return "/courses";
+  if (first === "p") return "/professors";
+  if (first === "progress" && second) return "/progress";
+  if (first === "programs") return "/";
+  if (first === "me" && second) return "/me";
+  if (first === "a") return "/";
+  return "/";
 }
