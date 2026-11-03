@@ -228,7 +228,7 @@ export async function nextSemester(userId: string, now = new Date()): Promise<Ne
       return { ...r, status: r.code ? (passedCodes.has(r.code) ? "passed" as const : nowCodes.has(r.code) ? "in-progress" as const : "missing" as const) : null };
     });
     const ratingsView = c.code ? ratings[c.code] ?? null : null;
-    return { courseId: c.id, code: c.code, name: c.name, ects: c.ects, ratings: ratingsView, recommendPct: recommendOf(ratingsView ?? undefined), cohorts, prerequisites, href: c.code ? `/next/${c.code}` : null };
+    return { courseId: c.id, code: c.code, name: c.name, ects: c.ects, ratings: ratingsView, recommendPct: recommendOf(ratingsView ?? undefined), cohorts, prerequisites, href: c.code ? `/c/${c.code}` : null };
   });
   const [year] = [next.year];
   return { term: year ? `Year ${year}` : null, ects: courses.reduce((n, c) => n + (c.ects ?? 0), 0), courses, phases, missing: false };

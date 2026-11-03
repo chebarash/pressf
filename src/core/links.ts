@@ -38,7 +38,8 @@ export function path(t: Target): string {
     case "notifications": return t.id ? `/notifications?open=${encodeURIComponent(t.id)}` : "/notifications";
     case "calendar": return "/calendar";
     case "rate": return t.courseId ? `/rate/${slug(t.courseId)}` : "/rate";
-    case "next": return t.code ? `/next/${slug(t.code)}` : "/next";
+    // "Next semester" was removed: old links land on the course or the curriculum.
+    case "next": return t.code ? `/c/${slug(t.code)}` : "/programs/mine/curriculum";
     case "qr": return "/qr";
     case "uploads": return "/me/uploads";
     case "link": return `/link/${slug(t.token)}`;

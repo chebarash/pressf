@@ -136,16 +136,16 @@ export async function academicEvents(on: Set<CalendarLayer>, from: string, to: s
       const sub = `Registration${where} · ${shortDate(p.startDay)} – ${shortDate(p.endDay)}`;
       // Student deadlines (add/drop, cohort selection) stay bands whatever their length.
       if (BAND_PHASES.has(p.kind) || !isLongPhase(p.startDay, p.endDay)) {
-        events.push({ key, layer: "registration", title: p.title, sub: `Registration${where} · Until ${shortDate(p.endDay)}`, day: p.startDay, endDay: p.endDay, time: null, href: "/next" });
+        events.push({ key, layer: "registration", title: p.title, sub: `Registration${where} · Until ${shortDate(p.endDay)}`, day: p.startDay, endDay: p.endDay, time: null, href: "/programs/mine/curriculum" });
         continue;
       }
       // A long administrative window (the schedule builder runs for months) would
       // paint every day: show where it opens and where it closes, nothing between.
-      if (p.startDay >= today) events.push({ key: `${key}:opens`, layer: "registration", title: `${p.title} opens`, sub, day: p.startDay, endDay: p.startDay, time: null, href: "/next" });
-      if (p.endDay <= to) events.push({ key: `${key}:closes`, layer: "registration", title: `${p.title} closes`, sub, day: p.endDay, endDay: p.endDay, time: null, href: "/next" });
+      if (p.startDay >= today) events.push({ key: `${key}:opens`, layer: "registration", title: `${p.title} opens`, sub, day: p.startDay, endDay: p.startDay, time: null, href: "/programs/mine/curriculum" });
+      if (p.endDay <= to) events.push({ key: `${key}:closes`, layer: "registration", title: `${p.title} closes`, sub, day: p.endDay, endDay: p.endDay, time: null, href: "/programs/mine/curriculum" });
     }
     for (const p of phases(REG_KINDS, today, to)) {
-      events.push({ key: `phase:${p.kind}:${p.starts}`, layer: "registration", title: PHASE_TITLE[p.kind] ?? "Registration", sub: `Registration · Until ${shortDate(p.ends)}`, day: p.starts, endDay: p.ends, time: null, href: "/next" });
+      events.push({ key: `phase:${p.kind}:${p.starts}`, layer: "registration", title: PHASE_TITLE[p.kind] ?? "Registration", sub: `Registration · Until ${shortDate(p.ends)}`, day: p.starts, endDay: p.ends, time: null, href: "/programs/mine/curriculum" });
     }
   }
   if (on.has("holidays")) {

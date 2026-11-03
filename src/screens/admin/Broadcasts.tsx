@@ -12,7 +12,7 @@ import { SortHeader, useSortedRows } from "@/ui/table/Sort";
 export type BroadcastsData = Awaited<ReturnType<typeof broadcastsPage>>;
 
 const BUTTONS = [
-  { label: "Plan next semester", target: "/next" },
+  { label: "Curriculum", target: "/programs/mine/curriculum" },
   { label: "Rate your courses", target: "/rate" },
   { label: "Open timetable", target: "/timetable" },
   { label: "See what's new", target: "/notifications" },
