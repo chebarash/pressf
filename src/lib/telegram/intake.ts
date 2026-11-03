@@ -7,7 +7,6 @@ import { uploadChecks } from "@/server/upload-checks";
 import { submitUpload, UploadRefused } from "@/server/uploads";
 import { downloadFile, send, type BotMessage } from "./api";
 import { titleOf, type Draft } from "./conversation";
-import { coverPdf } from "./cover";
 import { alreadyShared, fileLive, sentForReview, sharingPaused, uploadFailed } from "./messages";
 
 export type IntakeResult = "waiting" | "live" | "duplicate" | "paused" | "failed";
@@ -37,16 +36,8 @@ async function store(userId: string, d: Draft): Promise<{ result: IntakeResult; 
   const sha256 = createHash("sha256").update(buffer).digest("hex");
   const ext = extensionOf(file.name) || "bin";
   const original = await putObject(`uploads/${sha256}.${ext}`, buffer, file.mime);
-  let storageKey = original;
-  if (ext === "pdf") {
-    try {
-      const branded = await coverPdf(buffer, { title, courseCode: course.code, courseName: course.name, type: d.type!, term: d.term, shownAs: shownAs(d.showName, d.name) });
-      storageKey = await putObject(`uploads/${sha256}-pressf.pdf`, branded, "application/pdf");
-    } catch (error) {
-      // Encrypted or odd PDFs cannot be edited; the original is better than nothing.
-      console.warn("Keeping the original, could not brand PDF", error);
-    }
-  }
+  // The cover is added once, on download or send (src/server/covers), never stamped here.
+  const storageKey = original;
 
   // Automatic checks for the moderator; never block the upload when they fail.
   const checks = await uploadChecks({
