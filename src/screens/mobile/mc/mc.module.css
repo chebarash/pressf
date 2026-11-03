@@ -91,8 +91,8 @@
   color: var(--text-primary);
   box-shadow: var(--shadow-key-md);
 }
-.pressable { -webkit-tap-highlight-color: transparent; transition: transform 80ms ease-out, box-shadow 80ms ease-out; }
-.pressable:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow-key); }
+.pressable { -webkit-tap-highlight-color: transparent; transition: transform var(--motion-fast) var(--ease-gentle), box-shadow var(--motion-fast) var(--ease-gentle), background-color var(--motion-fast) var(--ease-standard); }
+.pressable:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--shadow-key); transition-duration: var(--motion-press); transition-timing-function: var(--ease-standard); }
 .quiet.pressable:active { box-shadow: none; }
 .pressable:focus-visible { outline: none; border-color: var(--border-accent); box-shadow: 0 3px 0 var(--border-accent); }
 
@@ -120,7 +120,7 @@
 .pillWarn { background: var(--tint-mustard); color: var(--text-primary); }
 
 /* Bottom sheet over a scrim (5.2, 7.6). */
-.scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); border: 0; padding: 0; cursor: default; }
+.scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); border: 0; padding: 0; cursor: default; animation: fade var(--motion-base) var(--ease-standard); }
 .sheet {
   position: fixed;
   inset: auto 0 0 0;
@@ -138,12 +138,13 @@
   border-bottom: 0;
   border-radius: 24px 24px 0 0;
   background: var(--bg-page);
-  animation: sheetUp 200ms ease-out;
+  animation: sheetUp var(--motion-sheet) var(--ease-emphasized);
 }
 .grabberRow { display: flex; justify-content: center; padding-bottom: var(--space-1); }
 .grabber { width: 40px; height: 4px; border-radius: 2px; background: var(--border-subtle); }
-@keyframes sheetUp { from { transform: translateY(24px); opacity: 0.6; } }
-@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+@keyframes sheetUp { from { transform: translateY(100%); } }
+@keyframes fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet, .scrim { animation: none; } }
 
 /* Telegram MainButton stand-in on the web (Figma TG/MainButton). */
 .mainBar {

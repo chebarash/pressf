@@ -8,11 +8,12 @@
   align-items: flex-start;
   padding: 140px var(--space-5) var(--space-5);
   overflow-y: auto;
-  animation: fade 120ms ease-out;
+  animation: fade var(--motion-fast) var(--ease-standard);
 }
 .center { align-items: center; padding-top: var(--space-5); }
 @keyframes fade { from { opacity: 0; } }
-@keyframes rise { from { transform: translateY(8px); opacity: 0; } }
+@keyframes pop { from { transform: scale(0.98); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .scrim, .palette, .sheet { animation: none; } }
 
 /* D2 Command palette */
 .palette {
@@ -26,7 +27,7 @@
   flex-direction: column;
   gap: 10px;
   overflow: hidden;
-  animation: rise 140ms ease-out;
+  animation: pop var(--motion-base) var(--ease-emphasized);
 }
 .input { display: flex; align-items: center; gap: 10px; padding: var(--space-4) var(--space-4) var(--space-4) 20px; border-bottom: 1.5px solid var(--border-subtle); }
 .input input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: 400 20px/normal var(--font-sans); color: var(--text-primary); caret-color: var(--bg-accent); padding: 0; }
@@ -65,7 +66,7 @@
   flex-direction: column;
   gap: 16px;
   color: var(--text-primary);
-  animation: rise 140ms ease-out;
+  animation: pop var(--motion-base) var(--ease-emphasized);
 }
 .sheetHead { display: flex; align-items: center; justify-content: space-between; }
 .sheetTitle { font: 400 40px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }

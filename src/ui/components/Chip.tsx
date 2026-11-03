@@ -42,7 +42,7 @@ export function Chip({ label, size = "m", selected, disabled, removable, onRemov
   }
   if (href && !disabled) {
     return (
-      <Link href={href} className={cls} data-state={state} aria-current={selected ? "true" : undefined}>
+      <Link href={href} className={cls} data-state={state} aria-current={selected ? "true" : undefined} data-haptic="select">
         <span>{label}</span>
         {x}
       </Link>
