@@ -4,7 +4,7 @@ const refresh = vi.hoisted(() => ({ scheduleRefresh: vi.fn() }));
 vi.mock("@/server/sync/refresh", () => refresh);
 
 import { db } from "@/lib/db";
-import { lmsAccounts, mentionLinks, mentions, users } from "@/lib/db/schema";
+import { lmsAccounts, lmsSemesters, mentionLinks, mentions, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ingest } from "@/server/feed";
 import { saveRating } from "@/server/ratings";
@@ -182,6 +182,24 @@ describe("progress, notifications, calendar, profile", () => {
     expect(all.find((e) => e.layer === "deadlines")).toMatchObject({ title: "Lab 6 report", sub: "Deadline · Physics 1 · 23:59" });
     const only = await views.calendar(null, ["holidays"], new Date("2027-04-01T00:00:00Z"));
     expect(only.empty).not.toBeNull();
+  });
+
+  it("shows long administrative phases as open/close markers, short ones as bands", async () => {
+    await db().insert(lmsSemesters).values({ id: "S9", name: "Spring 2027", calendar: [
+      { kind: "schedule-builder", name: "Schedule builder", starts: "2026-07-27T00:00:00+05:00", ends: "2026-12-11T23:59:00+05:00" },
+      { kind: "cohort-selection", name: "Cohort selection", starts: "2026-11-20T00:00:00+05:00", ends: "2027-01-10T23:59:00+05:00" },
+      { kind: "add-drop", name: "Add/drop", starts: "2027-01-25T00:00:00+05:00", ends: "2027-02-05T23:59:00+05:00" },
+    ] });
+    const c = await views.calendar({ userId }, ["registration"], NOW);
+    const reg = c.days.flatMap((d) => d.events).map((e) => [e.title, e.day, e.endDay]);
+    expect(reg).toEqual([
+      ["Cohort selection opens", "2026-11-20", "2026-11-20"],
+      ["Schedule builder closes", "2026-12-11", "2026-12-11"],
+      ["Cohort selection closes", "2027-01-10", "2027-01-10"],
+      ["Add/drop", "2027-01-25", "2027-02-05"],
+      ["Resit registration", "2027-01-25", "2027-01-29"],
+      ["Course registration", "2027-02-15", "2027-02-19"],
+    ]);
   });
 
   it("builds the profile and the rate queue", async () => {
