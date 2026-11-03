@@ -134,7 +134,9 @@ export async function syncStudent(userId: string, now = new Date()): Promise<Syn
 
   // The sign-in snapshot (enrollment, weekly pattern, GPA) more rarely.
   const cacheAt = student.state.syncedAt;
-  if (!everythingFailed && (!student.cache || !cacheAt || now.getTime() - Date.parse(cacheAt) > CACHE_REFRESH_MS)) {
+  // A weekly pattern without class types (cached before they were kept) merges lectures and labs: rebuild it now.
+  const untyped = !!student.cache?.timetable?.some((l) => !l.kind);
+  if (!everythingFailed && (!student.cache || !cacheAt || untyped || now.getTime() - Date.parse(cacheAt) > CACHE_REFRESH_MS)) {
     await preloadUser(userId, student.email).catch(() => null);
   }
 
