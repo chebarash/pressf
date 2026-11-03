@@ -20,7 +20,8 @@ export function Tab({ label, active, href, size = "m", state, className, type = 
   const cls = cx(s.tab, size === "l" && s.l, active && s.active, "t-label-md", className);
   if (href) {
     return (
-      <Link href={href} className={cls} aria-current={active ? "page" : undefined} data-state={state} data-haptic="select">
+      // Switching a tab (day, filter, section) replaces the history entry: Back leaves the screen instead of stepping through tabs.
+      <Link href={href} replace scroll={false} prefetch className={cls} aria-current={active ? "page" : undefined} data-state={state} data-haptic="select">
         {label}
       </Link>
     );
