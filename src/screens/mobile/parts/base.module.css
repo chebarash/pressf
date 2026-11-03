@@ -23,14 +23,13 @@
 .stack { display: flex; flex-direction: column; gap: var(--space-3); }
 .stack8 { display: flex; flex-direction: column; gap: var(--space-2); }
 
-/* Thin list row with border-subtle (Earlier semesters, rated courses). */
+/* Thin list row with border-subtle (Earlier semesters, rated courses; Figma 4.1 "Spring 2026"). */
 .row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 60px;
-  padding: var(--space-3) var(--space-4);
-  border: 2px solid var(--border-subtle);
+  padding: var(--space-3) 14px;
+  border: 1.5px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   color: var(--text-primary);
@@ -61,6 +60,9 @@ a.row:active { background: var(--bg-hover); }
 .empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding: var(--space-8) var(--space-4) var(--space-6); text-align: center; }
 .emptyTitle { margin: 0; font-family: var(--font-serif); font-size: 34px; font-weight: 400; line-height: 1.12; letter-spacing: -0.01em; }
 .emptyText { max-width: 320px; margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 16px; line-height: 1.4; }
+
+/* Full-width block inside the 16 px gutter (Figma EmptyState spans the 390 frame). */
+.bleed.bleed { max-width: none; margin-inline: calc(-1 * var(--space-4)); }
 
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 

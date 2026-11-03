@@ -38,7 +38,7 @@ export function timetableDemo(demo: string): TimetableView {
     }),
     classes,
     holiday: demo === "holiday" ? { date: day, name: "Constitution Day" } : null,
-    nextClass: classes.length ? null : { label: demo === "holiday" ? "Wednesday 10:00" : "Monday 10:00", class: cls("calc", "10:00", "11:20", "Calculus 1", "MATH111", "Gonçalo Pinto", "B-204", "later") },
+    nextClass: classes.length ? null : { label: demo === "holiday" ? "Wednesday 10:00" : "Monday 10:00", class: { ...cls("calc", "10:00", "11:20", "Calculus 1", "MATH111", "Gonçalo Pinto", "B-204", "later"), start: demo === "holiday" ? "2026-12-09T10:00:00+05:00" : "2026-11-09T10:00:00+05:00" } },
   };
 }
 
@@ -59,6 +59,7 @@ export function coursesDemo(demo: string): MyCoursesView {
       { term: "Fall 2025", courses: 6, ects: 30 },
       { term: "Spring 2025", courses: 5, ects: 30 },
     ],
+    next: { term: "Spring 2027", courses: 5, selection: "9–13 Feb" },
   };
 }
 
@@ -96,6 +97,7 @@ export function courseDemo(code: string, demo: string): CourseView {
     anonymous: { count: 23, latest: [{ id: 1, url: "https://t.me/newuu_anonymous/1", text: "Is Calculus 1 harder with the morning section or is it the same exam for everyone?", date: "2026-03-12T10:00:00.000Z" }] },
     weeks: signedIn ? Array.from({ length: 16 }, (_, i) => i + 1).map((w) => ({ week: w, topic: demo === "nofiles" ? null : topics[w] ?? null, current: !took && w === 8, files: items.filter((f) => f.week === w) })) : null,
     totalWeeks: 16,
+    teachingWeek: 8,
     files: signedIn ? { all: items.length, byType: {}, items } : null,
     syllabus: signedIn
       ? {

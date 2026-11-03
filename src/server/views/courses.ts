@@ -13,6 +13,7 @@ import { signedUrl } from "@/lib/storage";
 import { shortDate } from "@/core/time";
 import { DECISION_TAGS, fileOverride, overlay } from "@/server/decisions";
 import { publicCache, TAGS } from "./cache";
+import { nextSemesterEntry, type NextSemesterEntry } from "./curriculum";
 import { progressCourses, type AbsencesView, type ProgressCourse } from "./progress";
 import { myRatingFor, rateQueueFor } from "./rate";
 import {
@@ -35,6 +36,8 @@ export type MyCoursesView = {
   /** The registrar has not published the new semester in the LMS yet (Figma 4.16). */
   notInLmsYet: boolean;
   earlier: Array<{ term: string; courses: number; ects: number | null }>;
+  /** The Next semester strip (Figma 4.1). */
+  next?: NextSemesterEntry;
 };
 
 export async function courseCards(student: Student, courses: ProgressCourse[]): Promise<CourseCard[]> {
@@ -60,9 +63,10 @@ export async function myCourses(userId: string, now = new Date()): Promise<MyCou
   const courses = await progressCourses(student, now);
   const past = student.sync.semesters.filter((s) => !s.open).sort((a, b) => Number(b.id) - Number(a.id));
   const pastIds = student.sync.courses.filter((c) => past.some((s) => s.id === c.semesterId)).map((c) => c.subjectId);
-  const [cards, credits] = await Promise.all([
+  const [cards, credits, next] = await Promise.all([
     courseCards(student, courses),
     pastIds.length ? db().select({ id: lmsCourses.id, credits: lmsCourses.credits }).from(lmsCourses).where(inArray(lmsCourses.id, pastIds)) : Promise.resolve([]),
+    nextSemesterEntry(student, now),
   ]);
   const creditOf = new Map(credits.map((c) => [c.id, c.credits]));
   const open = student.sync.semesters.find((s) => s.open);
@@ -76,6 +80,7 @@ export async function myCourses(userId: string, now = new Date()): Promise<MyCou
       const sum = ids.reduce((n, id) => n + (creditOf.get(id) ?? 0), 0);
       return { term: s.term, courses: ids.length, ects: sum || null };
     }),
+    next,
   };
 }
 
@@ -145,6 +150,8 @@ export type CourseView = {
     /** This semester's course before its rating window: the teaching week it opens in ("Opens in week 14"). Always set by the server. */
     opensIn?: number | null;
   } | null;
+  /** This week of the teaching calendar; another semester's weeks open at the same point (Figma 4.4). */
+  teachingWeek?: number | null;
   /** The viewer's current courses (same cards as myCourses()), for the desktop list pane (D4). Null for guests. */
   myCourses?: CourseCard[] | null;
 };
@@ -305,6 +312,7 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
   const waitingHere = queue?.waiting.find((w) => pub.rows.some((r) => r.id === w.courseId));
   const list = student ? await courseCards(student, progressRows) : null;
   return {
+    teachingWeek: currentWeek,
     myCourses: list,
     code: pub.code,
     name: pub.name,

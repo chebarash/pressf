@@ -25,7 +25,7 @@ export function SemesterSwitch({ label, terms }: { label: string; terms: TermLin
         <ChevronDownIcon size={16} />
       </button>
       {open ? (
-      <Sheet label="Semester" onClose={() => setOpen(false)}>
+      <Sheet label="Semester" onClose={() => setOpen(false)} className={s.termSheet}>
         <h2 className="sh-sheet__title">Semester</h2>
         {terms.map((t) => (
           <Link key={t.term} href={t.href} className={cx(s.term, t.selected && s.termOn)} onClick={() => setOpen(false)} replace scroll={false} aria-current={t.selected ? "true" : undefined}>
@@ -48,12 +48,14 @@ export function SemesterSwitch({ label, terms }: { label: string; terms: TermLin
 type Week = WeekView & { week: number };
 
 /** Week rows around now; the current week starts open with its files (4.2). "All N weeks" shows the rest. */
-export function WeekList({ weeks: all, filesHref, filesTotal, extra }: { weeks: WeekView[]; filesHref: string; filesTotal: number; extra?: ReactNode }) {
+export function WeekList({ weeks: all, filesHref, filesTotal, extra, teachingWeek }: { weeks: WeekView[]; filesHref: string; filesTotal: number; extra?: ReactNode; teachingWeek?: number | null }) {
   const weeks = all.filter((w): w is Week => w.week !== null);
   const now = weeks.findIndex((w) => w.current);
-  const pivot = now !== -1 ? now : Math.max(0, weeks.findIndex((w) => w.files.length));
+  // Another semester (4.4) opens at the same point of the teaching calendar, that week's files shown.
+  const same = now === -1 && teachingWeek ? weeks.findIndex((w) => w.week === teachingWeek) : -1;
+  const pivot = now !== -1 ? now : same !== -1 ? same : Math.max(0, weeks.findIndex((w) => w.files.length));
   const [everything, setEverything] = useState(false);
-  const [open, setOpen] = useState<Set<number>>(() => new Set(now === -1 ? [] : [weeks[now].week]));
+  const [open, setOpen] = useState<Set<number>>(() => new Set(now !== -1 ? [weeks[now].week] : same !== -1 && weeks[same].files.length ? [weeks[same].week] : []));
   const shown = everything ? weeks : weeks.slice(Math.max(0, pivot - 1), pivot + 2);
   const toggle = (w: number) =>
     setOpen((prev) => {

@@ -48,13 +48,15 @@
   gap: 10px;
   padding: 14px;
   border: 1.5px solid var(--border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: 16px;
   background: var(--bg-accent-soft);
   box-shadow: var(--shadow-key-md);
   color: var(--text-primary);
   text-decoration: none;
 }
-.youPlain { background: var(--bg-surface); box-shadow: none; }
+/* Figma 4.4 "Your result": plain white row, no key shadow. */
+.youPlain { padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: none; }
+.youPlain .youTitle { font-size: 15px; }
 .youTop { display: flex; align-items: center; gap: var(--space-3); }
 .youBody { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; }
 .youTitle { font-family: var(--font-sans); font-size: 16px; font-weight: 600; line-height: normal; }
@@ -74,23 +76,23 @@
   gap: var(--space-2);
   width: 100%;
   padding: var(--space-3) var(--space-2);
-  border: 2px solid transparent;
+  border: 0;
   border-radius: var(--radius-md);
   background: none;
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
 }
-.weekNow { border-color: var(--border-accent); background: var(--bg-accent-soft); }
+.weekNow { border: 2px solid var(--border-accent); background: var(--bg-accent-soft); }
 .weekNum { flex: none; width: 24px; color: var(--text-secondary); font-family: var(--font-sans); font-size: 15px; font-weight: 500; line-height: 1.3; }
 .weekNow .weekNum { color: var(--text-primary); }
 .weekTopic { flex: 1 1 0; min-width: 0; overflow: hidden; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
 .weekPast .weekTopic { color: var(--text-secondary); }
 .weekRow > svg { flex: none; margin-top: 3px; color: var(--text-secondary); transition: transform 120ms; }
-.weekOpen > svg { transform: rotate(180deg); }
+.weekOpen:not(.weekNow) { background: var(--bg-hover); }
 .weekFiles { display: flex; flex-direction: column; gap: var(--space-2); padding-left: 44px; }
 .weekEmpty { margin: 0; padding-left: 44px; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; }
-.links { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.links { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-bottom: 5px; }
 .ghost {
   display: inline-flex;
   align-items: center;
@@ -110,8 +112,9 @@
 }
 @media (hover: hover) { .ghost:hover { background: var(--bg-accent-soft); } }
 
-.share { composes: dashed from "./base.module.css"; }
-.shareIcon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1.5px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--tint-plum); color: var(--text-secondary); font-size: 20px; line-height: 1; }
+/* Figma 11.1 "Share a file": dashed card on the page colour, plum "+" key. */
+.share { composes: dashed from "./base.module.css"; padding: 14px; background: var(--bg-page); }
+.shareIcon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 36px; height: 36px; border: 1.25px solid var(--border-strong); border-radius: 10px; background: var(--tint-plum); color: var(--text-primary); font-family: var(--font-serif); font-size: 22px; line-height: 1.08; }
 
 /* Who teaches it */
 .teacher {
@@ -132,10 +135,10 @@
 .slot { display: flex; align-items: center; gap: var(--space-3); margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.4; }
 
 /* Syllabus */
-.syllabus { overflow: hidden; border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-surface); }
+.syllabus { display: flex; flex-direction: column; gap: 10px; overflow: hidden; border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-surface); }
 .fold { border-top: 1.5px solid var(--border-subtle); }
 .fold:first-child { border-top: 0; }
-.foldHead { display: flex; align-items: center; gap: 10px; padding: 13px 14px; cursor: pointer; list-style: none; }
+.foldHead { display: flex; align-items: center; gap: 10px; padding: var(--space-3) 14px; cursor: pointer; list-style: none; }
 .foldHead::-webkit-details-marker { display: none; }
 .foldHead > svg { flex: none; transition: transform 120ms; }
 .fold[open] > .foldHead > svg.right { transform: rotate(90deg); }
@@ -143,10 +146,10 @@
 .foldText { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; }
 .foldTitle { font-family: var(--font-sans); font-size: 15px; font-weight: 600; line-height: normal; }
 .foldSub { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: normal; }
-.foldBody { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-1) 14px var(--space-4); }
-.assess { display: flex; align-items: center; gap: var(--space-5); }
-.assessPct { flex: none; width: 56px; font-family: var(--font-serif); font-size: 34px; line-height: 1.12; }
-.assessName { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.3; }
+.foldBody { display: flex; flex-direction: column; gap: var(--space-4); padding: 10px 14px var(--space-3); }
+.assess { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-2) 0; }
+.assessPct { flex: none; width: 64px; font-family: var(--font-serif); font-size: 34px; line-height: 1.12; letter-spacing: -0.01em; }
+.assessName { display: block; font-family: var(--font-sans); font-size: 18px; font-weight: 500; line-height: 1.3; }
 .assessNote { display: block; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: 1.4; }
 .outcomes { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding-left: 20px; font-family: var(--font-sans); font-size: 14px; line-height: 1.4; }
 .book { display: flex; align-items: center; gap: var(--space-2); color: var(--text-primary); text-decoration: none; }
@@ -154,9 +157,9 @@
 a.book .foldTitle { color: var(--text-accent); }
 
 /* Gated (4.6) */
-.gate { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-accent-soft); }
-.gateTitle { margin: 0; font-family: var(--font-sans); font-size: 16px; font-weight: 600; line-height: normal; }
-.gateText { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: 1.45; }
+.gate { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border: 1.5px solid var(--border-strong); border-radius: 16px; background: var(--bg-accent-soft); }
+.gateTitle { margin: 0; font-family: var(--font-sans); font-size: 17px; font-weight: 600; line-height: normal; }
+.gateText { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: 1.4; }
 .blurred { filter: blur(5px); opacity: 0.45; pointer-events: none; user-select: none; }
 .ghostBar { display: block; height: 14px; border-radius: 7px; background: var(--border-subtle); }
 
@@ -164,16 +167,19 @@ a.book .foldTitle { color: var(--text-accent); }
 
 /* Anonymous */
 .band { display: flex; flex-direction: column; gap: var(--space-4); margin: var(--space-7) calc(-1 * var(--space-4)) 0; padding: var(--space-7) var(--space-4); background: var(--bg-sunken); }
-.mention { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 2px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: 0 5px 0 var(--shadow-key); }
-.mentionHead { display: flex; align-items: center; gap: var(--space-2); font-family: var(--font-sans); font-size: 13px; line-height: normal; }
-.mentionWho { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-accent); font-weight: 500; }
-.mentionDate { color: var(--text-secondary); }
-.mentionText { margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; }
+.mention { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4); border: 2px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: 0 3px 0 var(--shadow-key); color: var(--text-primary); text-decoration: none; }
+.mentionHead { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-family: var(--font-sans); }
+.mentionWho { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-accent); font-size: 13px; font-weight: 500; line-height: 1.3; }
+.mentionDate { color: var(--text-secondary); font-size: 14px; line-height: 1.4; }
+.mentionText { display: block; margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; }
 .mentionFoot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-.openPost { display: inline-flex; flex: 1 1 0; align-items: center; justify-content: space-between; gap: var(--space-2); padding-left: var(--space-7); color: var(--text-accent); font-family: var(--font-sans); font-size: 14px; font-weight: 500; text-decoration: none; }
+.openPost { color: var(--text-accent); font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: 1.3; }
+.mentionFoot > svg { flex: none; color: var(--text-accent); }
 
 /* Files tab */
-.filters { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-bottom: var(--space-2); }
+/* Figma 4.7: chips, then week groups 10 px apart, each with 8 px on top. */
+.files { display: flex; flex-direction: column; gap: 10px; }
+.filters { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .filter {
   display: inline-flex;
   align-items: center;
@@ -190,20 +196,25 @@ a.book .foldTitle { color: var(--text-accent); }
   cursor: pointer;
 }
 .filterOn { background: var(--bg-accent); color: var(--text-on-accent); }
-.group { display: flex; flex-direction: column; gap: var(--space-2); }
-.groups { display: flex; flex-direction: column; gap: var(--space-5); }
+.group { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-2); }
+.groups { display: flex; flex-direction: column; gap: 10px; }
 
 /* Semester sheet (4.3) */
-.sheetTitle { margin: 0 0 var(--space-2); font-family: var(--font-serif); font-size: 34px; font-weight: 400; line-height: 1.12; }
-.term { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1.5px solid transparent; border-radius: var(--radius-md); color: var(--text-primary); text-decoration: none; }
-.termOn { border-color: var(--border-strong); background: var(--bg-surface); box-shadow: var(--shadow-key-md); }
+/* Figma 4.3: rows 10 px apart, 12 px under the grab bar, 8 px spacer under the title, 32 px at the bottom. */
+.termSheet:global(.sh-sheet) { gap: 10px; padding-bottom: 32px; }
+.termSheet :global(.sh-sheet__grab) { margin-bottom: 12px; }
+.termSheet :global(.sh-sheet__title) { margin-bottom: 18px; }
+.term { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 14px; border-radius: var(--radius-md); color: var(--text-primary); text-decoration: none; }
+.termOn { border: 1.5px solid var(--border-strong); background: var(--bg-surface); box-shadow: var(--shadow-key-md); }
 .termName { display: flex; align-items: center; gap: var(--space-2); font-family: var(--font-sans); font-size: 16px; font-weight: 600; line-height: normal; }
-.termNote { padding: 1px 6px; border-radius: 6px; background: var(--bg-accent-soft); font-size: 11px; font-weight: 600; }
+.termNote { padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--bg-accent-soft); color: var(--text-accent); font-size: 11px; font-weight: 600; }
 .termTeachers { color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: normal; }
 
 .skeleton { display: block; border-radius: var(--radius-md); background: var(--bg-sunken); }
 .fewText { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: 1.4; }
 .trendLabel { color: var(--text-primary); font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: normal; }
-.ghostList { display: flex; flex-direction: column; gap: var(--space-4); }
-.ghostItem { display: flex; flex-direction: column; gap: var(--space-2); }
-.shareSub { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: 1.35; }
+.ghostItem { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-2); }
+.ghostPct { flex: none; width: 64px; height: 30px; border-radius: var(--radius-sm); background: var(--border-subtle); }
+.ghostFile { display: flex; align-items: center; gap: var(--space-3); height: 64px; padding: var(--space-3) 14px var(--space-3) var(--space-3); border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: 0 3px 0 var(--shadow-key); }
+.ghostFlag { flex: none; align-self: stretch; width: 6px; border-radius: 3px; }
+.shareSub { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: 1.32; white-space: normal; }

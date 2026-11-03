@@ -39,4 +39,6 @@
 }
 .source { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--text-primary); }
 .source > span { color: var(--text-secondary); }
+/* A student upload's label is accent (Figma 11.6 "From students"). */
+.source.students > span { color: var(--text-accent); }
 .chev { flex: none; }

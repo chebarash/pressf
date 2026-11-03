@@ -17,7 +17,8 @@ export type FileRowProps = {
   /** "Fall 2023" or "2 Nov". */
   date?: string;
   /** Where it came from: LMS (book icon) or the students' channel (send icon). */
-  source?: { label: string; kind: "lms" | "channel" | "student" };
+  /** "student": users icon (Figma 4.7); "students": a student upload, send icon and accent label (Figma 11.6 "From students"). */
+  source?: { label: string; kind: "lms" | "channel" | "student" | "students" };
   href?: string;
   className?: string;
 };
@@ -34,7 +35,7 @@ export function FileRow({ title, type, course, week, date, source, href, classNa
           {week ? <span>{week}</span> : null}
           {date ? <span>{date}</span> : null}
           {source ? (
-            <span className={s.source}>
+            <span className={cx(s.source, source.kind === "students" && s.students)}>
               {source.kind === "lms" ? <BookIcon size={14} /> : source.kind === "student" ? <UsersIcon size={14} /> : <SendIcon size={14} />}
               <span>{source.label}</span>
             </span>

@@ -1,5 +1,5 @@
 import { shortDate, weekdayName } from "@/core/time";
-import { Face, Tabs } from "@/ui/components";
+import { EmptyState, Tabs } from "@/ui/components";
 import b from "./parts/base.module.css";
 import { ClassList } from "./parts/TimetableDays";
 import s from "./parts/Timetable.module.css";
@@ -9,7 +9,9 @@ import type { TimetableView } from "./views";
 export default function Timetable({ data }: { data: TimetableView & { open?: string | null } }) {
   const weekday = weekdayName(data.day);
   const next = data.nextClass;
+  // 3.4 "Next: Monday 10:00, Calculus 1 in B-204." · 3.6 "Back on Wednesday, 10:00 Calculus 1."
   const nextLine = next ? `${next.label}, ${next.class.name}${next.class.room ? ` in ${next.class.room}` : ""}` : null;
+  const backLine = next ? `${weekdayName(new Date(next.class.start))}, ${next.class.time} ${next.class.name}` : null;
   return (
     <div className={b.screen}>
       <header className={b.head}>
@@ -21,17 +23,11 @@ export default function Timetable({ data }: { data: TimetableView & { open?: str
       {data.classes.length ? (
         <ClassList key={data.day} classes={data.classes} weekday={weekday.slice(0, 3)} openKey={data.open ?? null} />
       ) : (
-        <div className={b.empty}>
-          <Face kind="mascot" size={96} priority />
-          <h2 className={b.emptyTitle}>{data.holiday ? data.holiday.name : `No classes on ${weekday}`}</h2>
-          {data.holiday ? (
-            <p className={b.emptyText}>
-              No classes on {weekday} {shortDate(data.day)}.{nextLine ? ` Back on ${nextLine}.` : ""}
-            </p>
-          ) : nextLine ? (
-            <p className={b.emptyText}>Next: {nextLine}.</p>
-          ) : null}
-        </div>
+        <EmptyState
+          className={b.bleed}
+          title={data.holiday ? data.holiday.name : `No classes on ${weekday}`}
+          text={data.holiday ? `No classes on ${weekday} ${shortDate(data.day)}.${backLine ? ` Back on ${backLine}.` : ""}` : nextLine ? `Next: ${nextLine}.` : undefined}
+        />
       )}
     </div>
   );

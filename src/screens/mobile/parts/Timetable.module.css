@@ -42,15 +42,16 @@
 .subject { overflow: hidden; text-overflow: ellipsis; }
 .details { overflow: hidden; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
 
+/* Class sheet (3.2, 3.3): 10 px between rows; the grab bar's 4 px bottom pad + 10 = 14 to the tags. */
+.sheet:global(.sh-sheet) { gap: 10px; }
 .tags { display: flex; gap: 6px; }
 .sheetTitle { margin: 0; font-family: var(--font-serif); font-size: 34px; font-weight: 400; line-height: 1.04; }
 .fact { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: normal; }
 .fact svg { flex: none; }
 .was { color: var(--text-secondary); text-decoration: line-through; }
-.now { display: flex; align-items: center; gap: 6px; margin: 0; font-family: var(--font-sans); font-size: 13px; font-weight: 600; line-height: normal; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rating-low); }
+.now { margin: 0; color: var(--rating-low); font-family: var(--font-sans); font-size: 13px; font-weight: 600; line-height: normal; }
 .absences { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding-top: var(--space-1); font-family: var(--font-sans); font-size: 13px; line-height: normal; }
 .absences span { flex: 1 1 0; color: var(--text-secondary); font-weight: 500; }
 .absences strong { font-weight: 600; }
 
-.skeleton { height: 58px; border-radius: var(--radius-md); background: var(--bg-sunken); }
+.skeleton { height: 71px; border-radius: var(--radius-md); background: var(--bg-sunken); }
