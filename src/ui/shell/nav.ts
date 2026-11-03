@@ -1,7 +1,13 @@
 import { path } from "@/core/links";
 import type { IconName } from "./icons";
 
-/** Desktop sidebar items, their G-sequence shortcuts (G then the key) and paths. */
+/**
+ * Desktop sidebar items, their shortcuts and paths. Every section is F (for
+ * Press F) then its letter: F T Timetable, F C Courses. Never while typing in a
+ * field or with a modifier held; read from the physical key on any layout.
+ */
+export const NAV_PREFIX = "f";
+
 export type NavItem = { label: string; href: string; icon: IconName; key: string; group: "main" | "browse"; badge?: "new" | "count" };
 
 export const NAV: NavItem[] = [

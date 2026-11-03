@@ -158,8 +158,12 @@ describe("message builders", () => {
       .toBe("<b>Today: 2 classes</b>\n10:00 Calculus 1 · B-204\n13:00 Physics 1 · A-108\nDue tonight: Physics 1 lab report, 23:59");
     expect(m.classSoon({ course: "Calculus 1", courseCode: "MATH111", room: "B-204", teacher: "Gonçalo Pinto", note: "Lecture 15 slides are up" }).text)
       .toBe("<b>Calculus 1 in 15 minutes</b>\nB-204 · Gonçalo Pinto · Lecture 15 slides are up");
-    expect(m.markedAbsent({ course: "Physics 1", lesson: "Practice 14", left: 2 }).text).toBe("<b>Marked absent: Physics 1</b>\nPractice 14 · 2 absences left in this course");
-    expect(m.newGrade({ grade: 86, course: "Physics 1", item: "midterm", average: 86 }).text).toBe("<b>New grade: 86</b>\nPhysics 1 · midterm · average now 86");
+    expect(m.markedAbsent({ course: "Physics 1", lesson: "Practice № 14", when: "Tue 3 Nov 13:00", left: 2 }).text).toBe("<b>Marked absent in Physics 1</b>\n🔴 Absent · Practice 14 · Tue 3 Nov 13:00\n⚠️ 2 absences left in this course");
+    expect(m.markedAbsent({ course: "Physics 1", lesson: "Practice 15", mark: "late", left: 6 }).text).toBe("<b>Marked late in Physics 1</b>\n🟡 Late · Practice 15\n6 absences left in this course");
+    expect(m.markedAbsent({ course: "Physics 1", lesson: "Practice 16", left: 0, status: "over" }).text).toBe("<b>Marked absent in Physics 1</b>\n🔴 Absent · Practice 16\n⚠️ Over the absence limit in this course");
+    expect(m.newGrade({ grade: 86, course: "Physics 1", item: "midterm", average: 86 }).text).toBe("<b>New grade in Physics 1</b>\n🟢 Midterm: 86\nAverage now 86");
+    expect(m.newGrade({ grade: 58, course: "Physics 1", item: "Final grade", max: 100 }).text).toBe("<b>New grade in Physics 1</b>\n🔴 Final grade: 58 / 100");
+    expect(m.newGrade({ grade: 7, course: "Calculus 1", item: "Quiz 5" }).text).toBe("<b>New grade in Calculus 1</b>\n🟡 Quiz 5: 7");
     expect(m.newFiles({ course: "Calculus 1", courseCode: "MATH111", week: 8, files: ["Midterm review slides", "Mock midterm with answers"] }).text)
       .toBe("<b>2 new files in Calculus 1</b>\nWeek 8\n• Midterm review slides\n• Mock midterm with answers");
     expect(m.newFiles({ course: "Deep Learning", courseCode: "CS401", files: [{ title: "Backpropagation", type: "lecture" }, "Lab 3", "Lab 3", "Syllabus", "Quiz 1", "Quiz 2"] }).text)
@@ -174,7 +178,7 @@ describe("message builders", () => {
   it("words the semester alerts as designed (9.3)", () => {
     expect(m.semesterStarts({ term: "Spring 2027", date: "Monday 9 Feb", courses: 5, firstClass: "Mon 10:00" }).text)
       .toBe("<b>Spring 2027 starts on Monday 9 Feb</b>\nYour timetable is ready — 5 courses, first class Mon 10:00");
-    expect(m.absencesLeft({ left: 2, course: "Physics 1", used: 13, limit: 15 }).text).toBe("<b>Careful: 2 absences left</b>\nPhysics 1 · 13 of 15 used");
+    expect(m.absencesLeft({ left: 2, course: "Physics 1", used: 13, limit: 15 }).text).toBe("<b>Careful: 2 absences left in Physics 1</b>\n⚠️ 13 of 15 absences used");
     expect(m.examTomorrow({ course: "Calculus 1", courseCode: "MATH111", exam: "midterm", time: "10:00", room: "B-204", pastPapers: 3, mocks: 1 }).text)
       .toBe("<b>Calculus 1 midterm tomorrow, 10:00</b>\nB-204 · 3 past papers and a mock in Press F");
     expect(m.termDone({ term: "Fall 2026", gpa: "3.66", overall: "3.62", ects: 198 }).text).toBe("<b>Fall 2026 is done</b>\nSemester GPA 3.66 · overall 3.62 · 198 ECTS");
@@ -183,6 +187,6 @@ describe("message builders", () => {
     expect(m.syncStopped().text).toBe("<b>Sync stopped</b>\nYour LMS password changed. Sign in again to keep grades and files coming.");
   });
   it("escapes what comes from the LMS", () => {
-    expect(m.newGrade({ grade: 1, course: "<b>x</b>", item: "a&b" }).text).toBe("<b>New grade: 1</b>\n&lt;b&gt;x&lt;/b&gt; · a&amp;b");
+    expect(m.newGrade({ grade: 1, course: "<b>x</b>", item: "a&b" }).text).toBe("<b>New grade in &lt;b&gt;x&lt;/b&gt;</b>\n🔴 A&amp;b: 1");
   });
 });

@@ -1,7 +1,7 @@
 import type { FeedKind } from "@/core/notifications";
 import { shortDate, weekdayName } from "@/core/time";
 import type { FeedView } from "@/server/views";
-import { FeedFiles, FeedItem, type FeedType } from "@/ui/components";
+import { FeedFiles, FeedItem, FeedMark, type FeedType } from "@/ui/components";
 import s from "../mobile.module.css";
 
 const TYPE: Record<FeedKind, FeedType> = {
@@ -22,6 +22,8 @@ export function feedMeta(item: FeedView, dated = false) {
   const when = UNTIMED.includes(item.kind) ? null : dated && !isToday(item.ago) ? `${weekdayName(new Date(item.at)).slice(0, 3)} ${shortDate(new Date(item.at))}` : item.ago;
   // New files already name the course in the title ("3 new files in Deep Learning"): the week and when.
   if (item.files) return [item.body, when].filter(Boolean).join(" · ");
+  // Grades and absences too ("New grade in Calculus 1"): just when.
+  if ((item.grade || item.attendance) && item.courseName) return when ?? "";
   return [...(item.byline ? [item.byline] : [SOURCE[item.kind], item.courseName]), when, item.needsAck ? "needs your OK" : null].filter(Boolean).join(" · ");
 }
 
@@ -32,6 +34,14 @@ export function FeedRow({ item, href, onOpen }: { item: FeedView; href?: string;
     return (
       <FeedItem type="files" title={item.title} meta={feedMeta(item, !href)} unread={!item.read} href={href} onClick={href ? undefined : onOpen}>
         <FeedFiles files={item.files.shown} more={item.files.more} moreHref={item.files.courseHref} />
+      </FeedItem>
+    );
+  }
+  if ((item.grade || item.attendance) && item.courseName) {
+    // "New grade in Calculus 1" / "Marked absent in Calculus 1", then the score or the class and what is left.
+    return (
+      <FeedItem type={TYPE[item.kind]} title={item.title} meta={feedMeta(item, !href)} unread={!item.read} href={href} onClick={href ? undefined : onOpen}>
+        <FeedMark grade={item.grade} attendance={item.attendance} href={item.href} />
       </FeedItem>
     );
   }

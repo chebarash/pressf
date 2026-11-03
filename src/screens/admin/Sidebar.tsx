@@ -13,8 +13,12 @@ export type SidebarProps = {
 };
 
 const GROUPS = [["overview", "uploads", "reports"], ["courses", "professors", "people"], ["broadcasts", "audit", "system"]];
-const CHORD: Record<string, string> = { o: "overview", u: "uploads", r: "reports", c: "courses", p: "professors", e: "people", b: "broadcasts", l: "audit", s: "system" };
-const HINT: Record<string, string> = Object.fromEntries(Object.entries(CHORD).map(([k, id]) => [id, `G ${k.toUpperCase()}`]));
+/**
+ * Each section is F (for Press F) then its letter, as in the app: F U uploads,
+ * F R reports. No admin page uses a bare F for itself.
+ */
+export const SECTION_KEYS: Record<string, string> = { o: "overview", u: "uploads", r: "reports", c: "courses", p: "professors", e: "people", b: "broadcasts", l: "audit", s: "system" };
+const HINT: Record<string, string> = Object.fromEntries(Object.entries(SECTION_KEYS).map(([k, id]) => [id, `F ${k.toUpperCase()}`]));
 export const hrefOf = (id: string) => (id === "overview" ? "/admin" : `/admin/${id}`);
 
 export function Sidebar({ sections, counts, me }: SidebarProps) {
@@ -26,18 +30,24 @@ export function Sidebar({ sections, counts, me }: SidebarProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
-      if (e.metaKey || e.ctrlKey || e.altKey || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT") return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || t.isContentEditable || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT") return;
+      // A dialog (reject reason, confirm) keeps its own keys.
+      if (document.querySelector("[aria-modal='true'], [aria-modal=''], dialog[open]")) return;
       const k = keyName(e);
-      if (Date.now() - pending.current < 1200 && CHORD[k]) {
+      if (Date.now() - pending.current < 1500) {
+        // The letter after F belongs to the sequence, never to the page.
         pending.current = 0;
-        if (allowed.has(CHORD[k])) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          router.push(hrefOf(CHORD[k]));
-        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const id = SECTION_KEYS[k];
+        if (id && allowed.has(id)) router.push(hrefOf(id));
         return;
       }
-      if (k === "g") pending.current = Date.now();
+      if (k === "f") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        pending.current = Date.now();
+      }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);

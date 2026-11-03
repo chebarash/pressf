@@ -2,6 +2,7 @@ import { and, count, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { ClassKind } from "@/core/agenda";
 import { deadline, type Deadline, type DeadlineStatus } from "@/core/deadlines";
 import { describeFile, fileList, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
+import { attendanceMark, gradeMark, MARK_LABEL, type AttendanceMark, type GradebookCourse, type GradeMark } from "@/core/feed-marks";
 import type { FeedItem, FeedKind } from "@/core/notifications";
 import { roleOf, teacherName } from "@/core/people";
 import { summarizeCourse, summarizeTeacher, toHours, type CourseSummary, type StoredRating, type TeacherRole, type TeacherSummary } from "@/core/ratings";
@@ -375,6 +376,10 @@ export type FeedView = {
    * when the files are no longer known. Always set by the server; optional for fixtures.
    */
   files?: FeedFiles | null;
+  /** Grade items: what was graded, the score, its maximum when known and its tier. Optional for fixtures. */
+  grade?: GradeMark | null;
+  /** Attendance items: the class, its mark and the absences left (now), with a tone. Optional for fixtures. */
+  attendance?: AttendanceMark | null;
 };
 
 export type FeedFile = { id: string; title: string; type: FileType; typeLabel: string; href: string };
@@ -397,19 +402,35 @@ function fileWording(i: FeedItem, courseName: string | null): { title: string; b
   return { title: `${count} new files in ${courseName}`, body: [week, fileList(old[2].split(", "))].filter(Boolean).join(" · ") };
 }
 
-export function feedView(i: FeedItem, now: Date, names: Map<string, CourseRef>, known?: Map<string, FileItem>): FeedView {
+/**
+ * Grade and attendance items name the course in the title ("New grade in
+ * Calculus 1", "Marked absent in Calculus 1"); what was graded or which class,
+ * the mark and the absences left show under it, so the old body line goes.
+ */
+function markWording(courseName: string, grade: GradeMark | null, att: AttendanceMark | null): { title: string; body: null } | null {
+  if (grade) return { title: `New grade in ${courseName}`, body: null };
+  if (!att) return null;
+  if (att.kind === "limit") return { title: att.status === "over" ? `Over the absence limit in ${courseName}` : `Careful: ${(att.line ?? "few absences left").toLowerCase()} in ${courseName}`, body: null };
+  const mark = att.mark ?? "absent";
+  return { title: mark === "excused" ? `Excused absence in ${courseName}` : `Marked ${MARK_LABEL[mark].toLowerCase()} in ${courseName}`, body: null };
+}
+
+export function feedView(i: FeedItem, now: Date, names: Map<string, CourseRef>, known?: Map<string, FileItem>, gradebook?: Map<string, GradebookCourse>): FeedView {
   const courseName = (i.courseId ? names.get(i.courseId)?.name : null) ?? i.courseName ?? null;
   const author = realAuthor(i.author);
   const files = known ? feedFiles(i, known) : null;
+  const grade = gradeMark(i);
+  const attendance = attendanceMark(i, i.courseId ? gradebook?.get(i.courseId) : null);
+  const marks = courseName ? markWording(courseName, grade, attendance) : null;
   // With the files listed under it, the item reads "3 new files in Deep Learning" with just the week below.
   const { title, body } = files && courseName
     ? { title: files.count === 1 ? `New file in ${courseName}` : `${files.count} new files in ${courseName}`, body: i.body?.match(/Week \d+/)?.[0] ?? null }
-    : fileWording(i, courseName);
+    : marks ?? fileWording(i, courseName);
   return {
     id: i.id, kind: i.kind, title, body, courseId: i.courseId ?? null, courseName, author,
     byline: i.kind === "announcement" ? ["LMS", courseName, author].filter(Boolean).join(" · ") : null,
     at: i.at.toISOString(), ago: ago(i.at, now), read: i.read, needsAck: !!i.needsAck && !i.read, acknowledged: !!i.needsAck && i.read, href: i.href ?? null,
-    files,
+    files, grade, attendance,
   };
 }
 
@@ -437,8 +458,12 @@ function feedFiles(i: FeedItem, known: Map<string, FileItem>): FeedFiles | null 
   return { count, shown, more: Math.max(0, count - shown.length), courseHref };
 }
 
-/** Feed rows ready to show: new-files items get their files (one query for the whole list, admin edits applied). */
-export async function feedViews(items: FeedItem[], now: Date, names: Map<string, CourseRef>): Promise<FeedView[]> {
+/**
+ * Feed rows ready to show: new-files items get their files (one query for the
+ * whole list, admin edits applied); attendance items read `gradebook` (the
+ * student's synced courses) for the class time, the mark and the absences left now.
+ */
+export async function feedViews(items: FeedItem[], now: Date, names: Map<string, CourseRef>, gradebook: GradebookCourse[] = []): Promise<FeedView[]> {
   const ids = [...new Set(items.flatMap(feedFileIds))];
   const known = new Map<string, FileItem>();
   if (ids.length) {
@@ -446,7 +471,8 @@ export async function feedViews(items: FeedItem[], now: Date, names: Map<string,
     const list = rows.map((f) => lmsFileItem(f, { code: f.code ?? "", name: (f.courseId ? names.get(f.courseId)?.name : null) ?? f.code ?? "", teachers: people[f.code ?? ""] }, new Map()));
     for (const f of overlayAll(list, overrides)) known.set(f.id, f);
   }
-  return items.map((i) => feedView(i, now, names, known));
+  const courses = new Map(gradebook.map((c) => [c.subjectId, c]));
+  return items.map((i) => feedView(i, now, names, known, courses));
 }
 
 /* ───────────── deadlines ───────────── */

@@ -67,7 +67,7 @@ export function TodayScreen({ data, actions }: { data: TodayData; actions?: Toda
         )}
 
         <div className={css.card}>
-          <CardHead title="Your day" link="Timetable" href="/timetable" hint="G T" />
+          <CardHead title="Your day" link="Timetable" href="/timetable" hint="F T" />
           {data.day.length === 0 && <p className={t.quiet}>No classes today.</p>}
           {data.day.map((slot, i) => {
             const body = (
@@ -99,7 +99,7 @@ export function TodayScreen({ data, actions }: { data: TodayData; actions?: Toda
 
       <section className={t.row}>
         <div className={cx(css.card, css.navList)} data-nav-list>
-          <CardHead title="Notifications" link={data.feed.unread ? `${data.feed.unread} unread · all` : "All"} href="/notifications" hint="G N" />
+          <CardHead title="Notifications" link={data.feed.unread ? `${data.feed.unread} unread · all` : "All"} href="/notifications" hint="F N" />
           {data.feed.loading ? (
             <>
               {[0, 1, 2, 3].map((i) => <div key={i} className={t.skel} aria-hidden />)}
@@ -109,7 +109,7 @@ export function TodayScreen({ data, actions }: { data: TodayData; actions?: Toda
             data.feed.items.length === 0 && <p className={t.quiet}>All read. Grades, absences and LMS announcements land here.</p>
           )}
           {data.feed.items.map((n) => (
-            <FeedLink key={n.id} kind={n.kind} title={n.title} meta={n.meta} unread={n.unread} href={n.href} files={n.files} />
+            <FeedLink key={n.id} kind={n.kind} title={n.title} meta={n.meta} unread={n.unread} href={n.href} files={n.files} mark={n.mark} />
           ))}
         </div>
 
@@ -140,7 +140,7 @@ export function TodayScreen({ data, actions }: { data: TodayData; actions?: Toda
 
       <section className={t.row}>
         <div className={t.courses}>
-          <CardHead title="My courses" link="All courses" href="/courses" hint="G C" />
+          <CardHead title="My courses" link="All courses" href="/courses" hint="F C" />
           <div className={t.cards}>
             {data.courses.slice(0, 2).map((c) => (
               <CourseCard key={c.code} c={c} />

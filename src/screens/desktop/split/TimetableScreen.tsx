@@ -27,7 +27,7 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
             <Link href={data.prevHref} className={t.navBtn} data-key="ArrowLeft" aria-label="Previous week">
               ‹
             </Link>
-            <Link href={data.todayHref} className={t.navBtn} data-key="t">
+            <Link href={data.todayHref} className={t.navBtn}>
               This week
             </Link>
             <Link href={data.nextHref} className={t.navBtn} data-key="ArrowRight" aria-label="Next week">
@@ -80,7 +80,7 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
 
       <aside className={css.inspector} aria-label="Class">
         {current ? <ClassInspector c={current} onClose={() => setSelected(null)} /> : <p className={t.emptyInspector}>{data.empty ?? "Click any class to see it here."}</p>}
-        <p className={t.tip}>Tip: click any class to see it here. ← → change week, T jumps to today.</p>
+        <p className={t.tip}>Tip: click any class to see it here. ← → change week, F T back to this week.</p>
       </aside>
     </div>
   );

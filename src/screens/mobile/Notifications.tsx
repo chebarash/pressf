@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useOptimistic, useState, useTransition } from "react";
 import type { FeedKind } from "@/core/notifications";
 import type { FeedView, NotificationsView } from "@/server/views";
-import { Chip, EmptyState, FeedFiles } from "@/ui/components";
+import { Chip, EmptyState, FeedFiles, FeedMark } from "@/ui/components";
 import { markAllFeedRead, markFeedRead } from "./actions";
 import s from "./mobile.module.css";
 import { allItems, applyChange, orderedFilters, readable, unreadNow } from "./notifications/model";
@@ -102,7 +102,7 @@ export default function Notifications({ data }: { data: NotificationsView }) {
             open.files?.courseHref
               ? { text: "Open course", onClick: () => router.push(open.files!.courseHref!) }
               : open.href
-                ? { text: "Open", onClick: () => router.push(open.href!) }
+                ? { text: (open.grade || open.attendance) && open.href.startsWith("/progress") ? "See progress" : "Open", onClick: () => router.push(open.href!) }
                 : { text: "Close", onClick: close }
           }
         >
@@ -110,6 +110,8 @@ export default function Notifications({ data }: { data: NotificationsView }) {
           <h2 className={s.noteTitle}>{open.title}</h2>
           {open.body && <p className={s.sheetBody}>{open.body}</p>}
           {open.files && <FeedFiles files={open.files.shown} more={open.files.more} moreHref={open.files.courseHref} />}
+          {/* The main button already goes to the course's progress. */}
+          <FeedMark grade={open.grade} attendance={open.attendance} size="pane" />
           {open.acknowledged && <p className={s.noteFine}>Acknowledged in LMS</p>}
         </ActionSheet>
       )}

@@ -33,7 +33,7 @@ export async function notifications(userId: string, opts: { filter?: string; ope
   const shown = filter === "deadline" ? items.filter((i) => i.kind === "deadline") : filterFeed(items, filter);
   const opened = opts.open ? items.find((i) => i.id === opts.open) : undefined;
   const parts = sections(shown, now);
-  const views = await feedViews([...parts.flatMap((s) => s.items), ...(opened ? [opened] : [])], now, names);
+  const views = await feedViews([...parts.flatMap((s) => s.items), ...(opened ? [opened] : [])], now, names, student.sync.courses);
   const byId = new Map(views.map((v) => [v.id, v]));
   return {
     sync: student.state,

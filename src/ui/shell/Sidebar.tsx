@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { modLabel } from "@/platform/keys";
 import { setTheme } from "@/platform/PlatformProvider";
 import { Icon } from "./icons";
 import { isActive, NAV } from "./nav";
@@ -26,6 +27,8 @@ function subscribeTheme(onChange: () => void) {
   return () => observer.disconnect();
 }
 
+const noSubscribe = () => () => {};
+
 function syncedLabel(iso: string, now: number) {
   const minutes = Math.max(0, Math.round((now - Date.parse(iso)) / 60_000));
   if (minutes < 1) return "LMS synced just now";
@@ -38,6 +41,7 @@ function syncedLabel(iso: string, now: number) {
 export function Sidebar({ user, unread = 0, nextLabel = "Feb", inviteQr, onSearch, onShortcuts, onLinkTelegram }: SidebarProps) {
   const pathname = usePathname();
   const dark = useSyncExternalStore(subscribeTheme, () => document.documentElement.dataset.theme === "dark", () => false);
+  const mod = useSyncExternalStore(noSubscribe, modLabel, () => "⌘");
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
@@ -55,7 +59,7 @@ export function Sidebar({ user, unread = 0, nextLabel = "Feb", inviteQr, onSearc
         <span>{n.label}</span>
         {n.badge === "new" && nextLabel && <span className="sh-pill-new">{nextLabel}</span>}
         {n.badge === "count" && unread > 0 && <span className="sh-badge">{unread}</span>}
-        {n.badge !== "new" && <kbd className="sh-kbd" aria-label={`Shortcut G then ${n.key.toUpperCase()}`}>G {n.key.toUpperCase()}</kbd>}
+        {n.badge !== "new" && <kbd className="sh-kbd" aria-label={`Shortcut F then ${n.key.toUpperCase()}`}>F {n.key.toUpperCase()}</kbd>}
       </Link>
     );
   };
@@ -70,7 +74,7 @@ export function Sidebar({ user, unread = 0, nextLabel = "Feb", inviteQr, onSearc
       <button type="button" className="sh-sidebar__search" onClick={onSearch}>
         <Icon name="search" size={16} />
         <span>Search</span>
-        <kbd className="sh-kbd">⌘K</kbd>
+        <kbd className="sh-kbd">{mod}K</kbd>
       </button>
       <div className="sh-spacer" />
       {NAV.filter((n) => n.group === "main").map(item)}

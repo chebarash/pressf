@@ -14,3 +14,7 @@ export function keyName(e: Pick<KeyboardEvent, "key" | "code" | "shiftKey">): st
 
 /** True when the physical key is a letter (for "shift+r" style names). */
 export const isLetterKey = (e: Pick<KeyboardEvent, "code">) => /^Key[A-Z]$/.test(e.code);
+
+/** "⌘" on Apple keyboards, "Ctrl" elsewhere, for the ⌘K / Ctrl+K hints. Client only. */
+export const modLabel = () =>
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent) ? "⌘" : "Ctrl";

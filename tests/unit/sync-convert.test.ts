@@ -10,7 +10,7 @@ describe("alerts use the shared bot wording (Figma 9.2, 9.3)", () => {
   it("new grade", () => {
     const [a] = gradeAlerts({}, [course({ events: [{ lesson_name: "Midterm", time: 1793595600, status: 1, mark: 86 }] })], NOW, named);
     expect(a.item).toMatchObject({ kind: "grade", title: "New grade: 86 for the midterm", courseId: "102" });
-    expect(a.message.text).toBe("<b>New grade: 86</b>\nPhysics 1 · midterm · average now 86");
+    expect(a.message.text).toBe("<b>New grade in Physics 1</b>\n🟢 Midterm: 86\nAverage now 86");
   });
 
   it("marked absent and the 2-left warning", () => {
@@ -18,8 +18,8 @@ describe("alerts use the shared bot wording (Figma 9.2, 9.3)", () => {
     const after = course({ admit: { absence_count_all: 13, avaibale_count_all: 2, lessons_count: 60 }, events: [{ lesson_name: "Practice 14", lesson_type: 1, status: 3, time: 1793595600 }] });
     const alerts = absenceAlerts([before], [after], NOW, named);
     expect(alerts.map((a) => a.message.text)).toEqual([
-      "<b>Marked absent: Physics 1</b>\nPractice 14 · 2 absences left in this course",
-      "<b>Careful: 2 absences left</b>\nPhysics 1 · 13 of 15 used",
+      "<b>Marked absent in Physics 1</b>\n🔴 Absent · Practice 14 · Mon 2 Nov 10:00\n⚠️ 2 absences left in this course",
+      "<b>Careful: 2 absences left in Physics 1</b>\n⚠️ 13 of 15 absences used",
     ]);
     expect(absenceAlerts([], [after], NOW, named)).toEqual([]);
   });

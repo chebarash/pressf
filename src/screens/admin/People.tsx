@@ -52,7 +52,7 @@ export function People({ data, viewerId }: { data: PeopleData; viewerId: string 
         <Head title="People" sub={`${data.total.toLocaleString("en-US")} signed in · ${data.trusted} trusted uploaders`} />
         <form className={s.search} action="/admin/people">
           <input ref={search} name="q" defaultValue={data.q} placeholder="Name, Telegram @, LMS id" aria-label="Search people" autoComplete="off" />
-          <kbd className={s.key}>/</kbd>
+          <kbd className={s.key}>/ to filter</kbd>
         </form>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div className={cx(s.tr, s.trHead)}>
