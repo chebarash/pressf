@@ -47,6 +47,7 @@ const rangeLabel = (a: string, b: string) =>
 
 /** Phases longer than two weeks show as open/close markers, not as a band over every day. */
 export const LONG_PHASE_DAYS = 14;
+const BAND_PHASES = new Set(["add-drop", "cohort-selection"]);
 export const isLongPhase = (from: string, to: string) => (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000 + 1 > LONG_PHASE_DAYS;
 
 /** Consecutive calendar weeks of the same kind, merged ("Final exams 11–15 Jan"). */
@@ -98,7 +99,8 @@ export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = n
       const where = p.semester ? ` · ${p.semester}` : "";
       const key = `lms-phase:${p.semesterId}:${p.kind}:${p.startDay}`;
       const sub = `Registration${where} · ${shortDate(p.startDay)} – ${shortDate(p.endDay)}`;
-      if (!isLongPhase(p.startDay, p.endDay)) {
+      // Student deadlines (add/drop, cohort selection) stay bands whatever their length.
+      if (BAND_PHASES.has(p.kind) || !isLongPhase(p.startDay, p.endDay)) {
         events.push({ key, layer: "registration", title: p.title, sub: `Registration${where} · Until ${shortDate(p.endDay)}`, day: p.startDay, endDay: p.endDay, time: null, href: "/next" });
         continue;
       }

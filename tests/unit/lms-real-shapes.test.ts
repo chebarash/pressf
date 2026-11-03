@@ -33,7 +33,14 @@ describe("real LMS shapes: gradebook", () => {
 
   it("reads the first-year gradebook's older shapes", () => {
     const first = gradebookCourses(real.gradebookFirstYear as unknown as LmsGradebookData, "10", false);
-    expect(first.map((c) => [c.name, c.final, c.passed, c.average, c.exam])).toEqual([["Digital Literacy", 80, true, null, null], ["Calculus I", 45, false, null, null]]);
+    // A final of 45 passes (minimal_final is 40) though the LMS's positive_status is false under 50.
+    expect(first.map((c) => [c.name, c.final, c.passed, c.average, c.exam])).toEqual([["Digital Literacy", 80, true, null, null], ["Calculus I", 45, true, null, null]]);
+  });
+
+  it("only a final under 40 is a retake; old snapshots that stored positive_status are corrected", () => {
+    const course = (final: number | null, passed: boolean | null) => ({ subjectId: "x", semesterId: "11", name: "C", final, passed, fx: false } as unknown as SyncedCourse);
+    const sync = normalizeSnapshot({ semesters: [], courses: [course(45, false), course(40, false), course(39, false), course(0, false)] });
+    expect(sync.courses.map((c) => c.passed)).toEqual([true, true, false, false]);
     expect(gradebookCourses({ resultSubjects: [] }, "182", true)).toEqual([]);
   });
 

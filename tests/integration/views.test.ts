@@ -206,9 +206,9 @@ describe("progress, notifications, calendar, profile", () => {
     const c = await views.calendar({ userId }, ["registration"], NOW);
     const reg = c.days.flatMap((d) => d.events).map((e) => [e.title, e.day, e.endDay]);
     expect(reg).toEqual([
-      ["Cohort selection opens", "2026-11-20", "2026-11-20"],
+      // Student deadlines stay bands even when long; the months-long schedule builder does not.
+      ["Cohort selection", "2026-11-20", "2027-01-10"],
       ["Schedule builder closes", "2026-12-11", "2026-12-11"],
-      ["Cohort selection closes", "2027-01-10", "2027-01-10"],
       ["Add/drop", "2027-01-25", "2027-02-05"],
       ["Resit registration", "2027-01-25", "2027-01-29"],
       ["Course registration", "2027-02-15", "2027-02-19"],

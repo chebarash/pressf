@@ -1,4 +1,5 @@
 import type { ClassKind } from "@/core/agenda";
+import { passedFinal } from "@/core/grades";
 import type { LmsAdmit, LmsAttendanceEvent, LmsHomework } from "@/lib/lms/types";
 
 /**
@@ -128,7 +129,8 @@ export function normalizeSnapshot(raw: Partial<SyncSnapshot> | null | undefined)
   const open = new Set(sync.semesters.filter((s) => s.open).map((s) => s.id));
   sync.courses = sync.courses.map((c) => {
     const final = c.final === 0 && !c.passed && open.has(c.semesterId) && !c.exam ? null : c.final ?? null;
-    return { ...c, final, passed: final === null ? null : c.passed ?? null, events: Array.isArray(c.events) ? c.events : [] };
+    // Older snapshots stored the LMS positive_status (false under 50) as "passed".
+    return { ...c, final, passed: passedFinal(final, c.passed), events: Array.isArray(c.events) ? c.events : [] };
   });
   return sync;
 }
