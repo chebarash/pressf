@@ -13,7 +13,11 @@ courses, files, grades, ratings and professors. It wraps the university LMS
 - Ratings live in `course_ratings` and `teacher_ratings`; student files in `uploads`.
 - Posts from the Anonymous channel that mention a course or professor come from the
   channel bot's API (`docs/BOT_API_REQUEST.md`, `src/lib/mentions.ts`).
-- Syllabi found in LMS files are read automatically (`src/lib/syllabus.ts`).
+- Syllabi found in LMS files or channel imports are queued (admin System page) and
+  parsed by the operator: `railway run npx tsx scripts/syllabus-queue.ts <dir> --download`
+  saves the queue and files, `railway run npx tsx scripts/syllabus-submit.ts <json-file>`
+  sends the parsed fields (`SyllabusSubmitSchema` in `src/lib/syllabus.ts`). The site
+  calls no hosted model.
 - `data/academic-calendar-2026-2027.json` feeds `/calendar.ics`. Replace it yearly.
 
 ## Scheduled jobs (GitHub Actions)

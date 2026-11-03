@@ -11,8 +11,9 @@ vi.mock("@/lib/storage", () => ({ putObject: storage.putObject }));
 
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { lmsCourses, lmsFiles } from "@/lib/db/schema";
+import { lmsCourses, lmsFiles, syllabi, syllabusQueue } from "@/lib/db/schema";
 import { filesAreStale, harvestCourseFiles } from "@/lib/lms/files";
+import { syllabus } from "../fixtures/catalog";
 import { resetDb } from "../fixtures/db";
 
 const session = { token: "t" };
@@ -62,5 +63,22 @@ describe("harvestCourseFiles", () => {
     expect(storage.putObject).toHaveBeenCalledTimes(1);
     const [row] = await db().select().from(lmsFiles).where(eq(lmsFiles.id, "3344"));
     expect(row.name).toBe("Week 1 v2.pdf");
+  });
+
+  it("queues the syllabus PDF for the operator instead of parsing it", async () => {
+    lms.lesson.mockImplementation(async (_s, id: string) => (id === "L1" ? { lessonMaterials: [material("3344", "Week 1.pdf"), material("4400", "CS412 Syllabus.pdf")] } : { lessonMaterials: [] }));
+    await harvestCourseFiles(session, "906");
+    // Downloaded once into the bucket like any file, never fetched again to be read.
+    expect(lms.downloadFile).toHaveBeenCalledTimes(2);
+    expect(await db().select().from(syllabusQueue)).toEqual([
+      expect.objectContaining({ courseCode: "CS412", sourceKey: "lms:4400", fileId: "4400", name: "CS412 Syllabus.pdf", origin: "lms", storageKey: expect.stringMatching(/^lms\/906\/4400\.pdf$/) }),
+    ]);
+    // Again: still one item. Once parsed, it is not queued again.
+    await harvestCourseFiles(session, "906");
+    expect(await db().select().from(syllabusQueue)).toHaveLength(1);
+    await db().delete(syllabusQueue);
+    await db().insert(syllabi).values({ courseCode: "CS412", sourceName: "lms:4400", data: syllabus({ course_code: "CS 412" }), matched: true });
+    await harvestCourseFiles(session, "906");
+    expect(await db().select().from(syllabusQueue)).toHaveLength(0);
   });
 });

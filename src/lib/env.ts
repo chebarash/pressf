@@ -18,7 +18,6 @@ const schema = z.object({
   /** The Press F bot (@pressfapp). */
   TELEGRAM_BOT_TOKEN: z.string().default(""),
   TELEGRAM_WEBHOOK_SECRET: z.string().default(""),
-  ANTHROPIC_API_KEY: z.string().optional(),
   /** NewUU LMS the site wraps; defaults to the live API in the client. */
   LMS_API_URL: z.string().optional(),
   /** Seals stored LMS passwords (AES-256-GCM). Keep it off the database host. */

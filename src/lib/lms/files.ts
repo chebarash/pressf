@@ -6,16 +6,14 @@ import { lmsCourses, lmsFiles, syllabi } from "@/lib/db/schema";
 import { downloadFile, lesson, type LmsSession } from "@/lib/lms/client";
 import type { LmsLesson, LmsMaterial, LmsSubject } from "@/lib/lms/types";
 import { putObject } from "@/lib/storage";
-import { env } from "@/lib/env";
-import { extractSyllabus, findSyllabusCourse, syllabusFlags } from "@/lib/syllabus";
-import { getCatalog } from "@/lib/catalog";
+import { enqueueSyllabus } from "@/server/syllabus-queue";
 
 /**
  * Pulls a course's lesson materials from the LMS into our bucket, once per file,
  * so every student of the course gets them from us instead of hammering the LMS.
  * Runs on demand when a signed-in student opens a course whose files are stale.
  * Files are official: no moderation, no Press F cover, and ones that disappear
- * from the LMS are kept. A syllabus PDF found here is parsed for the course page.
+ * from the LMS are kept. A syllabus PDF found here is queued for the operator to read.
  */
 
 /** Re-pull a course's files at most this often. */
@@ -60,29 +58,24 @@ async function pullMaterial(session: LmsSession, courseId: string, code: string,
   return m;
 }
 
-/** Parse the first syllabus PDF we pulled, if the course has no syllabus yet. */
-async function parseSyllabus(session: LmsSession, code: string, materials: Array<{ lessonId: string; m: LmsMaterial }>) {
-  if (!env().ANTHROPIC_API_KEY) return;
+/**
+ * Queue the first syllabus PDF we pulled for the operator to read, unless it
+ * was parsed already. The file sits on this course's LMS page, so it is queued
+ * for this course; a document naming another course is flagged when submitted.
+ */
+async function queueSyllabus(code: string, materials: Array<{ lessonId: string; m: LmsMaterial }>) {
   const hit = materials.find(({ m }) => /syllab/i.test(m.name) && m.file_extension?.toLowerCase() === "pdf" && m.fileFullUrl);
-  if (!hit) return;
+  if (!hit?.m.id) return;
   // Keyed by the LMS file, not its name: many courses call theirs "Syllabus.pdf".
   const source = `lms:${hit.m.id}`;
-  const [already] = await db().select({ id: syllabi.id }).from(syllabi).where(or(eq(syllabi.sourceName, source), and(eq(syllabi.sourceName, hit.m.name), eq(syllabi.courseCode, code))));
-  if (already) return;
   try {
-    const { bytes } = await downloadFile(session, hit.m.fileFullUrl!);
-    const { is_syllabus: _ignored, ...data } = await extractSyllabus(bytes);
-    const { courses } = await getCatalog();
-    // The file sits on this course's LMS page, so it is this course's syllabus. A
-    // document naming another course (a shared or copied syllabus) is kept but flagged.
-    const found = findSyllabusCourse(data, courses);
-    const flags = syllabusFlags(data, courses);
-    await db().insert(syllabi).values({
-      courseCode: code, sourceName: source, data,
-      flags: found && found !== code ? [...flags, `names ${found}`] : flags, matched: true,
-    }).onConflictDoNothing();
+    const [already] = await db().select({ id: syllabi.id }).from(syllabi).where(or(eq(syllabi.sourceName, source), and(eq(syllabi.sourceName, hit.m.name), eq(syllabi.courseCode, code))));
+    if (already) return;
+    const [file] = await db().select({ storageKey: lmsFiles.storageKey }).from(lmsFiles).where(eq(lmsFiles.id, hit.m.id));
+    if (!file) return;
+    await enqueueSyllabus({ courseCode: code, sourceKey: source, fileId: hit.m.id, storageKey: file.storageKey, name: hit.m.name, origin: "lms" });
   } catch (error) {
-    console.error("Could not parse LMS syllabus", error);
+    console.error("Could not queue LMS syllabus", error);
   }
 }
 
@@ -108,7 +101,7 @@ export async function harvestCourseFiles(session: LmsSession, courseId: string) 
     await sleep(120);
   }
 
-  await parseSyllabus(session, course.code, pulled);
+  await queueSyllabus(course.code, pulled);
   await db().update(lmsCourses).set({ filesSyncedAt: new Date() }).where(eq(lmsCourses.id, courseId));
   return { files: count };
 }
