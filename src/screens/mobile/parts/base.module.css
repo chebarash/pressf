@@ -1,0 +1,68 @@
+/* Shared layout for the Mobile B screens (Figma 10 Redesign, 390 wide, 16 px gutters). */
+.screen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  padding: 0 var(--space-4);
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+.noButton { padding-bottom: var(--space-6); }
+
+
+.head { display: flex; flex-direction: column; gap: 6px; padding-top: var(--space-2); }
+.title { margin: 0; font-family: var(--font-serif); font-size: 56px; font-weight: 400; line-height: 1; letter-spacing: -0.01em; }
+.sub { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: 1.4; }
+.section { margin: 0; font-family: var(--font-serif); font-size: 40px; font-weight: 400; line-height: 1.05; letter-spacing: -0.01em; }
+.label { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; font-weight: 600; line-height: normal; }
+.eyebrow { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; line-height: 1.3; text-transform: uppercase; }
+.small { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: 1.4; }
+
+.stack { display: flex; flex-direction: column; gap: var(--space-3); }
+.stack8 { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Thin list row with border-subtle (Earlier semesters, rated courses). */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 60px;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+a.row:active { background: var(--bg-hover); }
+.rowBody { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; }
+.rowTitle { overflow: hidden; font-family: var(--font-sans); font-size: 15px; font-weight: 600; line-height: normal; white-space: nowrap; text-overflow: ellipsis; }
+.rowSub { overflow: hidden; color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: normal; white-space: nowrap; text-overflow: ellipsis; }
+
+/* Plum "Next: Spring 2027" strip. */
+.nextStrip { composes: row; border-color: var(--border-subtle); background: var(--tint-plum); }
+
+/* Dashed call to action (Share a file via the bot / Share another file). */
+.dashed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.plum { background: var(--tint-plum); }
+
+.empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding: var(--space-8) var(--space-4) var(--space-6); text-align: center; }
+.emptyTitle { margin: 0; font-family: var(--font-serif); font-size: 34px; font-weight: 400; line-height: 1.12; letter-spacing: -0.01em; }
+.emptyText { max-width: 320px; margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 16px; line-height: 1.4; }
+
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Until the shell lands its reset: every Mobile B box sizes border-box. */
+.screen, .screen *, .screen *::before, .screen *::after { box-sizing: border-box; }

@@ -1,0 +1,209 @@
+/* Figma 4.2–4.8, 4.17, 4.18, 11.1, 11.6 Course. */
+.header { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: var(--space-2) 0 var(--space-5); }
+.tags { display: flex; gap: var(--space-2); }
+.title { margin: 0; font-family: var(--font-serif); font-size: 56px; font-weight: 400; line-height: 1; letter-spacing: -0.01em; }
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.switch svg:first-child { color: var(--text-secondary); }
+
+.tabs { display: flex; gap: var(--space-2); margin: 0 calc(-1 * var(--space-4)); padding: var(--space-2) var(--space-4); overflow-x: auto; scrollbar-width: none; }
+.tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-decoration: none;
+}
+@media (hover: hover) { .tab:not(.tabOn):hover { background: var(--bg-sunken); } }
+.tabOn { background: var(--bg-inverse); color: var(--text-inverse); }
+
+.content { display: flex; flex-direction: column; gap: var(--space-7); padding-top: var(--space-6); }
+.block { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* You in this course */
+.you {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-accent-soft);
+  box-shadow: var(--shadow-key-md);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.youPlain { background: var(--bg-surface); box-shadow: none; }
+.youTop { display: flex; align-items: center; gap: var(--space-3); }
+.youBody { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; }
+.youTitle { font-family: var(--font-sans); font-size: 16px; font-weight: 600; line-height: normal; }
+.youSub { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: normal; }
+.youNext { margin: 0; color: var(--text-accent); font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: normal; }
+
+/* Not enough ratings (4.18) */
+.few { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); }
+.fewTitle { margin: 0; font-family: var(--font-serif); font-size: 28px; font-weight: 400; line-height: 1.1; }
+
+/* Week by week */
+.weeks { display: flex; flex-direction: column; gap: var(--space-4); }
+.week { display: flex; flex-direction: column; gap: var(--space-2); }
+.weekRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.weekNow { border-color: var(--border-accent); background: var(--bg-accent-soft); }
+.weekNum { flex: none; width: 24px; color: var(--text-secondary); font-family: var(--font-sans); font-size: 15px; font-weight: 500; line-height: 1.3; }
+.weekNow .weekNum { color: var(--text-primary); }
+.weekTopic { flex: 1 1 0; min-width: 0; overflow: hidden; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
+.weekPast .weekTopic { color: var(--text-secondary); }
+.weekRow > svg { flex: none; margin-top: 3px; color: var(--text-secondary); transition: transform 120ms; }
+.weekOpen > svg { transform: rotate(180deg); }
+.weekFiles { display: flex; flex-direction: column; gap: var(--space-2); padding-left: 44px; }
+.weekEmpty { margin: 0; padding-left: 44px; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; }
+.links { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 48px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-accent);
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-decoration: none;
+  cursor: pointer;
+}
+@media (hover: hover) { .ghost:hover { background: var(--bg-accent-soft); } }
+
+.share { composes: dashed from "./base.module.css"; }
+.shareIcon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1.5px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--tint-plum); color: var(--text-secondary); font-size: 20px; line-height: 1; }
+
+/* Who teaches it */
+.teacher {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: 0 5px 0 var(--shadow-key);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.teacherBody { display: flex; flex: 1 1 0; flex-direction: column; align-items: flex-start; gap: var(--space-3); min-width: 0; }
+.teacherName { margin: 0; font-family: var(--font-serif); font-size: 34px; font-weight: 400; line-height: 1.12; letter-spacing: -0.01em; }
+.teacherLine { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: 1.4; }
+.slot { display: flex; align-items: center; gap: var(--space-3); margin: 0; font-family: var(--font-sans); font-size: 14px; line-height: 1.4; }
+
+/* Syllabus */
+.syllabus { overflow: hidden; border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-surface); }
+.fold { border-top: 1.5px solid var(--border-subtle); }
+.fold:first-child { border-top: 0; }
+.foldHead { display: flex; align-items: center; gap: 10px; padding: 13px 14px; cursor: pointer; list-style: none; }
+.foldHead::-webkit-details-marker { display: none; }
+.foldHead > svg { flex: none; transition: transform 120ms; }
+.fold[open] > .foldHead > svg.right { transform: rotate(90deg); }
+.fold[open] > .foldHead > svg.down { transform: rotate(180deg); }
+.foldText { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; }
+.foldTitle { font-family: var(--font-sans); font-size: 15px; font-weight: 600; line-height: normal; }
+.foldSub { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: normal; }
+.foldBody { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-1) 14px var(--space-4); }
+.assess { display: flex; align-items: center; gap: var(--space-5); }
+.assessPct { flex: none; width: 56px; font-family: var(--font-serif); font-size: 34px; line-height: 1.12; }
+.assessName { display: block; font-family: var(--font-sans); font-size: 16px; font-weight: 500; line-height: 1.3; }
+.assessNote { display: block; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: 1.4; }
+.outcomes { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding-left: 20px; font-family: var(--font-sans); font-size: 14px; line-height: 1.4; }
+.book { display: flex; align-items: center; gap: var(--space-2); color: var(--text-primary); text-decoration: none; }
+.book .foldText { gap: 2px; }
+a.book .foldTitle { color: var(--text-accent); }
+
+/* Gated (4.6) */
+.gate { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-accent-soft); }
+.gateTitle { margin: 0; font-family: var(--font-sans); font-size: 16px; font-weight: 600; line-height: normal; }
+.gateText { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: 1.45; }
+.blurred { filter: blur(5px); opacity: 0.45; pointer-events: none; user-select: none; }
+.ghostBar { display: block; height: 14px; border-radius: 7px; background: var(--border-subtle); }
+
+.anchor { scroll-margin-top: 120px; }
+
+/* Anonymous */
+.band { display: flex; flex-direction: column; gap: var(--space-4); margin: var(--space-7) calc(-1 * var(--space-4)) 0; padding: var(--space-7) var(--space-4); background: var(--bg-sunken); }
+.mention { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 2px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: 0 5px 0 var(--shadow-key); }
+.mentionHead { display: flex; align-items: center; gap: var(--space-2); font-family: var(--font-sans); font-size: 13px; line-height: normal; }
+.mentionWho { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--text-accent); font-weight: 500; }
+.mentionDate { color: var(--text-secondary); }
+.mentionText { margin: 0; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; }
+.mentionFoot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.openPost { display: inline-flex; flex: 1 1 0; align-items: center; justify-content: space-between; gap: var(--space-2); padding-left: var(--space-7); color: var(--text-accent); font-family: var(--font-sans); font-size: 14px; font-weight: 500; text-decoration: none; }
+
+/* Files tab */
+.filters { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-bottom: var(--space-2); }
+.filter {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-key-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.filterOn { background: var(--bg-accent); color: var(--text-on-accent); }
+.group { display: flex; flex-direction: column; gap: var(--space-2); }
+.groups { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* Semester sheet (4.3) */
+.sheetTitle { margin: 0 0 var(--space-2); font-family: var(--font-serif); font-size: 34px; font-weight: 400; line-height: 1.12; }
+.term { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1.5px solid transparent; border-radius: var(--radius-md); color: var(--text-primary); text-decoration: none; }
+.termOn { border-color: var(--border-strong); background: var(--bg-surface); box-shadow: var(--shadow-key-md); }
+.termName { display: flex; align-items: center; gap: var(--space-2); font-family: var(--font-sans); font-size: 16px; font-weight: 600; line-height: normal; }
+.termNote { padding: 1px 6px; border-radius: 6px; background: var(--bg-accent-soft); font-size: 11px; font-weight: 600; }
+.termTeachers { color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: normal; }
+
+.skeleton { display: block; border-radius: var(--radius-md); background: var(--bg-sunken); }
+.fewText { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: 1.4; }
+.trendLabel { color: var(--text-primary); font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: normal; }
+.ghostList { display: flex; flex-direction: column; gap: var(--space-4); }
+.ghostItem { display: flex; flex-direction: column; gap: var(--space-2); }
+.shareSub { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: 1.35; }

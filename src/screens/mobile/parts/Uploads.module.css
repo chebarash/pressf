@@ -1,0 +1,7 @@
+/* Figma 11.7 My uploads. */
+.list { padding-top: var(--space-3); }
+.status { flex: none; padding: 2px var(--space-2); border: 1.5px solid var(--border-strong); border-radius: var(--radius-full); font-family: var(--font-sans); font-size: 11px; font-weight: 600; line-height: 1.4; }
+.waiting { background: var(--tint-mustard); }
+.live { background: var(--tint-moss); }
+.rejected { background: var(--tint-rust); }
+.hidden { background: var(--bg-sunken); color: var(--text-secondary); }
