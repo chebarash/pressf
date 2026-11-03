@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition } from "react";
-import { canSubmit, COURSE_TAGS, difficultyWord, MAX_TAGS, TEACHER_TAGS, type CourseTag, type Recommend, type TeacherTag } from "@/core/ratings";
+import { canSubmit, COURSE_TAG_ORDER, COURSE_TAGS, difficultyWord, MAX_TAGS, TEACHER_TAGS, type CourseTag, type Recommend, type TeacherTag } from "@/core/ratings";
 import { sendRating } from "@/app/(app)/rate/actions";
 import { cx, Face, ToastViewport } from "@/ui/components";
 import { Sheet } from "@/ui/shell/overlays";
@@ -21,7 +21,7 @@ const RECOMMEND: Array<{ value: Recommend; label: string }> = [
 const itemKey = (i: RateItem) => `${i.courseId}|${i.term}`;
 
 // Sticker order as laid out in Figma 4.11 (the stored values stay as in core/ratings).
-const COURSE_ORDER: readonly CourseTag[] = ["Exam follows lectures", "Useful later", "Heavy reading", "Lots of group work", "Strict attendance", "Fair exams"];
+const COURSE_ORDER = COURSE_TAG_ORDER;
 const TEACHER_ORDER: readonly TeacherTag[] = ["Explains clearly", "Answers questions", "Grades fairly", "Quick feedback", "Reads from slides", "Strict about attendance"];
 const inOrder = <T extends string>(all: readonly T[], order: readonly T[]) => [...order.filter((t) => all.includes(t)), ...all.filter((t) => !order.includes(t))];
 

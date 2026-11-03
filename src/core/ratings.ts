@@ -18,6 +18,8 @@ const HOURS_MID: Record<Hours, number> = { "0-2": 1, "2-4": 3, "4-6": 5, "6-10":
 export const COURSE_TAGS = ["Exam follows lectures", "Useful later", "Fair exams", "Heavy reading", "Lots of group work", "Strict attendance"] as const;
 export const TEACHER_TAGS = ["Explains clearly", "Answers questions", "Grades fairly", "Quick feedback", "Strict about attendance", "Reads from slides"] as const;
 export type CourseTag = (typeof COURSE_TAGS)[number];
+/** The order the rate forms show course stickers in (Figma 4.11 and D5). */
+export const COURSE_TAG_ORDER: readonly CourseTag[] = ["Exam follows lectures", "Useful later", "Heavy reading", "Lots of group work", "Strict attendance", "Fair exams"];
 export type TeacherTag = (typeof TEACHER_TAGS)[number];
 export const MAX_TAGS = 3;
 

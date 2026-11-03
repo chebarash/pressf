@@ -43,6 +43,9 @@ a.slot:hover .slotTitle { text-decoration: underline; text-underline-offset: 3px
 .dueStatus { font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
 .late { color: var(--rating-low); }
 .quiet { font: 400 13px/1.4 var(--font-sans); color: var(--text-secondary); }
+/* D15 notification skeletons (4229:14091). */
+.skel { height: 56px; border-radius: var(--radius-md); background: var(--bg-sunken); }
+.loading { font: 500 12px/normal var(--font-sans); color: var(--text-secondary); }
 
 /* Next exam */
 .exam { background: var(--tint-rust); }

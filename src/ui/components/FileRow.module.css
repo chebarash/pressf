@@ -10,10 +10,11 @@
 }
 .flag { align-self: stretch; width: 6px; flex: none; border-radius: 3px; }
 .exam { background: var(--bg-danger); }
-.mock { background: var(--rating-mid); }
+/* Mock, Notes and Syllabus use the theme-independent 500 primitives, as in Figma (same in dark). */
+.mock { background: var(--mustard-500); }
 .lecture { background: var(--bg-accent); }
-.notes { background: var(--school-humanities); }
-.syllabus { background: var(--school-medicine); }
+.notes { background: var(--plum-500); }
+.syllabus { background: var(--moss-500); }
 .other { background: var(--border-subtle); }
 
 .body { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-1); min-width: 0; overflow: hidden; }

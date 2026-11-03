@@ -11,7 +11,7 @@ export default function DesktopProgress({ data }: { data: ProgressView }) {
   return <ProgressScreen data={adapt.progress(data)} />;
 }
 
-const absColor = (left: number, max: number) => (left <= 2 ? "var(--bg-danger)" : left / max < 0.5 ? "var(--rating-mid)" : "var(--bg-accent)");
+const absColor = (left: number, max: number) => (left <= 2 ? "var(--bg-danger)" : left / max < 0.5 ? "var(--mustard-500)" : "var(--bg-accent)");
 const num = (n: number | null) => (n == null ? <span className={g.dash}>—</span> : <span className={g.num}>{n}</span>);
 
 export function ProgressScreen({ data }: { data: ProgressData }) {
@@ -46,7 +46,7 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
           <div className={cx(css.card, g.tile)}>
             <p className={g.tileLabel}>Attendance</p>
             <p className={g.tileValue}>{data.attendance.value}</p>
-            <p className={g.tileNote}>{data.attendance.note}</p>
+            <p className={cx(g.tileNote, data.attendance.low && g.tileLow)}>{data.attendance.note}</p>
           </div>
         )}
         {data.week && (
@@ -66,7 +66,7 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
 
       <section className={g.bottom}>
         {data.semesters.length > 0 && (
-          <div className={css.card}>
+          <div className={cx(css.card, g.semesters)}>
             <h2 className={g.cardTitle}>GPA by semester</h2>
             <div className={g.bars}>
               {data.semesters.map((s) => (
@@ -90,15 +90,11 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
           </div>
         )}
         {data.rate && (
-          <div className={cx(css.card, g.rate)}>
+          // Figma D6: the card itself is the way in ("press R to start"), no button.
+          <Link href={data.rate.href} className={g.rate} data-key="r">
             <h2 className={g.rateTitle}>{data.rate.title}</h2>
             <p className={g.rateLine}>{data.rate.line}</p>
-            <div>
-              <ButtonLink href={data.rate.href} keyName="r" size="s">
-                Rate now
-              </ButtonLink>
-            </div>
-          </div>
+          </Link>
         )}
       </section>
     </main>
@@ -118,7 +114,7 @@ export function ProgressTable({ rows, open }: { rows: ProgressRow[]; open: strin
       </div>
       {rows.map((r, i) => (
         <Fragment key={r.id}>
-          <Link href={r.href} className={cx(g.row, i > 0 && g.rowLine, r.id === open && g.rowOn)} data-nav-item aria-current={r.id === open ? "page" : undefined}>
+          <Link href={r.href} className={cx(g.row, r.id === open && g.rowOn)} data-nav-item aria-current={r.id === open ? "page" : undefined}>
             <span className={g.course}>
               <span className={g.courseName}>{r.name}</span>
               <span className={g.courseMeta}>{r.meta}</span>
@@ -203,7 +199,7 @@ function CourseDetail({ detail }: { detail: NonNullable<ProgressRow["detail"]> }
             </div>
           </>
         )}
-        <p className={g.detailLabel} style={{ marginTop: 12 }}>
+        <p className={g.detailLabel}>
           <Hint>J</Hint> <Hint>K</Hint> move between courses
         </p>
       </div>

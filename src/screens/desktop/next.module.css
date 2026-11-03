@@ -1,38 +1,39 @@
-.main { padding: 28px 24px var(--space-7) 40px; display: flex; flex-direction: column; gap: var(--space-4); }
-.head { display: flex; align-items: flex-end; gap: var(--space-4); flex-wrap: wrap; }
-.headText { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+/* D16 Next semester (4245:17766). */
+.main { padding: 32px 24px 40px 40px; display: flex; flex-direction: column; gap: var(--space-4); }
 .eyebrow { font: 600 11px/normal var(--font-sans); text-transform: uppercase; color: var(--text-secondary); }
-.title { font: 400 64px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
-.dates { display: flex; gap: 10px; }
-.date { display: flex; flex-direction: column; align-items: center; padding: 8px 14px; background: var(--tint-plum); border: 1.5px solid var(--border-strong); border-radius: 12px; box-shadow: 0 2px 0 var(--shadow-key); }
-.date b { font: 600 16px/normal var(--font-sans); }
-.date span { font: 400 11px/normal var(--font-sans); color: var(--text-secondary); }
+.head { display: flex; align-items: flex-end; gap: var(--space-4); flex-wrap: wrap; }
+.title { flex: 1; min-width: 0; font: 400 64px/1.04 var(--font-serif); margin: 0; }
+.date { display: flex; flex-direction: column; align-items: flex-start; padding: 8px 14px; background: var(--tint-plum); border: 1.25px solid var(--border-strong); border-radius: 12px; white-space: nowrap; }
+.date b { font: 600 16px/normal var(--font-sans); color: var(--text-primary); }
+.date span { font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
 .body { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; align-items: start; }
-.table { padding: 0; gap: 0; overflow: hidden; }
-.cols { display: grid; grid-template-columns: minmax(0, 2.2fr) 44px 96px 96px 90px minmax(0, 1.3fr); gap: var(--space-3); align-items: center; padding: 0 var(--space-4); }
-.headRow { composes: cols; height: 38px; background: var(--bg-sunken); border-bottom: 1.5px solid var(--border-subtle); font: 600 11px/normal var(--font-sans); text-transform: uppercase; color: var(--text-secondary); }
-.row { composes: cols; width: 100%; min-height: 70px; border: 0; background: none; text-align: left; font: 500 14px/normal var(--font-sans); color: var(--text-primary); cursor: pointer; }
-.row + .row { border-top: 1.5px solid var(--border-subtle); }
+
+/* Table: head 35, rows 60 with a hairline under each, 10 apart. */
+.table { padding: 0; gap: 10px; overflow: hidden; border-radius: 18px; }
+.cols { display: grid; grid-template-columns: 200px 50px 110px 100px 100px minmax(0, 1fr); align-items: center; padding: 0 var(--space-4); }
+.headRow { composes: cols; padding-block: 10px; background: var(--bg-sunken); border-bottom: 1px solid var(--border-subtle); font: 600 11px/normal var(--font-sans); text-transform: uppercase; color: var(--text-secondary); }
+.row { composes: cols; width: 100%; padding-block: 12px; border: 0; border-bottom: 1px solid var(--border-subtle); background: none; text-align: left; font: 500 13px/normal var(--font-sans); color: var(--text-primary); cursor: pointer; }
 .row:hover { background: var(--bg-hover); }
-.rowOn, .rowOn:hover { background: var(--bg-accent-soft); }
-.name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.name b { font: 600 15px/normal var(--font-sans); }
-.name span { font: 400 11px/normal var(--font-sans); color: var(--text-secondary); }
-.pct { font: 400 20px/1 var(--font-serif); color: var(--text-accent); }
-.pre { display: flex; flex-direction: column; gap: 2px; }
-.pre b { font: 600 14px/normal var(--font-sans); }
-.pre span { font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
+.rowOn, .rowOn:hover { background: var(--tint-teal); }
+.name, .pre { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.name b, .pre b { font: 600 15px/normal var(--font-sans); }
+.name span, .pre span { font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
 .pre .ok { color: var(--text-accent); }
-.inspector { gap: 12px; position: sticky; top: 28px; }
-.inspectorTitle { font: 400 40px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.pre .late { color: var(--rating-low); }
+.pct { font: 400 20px/1.15 var(--font-serif); color: var(--text-accent); }
+
+/* Inspector */
+.inspector { padding: var(--space-4) 20px; gap: 12px; border-radius: 18px; position: sticky; top: 32px; }
+.inspectorTitle { font: 400 40px/1.04 var(--font-serif); margin: 0; }
 .label { font: 600 13px/normal var(--font-sans); color: var(--text-secondary); }
-.cohort { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px solid var(--border-strong); border-radius: 14px; box-shadow: 0 3px 0 var(--shadow-key); background: var(--bg-page); }
-.cohortOk { background: var(--bg-accent-soft); }
-.cohortText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.cohortText b { font: 600 15px/normal var(--font-sans); }
-.cohortText span { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); }
-.cohortText em { font: 600 12px/normal var(--font-sans); font-style: normal; color: var(--text-accent); }
+.cohort { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 10px; border: 1.25px solid var(--border-strong); border-radius: 14px; background: var(--bg-page); }
+.cohortOk { background: var(--tint-teal); border-width: 2px; }
+.cohortText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; white-space: nowrap; }
+.cohortText b { font: 600 14px/normal var(--font-sans); }
+.cohortText span { font: 400 11px/normal var(--font-sans); color: var(--text-secondary); }
+.cohortText em { font: 600 11px/normal var(--font-sans); font-style: normal; color: var(--text-accent); }
 .cohortText .clash { color: var(--rating-low); }
-.f { display: flex; flex-direction: column; align-items: flex-end; font: 400 11px/normal var(--font-sans); color: var(--text-secondary); }
-.f b { font: 400 22px/1 var(--font-serif); color: var(--text-primary); }
-.fine { font: 400 12px/1.35 var(--font-sans); color: var(--text-secondary); }
+.f { display: flex; flex-direction: column; align-items: flex-end; font: 500 11px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; }
+.f b { font: 400 20px/1.15 var(--font-serif); color: var(--text-accent); }
+.cta { align-self: flex-start; }
+.fine { font: 400 11px/normal var(--font-sans); color: var(--text-secondary); }

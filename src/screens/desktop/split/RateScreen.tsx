@@ -113,7 +113,8 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
           <>
             <div className={r.head}>
               <h2 className={r.title}>Rate {data.course.name}</h2>
-              <button type="button" className={r.esc} onClick={close} aria-label="Close">
+              {/* Out of the tab order so the dialog doesn't open focused on it (Esc closes from the keyboard). */}
+              <button type="button" className={r.esc} onClick={close} aria-label="Close" tabIndex={-1}>
                 <Keys keys={["Esc"]} />
               </button>
             </div>

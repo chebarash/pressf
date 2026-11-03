@@ -100,7 +100,14 @@ export function TodayScreen({ data, actions }: { data: TodayData; actions?: Toda
       <section className={t.row}>
         <div className={cx(css.card, css.navList)} data-nav-list>
           <CardHead title="Notifications" link={data.feed.unread ? `${data.feed.unread} unread · all` : "All"} href="/notifications" hint="G N" />
-          {data.feed.items.length === 0 && <p className={t.quiet}>All read. Grades, absences and LMS announcements land here.</p>}
+          {data.feed.loading ? (
+            <>
+              {[0, 1, 2, 3].map((i) => <div key={i} className={t.skel} aria-hidden />)}
+              <p className={t.loading}>Loading notifications…</p>
+            </>
+          ) : (
+            data.feed.items.length === 0 && <p className={t.quiet}>All read. Grades, absences and LMS announcements land here.</p>
+          )}
           {data.feed.items.map((n) => (
             <FeedLink key={n.id} kind={n.kind} title={n.title} meta={n.meta} unread={n.unread} href={n.href} />
           ))}

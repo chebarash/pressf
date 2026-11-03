@@ -11,19 +11,15 @@ export function NextScreen({ data }: { data: NextData }) {
   const sel = data.rows.find((r) => r.code === code) ?? null;
   return (
     <main data-desktop-screen className={cx(css.screen, x.main)}>
+      <p className={x.eyebrow}>{data.eyebrow}</p>
       <header className={x.head}>
-        <div className={x.headText}>
-          <p className={x.eyebrow}>{data.eyebrow}</p>
-          <h1 className={x.title}>{data.title}</h1>
-        </div>
-        <div className={x.dates}>
-          {data.dates.map((d) => (
-            <span key={d.title + d.note} className={x.date}>
-              <b>{d.title}</b>
-              <span>{d.note}</span>
-            </span>
-          ))}
-        </div>
+        <h1 className={x.title}>{data.title}</h1>
+        {data.dates.map((d) => (
+          <span key={d.title + d.note} className={x.date}>
+            <b>{d.title}</b>
+            <span>{d.note}</span>
+          </span>
+        ))}
       </header>
 
       {data.missing || data.rows.length === 0 ? (
@@ -51,7 +47,7 @@ export function NextScreen({ data }: { data: NextData }) {
                 <span>{r.difficulty}</span>
                 <span className={x.pre}>
                   <b>{r.prereq?.name ?? "—"}</b>
-                  <span className={cx(r.prereq?.ok && x.ok)}>{r.prereq?.status || "none"}</span>
+                  <span className={cx(r.prereq?.ok && x.ok, (r.prereq?.status === "in progress" || r.prereq?.status === "missing") && x.late)}>{r.prereq?.status || "none"}</span>
                 </span>
               </button>
             ))}
@@ -67,7 +63,7 @@ export function NextScreen({ data }: { data: NextData }) {
                   <p className={x.label}>Compare cohorts</p>
                   {sel.detail.cohorts.map((c) => (
                     <div key={c.title} className={cx(x.cohort, c.ok && x.cohortOk)}>
-                      <Face src={c.face} size={40} />
+                      <Face src={c.face} size={36} />
                       <span className={x.cohortText}>
                         <b>{c.title}</b>
                         {c.line && <span>{c.line}</span>}
@@ -82,7 +78,7 @@ export function NextScreen({ data }: { data: NextData }) {
                   ))}
                 </>
               )}
-              <AnchorButton href={data.lmsHref} target="_blank" rel="noopener">
+              <AnchorButton className={x.cta} href={data.lmsHref} target="_blank" rel="noopener">
                 Open cohort selection in LMS
               </AnchorButton>
               <p className={x.fine}>{data.note}</p>

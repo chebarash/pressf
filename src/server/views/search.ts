@@ -1,6 +1,7 @@
 import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { cleanTitle } from "@/core/files";
 import { displayName } from "@/core/people";
+import { closest } from "@/core/suggest";
 import { db } from "@/lib/db";
 import { fileOverrides, lmsCourses, lmsFiles, lmsTeachers, uploads } from "@/lib/db/schema";
 import type { Viewer } from "./courses";
@@ -15,6 +16,8 @@ export type SearchView = {
   files: Array<{ id: string; title: string; course: string; href: string }>;
   /** Typed something and found nothing (Figma 7.3). */
   nothing: boolean;
+  /** When nothing is found: the course name closest to a typo ("calculas" → "Calculus 1"), Figma D17. */
+  didYouMean?: string | null;
 };
 
 const words = (q: string) => q.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[%_\\]/g, " ").split(/\s+/).filter(Boolean).slice(0, 5);
@@ -74,5 +77,9 @@ export async function search(q: string, viewer: Viewer, limits = { courses: 5, p
     nothing: false,
   };
   view.nothing = !view.courses.length && !view.people.length && !view.files.length;
+  if (view.nothing) {
+    const names = await db().selectDistinct({ name: lmsCourses.name }).from(lmsCourses);
+    view.didYouMean = closest(query, names.map((n) => n.name));
+  }
   return view;
 }

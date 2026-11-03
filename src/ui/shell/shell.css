@@ -391,7 +391,8 @@ img, svg { display: block; }
 /* 1.11 hand-off toast on the phone: 13px Medium, 1.32. */
 .sh-mobile .sh-toast { font: 500 13px/1.32 var(--font-sans); }
 .sh-toast button { font: 600 14px/normal var(--font-sans); color: var(--text-inverse); }
-.sh-desktop .sh-toast { left: auto; right: 32px; bottom: 32px; width: min(440px, calc(100% - 64px)); padding: 16px 20px; }
+/* D20 (4245:17167): 440 wide, 14/16 padding, 12 gap, Key/LG shadow. */
+.sh-desktop .sh-toast { left: auto; right: 32px; bottom: 32px; width: min(440px, calc(100% - 64px)); padding: 14px 16px; gap: 12px; box-shadow: 0 4px 0 var(--shadow-key); }
 
 /* ---------- Skeleton (1.1) ---------- */
 .sh-skel-card {
