@@ -122,6 +122,17 @@ export const termSlug = (term: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+/** The semester a date falls in, by month in Tashkent: Aug–Jan Fall, Feb–May Spring, Jun–Jul Summer. */
+export function termOfDate(at: Date): string | null {
+  if (Number.isNaN(at.getTime())) return null;
+  const local = new Date(at.getTime() + 5 * 3_600_000);
+  const y = local.getUTCFullYear();
+  const m = local.getUTCMonth() + 1;
+  if (m === 1) return `Fall ${y - 1}`;
+  if (m >= 8) return `Fall ${y}`;
+  return m <= 5 ? `Spring ${y}` : `Summer ${y}`;
+}
+
 /** Whether a semester name matches a URL segment ("Fall 2025" ↔ "fall-2025", also "Fall%202025"). */
 export function termMatches(term: string, segment: string) {
   let raw = segment;

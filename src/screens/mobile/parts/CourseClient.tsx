@@ -31,7 +31,7 @@ export function SemesterSwitch({ label, terms }: { label: string; terms: TermLin
       <Sheet label="Semester" onClose={close} className={s.termSheet}>
         <h2 className="sh-sheet__title">Semester</h2>
         {terms.map((t) => (
-          <Link key={t.term} href={t.href} className={cx(s.term, t.selected && s.termOn)} onClick={() => setOpen(false)} replace scroll={false} aria-current={t.selected ? "true" : undefined}>
+          <Link key={t.term} href={t.href} className={cx(s.term, t.selected && s.termOn)} onClick={() => setOpen(false)} replace prefetch scroll={false} aria-current={t.selected ? "true" : undefined}>
             <span className={b.rowBody}>
               <span className={s.termName}>
                 {t.term}

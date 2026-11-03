@@ -1,7 +1,10 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { teacherNamesByCode } from "@/server/views/shared";
 import { roleOf } from "@/core/people";
 import type { RatingInput, TagShare, TeacherRole, TeacherTag } from "@/core/ratings";
-import { dayInfo, termMatches } from "@/core/semester";
+import { dayInfo, termMatches, termOfDate } from "@/core/semester";
+import { termKey } from "@/core/ratings";
+import { termName as currentTermName } from "@/server/og";
 import { getCatalog } from "@/lib/catalog";
 import { courseDetails, resolveRequirement, unlocks } from "@/lib/content";
 import { db } from "@/lib/db";
@@ -102,7 +105,11 @@ export type TeacherCard = {
   href: string;
 };
 
-export type TermOption = { courseId: string; semesterId: string | null; term: string; teachers: string[]; current: boolean };
+/**
+ * One semester the course ran. `courseIds`: every LMS run named that semester
+ * (programs can run the same course in parallel); `courseId` is the newest.
+ */
+export type TermOption = { courseId: string; courseIds: string[]; semesterId: string | null; term: string; teachers: string[]; current: boolean };
 
 export type SyllabusFold = {
   grading: Array<{ name: string; weight: number | null; timing: string | null }>;
@@ -222,10 +229,30 @@ const coursePublic = publicCache(
       teachersByCourse[r.id] = cards.sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role));
     }
 
-    const terms: TermOption[] = rows
-      .map((r) => ({ courseId: r.id, semesterId: r.semesterId, term: (r.semesterId && names[r.semesterId]) || (r.semesterId ? `Semester ${r.semesterId}` : "Current"), teachers: (teachersByCourse[r.id] ?? []).map((t) => t.name), current: false }))
-      .sort((a, b) => Number(b.semesterId ?? 0) - Number(a.semesterId ?? 0));
-    if (terms[0]) terms[0].current = true;
+    // A run's semester: the LMS name when known, else the semester its files were
+    // posted in. Runs nobody can name (no name, no files) are left out of the picker.
+    const fileDates = await db()
+      .select({ courseId: lmsFiles.courseId, at: sql<string>`percentile_disc(0.5) within group (order by coalesce(${lmsFiles.lmsCreatedAt}, ${lmsFiles.lmsUpdatedAt}, ${lmsFiles.fetchedAt}))` })
+      .from(lmsFiles)
+      .where(inArray(lmsFiles.courseId, ids))
+      .groupBy(lmsFiles.courseId);
+    const postedIn = new Map(fileDates.map((f) => [f.courseId, termOfDate(new Date(f.at))]));
+    const byTerm = new Map<string, TermOption>();
+    for (const r of [...rows].sort((a, b) => Number(b.semesterId ?? 0) - Number(a.semesterId ?? 0) || Number(b.id) - Number(a.id))) {
+      const known = r.semesterId ? names[r.semesterId] : undefined;
+      const term = (known && /^(Fall|Spring|Summer) \d{4}$/.test(known) ? known : null) ?? postedIn.get(r.id) ?? null;
+      if (!term) continue;
+      const teachers = (teachersByCourse[r.id] ?? []).map((t) => t.name);
+      const had = byTerm.get(term);
+      if (had) {
+        had.courseIds.push(r.id);
+        had.teachers = [...new Set([...had.teachers, ...teachers])];
+      } else byTerm.set(term, { courseId: r.id, courseIds: [r.id], semesterId: r.semesterId, term, teachers, current: false });
+    }
+    const terms = [...byTerm.values()].sort((a, b) => termKey(b.term) - termKey(a.term));
+    // "Now" only on the semester running today (or the one about to start).
+    const running = terms.find((t) => t.term === currentTermName());
+    if (running) running.current = true;
 
     const d = details?.data ?? null;
     const syllabus: SyllabusFold | null = d
@@ -269,14 +296,17 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
 
   const mine = student ? student.sync.courses.filter((c) => pub.rows.some((r) => r.id === c.subjectId)) : [];
   const picked =
-    (term ? pub.terms.find((t) => t.term === term || t.semesterId === term || t.courseId === term || termMatches(t.term, term)) : undefined) ??
-    pub.terms.find((t) => mine.some((m) => m.subjectId === t.courseId)) ??
-    pub.terms[0];
-  const courseId = picked.courseId;
+    (term ? pub.terms.find((t) => t.term === term || t.semesterId === term || t.courseIds.includes(term) || termMatches(t.term, term)) : undefined) ??
+    pub.terms.find((t) => t.courseIds.some((id) => mine.some((m) => m.subjectId === id))) ??
+    pub.terms.find((t) => t.current) ??
+    pub.terms[0] ??
+    // Nothing nameable: the newest run, unnamed.
+    { courseId: pub.rows[0].id, courseIds: pub.rows.map((r) => r.id), semesterId: pub.rows[0].semesterId, term: "", teachers: [], current: false };
+  const courseId = (picked.courseIds.find((id) => mine.some((m) => m.subjectId === id)) ?? picked.courseId);
 
   const openIds = new Set(student?.sync.semesters.filter((s) => s.open).map((s) => s.id) ?? []);
-  const taken = mine.find((m) => m.subjectId === courseId) ?? mine[0];
-  const termStatus: CourseView["termStatus"] = taken && taken.subjectId === courseId ? (openIds.has(taken.semesterId) ? "now" : "took") : picked.current ? "now" : null;
+  const taken = mine.find((m) => picked.courseIds.includes(m.subjectId)) ?? mine[0];
+  const termStatus: CourseView["termStatus"] = taken && picked.courseIds.includes(taken.subjectId) ? (openIds.has(taken.semesterId) ? "now" : "took") : picked.current ? "now" : null;
 
   const [allFiles, progressRows, queue, rated] = await Promise.all([
     signedIn ? courseFiles(clean) : Promise.resolve(null),
@@ -287,7 +317,7 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
 
   // The picked term's files only: an earlier semester never shows this one's
   // weeks. Files with no known course (some student uploads) belong to the current run.
-  const files = allFiles ? (pub.terms.length > 1 ? allFiles.filter((f) => (f.courseId ? f.courseId === courseId : picked.current)) : allFiles) : null;
+  const files = allFiles ? (pub.terms.length > 1 ? allFiles.filter((f) => (f.courseId ? picked.courseIds.includes(f.courseId) : picked.current)) : allFiles) : null;
 
   let you: YouInCourse | null = null;
   if (student && taken) {
@@ -322,12 +352,12 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
     code: pub.code,
     name: pub.name,
     courseId,
-    term: picked,
+    term: picked.term ? picked : null,
     terms: pub.terms,
     termStatus,
     signedIn,
     ratings: pub.ratings,
-    teachers: pub.teachersByCourse[courseId] ?? [],
+    teachers: [...new Map(picked.courseIds.flatMap((id) => pub.teachersByCourse[id] ?? []).map((t) => [`${t.id}|${t.role}`, t])).values()],
     anonymous: pub.anonymous,
     weeks,
     totalWeeks: pub.totalWeeks,
@@ -453,7 +483,7 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
   const [c] = await db().select({ name: lmsCourses.name, raw: lmsCourses.raw }).from(lmsCourses).where(eq(lmsCourses.id, f.courseId));
   const course = { code: f.code, name: c?.name ?? f.code };
   if (!viewer) return { locked: true, id, course };
-  const meta = describeFile(f.name, { courseCode: f.code, courseName: course.name, extension: f.extension ?? undefined });
+  const meta = describeFile(f.name, { courseCode: f.code, courseName: course.name, extension: f.extension ?? undefined, teachers: (await teacherNamesByCode())[f.code ?? ""] });
   const lessonWeek = f.lessonId && c ? lessonSlots(c.raw).filter((s) => s.lessonId === f.lessonId).map((s) => dayInfo(new Date(s.at)).week?.week ?? null)[0] ?? null : null;
   const shown = overlay({ title: meta.title, type: meta.type, week: meta.week ?? lessonWeek }, edit)!;
   const name = downloadName(shown.title, course.name, meta.format, f.extension ?? "");

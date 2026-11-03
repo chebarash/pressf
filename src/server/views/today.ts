@@ -12,7 +12,7 @@ import { classesBetween, toBlocks, type ClassView } from "./classes";
 import { progressCourses, type ProgressCourse } from "./progress";
 import { rateQueueFor, type RateAsk } from "./rate";
 import { courseCards } from "./courses";
-import { coursesByIds, DAY_ABBR, deadlineView, feedViews, lmsFileItem, type DeadlineView, type FeedView, type FileItem } from "./shared";
+import { coursesByIds, DAY_ABBR, deadlineView, feedViews, lmsFileItem, teacherNamesByCode, type DeadlineView, type FeedView, type FileItem } from "./shared";
 import { loadStudent, type Student, type SyncState } from "./student";
 
 /** Today (Figma 2.1–2.13, 10.1): the student's day in one read. */
@@ -164,7 +164,8 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
 
   const focus = current ?? next;
   const lessonIds = focus?.lessonIds ?? [];
-  const [materialRows, cards, feedCourses, overrides] = await Promise.all([
+  const [people, materialRows, cards, feedCourses, overrides] = await Promise.all([
+    teacherNamesByCode(),
     lessonIds.length ? db().select().from(lmsFiles).where(inArray(lmsFiles.lessonId, lessonIds)) : Promise.resolve([]),
     courseCards(student, courses),
     coursesByIds(items.map((i) => i.courseId ?? "").filter(Boolean)),
@@ -196,7 +197,7 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
     current,
     next,
     upcoming,
-    materials: focus ? overlayAll(materialRows.map((f) => lmsFileItem(f, { code: focus.code, name: focus.name }, new Map())), overrides) : [],
+    materials: focus ? overlayAll(materialRows.map((f) => lmsFileItem(f, { code: focus.code, name: focus.name, teachers: people[focus.code] }, new Map())), overrides) : [],
     phase: phase ? { kind: phase.kind, title: phase.title, starts: phase.starts, ends: phase.ends, inDays: phase.inDays, rangeLabel: `Until ${shortDate(addDays(phase.ends, 1))}` } : examPhase && examPhase.inDays <= 21 ? { kind: examPhase.kind, title: examPhase.title, starts: examPhase.starts, ends: examPhase.ends, inDays: examPhase.inDays, rangeLabel: range(examPhase.starts, examPhase.ends) } : null,
     examsThisWeek,
     nextExams: exams.slice(0, 3),

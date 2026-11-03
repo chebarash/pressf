@@ -9,7 +9,7 @@ import { weekOf as calendarWeekOf } from "@/core/semester";
 import { ago, clock, localDay, localWeekday, shortDate, toLocal, until } from "@/core/time";
 import { shownAs } from "@/core/uploads";
 import { db } from "@/lib/db";
-import { courseRatings, faces, lmsCourses, lmsFiles, lmsSemesters, lmsTeachers, mentionLinks, mentions, teacherRatings, uploads, type LmsSemesterPhase } from "@/lib/db/schema";
+import { courseRatings, faces, lmsCourseTeachers, lmsCourses, lmsFiles, lmsSemesters, lmsTeachers, mentionLinks, mentions, teacherRatings, uploads, type LmsSemesterPhase } from "@/lib/db/schema";
 import { termName } from "@/server/sync/types";
 import type { LmsHomework, LmsLesson, LmsSubject } from "@/lib/lms/types";
 import { DECISION_TAGS, fileOverridesMap, overlayAll, postVisible } from "@/server/decisions";
@@ -279,8 +279,28 @@ type UploadRow = typeof uploads.$inferSelect;
 /** The date an LMS file was posted: its LMS upload date, else its last LMS change, else when we pulled it. */
 export const lmsFileDate = (f: Pick<LmsFileRow, "lmsCreatedAt" | "lmsUpdatedAt" | "fetchedAt">) => f.lmsCreatedAt ?? f.lmsUpdatedAt ?? f.fetchedAt;
 
-export function lmsFileItem(f: LmsFileRow, course: { code: string; name: string }, lessonWeek: Map<string, number | null>): FileItem {
-  const meta = describeFile(f.name, { courseCode: course.code, courseName: course.name, extension: f.extension ?? undefined });
+/** Course code → its teachers' names, to keep "Sejuti Rahman" / "SR" out of file titles. */
+export const teacherNamesByCode = publicCache(
+  "teacher-names-by-code",
+  async (): Promise<Record<string, string[]>> => {
+    const rows = await db()
+      .select({ code: lmsCourses.code, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, surName: lmsTeachers.surName })
+      .from(lmsCourseTeachers)
+      .innerJoin(lmsCourses, eq(lmsCourses.id, lmsCourseTeachers.courseId))
+      .innerJoin(lmsTeachers, eq(lmsTeachers.id, lmsCourseTeachers.teacherId));
+    const out: Record<string, string[]> = {};
+    for (const r of rows) {
+      if (!r.code) continue;
+      const name = teacherName(r);
+      if (name !== "Teacher" && !(out[r.code] ??= []).includes(name)) out[r.code].push(name);
+    }
+    return out;
+  },
+  () => [TAGS.catalog],
+);
+
+export function lmsFileItem(f: LmsFileRow, course: { code: string; name: string; teachers?: string[] }, lessonWeek: Map<string, number | null>): FileItem {
+  const meta = describeFile(f.name, { courseCode: course.code, courseName: course.name, extension: f.extension ?? undefined, teachers: course.teachers });
   const date = lmsFileDate(f);
   return {
     id: f.id, source: "lms", title: meta.title, type: meta.type, typeLabel: TYPE_LABEL[meta.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
@@ -311,17 +331,18 @@ export function lessonWeeks(raw: unknown): Map<string, number | null> {
 export const courseFiles = publicCache(
   "course-files",
   async (code: string): Promise<FileItem[]> => {
-    const [courses, lms, live, overrides] = await Promise.all([
+    const [courses, lms, live, overrides, people] = await Promise.all([
       db().select({ id: lmsCourses.id, name: lmsCourses.name, raw: lmsCourses.raw }).from(lmsCourses).where(eq(lmsCourses.code, code)),
       db().select().from(lmsFiles).where(eq(lmsFiles.code, code)),
       db().select().from(uploads).where(and(eq(uploads.status, "live"), or(eq(uploads.courseCode, code), inArray(uploads.courseId, db().select({ id: lmsCourses.id }).from(lmsCourses).where(eq(lmsCourses.code, code)))))),
       fileOverridesMap(),
+      teacherNamesByCode(),
     ]);
     const name = courses[0]?.name ?? code;
     const weeks = new Map<string, number | null>();
     for (const c of courses) for (const [k, v] of lessonWeeks(c.raw)) weeks.set(k, v);
     // Admin edits (rename, type, week) apply on top; hidden LMS files drop out.
-    const items = [...overlayAll(lms.map((f) => lmsFileItem(f, { code, name }, weeks)), overrides), ...live.map(uploadItem)];
+    const items = [...overlayAll(lms.map((f) => lmsFileItem(f, { code, name, teachers: people[code] }, weeks)), overrides), ...live.map(uploadItem)];
     return items.sort((a, b) => (a.week ?? 99) - (b.week ?? 99) || a.date.localeCompare(b.date));
   },
   (code) => [TAGS.files(code), TAGS.course(code), DECISION_TAGS.overrides],
@@ -421,8 +442,8 @@ export async function feedViews(items: FeedItem[], now: Date, names: Map<string,
   const ids = [...new Set(items.flatMap(feedFileIds))];
   const known = new Map<string, FileItem>();
   if (ids.length) {
-    const [rows, overrides] = await Promise.all([db().select().from(lmsFiles).where(inArray(lmsFiles.id, ids)), fileOverridesMap()]);
-    const list = rows.map((f) => lmsFileItem(f, { code: f.code ?? "", name: (f.courseId ? names.get(f.courseId)?.name : null) ?? f.code ?? "" }, new Map()));
+    const [rows, overrides, people] = await Promise.all([db().select().from(lmsFiles).where(inArray(lmsFiles.id, ids)), fileOverridesMap(), teacherNamesByCode()]);
+    const list = rows.map((f) => lmsFileItem(f, { code: f.code ?? "", name: (f.courseId ? names.get(f.courseId)?.name : null) ?? f.code ?? "", teachers: people[f.code ?? ""] }, new Map()));
     for (const f of overlayAll(list, overrides)) known.set(f.id, f);
   }
   return items.map((i) => feedView(i, now, names, known));
