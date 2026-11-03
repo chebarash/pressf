@@ -1,0 +1,19 @@
+/* Desktop loading states: the frame of each D screen with sunken blocks where data goes (Figma D15). */
+.page { padding: var(--space-6) 40px var(--space-7); display: flex; flex-direction: column; gap: 20px; }
+.header { display: flex; flex-direction: column; gap: 8px; }
+.title { font: 400 64px/1.04 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); margin: 0; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 0.42fr); gap: var(--space-4); }
+.col { display: flex; flex-direction: column; gap: var(--space-4); }
+.card { background: var(--bg-surface); border: 1.5px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-4) 20px 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.cardAccent { background: var(--bg-accent-soft); }
+.cardTitle { font: 400 26px/1.08 var(--font-serif); color: var(--text-primary); margin: 0; }
+.line { display: flex; align-items: center; gap: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); }
+
+/* In the sunken list panes the blocks sit a step lighter. */
+.onSunken { background: var(--bg-hover); }
+.paneTitle { font: 400 34px/1.08 var(--font-serif); letter-spacing: -0.01em; margin: 0; color: var(--text-primary); }
+.paneTitleLg { font: 400 36px/1.04 var(--font-serif); margin: 0; color: var(--text-primary); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs { display: flex; gap: var(--space-2); padding: var(--space-2) 0; }
+.section { font: 400 40px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; color: var(--text-primary); }

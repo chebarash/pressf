@@ -10,12 +10,14 @@ import { TYPE_LABEL, type FileType } from "@/core/files";
 import { db } from "@/lib/db";
 import { adminMarks, fileOverrides } from "@/lib/db/schema";
 import { sessionsRevokedAt, settings, type SettingKey } from "@/server/admin/marks";
-import { publicCache } from "@/server/views/cache";
+import { dropLocalCopies, publicCache } from "@/server/views/cache";
 
 export const DECISION_TAGS = { marks: "admin-marks", overrides: "file-overrides", moderation: "moderation" } as const;
 
 /** Expire right away (not stale-while-revalidate): a revoked session or hidden file must not linger. */
 export function decisionsChanged(...tags: string[]) {
+  // Renamed or hidden files must leave the search index too.
+  dropLocalCopies();
   for (const tag of new Set(tags.length ? tags : Object.values(DECISION_TAGS))) {
     try {
       revalidateTag(tag, { expire: 0 });

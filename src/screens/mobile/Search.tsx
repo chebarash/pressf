@@ -7,14 +7,15 @@ import { SearchBar } from "./mc/SearchBar";
 import s from "./mc/mc.module.css";
 import c from "./mc/screens.module.css";
 
-type Hit = RecentHit & { key: string };
+type Hit = RecentHit & { key: string; face?: string | null };
 
 /** Mobile Search (Figma 7.1 before typing, 7.2 results, 7.3 nothing found). */
 export default function Search({ data, programHref = "/schools" }: { data: SearchView; programHref?: string }) {
   const groups: Array<[string, Hit[]]> = (
     [
       ["Courses", data.courses.map((k) => ({ kind: "course", key: k.code, title: k.name, subtitle: [k.code, k.recommendPct !== null ? `${k.recommendPct}% recommend` : null].filter(Boolean).join(" · "), href: k.href }))],
-      ["People", data.people.map((p) => ({ kind: "person", key: p.id, title: p.name, subtitle: p.position ?? "Teacher", href: p.href }))],
+      ["People", data.people.map((p) => ({ kind: "person", key: p.id, title: p.name, subtitle: p.position ?? "Teacher", href: p.href, face: p.face }))],
+      ["Programs", data.programs.map((p) => ({ kind: "course", key: `program:${p.id}`, title: p.name, subtitle: "Program · curriculum", href: p.href }))],
       ["Files", data.files.map((f) => ({ kind: "file", key: f.id, title: f.title, subtitle: f.course, href: f.href }))],
     ] as Array<[string, Hit[]]>
   ).filter(([, hits]) => hits.length);
@@ -62,7 +63,7 @@ function HitRow({ hit, active }: { hit: Hit; active?: boolean }) {
   const remembered: RecentHit = { kind: hit.kind, title: hit.title, subtitle: hit.subtitle, href: hit.href };
   return (
     <Link href={hit.href} prefetch={false} className={cx(c.hit, active && c.hitActive)} data-hit={JSON.stringify(remembered)}>
-      {hit.kind === "person" ? <Face size={48} /> : null}
+      {hit.kind === "person" ? <Face size={48} src={hit.face} /> : null}
       {hit.kind === "file" ? (
         <span className={c.fileIcon} aria-hidden>
           <FileIcon size={20} />

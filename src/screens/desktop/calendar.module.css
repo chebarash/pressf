@@ -22,7 +22,11 @@
 .month { background: var(--bg-surface); border: 1.5px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; }
 .weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: var(--bg-sunken); border-bottom: 1.5px solid var(--border-subtle); }
 .weekdays span { padding: 8px 10px; font: 600 11px/normal var(--font-sans); color: var(--text-secondary); }
-.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); position: relative; }
+/* Multi-day phases: one bar across their days, under the dates (lanes stack). */
+.spans { position: absolute; top: 33px; left: 0; right: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: 26px; row-gap: 4px; pointer-events: none; z-index: 1; }
+.span { pointer-events: auto; margin: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; align-self: stretch; display: flex; align-items: center; }
+.spanRoom { display: block; flex: none; height: calc(var(--lanes, 0) * 30px - 10px); }
 .week + .week { border-top: 1.5px solid var(--border-subtle); }
 .cell { min-height: 112px; padding: 7px 8px 10px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .cell + .cell { border-left: 1.5px solid var(--border-subtle); }

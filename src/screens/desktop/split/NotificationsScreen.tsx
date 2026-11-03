@@ -103,7 +103,9 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
         {open && (
           <>
             {open.eyebrow && <p className={n.eyebrow}>{open.eyebrow}</p>}
-            <h2 className={n.detailTitle}>{open.title}</h2>
+            <h2 className={cx(n.detailTitle, open.title.length > 56 && n.detailTitleLong)} title={open.title}>
+              {open.title}
+            </h2>
             {open.body && open.body.length > 0 && (
               <div className={n.body}>
                 {open.body.map((p, i) => (

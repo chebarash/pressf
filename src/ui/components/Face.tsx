@@ -21,14 +21,17 @@ export type FaceProps = {
   priority?: boolean;
 };
 
-/** Drawn face (Figma Face 4007:1296). Faces are line art; in dark mode a thin white outline follows the head (no disc). */
+/**
+ * Drawn face (Figma Face 4007:1296). Faces are line art; in dark mode a thin white outline follows the head (no disc).
+ * `/faces/<id>?v=…` is served as-is (small PNG/SVG, cached for a year per version), not through the optimizer.
+ */
 export function Face({ src, kind, size = 40, name, className, priority }: FaceProps) {
   const which = kind ?? (src ? "drawn" : "default");
   const image = which === "mascot" ? MASCOT_FACE : which === "drawn" && src ? src : DEFAULT_FACE;
   const alt = name ? (which === "default" ? `${name} (no drawing yet)` : name) : "";
   return (
     <span className={cx(s.face, className)} style={{ width: size, height: size }}>
-      <Image src={image} alt={alt} width={size} height={size} sizes={`${size}px`} className={s.img} priority={priority} unoptimized={/^https?:/.test(image)} />
+      <Image src={image} alt={alt} width={size} height={size} sizes={`${size}px`} className={s.img} priority={priority} unoptimized={/^https?:|^\/faces\//.test(image)} />
     </span>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { HOURS, HOURS_LABEL, MAX_TAGS, toHours, type CourseTag, type Hours, type RatingInput, type Recommend, type TeacherTag } from "@/core/ratings";
+import { HOURS, HOURS_LABEL, MAX_TAGS, TEACHER_TAGS, toHours, type CourseTag, type Hours, type RatingInput, type Recommend, type TeacherTag } from "@/core/ratings";
 import { EmptyState, Sheet } from "@/ui/components";
 import type { RateData } from "../model";
 import { Button, cx, Face, Keys } from "../parts";
@@ -17,6 +17,11 @@ const RECOMMEND: Array<{ id: Recommend; label: string; key: string }> = [
   { id: "no", label: "No", key: "N" },
 ];
 const HARD = ["Easy", "2", "3", "Hard", "Brutal"];
+// Teacher stickers in the Figma 4.12 order; a stuck sticker's tint and tilt follow its place (teal, mustard, plum).
+const TEACHER_ORDER: readonly TeacherTag[] = ["Explains clearly", "Answers questions", "Grades fairly", "Quick feedback", "Reads from slides", "Strict about attendance"];
+const TEACHER_STICKERS = [...TEACHER_ORDER, ...TEACHER_TAGS.filter((t) => !TEACHER_ORDER.includes(t))];
+const STUCK = [r.stuckA, r.stuckB, r.stuckC];
+const keyOf = (t: { id: string; kind: string }) => `${t.id}|${t.kind}`;
 
 /**
  * D5 Rate dialog — everything from the keyboard: Y ? N, Tab between questions,
@@ -31,6 +36,8 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
   const [difficulty, setDifficulty] = useState<RatingInput["difficulty"]>((data.initial?.difficulty as RatingInput["difficulty"]) ?? null);
   const [tags, setTags] = useState<string[]>(data.initial?.tags ?? []);
   const [pressed, setPressed] = useState<string[]>(data.initial?.pressed ?? []);
+  const [teacherTags, setTeacherTags] = useState<Record<string, string[]>>(data.initial?.teacherTags ?? {});
+  const [unfolded, setUnfolded] = useState<string[]>([]);
   const [sent, setSent] = useState(false);
   const [pending, start] = useTransition();
 
@@ -40,7 +47,12 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
     else router.push("/");
   };
   const toggleTag = (t: string) => setTags((xs) => (xs.includes(t) ? xs.filter((x) => x !== t) : xs.length >= MAX_TAGS ? xs : [...xs, t]));
-  const togglePress = (id: string) => setPressed((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
+  const togglePress = (key: string) => setPressed((xs) => (xs.includes(key) ? xs.filter((x) => x !== key) : [...xs, key]));
+  const toggleTeacherTag = (key: string, t: string) =>
+    setTeacherTags((m) => {
+      const xs = m[key] ?? [];
+      return { ...m, [key]: xs.includes(t) ? xs.filter((x) => x !== t) : xs.length >= MAX_TAGS ? xs : [...xs, t] };
+    });
   const send = () => {
     if (!data.course || !recommend || pending) return;
     const input: RatingInput = {
@@ -48,7 +60,13 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
       hours,
       difficulty,
       tags: tags as CourseTag[],
-      teachers: data.teachers.map((t) => ({ teacherId: t.id, role: t.kind, pressF: pressed.includes(t.id), tags: (data.initial?.teacherTags?.[`${t.id}|${t.kind}`] ?? []) as TeacherTag[] })),
+      // Same rule as the mobile sheet: a teacher left untouched is not sent; un-pressing F clears it.
+      teachers: data.teachers.flatMap((t) => {
+        const key = keyOf(t);
+        const on = pressed.includes(key);
+        const stuck = (teacherTags[key] ?? []) as TeacherTag[];
+        return on || stuck.length ? [{ teacherId: t.id, role: t.kind, pressF: on ? true : null, tags: stuck }] : [];
+      }),
     };
     start(async () => {
       await actions?.submit?.(data.course!.id, input);
@@ -70,7 +88,7 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
         const t = data.teachers[Number(f[1]) - 1];
         if (t) {
           e.preventDefault();
-          togglePress(t.id);
+          togglePress(keyOf(t));
         }
         return;
       }
@@ -153,34 +171,66 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
 
             <div className={r.tags}>
               {data.tags.map((t) => (
-                <button key={t} type="button" aria-pressed={tags.includes(t)} className={cx(r.tag, tags.includes(t) && r.tagOn)} onClick={() => toggleTag(t)}>
+                <button key={t} type="button" aria-pressed={tags.includes(t)} disabled={!tags.includes(t) && tags.length >= MAX_TAGS} className={cx(r.tag, tags.includes(t) && r.tagOn)} onClick={() => toggleTag(t)}>
                   {tags.includes(t) ? "✓" : "+"} {t}
                 </button>
               ))}
             </div>
 
             {data.teachers.length > 0 && (
-              <>
-                <p className={r.teachersTitle}>Your teachers — press F if you&apos;d take a class with them again</p>
+              <section className={r.teachersBlock} aria-label="Your teachers">
+                <h3 className={r.teachersTitle}>Your teachers — press F if you&apos;d take a class with them again</h3>
+                <p className={r.teachersHint}>Only the ones who taught your group, from your LMS stream · up to {MAX_TAGS} stickers each</p>
                 <div className={r.teachers}>
                   {data.teachers.map((t, i) => {
-                    const on = pressed.includes(t.id);
+                    const key = keyOf(t);
+                    const on = pressed.includes(key);
+                    const stuck = teacherTags[key] ?? [];
+                    const full = stuck.length >= MAX_TAGS;
+                    // Figma 4.12: stickers open on "+ stickers" (or once one is stuck) and the card lifts.
+                    const expanded = unfolded.includes(key) || stuck.length > 0;
                     return (
-                      <button key={t.id} type="button" aria-pressed={on} className={cx(r.teacher, on && r.teacherOn)} onClick={() => togglePress(t.id)}>
-                        <Face src={t.face} size={40} />
-                        <b>{t.name}</b>
-                        <span>{t.role}</span>
-                        <span className={r.fKey}>F</span>
-                        <small>{on ? `Pressed · F${i + 1}` : `Press F${i + 1}`}</small>
-                      </button>
+                      <div key={key} className={cx(r.teacher, expanded && r.teacherLift, on && r.teacherOn)}>
+                        <div className={r.teacherTop}>
+                          <Face src={t.face} size={40} />
+                          <span className={r.teacherText}>
+                            <span className={r.teacherName}>{t.name}</span>
+                            <span className={cx(r.teacherSub, on && r.teacherSubOn)}>
+                              {t.role} · {on ? "pressed F" : "press F if you'd take them again"}
+                              {i < 9 ? ` · F${i + 1}` : ""}
+                            </span>
+                          </span>
+                          {/* Keycap S (Figma 4007:1101): the cap sits 5 px up on its shadow; pressed, it drops into the slot. */}
+                          <button type="button" className={cx(r.fKey, on && r.fKeyOn)} aria-pressed={on} aria-label={`Press F for ${t.name}, ${t.role}`} onClick={() => togglePress(key)}>
+                            <span className={r.fCap}>F</span>
+                          </button>
+                        </div>
+                        {expanded ? (
+                          <div className={r.tStickers} role="group" aria-label={`Stickers for ${t.name}`}>
+                            {TEACHER_STICKERS.map((tag) => {
+                              const at = stuck.indexOf(tag);
+                              const yes = at >= 0;
+                              return (
+                                <button key={tag} type="button" aria-pressed={yes} disabled={!yes && full} className={cx(r.tSticker, yes ? cx(r.tStickerOn, STUCK[at % STUCK.length]) : r.tStickerOff)} onClick={() => toggleTeacherTag(key, tag)}>
+                                  {yes ? "✓" : "+"} {tag}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <button type="button" className={r.more} onClick={() => setUnfolded((xs) => [...xs, key])} aria-label={`Add stickers for ${t.name}`}>
+                            + stickers
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
-              </>
+              </section>
             )}
 
             <div className={r.foot}>
-              <p>Tab moves between questions · digits answer · {data.teachers.length > 1 ? `F1–F${data.teachers.length}` : "F1"} press F</p>
+              <p>Tab moves between questions · digits answer{data.teachers.length > 0 ? ` · ${data.teachers.length > 1 ? `F1–F${Math.min(data.teachers.length, 9)}` : "F1"} press F` : ""}</p>
               <Button onClick={send} disabled={!recommend || pending} loading={pending}>
                 Send rating
               </Button>

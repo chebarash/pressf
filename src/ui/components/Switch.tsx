@@ -7,13 +7,15 @@ export type SwitchProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "
   label: string;
   /** Second line, e.g. "07:30 on school days". */
   description?: string;
+  /** "md" is the 46 × 28 mobile toggle (8.5); "sm" the 44 × 26 desktop one (D13). */
+  size?: "md" | "sm";
 };
 
 /**
- * Toggle row (Figma 8.5 Alerts settings). A native checkbox with role="switch",
+ * Toggle row (Figma 8.5 Alerts settings, D13 Settings). A native checkbox with role="switch",
  * so it works in server-rendered forms; pass onChange from a client parent.
  */
-export function Switch({ label, description, className, id, ...rest }: SwitchProps) {
+export function Switch({ label, description, className, id, size = "md", ...rest }: SwitchProps) {
   const auto = useId();
   const inputId = id ?? auto;
   return (
@@ -23,7 +25,7 @@ export function Switch({ label, description, className, id, ...rest }: SwitchPro
         {description ? <span className={s.description}>{description}</span> : null}
       </span>
       <input id={inputId} type="checkbox" role="switch" className={s.input} {...rest} />
-      <span className={s.track} aria-hidden>
+      <span className={cx(s.track, size === "sm" && s.small)} aria-hidden>
         <span className={s.knob} />
       </span>
     </label>

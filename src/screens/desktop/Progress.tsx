@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import type { ProgressView } from "@/server/views";
 import * as adapt from "./adapt";
-import type { ProgressData, ProgressRow } from "./model";
+import type { ClassState, ProgressData, ProgressRow } from "./model";
 import { css, cx, Empty, Hint, Icon } from "./parts";
 import g from "./progress.module.css";
 
@@ -68,15 +68,19 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
         {data.semesters.length > 0 && (
           <div className={cx(css.card, g.semesters)}>
             <h2 className={g.cardTitle}>GPA by semester</h2>
-            <div className={g.bars}>
-              {data.semesters.map((s) => (
-                <span key={s.term} className={cx(g.barCol, s.current && g.barNow)}>
-                  <span className={g.barVal}>{s.value?.toFixed(2) ?? "—"}</span>
-                  <span className={g.bar} style={{ height: s.value ? Math.max(12, (s.value - 2) * 40) : 12 }} />
-                  {s.short}
-                </span>
-              ))}
-            </div>
+            {data.semesters.some((s) => s.value != null) ? (
+              <div className={g.bars}>
+                {data.semesters.map((s, i) => (
+                  <span key={`${s.term}-${i}`} className={cx(g.barCol, s.current && g.barNow, s.value == null && g.barEmpty)} title={s.value == null ? `${s.term}: no GPA yet` : `${s.term}: GPA ${s.value.toFixed(2)}`}>
+                    <span className={g.barVal}>{s.value?.toFixed(2) ?? "—"}</span>
+                    <span className={g.bar} style={{ height: s.value ? Math.max(12, (s.value - 2) * 40) : 12 }} />
+                    {s.short}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className={g.detailEmpty}>No semester GPA from the LMS yet. It shows here once final grades are published.</p>
+            )}
             {[...data.semesters]
               .filter((s) => !s.current)
               .reverse()
@@ -84,7 +88,7 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
               .map((s) =>
                 s.href ? (
                   // Opens that semester's results (5.6 layout), which links on to the curriculum.
-                  <Link key={s.term} href={s.href} className={cx(g.semRow, g.semLink)}>
+                  <Link key={`${s.term}-${s.href}`} href={s.href} className={cx(g.semRow, g.semLink)}>
                     <span>{s.term}</span>
                     <span>
                       {s.line} <Icon name="chevron-right" size={14} />
@@ -158,6 +162,31 @@ export function ProgressTable({ rows, open }: { rows: ProgressRow[]; open: strin
 
 const MARK: Record<string, string> = { High: g.markHigh, Low: g.markLow, None: g.markNone };
 
+/** Figma D6 dots: present is an ink ring, via QR teal, absent rust; late is mustard and not-marked a dashed ring. */
+export const DOT: Record<ClassState, string> = { teacher: g.dotTeacher, qr: g.dotQr, late: g.dotLate, absent: g.dotAbsent, unmarked: g.dotUnmarked };
+const LEGEND: Array<[ClassState, string]> = [
+  ["teacher", "present (teacher)"],
+  ["qr", "via QR"],
+  ["late", "late"],
+  ["absent", "absent"],
+  ["unmarked", "not marked"],
+];
+
+/** Legend for the states that occur (present, via QR and absent always, as in Figma). */
+export function ClassLegend({ states, counts }: { states: ClassState[]; counts?: Record<ClassState, number> }) {
+  const show = LEGEND.filter(([s]) => s === "teacher" || s === "qr" || s === "absent" || states.includes(s));
+  return (
+    <p className={g.legend}>
+      {show.map(([s, label]) => (
+        <span key={s}>
+          <i className={cx(g.legendDot, DOT[s])} />
+          {counts ? `${counts[s]} ${label}` : label}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 function CourseDetail({ detail }: { detail: NonNullable<ProgressRow["detail"]> }) {
   return (
     <div className={g.detail}>
@@ -175,25 +204,18 @@ function CourseDetail({ detail }: { detail: NonNullable<ProgressRow["detail"]> }
       </div>
       <div>
         <p className={g.detailLabel}>{detail.classesLabel}</p>
-        <div className={g.dots}>
-          {detail.classes.map((c, i) => (
-            <span key={i} className={cx(g.dot, c === "qr" && g.dotQr, c === "absent" && g.dotAbsent)} title={c} />
-          ))}
-        </div>
-        <p className={g.legend}>
-          <span>
-            <i style={{ border: "1.5px solid var(--border-strong)" }} />
-            present
-          </span>
-          <span>
-            <i style={{ background: "var(--bg-accent)" }} />
-            via QR
-          </span>
-          <span>
-            <i style={{ background: "var(--bg-danger)" }} />
-            absent
-          </span>
-        </p>
+        {detail.classes.length > 0 ? (
+          <>
+            <ul className={g.dots} aria-label="Attendance, oldest class first">
+              {detail.classes.map((c, i) => (
+                <li key={i} className={cx(g.dot, DOT[c.state])} title={c.title} aria-label={c.title} />
+              ))}
+            </ul>
+            <ClassLegend states={[...new Set(detail.classes.map((c) => c.state))]} />
+          </>
+        ) : (
+          <p className={g.detailEmpty}>No classes in the gradebook yet.</p>
+        )}
       </div>
       <div>
         {detail.grading.length > 0 && (

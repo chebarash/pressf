@@ -22,30 +22,54 @@
 .description { color: var(--text-secondary); font-size: 12px; }
 
 .input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
-/* 46 × 28 track, 20 knob 4 from the edge (the 8.5 toggle). */
+
+/*
+ * The toggle, measured from the Figma vectors (outer edges, border included):
+ *   M (8.5, 4198:7506): 46 × 28 track, 1.5 ink border, 20 knob, 4 from top and bottom, 5.5 from the side.
+ *   S (D13, 4229:13571): 44 × 26 track, 1.25 ink border, 18 knob, 4 from top and bottom, 5.25 from the side.
+ * The knob is centred vertically and slides by width − 2 × side − knob (15 / 15.5).
+ * Its fill is plain white in both themes, as in Figma, so it reads on the dark track too.
+ */
 .track {
+  --sw-w: 46px;
+  --sw-h: 28px;
+  --sw-b: 1.5px;
+  --sw-k: 20px;
+  --sw-x: 5.5px;
   position: relative;
+  box-sizing: border-box;
   flex: none;
-  width: 46px;
-  height: 28px;
-  border: 1.5px solid var(--border-strong);
+  width: var(--sw-w);
+  height: var(--sw-h);
+  /* An inset ring, not a border: browsers snap fractional borders to whole pixels, which
+     shifted the knob by up to half a pixel between the two states. */
+  box-shadow: inset 0 0 0 var(--sw-b) var(--border-strong);
   border-radius: var(--radius-full);
   background: var(--border-subtle);
   transition: background-color 150ms;
 }
+.small {
+  --sw-w: 44px;
+  --sw-h: 26px;
+  --sw-b: 1.25px;
+  --sw-k: 18px;
+  --sw-x: 5.25px;
+}
 .knob {
   position: absolute;
-  top: 2.5px;
-  left: 4px;
-  width: 20px;
-  height: 20px;
-  border: 1.5px solid var(--border-strong);
+  box-sizing: border-box;
+  top: 50%;
+  left: var(--sw-x);
+  width: var(--sw-k);
+  height: var(--sw-k);
+  border: var(--sw-b) solid var(--border-strong);
   border-radius: var(--radius-full);
-  background: var(--bg-surface);
+  background: var(--native-white);
+  transform: translateY(-50%);
   transition: transform 150ms ease-out;
 }
 .input:checked + .track { background: var(--bg-accent); }
-.input:checked + .track .knob { transform: translateX(15px); }
+.input:checked + .track .knob { transform: translate(calc(var(--sw-w) - 2 * var(--sw-x) - var(--sw-k)), -50%); }
 .input:focus-visible + .track { outline: 2px solid var(--border-accent); outline-offset: 2px; }
 .input:disabled + .track { opacity: 0.4; }
 .row:has(.input:disabled) { cursor: not-allowed; }

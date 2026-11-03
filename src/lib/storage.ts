@@ -36,6 +36,19 @@ export const signedUrl = (key: string, fileName?: string) =>
     { expiresIn: 60 * 60 }
   );
 
+/** An object's bytes and type, or null when the key is missing. For small objects (faces) only. */
+export async function getObject(key: string): Promise<{ body: Uint8Array; contentType: string | null } | null> {
+  try {
+    const out = await s3().send(new GetObjectCommand({ Bucket: env().S3_BUCKET, Key: key }));
+    if (!out.Body) return null;
+    return { body: await out.Body.transformToByteArray(), contentType: out.ContentType ?? null };
+  } catch (e) {
+    const status = (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+    if (status === 404 || (e as Error).name === "NoSuchKey" || (e as Error).name === "NotFound") return null;
+    throw e;
+  }
+}
+
 /** True when the key exists in the bucket. */
 export async function objectExists(key: string) {
   try {

@@ -50,7 +50,7 @@ export function Sidebar({ user, unread = 0, nextLabel = "Feb", inviteQr, onSearc
   const item = (n: (typeof NAV)[number]) => {
     const active = isActive(n.href, pathname);
     return (
-      <Link key={n.href} href={n.href} className="sh-nav-item" aria-current={active ? "page" : undefined}>
+      <Link key={n.href} href={n.href} prefetch className="sh-nav-item" aria-current={active ? "page" : undefined}>
         <Icon name={n.icon} size={18} />
         <span>{n.label}</span>
         {n.badge === "new" && nextLabel && <span className="sh-pill-new">{nextLabel}</span>}
@@ -62,7 +62,7 @@ export function Sidebar({ user, unread = 0, nextLabel = "Feb", inviteQr, onSearc
 
   return (
     <nav className="sh-sidebar" aria-label="Press F">
-      <Link href="/" className="sh-logo" aria-label="Press F, Today">
+      <Link href="/" prefetch className="sh-logo" aria-label="Press F, Today">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/mascot.png" alt="" width={40} height={40} />
         <span>Press F</span>
