@@ -2,6 +2,7 @@
  * View model (src/server/views) → what the desktop frames draw (./model).
  * Pure functions: no fetching, no React. One per screen.
  */
+import { CLASS_KIND_LABEL } from "@/core/agenda";
 import { fileList } from "@/core/files";
 import { COURSE_TAG_ORDER } from "@/core/ratings";
 import { tier } from "@/core/grades";
@@ -14,7 +15,7 @@ import { slugify } from "@/screens/mobile/mc/format";
 
 const TZ = "Asia/Tashkent";
 const join = (...parts: Array<string | number | null | undefined | false>) => parts.filter((p) => p !== null && p !== undefined && p !== false && p !== "").join(" · ");
-const KIND_LABEL: Record<string, string> = { lecture: "Lecture", practice: "Practice", lab: "Lab", exam: "Exam", other: "Class" };
+const KIND_LABEL: Record<string, string> = CLASS_KIND_LABEL;
 /** Anonymous post date as in Figma: "Mar 12, 2026". */
 const postDate = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: TZ }) : "");
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -168,7 +169,8 @@ export function today(v: V.TodayView): M.TodayData {
 
 /* ---------- Timetable ---------- */
 
-const TONE: Record<string, M.ClassTone> = { lecture: "teal", practice: "teal", lab: "plum", exam: "rust", other: "moss" };
+/** One colour per course, the same every week (courses in code order); the class type stays in the text. */
+const COURSE_TONES: M.ClassTone[] = ["teal", "plum", "moss", "mustard", "sky", "rose", "sand", "rust"];
 
 export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData {
   const index = new Map(v.week.map((d, i) => [d.day, i]));
@@ -176,6 +178,8 @@ export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData
   // D3: the whole week from `weekClasses`; the selected day's classes carry the inspector extras (materials, absences, lesson).
   const detailed = new Map(v.classes.map((c) => [c.key, c]));
   const week = v.weekClasses?.length ? v.weekClasses.filter((c) => index.has(localDay(new Date(c.start)))) : v.classes;
+  const courseKey = (c: { code?: string | null; name: string }) => c.code || c.name;
+  const order = [...new Set(week.map(courseKey))].sort((a, b) => a.localeCompare(b));
   const classes = week.map((base): M.TimetableClass => {
     const c: V.ClassView & Partial<Pick<V.TimetableClass, "lesson" | "materials" | "absences">> = detailed.get(base.key) ?? base;
     const start = new Date(c.start);
@@ -186,7 +190,7 @@ export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData
       end: localMinutes(new Date(c.end)),
       title: c.kind === "exam" ? `${c.name} · ${exam}` : c.name,
       meta: c.kind === "exam" ? join(`${c.time}–${c.endTime}`, c.room) : join(c.time, c.room, c.changedFrom ? "moved" : KIND_LABEL[c.kind]),
-      tone: c.changedFrom ? "mustard" : (TONE[c.kind] ?? "moss"),
+      tone: COURSE_TONES[order.indexOf(courseKey(c)) % COURSE_TONES.length],
       tags: [c.code, c.lesson ?? KIND_LABEL[c.kind]].filter(Boolean) as string[],
       when: `${new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" }).format(start)} · ${c.time}–${c.endTime}`,
       room: c.room ? join(c.room, c.changedFrom && `moved from ${c.changedFrom}`) : null,

@@ -54,7 +54,7 @@ export type TodayData = {
   rate: null | { eyebrow: string; title: string; text: string; href: string; term: string | null };
 };
 
-export type ClassTone = "teal" | "mustard" | "plum" | "moss" | "rust";
+export type ClassTone = "teal" | "mustard" | "plum" | "moss" | "rust" | "sky" | "rose" | "sand";
 export type TimetableClass = {
   id: string;
   day: number;

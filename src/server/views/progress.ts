@@ -1,4 +1,4 @@
-import { attendance, attendanceEvents, attendanceLine, type AttendanceStatus, type Mark } from "@/core/attendance";
+import { attendance, attendanceEvents, attendanceLine, type AttendanceEvent, type AttendanceStatus, type Mark } from "@/core/attendance";
 import { semesterGpa, tier } from "@/core/grades";
 import { DAY_MS, shortDate, weekdayName } from "@/core/time";
 import { termName, type SyncedCourse } from "@/server/sync/types";
@@ -246,7 +246,7 @@ export async function termResults(userId: string, segment: string, now = new Dat
 }
 
 /** `mark`: present, late, absent, excused or unmarked; `viaQr`: checked in by scanning the class QR. */
-export type ClassMark = { lesson: string; kind: "lecture" | "lab" | "practice"; at: string | null; dateLabel: string | null; mark: Mark; viaQr: boolean; score: number | null };
+export type ClassMark = { lesson: string; kind: AttendanceEvent["kind"]; at: string | null; dateLabel: string | null; mark: Mark; viaQr: boolean; score: number | null };
 
 export type CourseProgressView = {
   state: SyncState;
