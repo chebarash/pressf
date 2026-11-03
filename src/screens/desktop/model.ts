@@ -4,6 +4,7 @@
  * reads like the Figma frame and the mapping lives in one place.
  */
 import type { TeacherRole } from "@/core/ratings";
+import type { SyllabusFold } from "@/server/views";
 import type { RatingSummaryProps } from "@/ui/components";
 import type { FeedFilesVM, FeedKind, FileRowData, Strip, Tier } from "./parts";
 
@@ -97,7 +98,7 @@ export type CourseData = {
   code: string;
   name: string;
   kind: string | null;
-  term: { label: string; options: Array<{ label: string; href: string }> };
+  term: { label: string; options: Array<{ label: string; href: string; selected?: boolean }> };
   strip: Strip;
   tabs: { overview: string; files: number; anonymous: number; filesHref: string; anonymousHref: string };
   /** Overview: only weeks with a topic or files, up to three around this week. */
@@ -116,6 +117,8 @@ export type CourseData = {
   teachers: Array<Teacher & { line: string; pressFPct: number | null }>;
   grading: Array<{ pct: number; title: string; note: string }>;
   syllabus: Array<{ title: string; meta: string; href?: string }>;
+  /** The syllabus as folds (grading open, the rest one click away), same as mobile 4.2. */
+  syllabusFold?: SyllabusFold | null;
   me: null | { average: number | null; tier: Tier; line: string; next: string | null; href: string };
   summary: RatingSummaryProps | null;
   mention: Mention | null;

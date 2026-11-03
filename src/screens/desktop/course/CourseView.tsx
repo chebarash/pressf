@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { CourseData } from "../model";
-import { RatingSummary } from "@/ui/components";
+import { Disclosure, RatingSummary } from "@/ui/components";
+import { Syllabus } from "@/screens/mobile/parts/CourseParts";
 import { Button, ButtonLink, css, cx, Empty, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, Tag } from "../parts";
 import c from "./course.module.css";
 import { CourseFiles } from "./CourseFiles";
 import { CourseList } from "./CourseList";
+import { TermPicker } from "./TermPicker";
 
 export type CourseTab = "overview" | "files" | "anonymous";
 
@@ -45,20 +47,7 @@ function CourseDetail({ data, tab }: { data: CourseData; tab: CourseTab }) {
           </Link>
         ) : (
           <>
-        <details className={c.termSwitch}>
-          <summary>
-            <Icon name="calendar" size={16} />
-            {data.term.label}
-            <Icon name="chevron-down" size={16} />
-          </summary>
-          <div className={c.termMenu}>
-            {data.term.options.map((o) => (
-              <Link key={o.href} href={o.href}>
-                {o.label}
-              </Link>
-            ))}
-          </div>
-        </details>
+        {data.term.label && <TermPicker label={data.term.label} options={data.term.options} />}
         <RatingStrip strip={data.strip} />
           </>
         )}
@@ -115,6 +104,7 @@ function CoursePosts({ data }: { data: CourseData }) {
 function Overview({ data, keep }: { data: CourseData; keep: (href: string) => string }) {
   const other = data.otherFiles ?? [];
   const empty = !data.locked && !data.context && data.weeks.length === 0 && other.length === 0;
+  const openWeek = (data.weeks.find((w) => w.current) ?? data.weeks.find((w) => w.files.length > 0))?.n ?? null;
   return (
     <>
       {empty && (
@@ -128,33 +118,51 @@ function Overview({ data, keep }: { data: CourseData; keep: (href: string) => st
         <section className={c.section}>
           <h2 className={c.sectionTitle}>Week by week</h2>
           {data.weeks.map((w) => (
-            <Fragment key={w.n}>
-              <div className={cx(c.week, w.current && c.weekNow)}>
-                <span className={c.weekN}>{w.n}</span>
-                <span className={c.weekTitle}>{w.title}</span>
-                {w.current ? <Tag tone="dark">This week</Tag> : <Icon name="chevron-down" size={18} />}
-              </div>
-              {w.files.length > 0 && (
+            // Each week opens and closes in place; this week (else the first with files) starts open.
+            <Disclosure
+              key={w.n}
+              className={c.weekFold}
+              headClassName={cx(c.week, w.current && c.weekNow)}
+              bodyClassName={c.weekBody}
+              defaultOpen={w.n === openWeek}
+              trailing={w.current ? <Tag tone="dark">This week</Tag> : undefined}
+              summary={
+                <>
+                  <span className={c.weekN}>{w.n}</span>
+                  <span className={c.weekTitle}>{w.title}</span>
+                </>
+              }
+            >
+              {w.files.length > 0 ? (
                 <div className={cx(c.weekFiles, css.navList)} data-nav-list>
                   {w.files.map((f) => (
                     <FileRow key={f.id} file={f} hideCourse />
                   ))}
                 </div>
+              ) : (
+                <p className={cx(c.boxMeta, c.weekEmpty)}>No files for this week yet.</p>
               )}
-            </Fragment>
+            </Disclosure>
           ))}
           {other.length > 0 && (
-            <>
-              <div className={c.week}>
-                <span className={c.weekN} />
-                <span className={c.weekTitle}>Other files</span>
-              </div>
+            <Disclosure
+              className={c.weekFold}
+              headClassName={c.week}
+              bodyClassName={c.weekBody}
+              defaultOpen={data.weeks.length === 0}
+              summary={
+                <>
+                  <span className={c.weekN} />
+                  <span className={c.weekTitle}>Other files · {other.length}</span>
+                </>
+              }
+            >
               <div className={cx(c.weekFiles, css.navList)} data-nav-list>
                 {other.slice(0, 5).map((f) => (
                   <FileRow key={f.id} file={f} hideCourse />
                 ))}
               </div>
-            </>
+            </Disclosure>
           )}
           {!data.context && data.filesTotal > 0 && (
           <div className={c.links}>
@@ -188,55 +196,13 @@ function Overview({ data, keep }: { data: CourseData; keep: (href: string) => st
         </section>
       )}
 
-      {(data.grading.length > 0 || data.syllabus.length > 0) && (
+      {data.syllabusFold ? (
         <section className={c.section}>
           <h2 className={c.sectionTitle}>Syllabus</h2>
-          <div className={c.box}>
-            {data.grading.length > 0 && (
-              <>
-                <div className={c.boxRow}>
-                  <span className={c.boxText}>
-                    <span className={c.boxTitle}>Grading</span>
-                    <span className={c.boxMeta}>From the course syllabus</span>
-                  </span>
-                  <Icon name="chevron-down" size={18} />
-                </div>
-                <div className={c.assessList}>
-                  {data.grading.map((g) => (
-                    <div key={g.title} className={c.assess}>
-                      <span className={c.assessPct}>{g.pct}%</span>
-                      <span className={c.boxText}>
-                        <span className={c.assessTitle}>{g.title}</span>
-                        <span className={c.assessNote}>{g.note}</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            {data.syllabus.map((r) => {
-              const body = (
-                <>
-                  <span className={c.boxText}>
-                    <span className={c.boxTitle}>{r.title}</span>
-                    <span className={c.boxMeta}>{r.meta}</span>
-                  </span>
-                  <Icon name="chevron-right" size={18} />
-                </>
-              );
-              return r.href ? (
-                <Link key={r.title} href={r.href} className={c.boxRow}>
-                  {body}
-                </Link>
-              ) : (
-                <div key={r.title} className={c.boxRow}>
-                  {body}
-                </div>
-              );
-            })}
-          </div>
+          {/* Same folds as mobile 4.2: grading open, the rest one click away. */}
+          <Syllabus syl={data.syllabusFold} />
         </section>
-      )}
+      ) : null}
     </>
   );
 }

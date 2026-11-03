@@ -282,7 +282,8 @@ export function course(v: V.CourseView): M.CourseData {
     code: v.code,
     name: v.name,
     kind: null,
-    term: { label: v.term ? `${v.term.term}${status}` : "All semesters", options: v.terms.map((t) => ({ label: t.current ? `${t.term} · Now` : t.term, href: `/c/${v.code}?term=${encodeURIComponent(t.term)}` })) },
+    // The current semester is the plain course link; earlier ones carry ?term=.
+    term: { label: v.term ? `${v.term.term}${status}` : "All semesters", options: v.terms.map((t) => ({ label: t.current ? `${t.term} · Now` : t.term, href: t.current ? `/c/${v.code}` : `/c/${v.code}?term=${encodeURIComponent(t.term)}`, selected: t.courseId === v.courseId })) },
     strip: strip(v.ratings),
     tabs: { overview: "Overview", files: v.files?.all ?? 0, anonymous: v.anonymous.count, filesHref: `/c/${v.code}/files`, anonymousHref: `/c/${v.code}/anonymous` },
     weeks: shown.map((w) => ({ n: w.week ?? 0, title: w.topic?.trim() || plural(w.files.length, "file"), current: w.current, files: w.files.map((f) => fileRow(f)) })),
@@ -295,6 +296,7 @@ export function course(v: V.CourseView): M.CourseData {
     teachers: v.teachers.map((t) => ({ id: t.id, name: t.name, face: t.face ?? null, href: t.href, line: join(t.roleLabel, t.when), pressFPct: t.pressFPct })),
     grading: (s?.grading ?? []).filter((g) => g.weight != null).map((g) => ({ pct: g.weight!, title: g.name, note: g.timing ?? "" })),
     syllabus,
+    syllabusFold: s ?? null,
     me:
       you?.status === "now"
         ? {
