@@ -75,3 +75,11 @@ describe("LMS lesson types by number", () => {
     expect(kindOfLessonType(undefined, "Mid Term Exam")).toBe("exam");
   });
 });
+
+import { dayOff } from "@/server/views/timetable";
+describe("why a day has no classes", () => {
+  it("names holidays and weekends, and leaves teaching days alone", () => {
+    expect(dayOff("2026-11-07")).toBe("Weekend");
+    expect(dayOff("2026-11-04")).toBeNull();
+  });
+});

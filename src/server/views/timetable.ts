@@ -25,7 +25,8 @@ export type TimetableView = {
   /** "Week 8, midterm exams" / "Week 8 of 16". */
   weekLabel: string | null;
   /** Monday–Friday of the selected day's week. */
-  week: Array<{ day: string; label: string; date: string; selected: boolean; today: boolean; classes: number }>;
+  /** `off`: why a day without classes has none ("Constitution Day", "Break", "Weekend"); null on ordinary days. */
+  week: Array<{ day: string; label: string; date: string; selected: boolean; today: boolean; classes: number; off?: string | null }>;
   classes: TimetableClass[];
   /** Every class of the selected day's week (Monday–Sunday), for the desktop week grid (D3). Always set by the server. */
   weekClasses?: ClassView[];
@@ -68,6 +69,7 @@ export async function timetable(userId: string, day?: string, now = new Date()):
     week: weekDays.map((d) => ({
       day: d, label: DAY_ABBR[localWeekday(dayStart(d))], date: shortDate(d), selected: d === selected, today: d === localDay(now),
       classes: classes.filter((c) => localDay(new Date(c.start)) === d).length,
+      off: dayOff(d),
     })),
     classes: onDay.map((c) => ({
       ...c,
@@ -79,4 +81,14 @@ export async function timetable(userId: string, day?: string, now = new Date()):
     holiday: info.holiday,
     nextClass: onDay.length || !after ? null : { label: `${weekdayName(new Date(after.start))} ${after.time}`, class: after },
   };
+}
+
+/** Why there are no regular classes on a day: a holiday, a break or registration week, the weekend; null otherwise. */
+export function dayOff(day: string): string | null {
+  const info = dayInfo(dayStart(day));
+  if (info.holiday) return info.holiday.name === "Holiday" ? "Holiday" : `Holiday · ${info.holiday.name}`;
+  if (info.weekend) return "Weekend";
+  if (!info.week) return "No classes";
+  if (info.week.kind === "teaching" || info.week.kind === "midterm" || info.week.kind === "final" || info.week.kind === "resit_exam" || info.week.kind === "induction") return null;
+  return info.label ?? "No classes";
 }

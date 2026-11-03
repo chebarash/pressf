@@ -86,3 +86,10 @@
 .absences b { font-weight: 600; color: var(--text-primary); margin-left: auto; }
 .tip { font: 400 12px/1.32 var(--font-sans); color: var(--text-secondary); }
 .emptyInspector { font: 400 14px/1.4 var(--font-sans); color: var(--text-secondary); }
+
+/* A day off: the column is hatched and names the reason. */
+.dayOff {
+  position: absolute; inset: var(--head) 0 0; display: grid; place-items: center; pointer-events: none;
+  background: repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--border-subtle) 45%, transparent) 10px 11px);
+}
+.dayOff span { font: 600 13px/1.3 var(--font-sans); color: var(--text-secondary); text-align: center; padding: 6px 10px; border-radius: var(--radius-full); background: var(--bg-surface); border: 1.5px solid var(--border-subtle); max-width: 90%; }

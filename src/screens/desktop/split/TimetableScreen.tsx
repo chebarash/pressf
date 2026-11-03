@@ -58,6 +58,12 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
                 </Link>
               )}
               <div className={t.lines} />
+              {/* A day with no classes says why: a holiday, a break, registration week. */}
+              {day.off && (
+                <div className={t.dayOff}>
+                  <span>{day.off}</span>
+                </div>
+              )}
               {data.now?.day === d && <span className={t.now} style={{ top: top(data.now.minutes) }} suppressHydrationWarning />}
               {data.classes
                 .filter((c) => c.day === d)
