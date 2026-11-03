@@ -2,13 +2,18 @@
  * Admin coverage report: Postgres only (never the LMS), cached for a minute.
  * Counts only: nothing here names a student.
  */
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import { coverageReport, type CoverageInput, type CoverageReport } from "@/core/coverage";
+import { isMoveTarget } from "@/core/placement";
 import { localDay } from "@/core/time";
 import { db } from "@/lib/db";
-import type { LmsCurriculumData } from "@/lib/db/schema";
+import { coursePlacements, type LmsCurriculumData } from "@/lib/db/schema";
+import { audit } from "@/server/audit";
 import { termName } from "@/server/sync/types";
-import { publicCache, TAGS } from "@/server/views/cache";
+import { invalidate, publicCache, TAGS } from "@/server/views/cache";
+import { authorize } from "./access";
+import { AdminError } from "./ops";
 
 type Row = Record<string, unknown>;
 const rows = (r: unknown) => ((r as { rows?: Row[] }).rows ?? (r as Row[])) as Row[];
@@ -43,7 +48,22 @@ async function catalogAndMaterials() {
         'code', k.code, 'lmsFiles', coalesce(f.n, 0), 'uploads', coalesce(u.n, 0), 'exams', coalesce(u.exams, 0),
         'syllabus', s.code is not null, 'lastFile', greatest(f.last, u.last))), '[]')
         from codes k left join files f on f.code = k.code left join ups u on u.code = k.code left join syl s on s.code = k.code) as materials,
-      (select count(*)::int from lms_accounts where status = 'active') as active
+      (select count(*)::int from lms_accounts where status = 'active') as active,
+      (select coalesce(json_agg(json_build_object('code', course_code, 'school', school, 'department', department)), '[]') from course_placements) as placements,
+      -- Who teaches each course, with the department an admin set on the professor, else the faculty site's.
+      (select coalesce(json_agg(json_build_object('courseId', t.course_id, 'role', t.role, 'department', t.department, 'school', t.school)), '[]') from (
+        select distinct ct.course_id, ct.teacher_id, ct.role,
+          coalesce(o.department, fp.department) as department, coalesce(o.school, fp.school) as school
+        from lms_course_teachers ct
+        left join teacher_aliases a on a.old_id = ct.teacher_id
+        left join teacher_overrides o on o.teacher_id = coalesce(a.teacher_id, ct.teacher_id)
+        left join lateral (
+          select p.department, p.school from faculty_people p
+          where p.teacher_id = coalesce(a.teacher_id, ct.teacher_id) and p.match <> 'dismissed'
+          order by (p.department is null), p.site_id limit 1
+        ) fp on true
+        where coalesce(o.department, fp.department, o.school, fp.school) is not null
+      ) t) as teachers
   `);
   const row = rows(r)[0] ?? {};
   const parse = <T>(v: unknown): T => (typeof v === "string" ? JSON.parse(v) : v) as T;
@@ -56,6 +76,8 @@ async function catalogAndMaterials() {
     courses: parse<CoverageInput["courses"]>(row.courses).map((c) => ({ ...c, id: String(c.id), departmentId: str(c.departmentId), semesterId: str(c.semesterId) })),
     materials: parse<CoverageInput["materials"]>(row.materials).map((m) => ({ ...m, lastFile: iso(m.lastFile) })),
     activeAccounts: Number(row.active ?? 0),
+    placements: parse<NonNullable<CoverageInput["placements"]>>(row.placements),
+    teachers: parse<NonNullable<CoverageInput["teachers"]>>(row.teachers).map((t) => ({ ...t, courseId: String(t.courseId) })),
   };
 }
 
@@ -91,5 +113,41 @@ export async function coverageNow(now = new Date()): Promise<CoverageReport> {
   return { ...report, semester: { ...report.semester, name } };
 }
 
+export const COVERAGE_TAG = "admin-coverage";
+
 /** The report, shared by staff for a minute. */
-export const coverage = publicCache("admin-coverage", () => coverageNow(), () => [TAGS.catalog], 60);
+export const coverage = publicCache("admin-coverage", () => coverageNow(), () => [TAGS.catalog, COVERAGE_TAG], 60);
+
+const moveSchema = z.object({
+  code: z.string().trim().min(1).max(40).transform((c) => c.toUpperCase()),
+  school: z.string().max(120).nullable(),
+  department: z.string().max(120).nullable(),
+});
+
+/**
+ * An admin moves a course to a school (and department) on the Coverage page;
+ * the move wins over the LMS, the teachers and the code. A null school drops
+ * the move, so the course is placed automatically again. Audited.
+ */
+export async function moveCourse(actorId: string, input: { code: string; school: string | null; department: string | null }) {
+  await authorize(actorId, "admin:catalog");
+  const { code, school, department } = moveSchema.parse(input);
+  const [before] = await db().select().from(coursePlacements).where(eq(coursePlacements.courseCode, code));
+  const from = before ? { school: before.school, department: before.department } : null;
+  if (!school) {
+    if (!before) return { message: "Already placed automatically" };
+    await db().delete(coursePlacements).where(eq(coursePlacements.courseCode, code));
+    await audit(actorId, "course.placement.reset", `course:${code}`, { from });
+  } else {
+    if (!isMoveTarget(school, department)) throw new AdminError("Pick a school and department from the list");
+    if (before && before.school === school && before.department === department) return { message: "Nothing changed" };
+    const now = new Date();
+    await db()
+      .insert(coursePlacements)
+      .values({ courseCode: code, school, department, updatedBy: actorId, updatedAt: now })
+      .onConflictDoUpdate({ target: coursePlacements.courseCode, set: { school, department, updatedBy: actorId, updatedAt: now } });
+    await audit(actorId, "course.placement", `course:${code}`, { from, to: { school, department } });
+  }
+  invalidate(COVERAGE_TAG);
+  return { message: school ? `${code} moved` : `${code} placed automatically again` };
+}

@@ -176,6 +176,13 @@
       "when": 1793740567920,
       "tag": "0024_newuu_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793742162556,
+      "tag": "0025_course_placements",
+      "breakpoints": true
     }
   ]
 }

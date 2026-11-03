@@ -6,6 +6,7 @@
  * student takes it this semester. Everything else waits for someone from that
  * cohort to sign in. Pure: the admin view feeds it rows from Postgres.
  */
+import { place, unitOf, UNASSIGNED, type PlacedBy, type TeacherVote } from "./placement";
 
 export type CoverageInput = {
   /** Local day, YYYY-MM-DD. */
@@ -26,6 +27,10 @@ export type CoverageInput = {
   enrollments: Array<{ userId: string; courseId: string | null; code: string | null; semesterId: string | null }>;
   /** Saved LMS logins that still work. */
   activeAccounts: number;
+  /** Who teaches each course (LMS subject id), with their department from the faculty site or an admin's edit. */
+  teachers?: Array<TeacherVote & { courseId: string }>;
+  /** An admin's moves: course code → school (and department; null for the school as a whole). */
+  placements?: Array<{ code: string; school: string; department: string | null }>;
 };
 
 export type CohortRef = { programId: string; program: string; year: number | null };
@@ -33,9 +38,10 @@ export type CohortRef = { programId: string; program: string; year: number | nul
 export type CoverageCourse = {
   code: string;
   name: string;
-  faculty: string;
   school: string;
   department: string;
+  /** Where the placement came from: an admin's move, the LMS department, the teachers' departments, the code prefix; null when Unassigned. */
+  placedBy: PlacedBy | null;
   cohorts: CohortRef[];
   /** Active students enrolled this semester. */
   students: number;
@@ -58,16 +64,16 @@ export type CoverageUnit = {
   uncovered: string[];
 };
 
-export type CoverageFaculty = CoverageUnit & {
-  schools: Array<CoverageUnit & { departments: CoverageUnit[] }>;
+export type CoverageSchool = CoverageUnit & {
+  departments: CoverageUnit[];
   materials: ReturnType<typeof materialTotals>;
 };
 
 export type Suggestion = {
   programId: string;
   program: string;
-  /** Top unit (faculty) of the program. */
-  faculty: string;
+  /** School of the program. */
+  school: string;
   year: number | null;
   /** Courses of this cohort running now. */
   total: number;
@@ -80,8 +86,8 @@ export type Suggestion = {
 
 export type CoverageReport = {
   semester: { id: string | null; name: string | null };
-  totals: { running: number; covered: number; pct: number; students: number; activeAccounts: number; noFiles: number; lmsOnly: number; noCohort: number };
-  faculties: CoverageFaculty[];
+  totals: { running: number; covered: number; pct: number; students: number; activeAccounts: number; noFiles: number; lmsOnly: number; noCohort: number; unassigned: number };
+  schools: CoverageSchool[];
   suggestions: Suggestion[];
   courses: CoverageCourse[];
   programs: Array<{ id: string; name: string }>;
@@ -170,7 +176,7 @@ export function suggest(cohorts: Array<Omit<Suggestion, "gain" | "uncovered" | "
     if (!best || bestGain === 0) break;
     const fresh = best.codes.filter((x) => !done.has(x));
     for (const x of fresh) done.add(x);
-    out.push({ programId: best.programId, program: best.program, faculty: best.faculty, year: best.year, total: best.total, uncovered: best.uncovered, gain: fresh.length, courses: fresh.map((code) => ({ code, name: names.get(code) ?? code })) });
+    out.push({ programId: best.programId, program: best.program, school: best.school, year: best.year, total: best.total, uncovered: best.uncovered, gain: fresh.length, courses: fresh.map((code) => ({ code, name: names.get(code) ?? code })) });
     left.splice(left.indexOf(best), 1);
   }
   return out;
@@ -198,7 +204,7 @@ export function coverageReport(input: CoverageInput): CoverageReport {
   if (semesterId) for (const c of input.courses) if (c.semesterId === semesterId && c.code) add(up(c.code), c.name, c.departmentId, c.id);
 
   // Cohort plans: which program and year of study takes each running course.
-  const cohorts = new Map<string, { programId: string; program: string; faculty: string; year: number | null; departmentId: string | null; codes: Set<string> }>();
+  const cohorts = new Map<string, { programId: string; program: string; school: string; year: number | null; departmentId: string | null; codes: Set<string> }>();
   for (const plan of input.plans) {
     if (!plan.programId) continue;
     const program = programs.get(plan.programId);
@@ -206,7 +212,7 @@ export function coverageReport(input: CoverageInput): CoverageReport {
       if (s.semesterId !== semesterId) continue;
       const key = `${plan.programId}|${s.year ?? "?"}`;
       const chain = chainOf(program?.departmentId ?? null);
-      const cohort = cohorts.get(key) ?? { programId: plan.programId, program: program?.name?.trim() || "Program", faculty: chain[0] ?? "Other", year: s.year, departmentId: program?.departmentId ?? null, codes: new Set<string>() };
+      const cohort = cohorts.get(key) ?? { programId: plan.programId, program: program?.name?.trim() || "Program", school: (chain.length ? unitOf(chain[chain.length - 1], chain.length > 1 ? chain[0] : null)?.school : null) ?? "Other", year: s.year, departmentId: program?.departmentId ?? null, codes: new Set<string>() };
       for (const c of s.courses) {
         const code = c.code ? up(c.code) : codeOfId.get(c.id);
         if (!code) continue;
@@ -238,16 +244,19 @@ export function coverageReport(input: CoverageInput): CoverageReport {
   const coveredCodes = new Set([...students.keys()]);
 
   const mats = new Map(input.materials.map((m) => [up(m.code), m]));
+  const moved = new Map((input.placements ?? []).map((p) => [up(p.code), p]));
+  const teachersOf = new Map<string, TeacherVote[]>();
+  for (const t of input.teachers ?? []) teachersOf.set(t.courseId, [...(teachersOf.get(t.courseId) ?? []), t]);
   const courses: CoverageCourse[] = [...running.values()]
     .map((r) => {
-      const chain = chainOf(r.departmentId);
       const m = mats.get(r.code);
+      const at = place({ code: r.code, override: moved.get(r.code), lms: chainOf(r.departmentId), teachers: [...r.ids].flatMap((id) => teachersOf.get(id) ?? []) });
       return {
         code: r.code,
         name: r.name,
-        faculty: chain[0] ?? "Unassigned",
-        school: chain[1] ?? chain[0] ?? "Unassigned",
-        department: chain[chain.length - 1] ?? "Unassigned",
+        school: at.school,
+        department: at.department,
+        placedBy: at.by,
         cohorts: [...r.cohorts.values()].sort((a, b) => (a.year ?? 99) - (b.year ?? 99) || a.program.localeCompare(b.program)),
         students: students.get(r.code)?.size ?? 0,
         covered: coveredCodes.has(r.code),
@@ -273,19 +282,18 @@ export function coverageReport(input: CoverageInput): CoverageReport {
   };
   // Least covered first: that is where students are missing.
   const order = (a: CoverageUnit, b: CoverageUnit) => a.pct - b.pct || b.running - a.running || a.name.localeCompare(b.name);
-  const faculties: CoverageFaculty[] = groupBy(courses, "faculty")
+  // Unassigned last: it is not a school to recruit for, it is a list to place.
+  const schools: CoverageSchool[] = groupBy(courses, "school")
     .map(([name, list]) => ({
       ...unit(name, name, list),
-      schools: groupBy(list, "school")
-        .map(([school, sl]) => ({ ...unit(`${name}|${school}`, school, sl), departments: groupBy(sl, "department").map(([d, dl]) => unit(`${name}|${school}|${d}`, d, dl)).sort(order) }))
-        .sort(order),
+      departments: groupBy(list, "department").map(([d, dl]) => unit(`${name}|${d}`, d, dl)).sort(order),
       materials: materialTotals(list),
     }))
-    .sort(order);
+    .sort((a, b) => Number(a.name === UNASSIGNED) - Number(b.name === UNASSIGNED) || order(a, b));
 
   const names = new Map(courses.map((c) => [c.code, c.name]));
   const suggestions = suggest(
-    [...cohorts.values()].map((c) => ({ programId: c.programId, program: c.program, faculty: c.faculty, year: c.year, total: c.codes.size, codes: [...c.codes].sort() })),
+    [...cohorts.values()].map((c) => ({ programId: c.programId, program: c.program, school: c.school, year: c.year, total: c.codes.size, codes: [...c.codes].sort() })),
     coveredCodes,
     names,
   );
@@ -305,8 +313,9 @@ export function coverageReport(input: CoverageInput): CoverageReport {
       noFiles: courses.filter((c) => !c.lmsFiles && !c.uploads).length,
       lmsOnly: courses.filter((c) => c.lmsFiles > 0 && !c.uploads).length,
       noCohort: courses.filter((c) => !c.covered && !c.cohorts.length).length,
+      unassigned: courses.filter((c) => !c.placedBy).length,
     },
-    faculties,
+    schools,
     suggestions,
     courses,
     programs: programList,
@@ -326,13 +335,13 @@ export const toCsv = (rows: Array<Array<string | number | boolean | null>>) => r
 /** One row per running course: where it sits, who takes it, covered or not. */
 export const coverageCsv = (r: CoverageReport) =>
   toCsv([
-    ["faculty", "school", "department", "code", "course", "cohorts", "students", "covered"],
-    ...r.courses.map((c) => [c.faculty, c.school, c.department, c.code, c.name, c.cohorts.map(cohortLabel).join("; "), c.students, c.covered]),
+    ["school", "department", "placed_by", "code", "course", "cohorts", "students", "covered"],
+    ...r.courses.map((c) => [c.school, c.department, c.placedBy, c.code, c.name, c.cohorts.map(cohortLabel).join("; "), c.students, c.covered]),
   ]);
 
 /** One row per running course: what materials it has. */
 export const materialsCsv = (r: CoverageReport) =>
   toCsv([
-    ["faculty", "school", "code", "course", "cohorts", "lms_files", "student_uploads", "past_exams", "syllabus", "last_file"],
-    ...r.courses.map((c) => [c.faculty, c.school, c.code, c.name, c.cohorts.map(cohortLabel).join("; "), c.lmsFiles, c.uploads, c.exams, c.syllabus, c.lastFile ? c.lastFile.slice(0, 10) : null]),
+    ["school", "department", "code", "course", "cohorts", "lms_files", "student_uploads", "past_exams", "syllabus", "last_file"],
+    ...r.courses.map((c) => [c.school, c.department, c.code, c.name, c.cohorts.map(cohortLabel).join("; "), c.lmsFiles, c.uploads, c.exams, c.syllabus, c.lastFile ? c.lastFile.slice(0, 10) : null]),
   ]);

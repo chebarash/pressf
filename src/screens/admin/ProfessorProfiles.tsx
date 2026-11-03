@@ -9,13 +9,13 @@ import { useKeys } from "./useKeys";
 
 export type ProfilesData = Awaited<ReturnType<typeof profilesPage>>;
 
-/** The tab row shared by Profile and Unmatched from newuu.uz. */
-export function ProfessorTabs({ active }: { active: "profile" | "newuu" }) {
+/** The tab row shared by Faces, Profile and Unmatched from newuu.uz. */
+export function ProfessorTabs({ active }: { active: "faces" | "profile" | "newuu" }) {
   return (
     <div className={s.tabs}>
       <Link href="/admin/professors" className={s.chip}>Duplicates</Link>
       <Link href="/admin/professors?tab=all" className={s.chip}>All</Link>
-      <Link href="/admin/professors?tab=faces" className={s.chip}>Faces</Link>
+      <Link href="/admin/professors?tab=faces" className={cx(s.chip, active === "faces" && s.chipInverse)}>Faces</Link>
       <Link href="/admin/professors?tab=profile" className={cx(s.chip, active === "profile" && s.chipInverse)}>Profile</Link>
       <Link href="/admin/professors?tab=newuu" className={cx(s.chip, active === "newuu" && s.chipInverse)}>Unmatched from newuu.uz</Link>
     </div>

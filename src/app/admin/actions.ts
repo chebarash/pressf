@@ -1,7 +1,7 @@
 "use server";
 
 import { after } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import type { RejectReason, Trust } from "@/core/uploads";
 import { env } from "@/lib/env";
 import { authorize } from "@/server/admin/access";
@@ -9,6 +9,7 @@ import type { SettingKey } from "@/server/admin/marks";
 import type { FaceSpec } from "@/core/face-parts";
 import { FACE_MAX_BYTES } from "@/core/faces";
 import { PHOTO_MAX_BYTES } from "@/lib/face-photo";
+import { COVERAGE_TAG, moveCourse as moveCourseOp } from "@/server/admin/coverage";
 import * as faces from "@/server/admin/faces";
 import * as ops from "@/server/admin/ops";
 import * as profiles from "@/server/admin/profiles";
@@ -47,6 +48,14 @@ export const bulkFiles = async (refs: ops.FileRef[], op: Parameters<typeof ops.b
 
 export const mergeTeachers = async (keepId: string, mergeId: string) => run((a) => ops.mergeTeachers(a, keepId, mergeId));
 export const markNotTwins = async (a: string, b: string) => run((actor) => ops.markNotTwins(actor, a, b));
+
+/** Coverage: an admin moves a course to a school/department (null school: back to automatic). Shown right away. */
+export const moveCourse = async (code: string, school: string | null, department: string | null) =>
+  run(async (a) => {
+    const out = await moveCourseOp(a, { code, school, department });
+    updateTag(COVERAGE_TAG);
+    return out;
+  }, ["/admin/coverage"]);
 
 /** Professor profiles (admin only, checked again inside each op). */
 export const saveProfile = async (teacherId: string, fields: Partial<ProfileFields>) => run((a) => profiles.saveProfile(a, teacherId, fields), [`/p/${teacherId}`]);
