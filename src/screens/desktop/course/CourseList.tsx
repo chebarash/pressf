@@ -35,7 +35,7 @@ export function CourseList({ courses, terms, current }: { courses: CourseListIte
       {terms && (
         <div className={c.terms}>
           {terms.map((t) => (
-            <Link key={t.id} href={t.href} className={cx(css.chip, t.active && css.chipOn)} aria-current={t.active || undefined}>
+            <Link key={t.id} href={t.href} prefetch className={cx(css.chip, t.active && css.chipOn)} aria-current={t.active || undefined}>
               {t.label}
             </Link>
           ))}
@@ -43,7 +43,7 @@ export function CourseList({ courses, terms, current }: { courses: CourseListIte
       )}
       <div className={cx(c.items, css.navList)} data-nav-list data-nav-arrows data-course-items>
         {shown.map((x) => (
-          <Link key={x.code} href={x.href} className={cx(c.item, x.code === current && c.itemOn)} aria-current={x.code === current ? "page" : undefined} data-nav-item>
+          <Link key={x.href} href={x.href} prefetch className={cx(c.item, x.code === current && c.itemOn)} aria-current={x.code === current ? "page" : undefined} data-nav-item>
             <span className={c.itemTop}>
               <span>{x.code}</span>
               <Pct value={x.recommendPct} />
@@ -55,7 +55,7 @@ export function CourseList({ courses, terms, current }: { courses: CourseListIte
             </span>
           </Link>
         ))}
-        {shown.length === 0 && <p className={c.listHint}>No course matches “{q}”.</p>}
+        {shown.length === 0 && <p className={c.listHint}>{needle ? <>No course matches “{q}”.</> : "No courses in this semester."}</p>}
       </div>
       <p className={c.listHint}>↑ ↓ to move · Enter to open</p>
     </nav>

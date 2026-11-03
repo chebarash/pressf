@@ -2,23 +2,35 @@ import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import type { CourseData } from "../model";
 import { RatingSummary } from "@/ui/components";
-import { Button, ButtonLink, css, cx, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, Tag } from "../parts";
+import { Button, ButtonLink, css, cx, Empty, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, Tag } from "../parts";
 import c from "./course.module.css";
+import { CourseFiles } from "./CourseFiles";
 import { CourseList } from "./CourseList";
 
+export type CourseTab = "overview" | "files" | "anonymous";
+
 /** List · detail · inspector. The File screen swaps the inspector for the preview. */
-export function CourseLayout({ data, aside }: { data: CourseData; aside?: ReactNode }) {
-  const withList = !!data.myCourses?.length;
+export function CourseLayout({ data, aside, tab = "overview" }: { data: CourseData; aside?: ReactNode; tab?: CourseTab }) {
+  const withList = !!data.myCourses;
   return (
     <div data-desktop-screen className={cx(css.screen, c.layout, !!aside && withList && c.layoutFile, !withList && c.layoutNoList)}>
       {withList && <CourseList courses={data.myCourses!} terms={data.terms} current={data.code} />}
-      <CourseDetail data={data} />
+      <CourseDetail data={data} tab={tab} />
       {aside ?? <CourseInspector data={data} />}
     </div>
   );
 }
 
-function CourseDetail({ data }: { data: CourseData }) {
+/** Figma 4.8: nothing uploaded yet. */
+const NoFiles = () => <Empty title="No files yet">Files show up here as soon as teachers upload them to LMS. We check every few hours.</Empty>;
+
+function CourseDetail({ data, tab }: { data: CourseData; tab: CourseTab }) {
+  // Tabs keep the semester (?term=) and the list pane's semester (?list=).
+  const keep = (href: string) => {
+    const q = data.tabQuery ?? "";
+    return q ? `${href}${href.includes("?") ? "&" : "?"}${q}` : href;
+  };
+  const overviewHref = keep(`/c/${encodeURIComponent(data.code)}`);
   return (
     <main className={c.detail}>
       <header className={c.head}>
@@ -54,15 +66,17 @@ function CourseDetail({ data }: { data: CourseData }) {
 
       {!data.context && (
       <nav className={c.tabs} aria-label="Course sections">
-        <span className={cx(c.tab, c.tabOn)} aria-current="page">
+        <Link href={overviewHref} prefetch scroll={false} className={cx(c.tab, tab === "overview" && c.tabOn)} aria-current={tab === "overview" ? "page" : undefined}>
           {data.tabs.overview}
-        </span>
-        <KeyTo k="g f">
-          <Link href={data.tabs.filesHref} className={c.tab}>
-            Files {data.tabs.files}
-          </Link>
-        </KeyTo>
-        <Link href={data.tabs.anonymousHref} className={c.tab}>
+        </Link>
+        {!data.locked && (
+          <KeyTo k="g f">
+            <Link href={keep(data.tabs.filesHref)} prefetch scroll={false} className={cx(c.tab, tab === "files" && c.tabOn)} aria-current={tab === "files" ? "page" : undefined}>
+              Files {data.tabs.files || ""}
+            </Link>
+          </KeyTo>
+        )}
+        <Link href={keep(data.tabs.anonymousHref)} prefetch scroll={false} className={cx(c.tab, tab === "anonymous" && c.tabOn)} aria-current={tab === "anonymous" ? "page" : undefined}>
           Anonymous {data.tabs.anonymous}
         </Link>
       </nav>
@@ -70,7 +84,47 @@ function CourseDetail({ data }: { data: CourseData }) {
 
       {data.locked && <p className={c.boxMeta}>Sign in to see the weeks, files and your marks for this course.</p>}
 
-      {data.weeks.length > 0 && (
+      {tab === "files" && !data.context ? (
+        data.files?.length ? <CourseFiles files={data.files} topics={data.topics ?? {}} /> : <NoFiles />
+      ) : tab === "anonymous" && !data.context ? (
+        <CoursePosts data={data} />
+      ) : (
+        <Overview data={data} keep={keep} />
+      )}
+    </main>
+  );
+}
+
+function CoursePosts({ data }: { data: CourseData }) {
+  const posts = data.posts ?? [];
+  if (!posts.length) return <Empty title="Quiet so far">{`Posts in the students' Anonymous channel that mention ${data.name} show up here.`}</Empty>;
+  return (
+    <section className={c.section}>
+      <p className={c.boxMeta}>
+        {data.tabs.anonymous} {data.tabs.anonymous === 1 ? "post mentions" : "posts mention"} {data.name}
+      </p>
+      <div className={c.posts}>
+        {posts.map((m) => (
+          <MentionCard key={m.href} m={m} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Overview({ data, keep }: { data: CourseData; keep: (href: string) => string }) {
+  const other = data.otherFiles ?? [];
+  const empty = !data.locked && !data.context && data.weeks.length === 0 && other.length === 0;
+  return (
+    <>
+      {empty && (
+        <section className={c.section}>
+          <h2 className={c.sectionTitle}>Week by week</h2>
+          <NoFiles />
+        </section>
+      )}
+
+      {(data.weeks.length > 0 || other.length > 0) && (
         <section className={c.section}>
           <h2 className={c.sectionTitle}>Week by week</h2>
           {data.weeks.map((w) => (
@@ -89,12 +143,22 @@ function CourseDetail({ data }: { data: CourseData }) {
               )}
             </Fragment>
           ))}
-          {!data.context && (
+          {other.length > 0 && (
+            <>
+              <div className={c.week}>
+                <span className={c.weekN} />
+                <span className={c.weekTitle}>Other files</span>
+              </div>
+              <div className={cx(c.weekFiles, css.navList)} data-nav-list>
+                {other.slice(0, 5).map((f) => (
+                  <FileRow key={f.id} file={f} hideCourse />
+                ))}
+              </div>
+            </>
+          )}
+          {!data.context && data.filesTotal > 0 && (
           <div className={c.links}>
-            <Link href={data.tabs.filesHref} className={c.more}>
-              All {data.weeksTotal} weeks <Icon name="chevron-right" size={18} />
-            </Link>
-            <Link href={data.tabs.filesHref} className={c.more}>
+            <Link href={keep(data.tabs.filesHref)} prefetch scroll={false} className={c.more}>
               {data.filesTotal === 1 ? "1 file" : `All ${data.filesTotal} files`} <Icon name="chevron-right" size={18} />
             </Link>
           </div>
@@ -173,7 +237,7 @@ function CourseDetail({ data }: { data: CourseData }) {
           </div>
         </section>
       )}
-    </main>
+    </>
   );
 }
 

@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 import type { FileType } from "@/core/files";
 import { Button as KitButton, CourseCard as KitCourseCard, EmptyState, Face as KitFace, FeedItem, FileRow as KitFileRow, RatingRing, RatingStrip as KitRatingStrip, Score as KitScore, Tag as KitTag, type FeedType, type ScoreTier } from "@/ui/components";
 import { Icon, type IconName } from "./Icon";
+import { Prefetch } from "./Prefetch";
 import s from "./parts.module.css";
 
 /**
@@ -138,14 +139,16 @@ export type FileRowData = {
 
 export function FileRow({ file, hideCourse }: { file: FileRowData; hideCourse?: boolean }) {
   return (
-    <KitFileRow
-      title={file.title}
-      type={file.type}
-      course={hideCourse ? undefined : file.course}
-      date={file.date}
-      source={{ label: file.from, kind: file.source === "lms" ? "lms" : "channel" }}
-      href={file.href}
-    />
+    <Prefetch href={file.href}>
+      <KitFileRow
+        title={file.title}
+        type={file.type}
+        course={hideCourse ? undefined : file.course}
+        date={file.date}
+        source={{ label: file.from, kind: file.source === "lms" ? "lms" : "channel" }}
+        href={file.href}
+      />
+    </Prefetch>
   );
 }
 
@@ -191,13 +194,16 @@ export function FeedRow({ kind, title, meta, unread, selected, ...rest }: { kind
 export type CourseCardData = { code: string; name: string; href: string; recommendPct: number | null; teacher: { name: string; face: string | null } | null; line: string };
 
 export const CourseCard = ({ c }: { c: CourseCardData }) => (
-  <KitCourseCard code={c.code} name={c.name} href={c.href} line={c.line} teacher={c.teacher ?? undefined} recommend={c.recommendPct != null ? { pct: c.recommendPct } : undefined} />
+  <Prefetch href={c.href}>
+    <KitCourseCard code={c.code} name={c.name} href={c.href} line={c.line} teacher={c.teacher ?? undefined} recommend={c.recommendPct != null ? { pct: c.recommendPct } : undefined} />
+  </Prefetch>
 );
 
 /* ---------- Anonymous mention ---------- */
 
+/** The whole card opens the post in Telegram (a new tab on desktop). */
 export const MentionCard = ({ m }: { m: { date: string; text: string; tag: string; href: string } }) => (
-  <div className={s.mention}>
+  <a href={m.href} target="_blank" rel="noopener" className={cx(s.mention, s.mentionLink)} aria-label={`Open the Anonymous post: ${m.text.slice(0, 80)}`}>
     <p className={s.mentionHead}>
       <Icon name="send" size={16} />
       <b>Anonymous</b>
@@ -206,12 +212,10 @@ export const MentionCard = ({ m }: { m: { date: string; text: string; tag: strin
     <p className={s.mentionText}>{m.text}</p>
     <p className={s.mentionFoot}>
       <Tag tone="neutral">{m.tag}</Tag>
-      <a href={m.href} className={s.cardLink} target="_blank" rel="noopener">
-        Open post
-      </a>
+      <span className={s.cardLink}>Open post</span>
       <Icon name="external" size={16} />
     </p>
-  </div>
+  </a>
 );
 
 /* ---------- Empty ---------- */

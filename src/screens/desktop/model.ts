@@ -79,7 +79,7 @@ export type TimetableData = {
   empty: string | null;
 };
 
-export type CourseListItem = { code: string; name: string; href: string; recommendPct: number | null; next: string; absences: string | null };
+export type CourseListItem = { code: string; name: string; href: string; recommendPct: number | null; next: string; absences: string | null; /** An earlier semester's course: that semester ("Fall 2025"). */ term?: string };
 export type CoursesData = {
   terms: Array<{ id: string; label: string; href: string; active: boolean }>;
   courses: CourseListItem[];
@@ -95,7 +95,17 @@ export type CourseData = {
   term: { label: string; options: Array<{ label: string; href: string }> };
   strip: Strip;
   tabs: { overview: string; files: number; anonymous: number; filesHref: string; anonymousHref: string };
+  /** Overview: only weeks with a topic or files, up to three around this week. */
   weeks: Array<{ n: number; title: string; current: boolean; files: FileRowData[] }>;
+  /** Files the LMS gave no week (shown as "Other files"). */
+  otherFiles?: FileRowData[];
+  /** Files tab: every file with its week, and the week topics. */
+  files?: Array<FileRowData & { week: number | null }>;
+  topics?: Record<number, string>;
+  /** Query the tabs carry along ("term=…&list=…"). */
+  tabQuery?: string;
+  /** Anonymous tab: the latest posts that mention the course. */
+  posts?: Mention[];
   weeksTotal: number;
   filesTotal: number;
   teachers: Array<Teacher & { line: string; pressFPct: number | null }>;
@@ -207,6 +217,8 @@ export type CalendarKind = "week" | "deadline" | "exam" | "registration" | "holi
 export type CalendarMonth = {
   label: string;
   weeks: Array<Array<{ key: string; date: number; inMonth: boolean; today: boolean; items: Array<{ title: string; kind: CalendarKind; href?: string | null }> }>>;
+  /** Multi-day events (exam weeks, registration) per week row: a bar from column `from` to `to` (0 = Mon) in lane `lane`. */
+  spans?: Array<Array<{ key: string; title: string; kind: CalendarKind; href?: string | null; from: number; to: number; lane: number }>>;
 };
 export type CalendarData = {
   months: CalendarMonth[];
