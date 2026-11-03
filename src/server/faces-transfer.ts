@@ -15,7 +15,7 @@ import { db } from "@/lib/db";
 import { auditLog, catalogCache, faces, lmsTeachers, teacherAliases } from "@/lib/db/schema";
 
 /** Both the old name and the professor's name must cover each other this well… */
-export const SURE = 0.9;
+export const SURE = 0.85;
 /** …and the runner-up must trail by this much. */
 export const MARGIN = 0.15;
 
@@ -54,13 +54,23 @@ export function rankCandidates(oldNames: string[], people: Array<{ id: string; n
     .slice(0, limit);
 }
 
-/** The one professor a face can move to on its own, or null. */
-export function sureMatch(ranked: Candidate[]): Candidate | null {
-  const [best, next] = ranked;
-  if (!best || best.score < SURE) return null;
-  if (next && best.score - next.score < MARGIN) return null;
-  return best;
+/** One key per person: name words with spelling variants folded, in any order. */
+const personKey = (name: string) => words(name, true).sort().join(" ");
+
+/**
+ * The professors a face can move to on its own. Usually one; several when the
+ * LMS keeps the same person twice ("Mubina Pirmuxamedova" ×2, "Fakhriddin" and
+ * "Faxriddin Tojiboev") — those records share the drawing. Different people
+ * that score alike (Ivan Petrov / Ivan Petrova) still wait for the admin.
+ */
+export function sureMatches(ranked: Candidate[]): Candidate[] {
+  const [best] = ranked;
+  if (!best || best.score < SURE) return [];
+  const close = ranked.filter((c) => best.score - c.score < MARGIN);
+  return close.every((c) => personKey(c.name) === personKey(best.name)) ? close : [];
 }
+
+export const sureMatch = (ranked: Candidate[]): Candidate | null => sureMatches(ranked)[0] ?? null;
 
 export type TransferReport = { old: number; moved: number; viaMerge: number; waiting: number; conflicts: number };
 
@@ -83,16 +93,15 @@ export async function transferOldFaces(log: (line: string) => void = () => {}): 
   const people = teachers.filter((t) => !merged.has(t.id)).map((t) => ({ id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName, sur_name_en: t.surName }) }));
 
   // Plan first, so two old faces wanting the same professor both wait for a person to decide.
-  const plan = new Map<string, { oldId: string; key: string; how: "merge" | "name"; score: number }[]>();
+  const plan = new Map<string, { oldId: string; key: string; how: "merge" | "name"; score: number; also: string[] }[]>();
   for (const o of orphans) {
     const merge = aliasOf.get(o.teacherId);
-    const target = merge && !withFace.has(merge) ? { id: merge, score: 1, how: "merge" as const } : null;
-    const sure = target ?? (() => {
-      const m = sureMatch(rankCandidates(names.get(o.teacherId) ?? [], people.filter((p) => !withFace.has(p.id))));
-      return m ? { id: m.id, score: m.score, how: "name" as const } : null;
-    })();
-    if (!sure) continue;
-    plan.set(sure.id, [...(plan.get(sure.id) ?? []), { oldId: o.teacherId, key: o.storageKey, how: sure.how, score: sure.score }]);
+    const targets = merge && !withFace.has(merge)
+      ? [{ id: merge, score: 1, how: "merge" as const }]
+      : sureMatches(rankCandidates(names.get(o.teacherId) ?? [], people.filter((p) => !withFace.has(p.id)), 5)).map((m) => ({ id: m.id, score: m.score, how: "name" as const }));
+    if (!targets.length) continue;
+    const [first, ...rest] = targets;
+    plan.set(first.id, [...(plan.get(first.id) ?? []), { oldId: o.teacherId, key: o.storageKey, how: first.how, score: first.score, also: rest.map((r) => r.id) }]);
   }
 
   for (const [teacherId, wants] of plan) {
@@ -109,7 +118,9 @@ export async function transferOldFaces(log: (line: string) => void = () => {}): 
       const gone = await tx.delete(faces).where(eq(faces.teacherId, w.oldId)).returning();
       if (!gone.length) return false;
       await tx.insert(faces).values({ teacherId, storageKey: w.key, updatedAt: now });
-      await tx.insert(auditLog).values({ actorId: null, action: "face.transfer", target: `teacher:${teacherId}`, detail: { from: w.oldId, key: w.key, how: w.how, score: Math.round(w.score * 100) / 100 } });
+      // The same person kept twice in the LMS: their other records get the same drawing.
+      for (const twin of w.also) await tx.insert(faces).values({ teacherId: twin, storageKey: w.key, updatedAt: now }).onConflictDoNothing();
+      await tx.insert(auditLog).values({ actorId: null, action: "face.transfer", target: `teacher:${teacherId}`, detail: { from: w.oldId, key: w.key, how: w.how, score: Math.round(w.score * 100) / 100, alsoTo: w.also } });
       return true;
     });
     if (!moved) continue;
