@@ -2,7 +2,7 @@ import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { adminMarks } from "@/lib/db/schema";
 
-export type MarkKind = "post-hidden" | "post-mute" | "teachers-distinct" | "signout" | "setting" | "import";
+export type MarkKind = "post-hidden" | "post-mute" | "mention-link-hidden" | "teachers-distinct" | "signout" | "setting" | "import";
 export type SettingKey = "maintenance" | "sync-paused";
 
 export async function setMark(kind: MarkKind, target: string, actorId: string | null, opts: { data?: Record<string, unknown>; until?: Date | null } = {}) {

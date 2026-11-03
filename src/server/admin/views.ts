@@ -707,6 +707,8 @@ export const ACTION_LABEL: Record<string, string> = {
   "report.hidden": "Hid post",
   "report.kept": "Kept after report",
   "post.mute": "Muted author",
+  "mention.link.hide": "Hid Anonymous link",
+  "mention.link.restore": "Restored Anonymous link",
   "file.edit": "Edited file",
   "file.move": "Moved files",
   "file.hide": "Hid files",
@@ -732,6 +734,8 @@ export function describeAudit(action: string, target: string | null, d: Record<s
     case "role.change": return `→ ${cap(s("to"))}`;
     case "teacher.merge": return `${s("merged")} → ${target?.replace("teacher:", "")}`;
     case "post.mute": return `author muted ${s("days")} days`;
+    case "mention.link.hide":
+    case "mention.link.restore": return `${target ?? ""} · ${s("kind")} ${s("target")}`;
     case "broadcast.schedule": return s("text");
     case "file.move": return `${s("count")} files → week ${s("week") || "none"}`;
     case "file.hide":
