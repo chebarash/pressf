@@ -12,12 +12,12 @@ export type SidebarProps = {
   me: { name: string; initials: string; role: string };
 };
 
-const GROUPS = [["overview", "uploads", "reports"], ["courses", "professors", "people"], ["broadcasts", "audit", "system"]];
+const GROUPS = [["overview", "uploads", "reports"], ["courses", "coverage", "professors", "people"], ["broadcasts", "audit", "system"]];
 /**
  * Each section is F (for Press F) then its letter, as in the app: F U uploads,
  * F R reports. No admin page uses a bare F for itself.
  */
-export const SECTION_KEYS: Record<string, string> = { o: "overview", u: "uploads", r: "reports", c: "courses", p: "professors", e: "people", b: "broadcasts", l: "audit", s: "system" };
+export const SECTION_KEYS: Record<string, string> = { o: "overview", u: "uploads", r: "reports", c: "courses", v: "coverage", p: "professors", e: "people", b: "broadcasts", l: "audit", s: "system" };
 const HINT: Record<string, string> = Object.fromEntries(Object.entries(SECTION_KEYS).map(([k, id]) => [id, `F ${k.toUpperCase()}`]));
 export const hrefOf = (id: string) => (id === "overview" ? "/admin" : `/admin/${id}`);
 
