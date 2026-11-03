@@ -168,7 +168,8 @@ export function today(v: V.TodayView): M.TodayData {
 
 /* ---------- Timetable ---------- */
 
-const TONE: Record<string, M.ClassTone> = { lecture: "teal", practice: "teal", lab: "plum", exam: "rust", other: "moss" };
+/** One colour per course, the same every week (courses in code order); the class type stays in the text. */
+const COURSE_TONES: M.ClassTone[] = ["teal", "plum", "moss", "mustard", "sky", "rose", "sand", "rust"];
 
 export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData {
   const index = new Map(v.week.map((d, i) => [d.day, i]));
@@ -176,6 +177,8 @@ export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData
   // D3: the whole week from `weekClasses`; the selected day's classes carry the inspector extras (materials, absences, lesson).
   const detailed = new Map(v.classes.map((c) => [c.key, c]));
   const week = v.weekClasses?.length ? v.weekClasses.filter((c) => index.has(localDay(new Date(c.start)))) : v.classes;
+  const courseKey = (c: { code?: string | null; name: string }) => c.code || c.name;
+  const order = [...new Set(week.map(courseKey))].sort((a, b) => a.localeCompare(b));
   const classes = week.map((base): M.TimetableClass => {
     const c: V.ClassView & Partial<Pick<V.TimetableClass, "lesson" | "materials" | "absences">> = detailed.get(base.key) ?? base;
     const start = new Date(c.start);
@@ -186,7 +189,7 @@ export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData
       end: localMinutes(new Date(c.end)),
       title: c.kind === "exam" ? `${c.name} · ${exam}` : c.name,
       meta: c.kind === "exam" ? join(`${c.time}–${c.endTime}`, c.room) : join(c.time, c.room, c.changedFrom ? "moved" : KIND_LABEL[c.kind]),
-      tone: c.changedFrom ? "mustard" : (TONE[c.kind] ?? "moss"),
+      tone: COURSE_TONES[order.indexOf(courseKey(c)) % COURSE_TONES.length],
       tags: [c.code, c.lesson ?? KIND_LABEL[c.kind]].filter(Boolean) as string[],
       when: `${new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" }).format(start)} · ${c.time}–${c.endTime}`,
       room: c.room ? join(c.room, c.changedFrom && `moved from ${c.changedFrom}`) : null,
