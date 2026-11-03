@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import DesktopSettings from "@/screens/desktop/Settings";
-import { saveAlert, syncNow } from "@/screens/mobile/mc/actions";
+import { resetCalendarLink, saveAlert, syncNow } from "@/screens/mobile/mc/actions";
 import { mobile } from "@/screens/mobile/mc/route";
 import Settings from "@/screens/mobile/Settings";
 import { profile } from "@/server/views";
@@ -14,5 +14,5 @@ export default async function ProfilePage() {
   if (!user) redirect("/sign-in?next=/me");
   const data = await profile(user.id);
   if (!data) notFound();
-  return isMobile ? <Settings data={data} /> : <DesktopSettings data={data} actions={{ setAlert: saveAlert, syncNow }} />;
+  return isMobile ? <Settings data={data} /> : <DesktopSettings data={data} actions={{ setAlert: saveAlert, syncNow, resetCalendar: resetCalendarLink }} />;
 }

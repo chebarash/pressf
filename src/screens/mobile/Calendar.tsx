@@ -41,7 +41,7 @@ export default function Calendar({ data, subscribed }: { data: CalendarView; /**
           />
         ) : null}
         {/* 6.2 has no subscribe button under the empty state. */}
-        {data.empty ? null : <Subscribe href={data.icsHref} subscribed={subscribed} />}
+        {data.empty ? null : <Subscribe google={data.subscribe.google} personal={data.subscribe.personal} subscribed={subscribed} />}
       </div>
     </Screen>
   );

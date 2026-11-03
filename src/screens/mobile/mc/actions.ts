@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { DEFAULT_ALERTS, type AlertSettings } from "@/core/notifications";
 import { getUser } from "@/lib/auth";
 import { deleteAccount } from "@/server/account";
+import { resetCalendarFeed, saveCalendarLayers } from "@/server/calendar-feed";
 import { setAlerts } from "@/server/feed";
 import { syncNowFor, type ManualSync } from "@/server/sync/manual";
 import { invalidateRating } from "@/server/views";
@@ -44,5 +45,21 @@ export async function deleteMyData(): Promise<{ ok: boolean }> {
   // Rating summaries are cached per course; drop the ones these ratings fed.
   for (const code of courses) invalidateRating(code);
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** The Calendar page's layer choice, kept for the student's calendar feed. */
+export async function rememberCalendarLayers(layers: string[]): Promise<void> {
+  const user = await getUser();
+  if (!user || !Array.isArray(layers)) return;
+  await saveCalendarLayers(user.id, layers.filter((l) => typeof l === "string"));
+}
+
+/** Settings' "Reset link": the old calendar feed URL stops working; add the calendar again with the new one. */
+export async function resetCalendarLink(): Promise<{ ok: boolean }> {
+  const user = await getUser();
+  if (!user) return { ok: false };
+  await resetCalendarFeed(user.id);
+  revalidatePath("/calendar");
   return { ok: true };
 }

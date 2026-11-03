@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ProfileView } from "@/server/views";
 import { ChevronRightIcon, Face } from "./mc/kit";
 import { cx, Screen } from "./mc/parts";
-import { DeleteRow, HomeScreenRows, SignOutRow, ThemeRow } from "./mc/ProfileControls";
+import { DeleteRow, HomeScreenRows, ResetCalendarRow, SignOutRow, ThemeRow } from "./mc/ProfileControls";
 import s from "./mc/mc.module.css";
 import c from "./mc/screens.module.css";
 
@@ -33,6 +33,7 @@ export default function Settings({ data }: { data: ProfileView }) {
             <span className={c.settingValue}>{data.sync.signInAgain ? "Sign in again" : data.sync.lmsDown ? "LMS not answering" : data.sync.label ?? "Not yet"}</span>
           </div>
           <HomeScreenRows />
+          <ResetCalendarRow />
         </div>
 
         <div className={c.group}>

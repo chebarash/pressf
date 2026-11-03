@@ -595,7 +595,7 @@ export function calendar(v: V.CalendarView, now = new Date()): M.CalendarData {
     }),
     coming: events.filter((e) => e.layer !== "classes").slice(0, 6).map((e) => ({ title: e.title, meta: e.sub, kind: CAL_KIND[e.layer] })),
     empty: v.empty?.text ?? null,
-    icsHref: v.icsHref,
+    subscribe: v.subscribe,
   };
 }
 

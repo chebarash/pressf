@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { openLink } from "@/platform/client";
+import { subscribeHint } from "./format";
 import { Button, Toast, ToastViewport } from "./kit";
 import c from "./screens.module.css";
 
-/** "Add to my phone calendar" (6.1) and the confirmation toast (6.3). */
-export function Subscribe({ href, subscribed = false }: { href: string; subscribed?: boolean }) {
+/** "Add to Google Calendar" (6.1) and the toast after it (6.3). Google's add-by-URL page opens via Telegram's openLink. */
+export function Subscribe({ google, personal, subscribed = false }: { google: string; personal: boolean; subscribed?: boolean }) {
   const [toast, setToast] = useState(subscribed);
   useEffect(() => {
     if (!toast) return;
@@ -16,19 +18,18 @@ export function Subscribe({ href, subscribed = false }: { href: string; subscrib
     <>
       <Button
         variant="secondary"
-        label="Add to my phone calendar"
+        label="Add to Google Calendar"
         icon
         className={c.subscribe}
         onClick={() => {
-          // webcal:// hands the feed to the phone's calendar app as a subscription.
-          const url = new URL(href, window.location.href);
-          window.location.href = `webcal://${url.host}${url.pathname}`;
+          openLink(google);
           setToast(true);
         }}
       />
+      <p className={c.subscribeHint}>{subscribeHint(personal)}</p>
       {toast ? (
         <ToastViewport className={c.subViewport}>
-          <Toast className={c.subToast}>Subscribed. Exams, deadlines and holidays now show in your phone&apos;s calendar and stay in sync.</Toast>
+          <Toast className={c.subToast}>Confirm in Google Calendar. It stays in sync, though Google refreshes it only a few times a day.</Toast>
         </ToastViewport>
       ) : null}
     </>
