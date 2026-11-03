@@ -52,14 +52,22 @@ async function ask(chatId: number, userId: string, draft: Draft) {
   await send(chatId, render(draft));
 }
 
+/**
+ * "Share a file via the bot" for one course: the draft waits for the file with
+ * the course picked. Runs on /start upload_<CODE> and from the Mini App
+ * (/api/telegram/upload), which sends it straight to the chat. Throws when the
+ * bot can't write to the user (never started or blocked).
+ */
+export async function startUpload(chatId: number | string, fromId: number | string, code: string) {
+  const user = await linkedUser(fromId);
+  if (!user) return send(chatId, welcome());
+  const context = await studentContext(user.id, code);
+  return ask(Number(chatId), user.id, newDraft({ id: newId(), ...context, linked: code }));
+}
+
 async function handleStart(chatId: number, fromId: number, param: string | undefined) {
   const upload = param?.match(/^upload_([\w-]+)$/)?.[1];
-  if (upload) {
-    const user = await linkedUser(fromId);
-    if (!user) return send(chatId, welcome());
-    const context = await studentContext(user.id, upload);
-    return ask(chatId, user.id, newDraft({ id: newId(), ...context, linked: upload }));
-  }
+  if (upload) return startUpload(chatId, fromId, upload);
   if (param) {
     // Old links (course_MATH111) and the startapp codes (c_MATH111, rate, …).
     const old = startPath(param);
