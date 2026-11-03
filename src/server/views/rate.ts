@@ -17,7 +17,8 @@ import { and } from "drizzle-orm";
  * Ratings are read by the HMAC pseudonym only.
  */
 
-export type RateTeacher = { id: string; name: string; role: TeacherRole; roleLabel: string };
+/** `face`: the drawn face URL, null when none is assigned. Always set by the server. */
+export type RateTeacher = { id: string; name: string; role: TeacherRole; roleLabel: string; face?: string | null };
 
 export type RateItem = {
   courseId: string;
@@ -94,7 +95,7 @@ export async function rateQueueFor(student: Student, now = new Date()): Promise<
       .filter((l) => l.courseId === courseId)
       .map((l) => ({ id: l.teacherId, role: roleOf(l.role) }))
       .filter((t) => (seen.has(`${t.id}|${t.role}`) ? false : (seen.add(`${t.id}|${t.role}`), true)))
-      .map((t) => ({ ...t, name: people.get(t.id)?.name ?? "Teacher", roleLabel: ROLE_LABEL[t.role] }));
+      .map((t) => ({ ...t, name: people.get(t.id)?.name ?? "Teacher", roleLabel: ROLE_LABEL[t.role], face: people.get(t.id)?.face ?? null }));
   };
   const item = (courseId: string, t: string): RateItem => {
     const c = courses.get(courseId);

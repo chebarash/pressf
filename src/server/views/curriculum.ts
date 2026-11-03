@@ -115,7 +115,8 @@ export const schools = publicCache(
   () => [TAGS.catalog],
 );
 
-export type Cohort = { teacherId: string; name: string; when: string | null; room: string | null; pressFPct: number | null };
+/** `face`: the drawn face URL, null when none is assigned. Always set by the server. */
+export type Cohort = { teacherId: string; name: string; when: string | null; room: string | null; pressFPct: number | null; face?: string | null };
 
 export type NextCourse = {
   courseId: string;
@@ -212,7 +213,7 @@ export async function nextSemester(userId: string, now = new Date()): Promise<Ne
       ? [...new Set(leads.filter((l) => l.courseId === row.id).map((l) => l.teacherId))].map((tid) => {
           const mine = slots.filter((s) => s.teacherId === tid);
           const s = summaries[tid];
-          return { teacherId: tid, name: people.get(tid)?.name ?? "Teacher", when: slotsLabel(mine), room: mine.find((x) => x.room)?.room ?? null, pressFPct: s?.enough ? s.pressFPct : null };
+          return { teacherId: tid, name: people.get(tid)?.name ?? "Teacher", when: slotsLabel(mine), room: mine.find((x) => x.room)?.room ?? null, pressFPct: s?.enough ? s.pressFPct : null, face: people.get(tid)?.face ?? null };
         })
       : [];
     const d = c.code ? details[codes.indexOf(c.code)] : null;

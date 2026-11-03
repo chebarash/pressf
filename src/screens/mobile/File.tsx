@@ -22,7 +22,8 @@ export default function File({ data }: { data: FileView }) {
       </div>
     );
   }
-  const meta = [data.course.name, data.week ? `Week ${data.week}` : null, data.dateLabel, data.from, size(data.size)].filter(Boolean).join(" · ");
+  // Figma 4.9: "Calculus 1 · Week 8 · 2 Nov · LMS · 24 pages" (size when the page count is unknown).
+  const meta = [data.course.name, data.week ? `Week ${data.week}` : null, data.dateLabel, data.from, data.pages ? `${data.pages} ${data.pages === 1 ? "page" : "pages"}` : size(data.size)].filter(Boolean).join(" · ");
   const share = `https://t.me/share/url?url=${encodeURIComponent(miniAppUrl({ to: "file", id: data.id }))}&text=${encodeURIComponent(`${data.title} — ${data.course.name}`)}`;
   return (
     <div className={cx(b.screen, s.screen)}>
