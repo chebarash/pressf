@@ -115,7 +115,8 @@ export const schools = publicCache(
   () => [TAGS.catalog],
 );
 
-export type Cohort = { teacherId: string; name: string; when: string | null; room: string | null; pressFPct: number | null };
+/** `face`: the drawn face URL, null when none is assigned. Always set by the server. */
+export type Cohort = { teacherId: string; name: string; when: string | null; room: string | null; pressFPct: number | null; face?: string | null };
 
 export type NextCourse = {
   courseId: string;
@@ -142,13 +143,35 @@ export type NextSemesterView = {
   missing: boolean;
 };
 
+/** The plan semester after the one the student is taking now. */
+function planNext(plan: Plan, student: Student) {
+  const current = new Set([...student.sync.courses.filter((c) => student.sync.semesters.find((s) => s.id === c.semesterId)?.open).map((c) => c.subjectId), ...(student.cache?.enrollment?.codes ?? [])]);
+  const index = plan.data.semesters.reduce((best, s, i) => (s.courses.filter((c) => current.has(c.id) || (c.code && current.has(c.code))).length > 0 ? i : best), -1);
+  return { next: plan.data.semesters[index + 1] ?? null, index };
+}
+
+/** "9–13 Feb", or "28 Jan – 3 Feb" across months. */
+const dayRange = (a: string, b: string) =>
+  a === b ? shortDate(a) : a.slice(0, 7) === b.slice(0, 7) ? `${Number(a.slice(8, 10))}–${shortDate(b)}` : `${shortDate(a)} – ${shortDate(b)}`;
+
+export type NextSemesterEntry = { term: string | null; courses: number | null; selection: string | null };
+
+/** The "Next: Spring 2027 · 5 courses · cohort selection 9–13 Feb" strip on My courses (Figma 4.1). */
+export async function nextSemesterEntry(student: Student, now = new Date()): Promise<NextSemesterEntry> {
+  const [all, phases] = await Promise.all([plans(), semesterPhases(localDay(now))]);
+  const plan = planFor(all, student);
+  const next = plan ? planNext(plan, student).next : null;
+  const selection = phases.find((p) => p.kind === "cohort-selection") ?? null;
+  return { term: selection?.semester ?? null, courses: next ? next.courses.length : null, selection: selection ? dayRange(selection.startDay, selection.endDay) : null };
+}
+
 /** Figma 4.14 and 4.15: the next semester from the student's cohort plan, with cohorts per course. */
 export async function nextSemester(userId: string, now = new Date()): Promise<NextSemesterView | null> {
   const today = localDay(now);
   const [student, all, lmsPhases] = await Promise.all([loadStudent(userId), plans(), semesterPhases(today)]);
   if (!student) return null;
   const plan = planFor(all, student);
-  const label = (a: string, b: string) => (a === b ? shortDate(a) : `${shortDate(a)} – ${shortDate(b)}`);
+  const label = dayRange;
   const fromLms = lmsPhases
     .filter((p) => p.kind !== "other" && !(p.kind === "studies" && p.startDay < today))
     .slice(0, 4)
@@ -162,9 +185,7 @@ export async function nextSemester(userId: string, now = new Date()): Promise<Ne
         .map((w) => ({ title: w.kind === "registration" ? "Course registration in LMS" : "Classes start", starts: w.starts, ends: w.ends, label: label(w.starts, w.ends), kind: w.kind === "registration" ? "registration" as const : "induction" as const, semester: null }));
   if (!plan) return { term: null, ects: 0, courses: [], phases, missing: true };
 
-  const current = new Set([...student.sync.courses.filter((c) => student.sync.semesters.find((s) => s.id === c.semesterId)?.open).map((c) => c.subjectId), ...(student.cache?.enrollment?.codes ?? [])]);
-  const index = plan.data.semesters.reduce((best, s, i) => (s.courses.filter((c) => current.has(c.id) || (c.code && current.has(c.code))).length > 0 ? i : best), -1);
-  const next = plan.data.semesters[index + 1];
+  const { next, index } = planNext(plan, student);
   if (!next) return { term: null, ects: 0, courses: [], phases, missing: index < 0 };
 
   const codes = next.courses.map((c) => c.code ?? "").filter(Boolean);
@@ -192,7 +213,7 @@ export async function nextSemester(userId: string, now = new Date()): Promise<Ne
       ? [...new Set(leads.filter((l) => l.courseId === row.id).map((l) => l.teacherId))].map((tid) => {
           const mine = slots.filter((s) => s.teacherId === tid);
           const s = summaries[tid];
-          return { teacherId: tid, name: people.get(tid)?.name ?? "Teacher", when: slotsLabel(mine), room: mine.find((x) => x.room)?.room ?? null, pressFPct: s?.enough ? s.pressFPct : null };
+          return { teacherId: tid, name: people.get(tid)?.name ?? "Teacher", when: slotsLabel(mine), room: mine.find((x) => x.room)?.room ?? null, pressFPct: s?.enough ? s.pressFPct : null, face: people.get(tid)?.face ?? null };
         })
       : [];
     const d = c.code ? details[codes.indexOf(c.code)] : null;

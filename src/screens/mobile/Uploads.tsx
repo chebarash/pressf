@@ -22,12 +22,10 @@ const lineOf = (u: MyUploadView) =>
 export default function Uploads({ data }: { data: UploadsView }) {
   const sub = data.live ? `${data.live} live · opened ${n.format(data.opens)} ${data.opens === 1 ? "time" : "times"}. Thank you.` : data.items.length ? "Waiting for review — the bot will tell you." : "Exams, notes and mocks you share help the next cohort.";
   return (
-    <div className={cx(b.screen, b.noButton)}>
-      <header className={b.head}>
-        <h1 className={b.title}>My uploads</h1>
-        <p className={b.sub}>{sub}</p>
-      </header>
-      <div className={cx(b.stack, s.list)}>
+    <div className={cx(b.screen, s.body)}>
+      <h1 className={s.title}>My uploads</h1>
+      <p className={s.sub}>{sub}</p>
+      <>
         {data.items.map((u) => {
           const body = (
             <>
@@ -49,12 +47,12 @@ export default function Uploads({ data }: { data: UploadsView }) {
           );
         })}
         <TelegramLink href={`https://t.me/${BOT_USERNAME}`} className={cx(b.dashed, b.plum)}>
-          <span className={b.rowBody}>
+          <span className={cx(b.rowBody, s.hint)}>
             <span className={b.rowTitle}>{data.items.length ? "Share another file" : "Share a file"}</span>
             <span className={b.rowSub}>Send or forward it to @{BOT_USERNAME} from any chat.</span>
           </span>
         </TelegramLink>
-      </div>
+      </>
     </div>
   );
 }

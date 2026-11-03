@@ -1,9 +1,10 @@
 import { BOT_USERNAME, path, uploadLink } from "@/core/links";
-import { cx, Face, Tabs, Tag } from "@/ui/components";
+import { cx, EmptyState, Tabs, Tag } from "@/ui/components";
 import b from "./parts/base.module.css";
 import s from "./parts/Course.module.css";
 import { FilesBrowser, SemesterSwitch, TelegramLink, WeekList, type TermLink } from "./parts/CourseClient";
-import { CourseRatingStrip, CourseRatingSummary, FewRatings, GateNotice, Ghost, MentionCard, Syllabus, TeacherCard, YouCard } from "./parts/CourseParts";
+import { ChevronDownIcon, ChevronRightIcon } from "@/ui/icons";
+import { CourseRatingStrip, CourseRatingSummary, FewRatings, GateNotice, GhostWeeks, MentionCard, Syllabus, TeacherCard, YouCard } from "./parts/CourseParts";
 import { MainButton } from "./parts/MainButton";
 import { Notice } from "./parts/Notice";
 import type { CourseScreen, CourseTab } from "./views";
@@ -33,7 +34,9 @@ export default function Course({ data }: { data: CourseScreen }) {
   ];
   const action: { text: string; href?: string; disabled?: boolean } | null = !data.signedIn
     ? { text: "Sign in with LMS", href: `/sign-in?next=${encodeURIComponent(href(data.tab))}` }
-    : data.rate?.canRate
+    : data.tab === "files"
+      ? null // Figma 4.7: the Files tab has no MainButton.
+      : data.rate?.canRate
       ? { text: data.rate.rated || data.notice === "rating-sent" ? "Edit your rating" : "Rate this course", href: `${data.rate.href}?from=${encodeURIComponent(`/c/${data.code}`)}` }
       : data.rate?.opensIn
         ? { text: `Opens in week ${data.rate.opensIn}`, disabled: true }
@@ -50,7 +53,7 @@ export default function Course({ data }: { data: CourseScreen }) {
         <CourseRatingStrip summary={data.ratings} />
       </header>
 
-      <Tabs label="Course sections" className={s.tabs} items={tabs.map((t) => ({ label: t.label, value: t.tab, href: href(t.tab), active: data.tab === t.tab }))} />
+      <Tabs label="Course sections" size="l" className={s.tabs} items={tabs.map((t) => ({ label: t.label, value: t.tab, href: href(t.tab), active: data.tab === t.tab }))} />
 
       {data.tab === "files" && data.files ? <FilesTab data={data} /> : data.tab === "anonymous" ? <AnonymousTab data={data} /> : <Overview data={data} filesHref={href("files")} />}
 
@@ -62,7 +65,8 @@ export default function Course({ data }: { data: CourseScreen }) {
 
 function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }) {
   const summaryFirst = !data.you;
-  const share = data.signedIn ? (
+  // Figma 11.1: students taking the course this semester get the bot shortcut (not in 4.4 took, 4.5 not yours).
+  const share = data.you?.status === "now" ? (
     <TelegramLink href={uploadLink(data.code)} className={s.share}>
       <span className={s.shareIcon} aria-hidden>
         +
@@ -88,17 +92,17 @@ function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }
         {data.weeks ? (
           <section className={s.weeks}>
             <h2 className={b.section}>Week by week</h2>
-            {hasFiles || data.weeks.some((w) => w.topic) ? <WeekList weeks={data.weeks} filesHref={filesHref} filesTotal={data.files?.all ?? 0} extra={share} /> : <NoFiles />}
+            {hasFiles || data.weeks.some((w) => w.topic) ? <WeekList weeks={data.weeks} filesHref={filesHref} filesTotal={data.files?.all ?? 0} extra={share} teachingWeek={data.teachingWeek} /> : <NoFiles />}
             {!hasFiles && !data.weeks.some((w) => w.topic) ? share : null}
           </section>
         ) : (
-          <section className={s.weeks}>
+          <>
             <GateNotice />
-            <h2 className={cx(b.section, s.blurred)} aria-hidden>
-              Week by week
-            </h2>
-            <Ghost rows={4} />
-          </section>
+            <section className={cx(s.weeks, s.blurred)} aria-hidden>
+              <h2 className={b.section}>Week by week</h2>
+              <GhostWeeks />
+            </section>
+          </>
         )}
 
         {data.teachers.length ? (
@@ -111,7 +115,7 @@ function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }
         ) : null}
 
         {data.syllabus || !data.signedIn ? (
-          <section className={s.block}>
+          <section className={s.syllabusBlock}>
             <h2 className={b.section}>Syllabus</h2>
             {data.syllabus ? (
               <Syllabus syl={data.syllabus} />
@@ -122,10 +126,28 @@ function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }
                     <span className={s.foldTitle}>Grading</span>
                     <span className={s.foldSub}>From the course syllabus</span>
                   </span>
+                  <ChevronDownIcon size={18} />
                 </div>
-                <div className={s.foldBody}>
-                  <Ghost rows={3} />
+                <div className={cx(s.foldBody, s.blurred)} aria-hidden>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className={s.assess}>
+                      <span className={s.ghostPct} />
+                      <span className={s.ghostItem}>
+                        <span className={s.ghostBar} style={{ width: 120 - i * 10 }} />
+                        <span className={s.ghostBar} style={{ width: 170 + i * 20, height: 10 }} />
+                      </span>
+                    </div>
+                  ))}
                 </div>
+                {/* Section names only: their contents are for signed-in students. */}
+                {["Credits and workload", "What you'll learn", "Books", "Prerequisites"].map((t) => (
+                  <div key={t} className={cx(s.fold, s.foldHead)}>
+                    <span className={s.foldText}>
+                      <span className={s.foldTitle}>{t}</span>
+                    </span>
+                    <ChevronRightIcon size={18} />
+                  </div>
+                ))}
               </div>
             )}
           </section>
@@ -144,23 +166,24 @@ function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }
   );
 }
 
+/** Figma 4.8: EmptyState in the Files tab. */
 function NoFiles() {
-  return (
-    <div className={b.empty}>
-      <Face kind="mascot" size={96} />
-      <h2 className={b.emptyTitle}>No files yet</h2>
-      <p className={b.emptyText}>Files show up here as soon as teachers upload them to LMS. We check every few hours.</p>
-    </div>
-  );
+  return <EmptyState title="No files yet" text="Files show up here as soon as teachers upload them to LMS. We check every few hours." />;
 }
 
 function FilesTab({ data }: { data: CourseScreen }) {
   const files = data.files?.items ?? [];
-  if (!files.length) return <NoFiles />;
+  if (!files.length) {
+    return (
+      <div className={s.content}>
+        <NoFiles />
+      </div>
+    );
+  }
   const topics = Object.fromEntries((data.weeks ?? []).filter((w) => w.week !== null && w.topic).map((w) => [w.week, w.topic as string]));
   return (
     <div className={s.content}>
-      <div className={s.block}>
+      <div className={s.files}>
         <FilesBrowser files={files} topics={topics} />
       </div>
     </div>
@@ -170,10 +193,8 @@ function FilesTab({ data }: { data: CourseScreen }) {
 function AnonymousTab({ data }: { data: CourseScreen }) {
   if (!data.anonymous.latest.length) {
     return (
-      <div className={b.empty}>
-        <Face kind="mascot" size={96} />
-        <h2 className={b.emptyTitle}>Quiet so far</h2>
-        <p className={b.emptyText}>Posts in the students&apos; Anonymous channel that mention {data.name} show up here.</p>
+      <div className={s.content}>
+        <EmptyState title="Quiet so far" text={`Posts in the students' Anonymous channel that mention ${data.name} show up here.`} />
       </div>
     );
   }

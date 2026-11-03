@@ -34,7 +34,7 @@ export function ClassList({ classes, weekday, openKey }: { classes: TimetableCla
         ))}
       </ul>
       {open ? (
-        <Sheet label={open.name} onClose={close}>
+        <Sheet label={open.name} onClose={close} className={s.sheet}>
           <ClassSheet c={open} weekday={weekday} />
           {qr ? <MainButton text="Scan QR" href="/qr" secondary={{ text: "Open course", href: `/c/${open.code}` }} /> : <MainButton text={`Open ${open.name}`} href={`/c/${open.code}`} />}
         </Sheet>
@@ -67,10 +67,7 @@ function ClassSheet({ c, weekday }: { c: TimetableClass; weekday: string }) {
         {c.lesson ? <Tag tone="accent">{c.lesson}</Tag> : null}
       </div>
       {c.status === "now" ? (
-        <p className={s.now}>
-          <span className={s.dot} aria-hidden />
-          Now · until {c.endTime}
-        </p>
+        <p className={s.now}>● Now · until {c.endTime}</p>
       ) : null}
       <h2 className={s.sheetTitle}>{c.name}</h2>
       <p className={s.fact}>

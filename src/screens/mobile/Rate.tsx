@@ -15,13 +15,11 @@ export default function Rate({ data }: { data: RateScreen }) {
   const done = data.total - data.waiting.length;
   const first = data.waiting[0];
   return (
-    <div className={cx(b.screen, !first && b.noButton)}>
-      <header className={b.head}>
-        <h1 className={b.title}>To rate</h1>
-        <p className={b.sub}>
-          {done} of {data.total} rated · anonymous · next year&apos;s students choose by this
-        </p>
-      </header>
+    <div className={cx(b.screen, s.body)}>
+      <h1 className={s.title}>To rate</h1>
+      <p className={b.sub}>
+        {done} of {data.total} rated · anonymous · next year&apos;s students choose by this
+      </p>
       <div className={s.progress} role="progressbar" aria-valuemin={0} aria-valuemax={data.total} aria-valuenow={done} aria-label="Rated">
         <span style={{ width: `${data.total ? (done / data.total) * 100 : 0}%` }} />
       </div>

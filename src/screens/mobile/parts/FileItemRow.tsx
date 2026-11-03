@@ -9,7 +9,7 @@ export function FileItemRow({ file, course, className }: { file: FileItem; cours
       type={file.type}
       course={course}
       date={file.dateLabel}
-      source={{ label: file.from, kind: file.source === "lms" ? "lms" : "channel" }}
+      source={{ label: file.from, kind: file.source === "lms" ? "lms" : "students" }}
       href={file.href}
       className={className}
     />

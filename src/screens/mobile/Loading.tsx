@@ -46,14 +46,37 @@ export function CourseLoading() {
         <span className={c.tab}>Files</span>
         <span className={c.tab}>Anonymous</span>
       </div>
+      {/* Figma 4.17: each section keeps its heading; its rows are sunken blocks of the same size. */}
       <div className={c.content}>
         <span className={c.skeleton} style={{ height: 127 }} />
         <section className={c.weeks}>
           <h2 className={b.section}>Week by week</h2>
-          <span className={c.skeleton} style={{ height: 46 }} />
-          <span className={c.skeleton} style={{ height: 52 }} />
+          <span className={c.skeleton} style={{ height: 48 }} />
+          <div className={c.week}>
+            <span className={c.skeleton} style={{ height: 52 }} />
+            <div className={c.weekFiles} style={{ paddingLeft: 16 }}>
+              <span className={c.skeleton} style={{ height: 64 }} />
+              <span className={c.skeleton} style={{ height: 64 }} />
+            </div>
+          </div>
+          <span className={c.skeleton} style={{ height: 48 }} />
         </section>
+        <section className={c.block}>
+          <h2 className={b.section}>Who teaches it</h2>
+          {[0, 1, 2].map((i) => (
+            <span key={i} className={c.skeleton} style={{ height: 140 }} />
+          ))}
+        </section>
+        <section className={c.syllabusBlock}>
+          <h2 className={b.section}>Syllabus</h2>
+          <span className={c.skeleton} style={{ height: 280 }} />
+        </section>
+        <span className={c.skeleton} style={{ height: 140 }} />
       </div>
+      <section className={c.band}>
+        <h2 className={b.section}>What Anonymous says</h2>
+        <span className={c.skeleton} style={{ height: 140 }} />
+      </section>
     </div>
   );
 }

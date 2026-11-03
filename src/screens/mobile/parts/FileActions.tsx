@@ -13,7 +13,7 @@ export function FileActions({ url, name }: { url: string; name: string }) {
 export function ShareFile({ url, title }: { url: string; title: string }) {
   return (
     <button type="button" className={s.share} aria-label={`Share ${title}`} onClick={() => openTelegramLink(url)}>
-      <SendIcon size={22} />
+      <SendIcon size={20} />
     </button>
   );
 }

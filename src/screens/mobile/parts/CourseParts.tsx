@@ -214,24 +214,23 @@ export function Syllabus({ syl }: { syl: SyllabusFold }) {
 const longDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Tashkent" }) : null);
 
 export function MentionCard({ m }: { m: MentionView }) {
+  // Figma MentionCard: the whole card opens the post; footer is Tag · "Open post" · external icon, spread apart.
   return (
-    <article className={s.mention}>
-      <p className={s.mentionHead}>
+    <a href={m.url} className={s.mention} target="_blank" rel="noreferrer">
+      <span className={s.mentionHead}>
         <span className={s.mentionWho}>
           <SendIcon size={16} />
           Anonymous
         </span>
         {m.date ? <span className={s.mentionDate}>{longDate(m.date)}</span> : null}
-      </p>
-      <p className={s.mentionText}>{m.text}</p>
-      <div className={s.mentionFoot}>
+      </span>
+      <span className={s.mentionText}>{m.text}</span>
+      <span className={s.mentionFoot}>
         <Tag>Course</Tag>
-        <a href={m.url} className={s.openPost} target="_blank" rel="noreferrer">
-          Open post
-          <ExternalIcon size={16} />
-        </a>
-      </div>
-    </article>
+        <span className={s.openPost}>Open post</span>
+        <ExternalIcon size={14} />
+      </span>
+    </a>
   );
 }
 
@@ -245,18 +244,47 @@ export function GateNotice() {
   );
 }
 
-/** Blurred placeholder in place of gated content; no real data is sent to guests. */
-export function Ghost({ rows = 3, tall = 48 }: { rows?: number; tall?: number }) {
-  return (
-    <div className={s.blurred} aria-hidden>
-      <div className={s.ghostList}>
-        {Array.from({ length: rows }, (_, i) => (
-          <div key={i} className={s.ghostItem} style={{ minHeight: tall }}>
-            <span className={s.ghostBar} style={{ width: `${70 - i * 8}%` }} />
-            <span className={s.ghostBar} style={{ width: `${45 + i * 6}%`, height: 10 }} />
-          </div>
-        ))}
-      </div>
+/**
+ * The week list's shape for guests, drawn blurred under the gate (4.6): week rows,
+ * this week with two file rows, the links. No real course data is sent to guests.
+ */
+export function GhostWeeks() {
+  const row = (n: number, w: number, now = false) => (
+    <div className={cx(s.weekRow, now && s.weekNow)}>
+      <span className={s.weekNum}>{n}</span>
+      <span className={s.weekTopic}>
+        <span className={s.ghostBar} style={{ display: "inline-block", width: w, verticalAlign: "middle" }} />
+      </span>
     </div>
+  );
+  const file = (flag: string) => (
+    <div className={s.ghostFile}>
+      <span className={s.ghostFlag} style={{ background: flag }} />
+      <span className={s.ghostItem}>
+        <span className={s.ghostBar} style={{ width: 150 }} />
+        <span className={s.ghostBar} style={{ width: 70, height: 10 }} />
+      </span>
+    </div>
+  );
+  return (
+    <>
+      {row(7, 230)}
+      <div className={s.week}>
+        {row(8, 120, true)}
+        <div className={s.weekFiles}>
+          {file("var(--bg-accent)")}
+          {file("var(--rating-mid)")}
+        </div>
+      </div>
+      {row(9, 240)}
+      <div className={s.links}>
+        <span className={s.ghost}>
+          <span className={s.ghostBar} style={{ width: 110 }} />
+        </span>
+        <span className={s.ghost}>
+          <span className={s.ghostBar} style={{ width: 90 }} />
+        </span>
+      </div>
+    </>
   );
 }
