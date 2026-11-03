@@ -92,7 +92,10 @@ export async function myCourses(userId: string, now = new Date()): Promise<MyCou
 export type TeacherCard = {
   id: string;
   name: string;
+  /** The main role (lecture before tutorial, practice, lab); `roles` lists all of them. */
   role: TeacherRole;
+  roles?: TeacherRole[];
+  /** "Lectures", or "Lectures · Labs" for someone who gives both. */
   roleLabel: string;
   /** "% pressed F" for this course and role, from 5 ratings; else overall; else null. */
   pressFPct: number | null;
@@ -208,23 +211,29 @@ const coursePublic = publicCache(
     const teachersByCourse: Record<string, TeacherCard[]> = {};
     for (const r of rows) {
       const slots = lessonSlots(r.raw);
-      const seen = new Set<string>();
-      const cards: TeacherCard[] = [];
-      for (const l of links.filter((x) => x.courseId === r.id)) {
-        const role = roleOf(l.role);
-        if (seen.has(`${l.teacherId}|${role}`)) continue;
-        seen.add(`${l.teacherId}|${role}`);
-        const s = summaries[l.teacherId];
-        const forCourse = s?.enough ? s.byCourse.find((b) => b.courseId === code && b.role === role) : undefined;
-        cards.push({
-          id: l.teacherId, name: people.get(l.teacherId)?.name ?? "Teacher", role, roleLabel: ROLE_LABEL[role],
-          pressFPct: forCourse?.pct ?? (s?.enough ? s.pressFPct : null), ratings: s?.count ?? 0,
-          when: slotsLabel(slots.filter((x) => x.teacherId === l.teacherId)), topTag: (s?.enough ? (s.tags[0] as TagShare<TeacherTag> | undefined)?.tag : null) ?? null,
-          face: people.get(l.teacherId)?.face ?? null,
-          href: `/p/${l.teacherId}`,
-        });
-      }
       const order: TeacherRole[] = ["lecture", "tutorial", "practice", "lab", "other"];
+      // One card per teacher: someone who gives both the lectures and the labs is listed once, "Lectures · Labs".
+      const rolesOf = new Map<string, TeacherRole[]>();
+      for (const l of links.filter((x) => x.courseId === r.id)) {
+        const roles = rolesOf.get(l.teacherId) ?? [];
+        const role = roleOf(l.role);
+        if (!roles.includes(role)) roles.push(role);
+        rolesOf.set(l.teacherId, roles);
+      }
+      const cards: TeacherCard[] = [...rolesOf].map(([teacherId, found]) => {
+        const named = found.filter((x) => x !== "other");
+        const roles = (named.length ? named : found).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+        const role = roles[0];
+        const s = summaries[teacherId];
+        const forCourse = s?.enough ? s.byCourse.find((b) => b.courseId === code && b.role === role) : undefined;
+        return {
+          id: teacherId, name: people.get(teacherId)?.name ?? "Teacher", role, roles, roleLabel: roles.map((x) => ROLE_LABEL[x]).filter(Boolean).join(" · ") || ROLE_LABEL[role],
+          pressFPct: forCourse?.pct ?? (s?.enough ? s.pressFPct : null), ratings: s?.count ?? 0,
+          when: slotsLabel(slots.filter((x) => x.teacherId === teacherId)), topTag: (s?.enough ? (s.tags[0] as TagShare<TeacherTag> | undefined)?.tag : null) ?? null,
+          face: people.get(teacherId)?.face ?? null,
+          href: `/p/${teacherId}`,
+        };
+      });
       teachersByCourse[r.id] = cards.sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role));
     }
 
@@ -358,7 +367,7 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
     termStatus,
     signedIn,
     ratings: pub.ratings,
-    teachers: [...new Map(picked.courseIds.flatMap((id) => pub.teachersByCourse[id] ?? []).map((t) => [`${t.id}|${t.role}`, t])).values()],
+    teachers: [...new Map(picked.courseIds.flatMap((id) => pub.teachersByCourse[id] ?? []).map((t) => [t.id, t])).values()],
     anonymous: pub.anonymous,
     weeks,
     totalWeeks: pub.totalWeeks,
