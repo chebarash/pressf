@@ -1,4 +1,5 @@
-import { currentUser, gradebookData, gradebookSemesters, transcript } from "@/lib/lms/client";
+import { currentUser, gradebookData, gradebookSemesters, myList, transcript } from "@/lib/lms/client";
+import { gradebookCourses, studiedSemesters } from "@/server/sync/convert";
 import { listOf, pick } from "@/lib/lms/semesters";
 import { sessionFor } from "@/lib/lms/store";
 
@@ -51,32 +52,25 @@ export async function lmsProfile(userId: string, email: string): Promise<LmsProf
   const session = await sessionFor(userId);
   if (!session) return null;
 
-  const [me, tr, semesters] = await Promise.all([
+  const [me, tr, semesters, list] = await Promise.all([
     currentUser(session).catch(() => null),
     transcript(session).catch(() => null),
     gradebookSemesters(session).catch(() => [] as Awaited<ReturnType<typeof gradebookSemesters>>),
+    Promise.resolve().then(() => myList(session)).catch(() => null),
   ]);
   const head = tr?.transcript ?? tr ?? {};
 
-  // Newest semester first; the gradebook lists them oldest-first.
-  const ordered = [...(semesters ?? [])].sort((a, b) => (b.semester_id ?? 0) - (a.semester_id ?? 0));
-  const grades = await Promise.all(
-    ordered.map((s) => gradebookData(session, s.semester_id).catch(() => null))
-  );
+  // Every semester studied (the gradebook list misses the first year; my-list has it), newest first.
+  const ordered = studiedSemesters(semesters, list).reverse();
+  const grades = await Promise.all(ordered.map((s) => gradebookData(session, s.id).catch(() => null)));
 
   const built: ProfileSemester[] = ordered.map((s, i) => {
-    const subjects = grades[i]?.resultSubjects ?? {};
-    const courses: ProfileCourse[] = Object.values(subjects).map((row) => ({
-      name: row.subject?.name?.trim() || "Course",
-      mark: row.final_grade?.mark ?? null,
-      passed: row.final_grade?.positive_status ?? false,
+    const courses: ProfileCourse[] = gradebookCourses(grades[i], s.id, s.open).map((c) => ({
+      name: c.name,
+      mark: c.final,
+      passed: c.passed ?? false,
     }));
-    return {
-      name: s.semester_name?.trim() || `Semester ${s.semester_id}`,
-      year: s.year_of_study ?? null,
-      open: s.is_open === 1,
-      courses: courses.sort((a, b) => a.name.localeCompare(b.name)),
-    };
+    return { name: s.term, year: s.year, open: s.open, courses: courses.sort((a, b) => a.name.localeCompare(b.name)) };
   }).filter((s) => s.courses.length > 0);
 
   const given = me?.username?.trim();

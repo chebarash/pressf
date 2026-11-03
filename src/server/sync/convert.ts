@@ -1,14 +1,16 @@
 import type { ClassKind } from "@/core/agenda";
-import { attendance, attendanceEvents, newAbsences } from "@/core/attendance";
+import { attendance, attendanceEvents, classTime, newAbsences, type LmsAdmit, type LmsAttendanceEvent } from "@/core/attendance";
+import { personOf } from "@/core/people";
 import { remindersDue, type Deadline } from "@/core/deadlines";
 import { changedGrades } from "@/core/grades";
+import { fileList } from "@/core/files";
 import { path } from "@/core/links";
 import { fromLms, type AlertSettings, type FeedItem, type LmsNotification } from "@/core/notifications";
 import { addDays, clock, localDay, shortDate, weekdayName } from "@/core/time";
 import { lmsDay } from "@/lib/lms/semesters";
-import type { LmsGradebookData, LmsGradebookSemester, LmsNotificationsPayload, LmsScheduleDay } from "@/lib/lms/types";
+import type { LmsGradebookData, LmsGradebookRow, LmsGradebookSemester, LmsMyList, LmsNotificationsPayload, LmsScheduleDay } from "@/lib/lms/types";
 import * as msg from "@/lib/telegram/messages";
-import { termName, type SyncedClass, type SyncedCourse, type SyncedSemester } from "./types";
+import { termName, type SyncedClass, type SyncedCourse, type SyncedEvent, type SyncedSemester } from "./types";
 
 /**
  * Pure conversions from LMS payloads to the sync snapshot, and from two
@@ -17,9 +19,20 @@ import { termName, type SyncedClass, type SyncedCourse, type SyncedSemester } fr
 
 export type Alert = { item: FeedItem; message: msg.BotMessage; setting: keyof AlertSettings };
 
-/** Gradebook numbers arrive as numbers, strings or `{ mark }`. */
+/**
+ * Gradebook numbers arrive as numbers, strings, `{ mark }` or a list of
+ * `{ mark, type, rating_id }` (one per rating period: `average`, `rating`,
+ * `rk`, `siw_average`); a list reads as its latest period with a mark.
+ */
 export function num(v: unknown): number | null {
-  if (v && typeof v === "object" && "mark" in v) return num((v as { mark: unknown }).mark);
+  if (Array.isArray(v)) {
+    for (let i = v.length - 1; i >= 0; i--) {
+      const n = num(v[i]);
+      if (n !== null) return n;
+    }
+    return null;
+  }
+  if (v && typeof v === "object") return "mark" in v ? num((v as { mark: unknown }).mark) : null;
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -31,18 +44,79 @@ export const semesterRows = (rows: LmsGradebookSemester[]): SyncedSemester[] =>
     open: s.is_open === 1 || String(s.is_open) === "1", starts: lmsDay(s.study_start), ends: lmsDay(s.study_end),
   }));
 
-type GradeRow = NonNullable<LmsGradebookData["resultSubjects"]>[string] & Record<string, unknown>;
+/**
+ * Every semester the student has studied: the gradebook list, plus the past and
+ * current semesters of `/subject/my-list`. The gradebook list leaves out the
+ * first study year (2023-24 for the class of 2027), although
+ * `/gradebook/gradebook-data` still answers for those ids with final grades.
+ * Upcoming semesters (`is_open` 2) are not studied yet and stay out. Oldest first.
+ */
+export function studiedSemesters(gradebook: LmsGradebookSemester[] | null | undefined, list: LmsMyList | null | undefined): SyncedSemester[] {
+  const by = new Map(semesterRows(gradebook ?? []).map((s) => [s.id, s]));
+  for (const m of list?.semesters ?? []) {
+    const id = String(m.semester_id ?? m.id ?? "");
+    if (!id || by.has(id) || String(m.is_open) === "2") continue;
+    by.set(id, {
+      id, term: termName(m.name) || m.name || `Semester ${id}`, year: null,
+      open: String(m.is_open) === "1", starts: null, ends: null,
+    });
+  }
+  return [...by.values()].sort((a, b) => termOrder(a.term) - termOrder(b.term) || Number(a.id) - Number(b.id));
+}
 
-export function gradebookCourses(data: LmsGradebookData | null | undefined, semesterId: string): SyncedCourse[] {
-  return Object.entries(data?.resultSubjects ?? {}).map(([subjectId, raw]) => {
+const termOrder = (term: string) => Number(term.match(/\d{4}/)?.[0] ?? 0) * 10 + ({ Spring: 1, Summer: 2, Fall: 3 }[term.split(" ")[0]] ?? 0);
+
+type GradeRow = LmsGradebookRow & Record<string, unknown>;
+
+/** `subject.employee`: `{ "118": "Kholov Vohid " }` (family name first) on newer semesters, `[]` on older ones. */
+function gradebookTeachers(v: unknown): string[] {
+  const names = Array.isArray(v) ? v.map((e) => (typeof e === "string" ? e : personOf(e as Record<string, unknown>))) : v && typeof v === "object" ? Object.values(v as Record<string, unknown>) : [];
+  return names
+    .filter((n): n is string => typeof n === "string" && !!n.trim() && n !== "Teacher")
+    .map((n) => {
+      const parts = n.trim().split(/\s+/);
+      // "Family Given" → "Given Family" (the LMS's own order in this map).
+      return Array.isArray(v) || parts.length < 2 ? n.trim() : [...parts.slice(1), parts[0]].join(" ");
+    });
+}
+
+/** One stored class: the fields the views read, with the class time resolved. */
+export function syncedEvent(e: LmsAttendanceEvent & { mark?: unknown }): SyncedEvent {
+  const at = classTime(e);
+  return {
+    ...(e.id !== undefined ? { id: e.id } : {}),
+    ...(e.lesson_id !== undefined && e.lesson_id !== null ? { lesson_id: e.lesson_id } : {}),
+    lesson_name: e.lesson_name, lesson_number: e.lesson_number ?? null, lesson_type: e.lesson_type, status: e.status, qr_auto_set_status: e.qr_auto_set_status ?? null,
+    time: e.time ?? null, at: at ? Math.floor(at.getTime() / 1000) : null,
+    mark: (e.mark as number | string | null | undefined) ?? null,
+  };
+}
+
+const truthy = (v: unknown) => v === true || v === 1 || v === "1";
+
+/**
+ * Courses of one semester's gradebook. `open`: the semester is running, so a
+ * final of 0 that did not pass is "no final yet" (the LMS fills 0 until then).
+ */
+export function gradebookCourses(data: LmsGradebookData | null | undefined, semesterId: string, open = false): SyncedCourse[] {
+  const rows = data?.resultSubjects;
+  if (!rows || typeof rows !== "object" || Array.isArray(rows)) return [];
+  return Object.entries(rows).map(([subjectId, raw]) => {
     const row = raw as GradeRow;
-    const final = num(row.final_grade);
+    const finalRow = row.final_grade as { mark?: unknown; positive_status?: boolean } | null | undefined;
+    let final = num(finalRow);
+    const exam = num(row.e);
+    if (final === 0 && !finalRow?.positive_status && open && !exam) final = null;
+    const admitRow = (row.admit ?? null) as (LmsAdmit & { admit?: unknown }) | null;
     return {
-      subjectId, semesterId, name: row.subject?.name?.trim() || "Course",
+      subjectId, semesterId, name: (row.subject?.name ?? "").trim() || "Course",
       average: num(row.average), rating: num(row.rating), final,
-      passed: final === null ? null : row.final_grade?.positive_status ?? null, fx: !!row.fx,
-      admit: row.admit ?? null,
-      events: (row.events ?? []).map((e) => ({ lesson_name: e.lesson_name, lesson_type: e.lesson_type, status: e.status, qr_auto_set_status: e.qr_auto_set_status, time: e.time, mark: (e as { mark?: number | string | null }).mark ?? null })),
+      passed: final === null ? null : finalRow?.positive_status ?? null, fx: !!num(row.fx) || row.fx === true,
+      admission: num(row.rd), exam, midterm: num(row.rk), siw: num(row.siw_average),
+      admitted: admitRow && admitRow.admit !== null && admitRow.admit !== undefined && (Number(admitRow.lessons_count) > 0 || truthy(admitRow.admit)) ? truthy(admitRow.admit) : null,
+      teachers: gradebookTeachers((row.subject as { employee?: unknown } | undefined)?.employee),
+      admit: admitRow ? { absence_count_all: admitRow.absence_count_all, avaibale_count_all: admitRow.avaibale_count_all, lessons_count: admitRow.lessons_count, admit: admitRow.admit as LmsAdmit["admit"] } : null,
+      events: (row.events ?? []).map((e: LmsAttendanceEvent) => syncedEvent(e as LmsAttendanceEvent & { mark?: unknown })),
     };
   });
 }
@@ -75,7 +149,12 @@ const kindFromType = (name: string | null | undefined): ClassKind => {
   return "other";
 };
 
-const roomOf = (a: ScheduleEvent["auditorium"]) => (typeof a === "string" ? a : a?.name) || null;
+/** `auditorium` is a string, `{ name }`, or (real `/schedule/list`) `{ aud_num: "306", campus: { name } }`. */
+const roomOf = (a: ScheduleEvent["auditorium"]) => {
+  if (typeof a === "string") return a.trim() || null;
+  const r = (a ?? {}) as { name?: string | null; aud_num?: string | null };
+  return (r.name ?? "").trim() || (r.aud_num ?? "").toString().trim() || null;
+};
 
 /** Dated classes from `/schedule/list`, with `was` set where the LMS moved a class. */
 export function scheduleClasses(days: LmsScheduleDay[], previous: SyncedClass[]): SyncedClass[] {
@@ -106,7 +185,9 @@ export function scheduleClasses(days: LmsScheduleDay[], previous: SyncedClass[])
 /** Every LMS notification once, from whichever tabs the payload has. */
 export function lmsNotifications(payload: LmsNotificationsPayload | null | undefined): LmsNotification[] {
   if (!payload) return [];
-  const all = [...(payload.all ?? []), ...(payload.notification ?? []), ...(payload.advertise ?? []), ...(payload.advertise_required ?? []), ...(payload.offer ?? [])];
+  // Every tab, whatever it is called: `all`, `notification`, `advertise`,
+  // `advertise_required`, `offer`, `polls_event` and any the LMS adds.
+  const all = Object.values(payload as Record<string, unknown>).flatMap((v) => (Array.isArray(v) ? (v as LmsNotification[]) : []));
   const by = new Map<string, LmsNotification>();
   for (const n of all) if (n && n.id !== undefined && n.id !== null && !by.has(String(n.id))) by.set(String(n.id), n);
   return [...by.values()];
@@ -121,8 +202,14 @@ export function announcementAlerts(list: LmsNotification[]): Alert[] {
 
 type Named = (subjectId: string) => { name: string; code: string };
 
-export function gradeAlerts(prev: Record<string, number | null>, courses: SyncedCourse[], at: Date, named: Named): Alert[] {
-  const changes = changedGrades(prev, marksOf(courses));
+/**
+ * "New grade" for marks that changed since the last sync. `known`: courses the
+ * last snapshot already had; a course seen for the first time (an older
+ * semester pulled in, a new enrolment) is only remembered, never announced.
+ */
+export function gradeAlerts(prev: Record<string, number | null>, courses: SyncedCourse[], at: Date, named: Named, known?: Set<string>): Alert[] {
+  const seen = known ? courses.filter((c) => known.has(`${c.semesterId}|${c.subjectId}`)) : courses;
+  const changes = changedGrades(prev, marksOf(seen));
   return changes.map(({ key, mark }) => {
     const [subjectId, part, time, ...lesson] = key.split(":");
     const c = courses.find((x) => x.subjectId === subjectId);
@@ -149,7 +236,7 @@ export function absenceAlerts(prev: SyncedCourse[], next: SyncedCourse[], at: Da
       const date = e.at ? `${weekdayName(e.at).slice(0, 3)} ${shortDate(e.at)}` : null;
       out.push({
         setting: "absence",
-        item: { id: `absence:${c.subjectId}:${e.lesson}@${e.at?.getTime() ?? ""}`, kind: "absence", title: `Marked absent${a ? ` · ${a.left} left` : ""}`, body: [name, e.lesson, date].filter(Boolean).join(" · "), courseId: c.subjectId, at, read: false, href: path({ to: "progress", courseId: c.subjectId }) },
+        item: { id: `absence:${c.subjectId}:${e.lesson}`, kind: "absence", title: `Marked absent${a ? ` · ${a.left} left` : ""}`, body: [name, e.lesson, date].filter(Boolean).join(" · "), courseId: c.subjectId, at, read: false, href: path({ to: "progress", courseId: c.subjectId }) },
         message: msg.markedAbsent({ course: name, courseId: c.subjectId, lesson: e.lesson, left: a?.left ?? null }),
       });
     }
@@ -161,6 +248,40 @@ export function absenceAlerts(prev: SyncedCourse[], next: SyncedCourse[], at: Da
         message: msg.absencesLeft({ course: name, courseId: c.subjectId, used: a.missed, limit: a.limit, left: a.left }),
       });
     }
+  }
+  return out;
+}
+
+/**
+ * The absences and marked classes a course already had when Press F first saw
+ * it, as read feed items dated at the class: the Absences and Grades tabs show
+ * the semester so far, and nothing is sent to the bot (read items never are).
+ */
+export function historyAlerts(courses: SyncedCourse[], now: Date, named: Named): Alert[] {
+  const out: Alert[] = [];
+  for (const c of courses) {
+    const { name } = named(c.subjectId);
+    const events = attendanceEvents(c.events);
+    events.forEach((e, i) => {
+      const at = e.at && e.at <= now ? e.at : now;
+      const date = e.at ? `${weekdayName(e.at).slice(0, 3)} ${shortDate(e.at)}` : null;
+      if (e.mark === "absent") {
+        out.push({
+          setting: "absence",
+          item: { id: `absence:${c.subjectId}:${e.lesson}`, kind: "absence", title: "Marked absent", body: [name, e.lesson, date].filter(Boolean).join(" · "), courseId: c.subjectId, at, read: true, href: path({ to: "progress", courseId: c.subjectId }) },
+          message: msg.markedAbsent({ course: name, courseId: c.subjectId, lesson: e.lesson, left: null }),
+        });
+      }
+      const mark = num(c.events[i]?.mark);
+      if (mark !== null) {
+        const key = `${c.subjectId}:ev:${c.events[i]?.time ?? ""}:${e.lesson}`;
+        out.push({
+          setting: "grade",
+          item: { id: `grade:${key}:${mark}`, kind: "grade", title: `Grade: ${mark} for the ${e.lesson.toLowerCase()}`, body: [name, date].filter(Boolean).join(" · "), courseId: c.subjectId, at, read: true, href: path({ to: "progress", courseId: c.subjectId }) },
+          message: msg.newGrade({ grade: mark, course: name, courseId: c.subjectId, item: e.lesson.toLowerCase(), average: c.average }),
+        });
+      }
+    });
   }
   return out;
 }
@@ -203,9 +324,16 @@ export function deadlineAlerts(list: Deadline[], now: Date, lastRun: Date): Aler
 
 export function fileAlert(course: { id: string; code: string; name: string }, files: Array<{ id: string; title: string; week: number | null }>, now: Date): Alert {
   const week = files.every((f) => f.week === files[0].week) ? files[0].week : null;
+  const count = `${files.length} new ${files.length === 1 ? "file" : "files"}`;
   return {
     setting: "file",
-    item: { id: `files:${course.id}:${files.map((f) => f.id).sort().join(",")}`.slice(0, 200), kind: "file", title: `${files.length} new ${files.length === 1 ? "file" : "files"}: ${files.map((f) => f.title).join(", ")}`, body: [course.name, week ? `Week ${week}` : null].filter(Boolean).join(" · "), courseId: course.id, at: now, read: false, href: path({ to: "course", code: course.code }) },
+    item: {
+      id: `files:${course.id}:${files.map((f) => f.id).sort().join(",")}`.slice(0, 200), kind: "file",
+      // The title names the course; the files themselves are listed in the body.
+      title: files.length === 1 ? `New file in ${course.name}: ${files[0].title}` : `${count} in ${course.name}`,
+      body: [week ? `Week ${week}` : null, files.length > 1 ? fileList(files.map((f) => f.title)) : null].filter(Boolean).join(" · ") || undefined,
+      courseId: course.id, courseName: course.name, at: now, read: false, href: path({ to: "course", code: course.code }),
+    },
     message: msg.newFiles({ course: course.name, courseCode: course.code, week, files: files.map((f) => f.title) }),
   };
 }

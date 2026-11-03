@@ -6,13 +6,14 @@ export type DeadlineStatus = "todo" | "in-progress" | "submitted" | "checked" | 
 
 export type Deadline = { id: string; course: string; title: string; due: Date; status: DeadlineStatus; grade: number | null };
 
+/** `status_name` comes in Russian even with `lang=en` ("Не готово"), so both languages are read. */
 const STATUS: Array<[RegExp, DeadlineStatus]> = [
-  [/not submitted/i, "missed"],
-  [/not ready/i, "todo"],
-  [/in process|on completion/i, "in-progress"],
-  [/under review/i, "submitted"],
-  [/checked/i, "checked"],
-  [/archive/i, "archived"],
+  [/not submitted|не сдан/i, "missed"],
+  [/not ready|не готов/i, "todo"],
+  [/in process|on completion|в процессе|в работе|на доработ/i, "in-progress"],
+  [/under review|на проверк/i, "submitted"],
+  [/checked|провер(ено|ен)/i, "checked"],
+  [/archive|архив/i, "archived"],
 ];
 
 export function deadline(h: LmsHomework): Deadline | null {
@@ -21,7 +22,8 @@ export function deadline(h: LmsHomework): Deadline | null {
   const course = typeof h.subject === "string" ? h.subject : h.subject?.name ?? "";
   const status = STATUS.find(([re]) => re.test(h.status_name ?? ""))?.[1] ?? "todo";
   const grade = h.rating === null || h.rating === undefined || h.rating === "" ? null : Number(h.rating);
-  return { id: String(h.id ?? `${course}:${due}`), course, title: h.theme_name?.trim() || "Assignment", due: new Date(due * 1000), status, grade: Number.isFinite(grade) ? grade : null };
+  const id = h.id ?? h.homework_working_id ?? h.homework_id;
+  return { id: String(id ?? `${course}:${due}`), course, title: h.theme_name?.trim() || "Assignment", due: new Date(due * 1000), status, grade: Number.isFinite(grade) ? grade : null };
 }
 
 /** Open work due in the next `days`, soonest first. */

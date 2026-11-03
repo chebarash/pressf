@@ -1,3 +1,4 @@
+import { fileList } from "@/core/files";
 import { path, type Target } from "@/core/links";
 import type { BotMessage, InlineButton, InlineKeyboard } from "./api";
 import { card, esc } from "./html";
@@ -119,7 +120,8 @@ export const newGrade = (a: { grade: number | string; course: string; courseId?:
 /** When files appear (bundled per course, at most once an hour). */
 export const newFiles = (a: { course: string; courseCode: string; files: string[]; week?: number | null }): BotMessage => {
   const n = a.files.length;
-  const list = a.files.join(", ");
+  // At most three titles named, each once ("A, B, C and 7 more").
+  const list = fileList(a.files);
   return {
     text: card(`${n} new ${n === 1 ? "file" : "files"} in ${a.course}`, a.week ? `Week ${a.week}: ${list}` : list),
     keyboard: open("Open course", { to: "course", code: a.courseCode, tab: "files" }),

@@ -73,13 +73,33 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export function cleanTitle(name: string, opts: { courseCode?: string; courseName?: string } = {}): string {
   let t = name.replace(/\.[A-Za-z0-9]{1,5}$/, "");
   t = t.replace(/[_]+/g, " ").replace(/\s*\((\d+|copy)\)\s*$/i, "");
-  if (opts.courseCode) t = t.replace(new RegExp(`\\b${opts.courseCode.replace(/\s+/g, "\\s?")}\\b`, "ig"), " ");
-  if (opts.courseName) t = t.replace(new RegExp(`^${opts.courseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*[-:–—]?\\s*`, "i"), "");
+  if (opts.courseCode) {
+    // "CS412", "CS 412", "CS-412", "cs_412": letters and digits with anything (or nothing) between.
+    const [, letters, digits] = opts.courseCode.replace(/\s+/g, "").match(/^([A-Za-z]+)(\d+[A-Za-z]?)$/) ?? [];
+    const code = letters ? `${letters}[\\s\\-.]*${digits}` : opts.courseCode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s?");
+    t = t.replace(new RegExp(`(^|[^A-Za-z0-9])${code}(?![0-9])`, "ig"), "$1 ");
+  }
+  if (opts.courseName) {
+    // The course name at the start or the end ("Deep Learning — Midterm Review", "Midterm review - deep_learning"),
+    // its words split by spaces, hyphens or nothing ("DeepLearning").
+    const words = opts.courseName.trim().split(/\s+/).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const nameRe = words.join("[\\s\\-]*");
+    const stripped = t.replace(new RegExp(`^\\s*${nameRe}\\s*[-:–—,.]?\\s*`, "i"), "").replace(new RegExp(`\\s*[-:–—,(]?\\s*${nameRe}\\s*\\)?\\s*$`, "i"), "");
+    if (stripped.trim()) t = stripped;
+  }
   t = t.replace(/\b(?:week|wk|w)[\s-]*0?\d{1,2}\b\s*[-:–—.]?/gi, " ");
   t = t.replace(/\b(final|v\d+|ver\d+|copy|new|upd(ated)?)\b\s*$/gi, "");
   t = t.replace(/(^|\s)L\s?(\d+)\b/g, "$1Lecture $2").replace(/(^|\s)P\s?(\d+)\b/g, "$1Practice $2").replace(/(^|\s)LB\s?(\d+)\b/g, "$1Lab $2").replace(/(^|\s)T\s?(\d+)\b/g, "$1Tutorial $2");
   t = t.replace(/\s*[-–—:]\s*/g, " — ").replace(/\s+/g, " ").replace(/^[\s—.]+|[\s—.]+$/g, "");
   return t ? cap(t) : "Untitled file";
+}
+
+/** "Lecture 1, Lecture 2, Syllabus and 7 more": titles, each once, at most three named. */
+export function fileList(titles: string[], max = 3) {
+  const unique = [...new Set(titles.map((t) => t.trim()).filter(Boolean))];
+  const shown = unique.slice(0, max);
+  const rest = unique.length - shown.length;
+  return rest > 0 ? `${shown.join(", ")} and ${rest} more` : shown.join(", ");
 }
 
 export type FileMeta = { title: string; type: FileType; format: FileFormat; week: number | null };

@@ -72,7 +72,7 @@ export async function myCourses(userId: string, now = new Date()): Promise<MyCou
   const open = student.sync.semesters.find((s) => s.open);
   return {
     sync: student.state,
-    term: open?.term ?? student.cache?.enrollment?.semesterName ?? null,
+    term: open?.term ?? (student.cache?.enrollment?.semesterName ? termName(student.cache.enrollment.semesterName) : null),
     courses: cards,
     notInLmsYet: cards.length === 0 && (student.sync.semesters.length > 0 || !!student.cache),
     earlier: past.map((s) => {

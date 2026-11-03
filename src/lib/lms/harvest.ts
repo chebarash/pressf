@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { plainText } from "@/core/notifications";
+import { localized } from "@/core/people";
 import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers, type LmsCurriculumData, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
 import { departments, employee, individualPlan, programs, subject, type LmsSession } from "@/lib/lms/client";
 import { harvestSemesters, listOf, pick } from "@/lib/lms/semesters";
@@ -27,10 +28,32 @@ const int = (v?: string | null) => {
   const n = Number(v);
   return v == null || v === "" || Number.isNaN(n) ? null : n;
 };
-const name = (e: LmsEmployee, part: "first" | "last" | "sur") => {
-  const r = e as Record<string, string | undefined>;
-  return (r[`${part}_name_en`] || r[`${part}_name_ru`] || "").trim() || null;
-};
+/** One name part, English first (`first` given, `sur` family, `last` patronymic: see core/people). */
+const name = (e: LmsEmployee, part: "first" | "last" | "sur") => localized(e as Record<string, unknown>, `${part}_name`);
+
+/**
+ * Who teaches what in a course. `/subject/get-by-id` sends `employee[]` without
+ * a role, but every lesson carries its type (`lessonType.name`: "Lecture",
+ * "Tutorial", "Laboratory") and the teacher of each scheduled slot, so the role
+ * comes from the lessons; `employee_type` (sent by `/subject/my-list`) is used
+ * when the lessons say nothing.
+ */
+export function courseRoles(c: Pick<LmsSubject, "employee" | "lessons">): Array<{ teacherId: string; role: string | null }> {
+  const out = new Map<string, { teacherId: string; role: string | null }>();
+  for (const l of c.lessons ?? []) {
+    const role = l.lessonType?.name?.trim() || null;
+    for (const s of l.schedule ?? []) {
+      const id = String(s.employee_id ?? s.employee?.employee_id ?? "").trim();
+      if (id && role) out.set(`${id}|${role}`, { teacherId: id, role });
+    }
+  }
+  for (const e of c.employee ?? []) {
+    if (!e.employee_id || [...out.values()].some((r) => r.teacherId === e.employee_id)) continue;
+    const role = e.employee_type && !/^other/i.test(e.employee_type) ? e.employee_type : null;
+    out.set(`${e.employee_id}|${role}`, { teacherId: e.employee_id, role });
+  }
+  return [...out.values()];
+}
 
 async function saveDepartmentsAndPrograms(session: LmsSession) {
   const [deps, progs] = await Promise.all([departments(session), programs(session)]);
@@ -81,12 +104,8 @@ async function saveCourse(c: LmsSubject) {
   }
   // Rebuild this course's teacher links so dropped teachers disappear.
   await db().delete(lmsCourseTeachers).where(sql`${lmsCourseTeachers.courseId} = ${c.id}`);
-  const links = new Map<string, { courseId: string; teacherId: string; role: string | null }>();
-  for (const e of employees) if (e.employee_id) {
-    const role = e.employee_type ?? null;
-    links.set(`${e.employee_id}|${role}`, { courseId: c.id, teacherId: e.employee_id, role });
-  }
-  if (links.size) await db().insert(lmsCourseTeachers).values([...links.values()]).onConflictDoNothing();
+  const links = courseRoles(c).filter((l) => seen.has(l.teacherId)).map((l) => ({ courseId: c.id, ...l }));
+  if (links.length) await db().insert(lmsCourseTeachers).values(links).onConflictDoNothing();
 }
 
 /**

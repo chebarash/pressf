@@ -7,17 +7,17 @@ import { preloadUser } from "@/lib/lms/cache";
 import * as lms from "@/lib/lms/client";
 import { filesAreStale, harvestCourseFiles } from "@/lib/lms/files";
 import { parseSemesters, refreshCalendars, saveSemesters, upcomingSemesterIds } from "@/lib/lms/semesters";
-import type { LmsGradebookSemester } from "@/lib/lms/types";
+import type { LmsGradebookSemester, LmsMyList } from "@/lib/lms/types";
 import { sessionFor } from "@/lib/lms/store";
 import { settingIsOn } from "@/server/decisions";
 import { markRead, saveSnapshot } from "@/server/feed";
 import { invalidateHarvest } from "@/server/views/cache";
 import { coursesByIds } from "@/server/views/shared";
 import { loadStudent } from "@/server/views/student";
-import { absenceAlerts, announcementAlerts, fileAlert, gradeAlerts, gradebookCourses, lmsNotifications, marksOf, roomAlerts, scheduleClasses, semesterRows, type Alert } from "./convert";
+import { absenceAlerts, announcementAlerts, fileAlert, gradeAlerts, gradebookCourses, historyAlerts, lmsNotifications, marksOf, roomAlerts, scheduleClasses, studiedSemesters, type Alert } from "./convert";
 import { deliver, flushPending, remind, saveSent, sentKeys, type Recipient } from "./deliver";
 import { syncStopped } from "@/lib/telegram/messages";
-import { SNAPSHOT_KEY, termName, type SyncSnapshot, type SyncedCourse } from "./types";
+import { SNAPSHOT_KEY, SNAPSHOT_VERSION, termName, type SyncSnapshot, type SyncedCourse } from "./types";
 
 /**
  * One student's sync: pull notifications, gradebook (marks and attendance),
@@ -74,20 +74,24 @@ export async function syncStudent(userId: string, now = new Date()): Promise<Syn
 
   const payload = await attempt(failures, "notifications", () => lms.notifications(session));
   const semesterList = await attempt(failures, "semesters", () => lms.gradebookSemesters(session));
-  const semesters = semesterList ? await namedSemesters(semesterList) : prev.semesters;
+  // The gradebook list leaves out the first study year; my-list names every semester studied.
+  const enrolled = semesterList ? await attempt(failures, "my-list", () => lms.myList(session)) : null;
+  const semesters = semesterList ? await namedSemesters(semesterList, enrolled) : prev.semesters;
   const open = semesters.filter((s) => s.open);
   // Semester calendars (cohort selection, add/drop…) are shared: fetched once a day for everyone.
   if (semesterList) {
     const ids = await upcomingSemesterIds(open.map((s) => s.id)).catch(() => open.map((s) => s.id));
     await refreshCalendars(session, ids, now).catch(() => 0);
   }
-  const pastDue = !prev.pastAt || now.getTime() - Date.parse(prev.pastAt) > PAST_REFRESH_MS;
+  // A snapshot from before the real LMS shapes were known is re-pulled in full once.
+  const upgrade = (prev.v ?? 1) < SNAPSHOT_VERSION;
+  const pastDue = upgrade || !prev.pastAt || now.getTime() - Date.parse(prev.pastAt) > PAST_REFRESH_MS;
   const wanted = pastDue ? semesters : open;
 
   const fetched = new Map<string, SyncedCourse[]>();
   for (const s of wanted) {
     const data = await attempt(failures, `gradebook ${s.id}`, () => lms.gradebookData(session, s.id));
-    if (data) fetched.set(s.id, gradebookCourses(data, s.id));
+    if (data) fetched.set(s.id, gradebookCourses(data, s.id, s.open));
   }
   const courses = [
     ...semesters.flatMap((s) => fetched.get(s.id) ?? prev.courses.filter((c) => c.semesterId === s.id)),
@@ -122,6 +126,7 @@ export async function syncStudent(userId: string, now = new Date()): Promise<Syn
     marks: { ...prev.marks, ...marksOf(courses) },
     pastAt: pastDue && !failures.some((f) => f.startsWith("gradebook")) ? now.toISOString() : prev.pastAt,
     seenFiles: fileAlerts.seen,
+    v: everythingFailed ? prev.v : SNAPSHOT_VERSION,
   };
   await saveSnapshot(userId, SNAPSHOT_KEY, next);
 
@@ -137,12 +142,18 @@ export async function syncStudent(userId: string, now = new Date()): Promise<Syn
     alerts.push(...announcementAlerts(notes));
     await syncReadState(userId, notes.filter((n) => n.read === true || n.read === 1 || n.read === "1").map((n) => `lms:${n.id}`));
   }
+  const fresh = [...fetched.values()].flat();
   if (prev.at) {
-    alerts.push(...gradeAlerts(prev.marks, [...fetched.values()].flat(), now, named));
-    alerts.push(...absenceAlerts(prev.courses, [...fetched.values()].flat(), now, named));
+    const known = new Set(prev.courses.map((c) => `${c.semesterId}|${c.subjectId}`));
+    alerts.push(...gradeAlerts(prev.marks, fresh, now, named, known));
+    alerts.push(...absenceAlerts(prev.courses, fresh, now, named));
     if (days && prev.schedule.length) alerts.push(...roomAlerts(schedule, prev.schedule, now, named));
   }
   alerts.push(...fileAlerts.alerts);
+  // This semester's absences and grades so far, filed as already read the first
+  // time a course is seen: the feed has the history, the bot stays quiet.
+  const firstLook = fresh.filter((c) => openIds.has(c.semesterId) && (upgrade || !prev.courses.some((p) => p.semesterId === c.semesterId && p.subjectId === c.subjectId)));
+  alerts.push(...historyAlerts(firstLook, now, named));
 
   const result = await deliver(to, alerts, now);
   const flushed = await flushPending(to, now);
@@ -150,10 +161,10 @@ export async function syncStudent(userId: string, now = new Date()): Promise<Syn
   return { userId, ok: !everythingFailed, error: everythingFailed ? next.error ?? undefined : undefined, alerts: result.fresh, sent: result.sent + flushed };
 }
 
-/** Gradebook semesters, stored as shared names; a nameless one takes the harvested LMS name. */
-async function namedSemesters(list: LmsGradebookSemester[]) {
+/** Every semester studied, stored as shared names; a nameless one takes the harvested LMS name. */
+async function namedSemesters(list: LmsGradebookSemester[], enrolled: LmsMyList | null) {
   await saveSemesters(parseSemesters(list)).catch(() => 0);
-  const rows = semesterRows(list);
+  const rows = studiedSemesters(list, enrolled);
   const unnamed = rows.filter((s) => /^Semester \d+$/.test(s.term)).map((s) => s.id);
   if (!unnamed.length) return rows;
   const known = await db().select({ id: lmsSemesters.id, name: lmsSemesters.name }).from(lmsSemesters).where(inArray(lmsSemesters.id, unnamed));

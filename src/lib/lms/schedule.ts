@@ -25,8 +25,9 @@ function at(ts: number) {
 /** Back-to-back hours of the same class count as one session, up to this gap. */
 const MERGE_GAP_MIN = 20;
 
-const roomOf = (a: { name?: string } | string | null | undefined) =>
-  (typeof a === "string" ? a : a?.name) || null;
+/** A string, `{ name }`, or (real `/schedule/list`) `{ aud_num: "306", campus: { name } }`. */
+const roomOf = (a: { name?: string | null; aud_num?: string | number | null } | string | null | undefined) =>
+  (typeof a === "string" ? a.trim() : (a?.name ?? "").trim() || String(a?.aud_num ?? "").trim()) || null;
 
 export async function studentTimetable(userId: string): Promise<Lesson[] | null> {
   const session = await sessionFor(userId);

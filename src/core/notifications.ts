@@ -92,7 +92,8 @@ export function fromLms(n: LmsNotification): FeedItem {
     kind: "announcement",
     title: plainText(n.title) || "LMS announcement",
     body: plainText(n.body) || undefined,
-    author: personName(n.author),
+    // The LMS signs course announcements "System notification": no real sender to show.
+    author: /^\s*system\s+notification\s*$/i.test(n.author ?? "") ? undefined : personName(n.author),
     courseName: subjectOf(n),
     ...(n.subject_id !== undefined && n.subject_id !== null && n.subject_id !== "" ? { courseId: String(n.subject_id) } : {}),
     at: asDate(n.publicate_at) ?? asDate(n.created_at) ?? new Date(0),

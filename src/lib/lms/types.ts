@@ -1,15 +1,30 @@
-/** Shapes returned by the hero.study API, narrowed to the fields Press F uses. */
+/**
+ * Shapes returned by the hero.study API, narrowed to the fields Press F uses.
+ * Checked against real responses (Nov 2026); the anonymised copies the tests
+ * use live in tests/fixtures/lms-real.ts. Every call asks for `lang=en`
+ * (client.ts); name fields come in `_en/_ru/_uz/_kz/_card` variants and an
+ * empty English one falls back to the others (core/people `localized`).
+ */
 
+/** `first_name_*` given name, `sur_name_*` family name, `last_name_*` patronymic (usually empty). */
 export type LmsEmployee = {
   employee_id: string;
   first_name_en?: string;
   first_name_ru?: string;
+  first_name_uz?: string;
   last_name_en?: string;
   last_name_ru?: string;
   sur_name_en?: string;
   sur_name_ru?: string;
-  /** Teaching role for this course: "Lecture", "Laboratory", "Practice", … */
+  sur_name_uz?: string;
+  /**
+   * Teaching role, only in `/subject/my-list`: "Lecture", "Tutorial",
+   * "Laboratory" or "Other." (independent work). `/subject/get-by-id` leaves it
+   * out; the harvest reads roles from the lessons instead.
+   */
   employee_type?: string;
+  /** Lesson-type id matching `employee_type`: "0" lecture, "1" tutorial, "2" lab, "5" independent work. */
+  type?: string;
 };
 
 /** Rich teacher profile from `/employee/get-by-id`; most fields may be empty strings. */
@@ -39,6 +54,8 @@ export type LmsSubjectSummary = {
 
 export type LmsSemester = {
   id: string;
+  semester_id?: string;
+  /** English with `lang=en`; still Russian ("Весенний (2026-2027)") when the LMS has no English name. */
   name: string;
   /** 0 past, 1 current, 2 future. */
   is_open: string;
@@ -70,6 +87,7 @@ export type LmsLesson = {
   schedule?: Array<{
     begin_time?: string;
     end_time?: string;
+    employee_id?: string;
     campus?: string;
     auditorium?: string;
     employee?: LmsEmployee;
@@ -135,8 +153,8 @@ export type LmsScheduleEvent = {
   end_time?: string;
   subject_id?: string;
   employee_id?: string;
-  /** The LMS sends either a room string or an object with the room name. */
-  auditorium?: string | { name?: string } | null;
+  /** A room string, or an object: real rows carry `aud_num` ("306") and `campus.name`, no `name`. */
+  auditorium?: string | { name?: string | null; aud_num?: string | number | null; campus?: { name?: string } | null } | null;
 };
 
 export type LmsScheduleDay = { day?: string; events?: LmsScheduleEvent[] };
@@ -163,23 +181,47 @@ export type LmsGradebookSemester = {
   semester_id: number;
   semester_name?: string;
   year_of_study?: number;
-  study_start?: string;
-  study_end?: string;
+  study_start?: number | string;
+  study_end?: number | string;
   is_open?: number;
 };
 
-/** One mark entry; `mark` is 0–100, `positive_status` is pass/fail. */
-export type LmsMark = { mark: number | null; positive_status?: boolean };
+/**
+ * One mark entry; `mark` is 0–100, `positive_status` is pass/fail. `type`:
+ * 0 rating, 1 exam (`e`), 2 admission rating (`rd`), 4 current average, 5
+ * midterm (`rk`), 6 independent work (`siw_average`).
+ */
+export type LmsMark = { mark?: number | null; type?: number; rating_id?: number | null; positive_status?: boolean };
 
+/**
+ * A row of `/gradebook/gradebook-data`. The per-period columns (`average`,
+ * `rating`, `rk`, `siw_average`) are lists, one entry per rating period; `rd`,
+ * `e` and `final_grade` are single objects. In a running semester
+ * `final_grade` is `{ mark: 0, positive_status: false }` until the exam.
+ */
 export type LmsGradebookSubject = {
-  subject?: { name?: string; load_id?: number; department_id?: number };
+  subject?: {
+    name?: string;
+    load_id?: number | false;
+    department_id?: number;
+    /** `{ "118": "Family Given " }` on recent semesters, `[]` on older ones. */
+    employee?: Record<string, string> | unknown[];
+  };
   final_grade?: LmsMark | null;
   e?: LmsMark | null;
-  fx?: boolean;
+  rd?: LmsMark | null;
+  average?: LmsMark[] | LmsMark | null;
+  rating?: LmsMark[] | LmsMark | null;
+  rk?: LmsMark[] | LmsMark | null;
+  siw_average?: LmsMark[] | LmsMark | null;
+  fx?: boolean | LmsMark | null;
 };
 
+export type LmsGradebookRow = LmsGradebookSubject & { admit?: LmsAdmit; events?: LmsAttendanceEvent[] };
+
 export type LmsGradebookData = {
-  resultSubjects?: Record<string, LmsGradebookSubject & { admit?: LmsAdmit; events?: LmsAttendanceEvent[] }>;
+  /** Keyed by subject id; `[]` when the semester has no courses yet. */
+  resultSubjects?: Record<string, LmsGradebookRow> | unknown[];
 };
 
 export type { LmsAdmit, LmsAttendanceEvent } from "@/core/attendance";
@@ -197,12 +239,16 @@ export type LmsNotificationsPayload = {
 };
 
 export type LmsHomework = {
+  /** Real rows have no `id`: `homework_working_id` is the student's copy, `homework_id` the task. */
   id?: string | number;
+  homework_id?: string | number;
+  homework_working_id?: string | number;
   subject?: string | { name?: string };
   theme_name?: string;
   /** Deadline, unix seconds. */
   time?: number | string;
   status_id?: number | string;
+  /** Russian even with `lang=en` ("Не готово"). */
   status_name?: string;
   rating?: number | string | null;
 };

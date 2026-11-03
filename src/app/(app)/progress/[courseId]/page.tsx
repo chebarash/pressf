@@ -12,9 +12,9 @@ export default async function CourseProgressPage({ params, searchParams }: { par
   const [{ courseId }, sp, user, isMobile] = await Promise.all([params, searchParams, getUser(), mobile()]);
   if (!user) redirect(`/sign-in?next=/progress/${courseId}`);
   const id = decodeURIComponent(courseId);
+  await retry(user.id, sp);
   // The mobile sheet sits on Progress (Figma 5.2), so it reads both views in parallel.
   const [data, behind] = await Promise.all([courseProgress(user.id, id), isMobile ? progress(user.id) : Promise.resolve(null)]);
   if (!data) notFound();
-  retry(user.id, sp);
   return isMobile ? <CourseProgress data={data} behind={behind} /> : <DesktopCourseProgress data={data} />;
 }

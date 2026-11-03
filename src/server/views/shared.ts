@@ -1,9 +1,9 @@
 import { and, count, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { ClassKind } from "@/core/agenda";
 import { deadline, type Deadline, type DeadlineStatus } from "@/core/deadlines";
-import { describeFile, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
+import { describeFile, fileList, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
 import type { FeedItem, FeedKind } from "@/core/notifications";
-import { displayName, roleOf } from "@/core/people";
+import { roleOf, teacherName } from "@/core/people";
 import { summarizeCourse, summarizeTeacher, toHours, type CourseSummary, type StoredRating, type TeacherRole, type TeacherSummary } from "@/core/ratings";
 import { weekOf as calendarWeekOf } from "@/core/semester";
 import { ago, clock, localDay, localWeekday, shortDate, toLocal, until } from "@/core/time";
@@ -69,11 +69,11 @@ export async function teachersByIds(ids: string[]): Promise<Map<string, TeacherR
   const unique = [...new Set(ids.filter(Boolean))];
   if (!unique.length) return new Map();
   const rows = await db()
-    .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, position: lmsTeachers.position, department: lmsTeachers.department, faceAt: faces.updatedAt })
+    .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, surName: lmsTeachers.surName, position: lmsTeachers.position, department: lmsTeachers.department, faceAt: faces.updatedAt })
     .from(lmsTeachers)
     .leftJoin(faces, eq(faces.teacherId, lmsTeachers.id))
     .where(inArray(lmsTeachers.id, unique));
-  return new Map(rows.map((t) => [t.id, { id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }), position: t.position, department: t.department, face: t.faceAt ? faceUrl(t.id, t.faceAt) : null }]));
+  return new Map(rows.map((t) => [t.id, { id: t.id, name: teacherName(t), position: t.position, department: t.department, face: t.faceAt ? faceUrl(t.id, t.faceAt) : null }]));
 }
 
 /**
@@ -345,11 +345,29 @@ export type FeedView = {
   href: string | null;
 };
 
+/** "LMS · System notification" says nothing: the LMS's placeholder sender is no author. */
+const realAuthor = (a: string | null | undefined) => (a && !/^system\s+notification$/i.test(a.trim()) ? a : null);
+
+/**
+ * Items stored before the "new files" wording changed read
+ * "10 new files: A, B, C, …" with "Course · Week 8" below; they are shown as
+ * "10 new files in Course" with "Week 8 · A, B, C and 7 more" below.
+ */
+function fileWording(i: FeedItem, courseName: string | null): { title: string; body: string | null } {
+  const old = i.kind === "file" && courseName ? i.title.match(/^(\d+) new files?: ([\s\S]*)$/) : null;
+  if (!old) return { title: i.title, body: i.body ?? null };
+  const count = Number(old[1]);
+  const week = i.body?.match(/Week \d+/)?.[0] ?? null;
+  if (count === 1) return { title: `New file in ${courseName}: ${old[2]}`, body: week };
+  return { title: `${count} new files in ${courseName}`, body: [week, fileList(old[2].split(", "))].filter(Boolean).join(" · ") };
+}
+
 export function feedView(i: FeedItem, now: Date, names: Map<string, CourseRef>): FeedView {
   const courseName = (i.courseId ? names.get(i.courseId)?.name : null) ?? i.courseName ?? null;
-  const author = i.author ?? null;
+  const author = realAuthor(i.author);
+  const { title, body } = fileWording(i, courseName);
   return {
-    id: i.id, kind: i.kind, title: i.title, body: i.body ?? null, courseId: i.courseId ?? null, courseName, author,
+    id: i.id, kind: i.kind, title, body, courseId: i.courseId ?? null, courseName, author,
     byline: i.kind === "announcement" ? ["LMS", courseName, author].filter(Boolean).join(" · ") : null,
     at: i.at.toISOString(), ago: ago(i.at, now), read: i.read, needsAck: !!i.needsAck, href: i.href ?? null,
   };
