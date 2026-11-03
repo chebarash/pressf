@@ -157,7 +157,8 @@ export type ProgressRow = {
   href: string;
   detail: null | {
     marks: Array<{ label: string; value: number | null; max: number; tier: Tier }>;
-    classes: Array<"present" | "qr" | "absent">;
+    /** Oldest first; one dot per class in the LMS gradebook. */
+    classes: ClassDot[];
     classesLabel: string;
     grading: Array<{ label: string; value: string }>;
   };
@@ -184,7 +185,21 @@ export type TermResultsData = {
   rate: null | { title: string; line: string; href: string };
   curriculum: { title: string; line: string; href: string };
 };
-export type CourseProgressData = { course: { name: string; code: string; href: string; term: string | null; teacher: string | null }; row: ProgressRow };
+/**
+ * One class's attendance: checked in by QR, marked present by the teacher, late,
+ * absent, or not marked yet (the LMS has the class but no mark).
+ */
+export type ClassState = "qr" | "teacher" | "late" | "absent" | "unmarked";
+export type ClassDot = { state: ClassState; title: string };
+export type ClassLine = { key: string; lesson: string; kind: string; date: string | null; state: ClassState; viaQr: boolean; score: number | null };
+export type CourseProgressData = {
+  course: { name: string; code: string; href: string; term: string | null; teacher: string | null };
+  row: ProgressRow;
+  /** Newest first, as the gradebook lists them. */
+  classes: ClassLine[];
+  /** Count per state, for the legend and the summary line. */
+  counts: Record<ClassState, number>;
+};
 
 export type NotificationsData = { unread: number; items: FeedItemVM[]; open: string | null };
 
@@ -243,7 +258,7 @@ export type RateData = {
   waiting: number;
   teachers: Array<{ id: string; name: string; role: string; kind: TeacherRole; face: string | null }>;
   tags: string[];
-  /** Saved answers when editing a rating (`teacherTags` by "teacherId|role", kept as they were). */
+  /** Saved answers when editing a rating; `pressed` and `teacherTags` are keyed by "teacherId|role". */
   initial: null | { recommend: "yes" | "unsure" | "no" | null; hours: string | null; difficulty: number | null; tags: string[]; pressed: string[]; teacherTags?: Record<string, string[]> };
 };
 

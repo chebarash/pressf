@@ -80,7 +80,7 @@ describe("editing a rating opens on the saved answers (4.12, D5)", () => {
   it("prefills the desktop dialog, keeping teacher stickers", () => {
     const d = adapt.rate(queue, "c1");
     expect(d.course?.id).toBe("c1");
-    expect(d.initial).toEqual({ recommend: "yes", hours: "5-10", difficulty: 4, tags: ["Fair exams"], pressed: ["t1"], teacherTags: { "t1|lecture": ["Explains clearly"] } });
+    expect(d.initial).toEqual({ recommend: "yes", hours: "5-10", difficulty: 4, tags: ["Fair exams"], pressed: ["t1|lecture"], teacherTags: { "t1|lecture": ["Explains clearly"] } });
   });
 
   it("opens this semester's course once the window is open, empty", () => {

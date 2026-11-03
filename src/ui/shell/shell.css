@@ -288,9 +288,12 @@ img, svg { display: block; }
 .sh-profile__name { font: 600 14px/normal var(--font-sans); }
 .sh-profile__sub { font: 400 11px/normal var(--font-sans); color: var(--text-secondary); }
 
+/* Figma 4214:8583 puts the utilities 4px under the card, but the card's 3px key shadow ate that gap.
+   9px more leaves the same 10px of air under the shadow as between the utilities and the profile. */
 .sh-invite {
   display: grid;
   gap: 10px;
+  margin-bottom: 9px;
   padding: 14px;
   border: 1.5px solid var(--border-strong);
   border-radius: 16px;
