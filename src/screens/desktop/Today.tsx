@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import type { TodayView } from "@/server/views";
+import { Banner } from "@/ui/components";
 import * as adapt from "./adapt";
 import type { TodayData } from "./model";
 import { ButtonLink, CardHead, CourseCard, css, cx, FeedLink, FileRow, Hint } from "./parts";
@@ -26,6 +27,12 @@ export function TodayScreen({ data, actions }: { data: TodayData; actions?: Toda
         <h1 className={t.title}>{data.title}</h1>
         <p className={t.dateLine}>{data.dateLine}</p>
       </header>
+
+      {data.banner && (
+        <Banner tone={data.banner.tone} action={data.banner.action ?? undefined}>
+          {data.banner.text}
+        </Banner>
+      )}
 
       <section className={t.row}>
         {data.next ? (

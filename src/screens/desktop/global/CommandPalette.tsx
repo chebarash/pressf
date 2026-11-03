@@ -73,7 +73,10 @@ export function CommandPalette() {
     const needle = q.trim().toLowerCase();
     const actions = needle ? ACTIONS.filter((a) => a.id !== "search" && a.title.toLowerCase().includes(needle)) : ACTIONS.slice(0, 6);
     const searchAll: Item[] = needle ? [{ id: "search-q", group: "Actions", icon: "search", title: `Search for “${q.trim()}”`, href: `/search?q=${encodeURIComponent(q.trim())}` }] : [];
-    const all = [...(needle ? hits : []), ...actions, ...searchAll];
+    // The best course match also gets its files as an action (Figma D2: "Calculus 1 · all files", G F).
+    const top = needle ? hits.find((h) => h.group === "Courses") : undefined;
+    const files: Item[] = top?.href ? [{ id: `files-${top.id}`, group: "Actions", icon: "file", title: `${top.title} · all files`, keys: ["G", "F"], href: `${top.href}/files` }] : [];
+    const all = [...(needle ? hits : []), ...actions, ...files, ...searchAll];
     return ORDER.flatMap((g) => all.filter((i) => i.group === g));
   }, [hits, q]);
 

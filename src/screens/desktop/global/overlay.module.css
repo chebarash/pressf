@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: color-mix(in srgb, var(--shadow-key) 95%, transparent);
+  background: var(--scrim);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -55,24 +55,24 @@
 
 /* D11 Shortcuts sheet */
 .sheet {
-  width: 876px;
+  width: 880px;
   max-width: 100%;
   background: var(--bg-page);
   border-radius: var(--radius-xl);
   box-shadow: 0 8px 0 color-mix(in srgb, var(--shadow-key) 60%, transparent);
-  padding: var(--space-6);
+  padding: 30px 34px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   color: var(--text-primary);
   animation: rise 140ms ease-out;
 }
 .sheetHead { display: flex; align-items: center; justify-content: space-between; }
-.sheetTitle { font: 400 48px/1.08 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.sheetTitle { font: 400 40px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
 .columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
 .column { display: flex; flex-direction: column; gap: 10px; }
-.column h3 { font: 600 11px/normal var(--font-sans); color: var(--text-secondary); text-transform: uppercase; margin: 0 0 2px; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); font: 600 15px/normal var(--font-sans); }
-.sheetNote { font: 400 13px/normal var(--font-sans); color: var(--text-secondary); }
+.column h3 { font: 600 11px/normal var(--font-sans); color: var(--text-secondary); text-transform: uppercase; margin: 0; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 6px; font: 500 14px/normal var(--font-sans); }
+.sheetNote { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); }
 .escBtn { appearance: none; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 6px; }
 .escBtn:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; }
