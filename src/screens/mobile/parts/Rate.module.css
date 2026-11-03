@@ -21,13 +21,15 @@
 .cta { color: var(--text-accent); font-family: var(--font-sans); font-size: 14px; font-weight: 600; }
 .edit { color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; font-weight: 600; }
 
-.error { margin: 0 var(--space-4) var(--space-2); }
+.errorViewport.errorViewport { bottom: calc(var(--toast-offset, 95px) + var(--space-2) + env(safe-area-inset-bottom)); }
+.error { margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--bg-danger); color: var(--text-on-accent); font-family: var(--font-sans); font-size: 14px; font-weight: 500; line-height: 1.4; }
 /* Figma 4.11/4.12 sheet: every row 14 px apart, 10 px under the grab bar, 20 px at the bottom. */
 .sheet:global(.sh-sheet) { gap: 14px; padding-bottom: calc(20px + var(--sh-sheet-bar, 0px)); }
 .sheet :global(.sh-sheet__grab) { margin-bottom: 10px; }
 .sub { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: normal; }
 .q { display: contents; }
 .qTitle { margin: 0; padding: 0; font-family: var(--font-sans); font-size: 17px; font-weight: 600; line-height: normal; }
+.required { margin: 0; color: var(--rating-low); font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: 1.32; }
 
 .recommend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .option {

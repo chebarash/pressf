@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition } from "react";
 import { canSubmit, COURSE_TAGS, difficultyWord, MAX_TAGS, TEACHER_TAGS, type CourseTag, type Recommend, type TeacherTag } from "@/core/ratings";
 import { sendRating } from "@/app/(app)/rate/actions";
-import { cx, Face, Toast } from "@/ui/components";
+import { cx, Face, ToastViewport } from "@/ui/components";
 import { Sheet } from "@/ui/shell/overlays";
 import { CheckIcon, XIcon } from "@/ui/icons";
 import { HOUR_BLOCKS, hoursText, initialForm, teacherKey, toggle, toInput, type FormState } from "../rate-form";
@@ -45,6 +45,8 @@ export function RateSheet({ open, queue }: { open: NonNullable<RateScreen["open"
   const [pending, start] = useTransition();
   const input = toInput(item, form);
   const ready = canSubmit(input);
+  // Figma 4.19: something answered but not the one required question.
+  const incomplete = !form.recommend && (form.blocks > 0 || form.difficulty !== null || form.tags.length > 0 || Object.values(form.teachers).some((t) => t.pressF || t.tags.length));
 
   const index = queue.findIndex((q) => q.courseId === item.courseId && q.term === item.term);
   const next = mode === "queue" && index !== -1 ? queue[index + 1] ?? null : null;
@@ -92,9 +94,12 @@ export function RateSheet({ open, queue }: { open: NonNullable<RateScreen["open"
   const footer = (
     <>
       {error ? (
-        <Toast tone="error" icon={<XIcon size={18} />} className={s.error}>
-          Couldn&apos;t send — no connection. Your answers are kept.
-        </Toast>
+        <ToastViewport className={s.errorViewport}>
+          {/* Figma 4.20: red, full width, no icon, 8 px above the MainButton. */}
+          <p className={s.error} role="alert">
+            Couldn&apos;t send — no connection. Your answers are kept.
+          </p>
+        </ToastViewport>
       ) : null}
       {error ? (
         <MainButton text="Try again" onClick={send} loading={pending} />
@@ -123,6 +128,7 @@ export function RateSheet({ open, queue }: { open: NonNullable<RateScreen["open"
 
         <div className={s.q} role="group" aria-labelledby="rq-recommend">
           <p id="rq-recommend" className={s.qTitle}>Would you recommend it?</p>
+          {incomplete ? <p className={s.required}>Answer &apos;Would you recommend it?&apos; to send. Everything else is optional.</p> : null}
           <div className={s.recommend}>
             {RECOMMEND.map((r) => (
               <button key={r.value} type="button" className={cx(s.option, form.recommend === r.value && s.optionOn)} aria-pressed={form.recommend === r.value} onClick={() => set("recommend", r.value)}>

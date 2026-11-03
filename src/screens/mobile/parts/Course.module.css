@@ -66,8 +66,8 @@
 .youNext { margin: 0; color: var(--text-accent); font-family: var(--font-sans); font-size: 13px; font-weight: 500; line-height: normal; }
 
 /* Not enough ratings (4.18) */
-.few { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); }
-.fewTitle { margin: 0; font-family: var(--font-serif); font-size: 28px; font-weight: 400; line-height: 1.1; }
+.few { display: flex; flex-direction: column; gap: 6px; padding: var(--space-4); border: 1.5px dashed var(--border-strong); border-radius: 18px; background: var(--bg-surface); }
+.fewTitle { margin: 0; font-family: var(--font-serif); font-size: 26px; font-weight: 400; line-height: 1.08; }
 
 /* Week by week */
 .weeks { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -213,7 +213,7 @@ a.book .foldTitle { color: var(--text-accent); }
 .termTeachers { color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: normal; }
 
 .skeleton { display: block; flex: none; border-radius: var(--radius-md); background: var(--bg-sunken); }
-.fewText { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: 1.4; }
+.fewText { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: 1.32; }
 .trendLabel { color: var(--text-primary); font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: normal; }
 .ghostItem { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-2); }
 .ghostPct { flex: none; width: 64px; height: 30px; border-radius: var(--radius-sm); background: var(--border-subtle); }
