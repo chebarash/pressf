@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { FaceSpecSchema, type FaceSpec } from "@/core/face-parts";
+import { FaceSpecSchema, type PhotoFaceSpec } from "@/core/face-parts";
 
 /**
  * "From a photo": picks the constructor parts for a professor's drawn face.
@@ -25,8 +25,8 @@ export function photoType(bytes: Uint8Array): PhotoType | null {
 }
 
 export const PhotoFaceSchema = z.object({
-  // No "tone": the dotted texture is a drawing choice left to the admin, never read from a photo.
-  spec: FaceSpecSchema.omit({ tone: true }),
+  // No tone, hair colour or details (lines, freckles): drawing choices left to the admin, never read from a photo.
+  spec: FaceSpecSchema.omit({ tone: true, hairColor: true, details: true }),
   note: z.string().describe("One short sentence on how sure the picks are, e.g. which parts were hard to see. No description of the person."),
 });
 
@@ -34,7 +34,7 @@ const SYSTEM = `You help an admin draw a simple cartoon avatar of a university p
 The avatar is built from fixed parts; pick one option for each part.
 
 Describe only visible, non-sensitive, drawable features:
-- hair: style and length as seen (or none/bald, or hijab when a headscarf covers the hair)
+- hair: style and length as seen (or none/bald; hijab, headscarf or wrap when a head covering hides the hair)
 - facial hair, glasses, head covering or hat
 - face shape, ear size, and the expression (eyes, eyebrows, mouth)
 
@@ -46,7 +46,7 @@ The note is one short sentence about confidence (for example "Glasses were hard 
 export class PhotoFaceError extends Error {}
 
 /** The constructor parts for a photo. Throws PhotoFaceError with a message fit for the admin. */
-export async function describeFace(bytes: Uint8Array, type: PhotoType, client?: Anthropic): Promise<{ spec: Omit<FaceSpec, "tone">; note: string }> {
+export async function describeFace(bytes: Uint8Array, type: PhotoType, client?: Anthropic): Promise<{ spec: PhotoFaceSpec; note: string }> {
   let response;
   try {
     response = await (client ?? new Anthropic()).beta.messages.parse({
