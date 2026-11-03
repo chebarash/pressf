@@ -26,7 +26,7 @@ export async function fileSource(id: string, userId: string | null): Promise<Sou
     const type = (u.type as FileType) ?? "other";
     return {
       key: u.storageKey, name: u.fileName, mimeType: u.mimeType, sha256: u.sha256,
-      meta: { title: u.title, courseName: c?.name ?? u.courseCode ?? "", courseCode: u.courseCode, term: u.term, source: type === "exam" ? "exam" : "students", kind: TYPE_LABEL[type], week: u.week, uploadedAt: u.createdAt, url },
+      meta: { title: u.title, courseName: c?.name ?? u.courseCode ?? "", courseCode: u.courseCode, term: u.term, source: type === "exam" ? "exam" : "students", kind: TYPE_LABEL[type], week: u.week, uploadedAt: u.createdAt, channel: u.sourceLabel, url },
     };
   }
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;

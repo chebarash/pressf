@@ -307,7 +307,7 @@ export async function uploadsPage(tab: UploadTab, selectedId: string | undefined
     db()
       .select({
         id: uploads.id, title: uploads.title, type: uploads.type, exam: uploads.exam, term: uploads.term, week: uploads.week, courseId: uploads.courseId, courseCode: uploads.courseCode,
-        showName: uploads.showName, checks: uploads.checks, fileName: uploads.fileName, mimeType: uploads.mimeType, size: uploads.size, storageKey: uploads.storageKey,
+        showName: uploads.showName, sourceLabel: uploads.sourceLabel, checks: uploads.checks, fileName: uploads.fileName, mimeType: uploads.mimeType, size: uploads.size, storageKey: uploads.storageKey,
         uploaderId: uploads.uploaderId, createdAt: uploads.createdAt, reviewedAt: uploads.reviewedAt, rejectReason: uploads.rejectReason, course: lmsCourses.name,
       })
       .from(uploads)
@@ -347,7 +347,7 @@ export async function uploadsPage(tab: UploadTab, selectedId: string | undefined
       courseCode: u.courseCode,
       courseName,
       showName: u.showName,
-      shownAs: u.showName && person ? `From ${profileName(person.data) ?? "students"}` : "From students",
+      shownAs: u.sourceLabel ? `From ${u.sourceLabel}` : u.showName && person ? `From ${profileName(person.data) ?? "students"}` : "From students",
       fileName: u.fileName,
       mimeType: u.mimeType,
       size: u.size,
@@ -490,7 +490,7 @@ export async function courseFiles(code: string, now = new Date()) {
       .leftJoin(fileOverrides, eq(fileOverrides.fileId, lmsFiles.id))
       .where(eq(lmsFiles.code, code)),
     db()
-      .select({ id: uploads.id, title: uploads.title, type: uploads.type, week: uploads.week, status: uploads.status, showName: uploads.showName, uploaderId: uploads.uploaderId, createdAt: uploads.createdAt, opens: uploads.opens, name: lmsCache.data })
+      .select({ id: uploads.id, title: uploads.title, type: uploads.type, week: uploads.week, status: uploads.status, showName: uploads.showName, sourceLabel: uploads.sourceLabel, uploaderId: uploads.uploaderId, createdAt: uploads.createdAt, opens: uploads.opens, name: lmsCache.data })
       .from(uploads)
       .leftJoin(lmsCache, eq(lmsCache.userId, uploads.uploaderId))
       .where(and(eq(uploads.courseCode, code), inArray(uploads.status, ["live", "hidden"]))),
@@ -508,7 +508,8 @@ export async function courseFiles(code: string, now = new Date()) {
     }),
     ...studentFiles.map((u) => {
       const name = u.showName ? profileName(u.name) : null;
-      return { key: `students:${u.id}`, source: "students" as const, id: u.id, title: u.title, type: u.type as FileType, typeLabel: TYPE_LABEL[u.type as FileType] ?? u.type, week: u.week, hidden: u.status === "hidden", from: name ? `From students · ${shortPerson(name)}` : "From students", fromStudents: true, added: added(u.createdAt), at: u.createdAt.getTime(), opens: u.opens };
+      const from = u.sourceLabel ? `From ${u.sourceLabel}` : name ? `From students · ${shortPerson(name)}` : "From students";
+      return { key: `students:${u.id}`, source: "students" as const, id: u.id, title: u.title, type: u.type as FileType, typeLabel: TYPE_LABEL[u.type as FileType] ?? u.type, week: u.week, hidden: u.status === "hidden", from, fromStudents: true, added: added(u.createdAt), at: u.createdAt.getTime(), opens: u.opens };
     }),
   ].sort((a, b) => (a.week ?? 99) - (b.week ?? 99) || a.at - b.at);
   const visible = files.filter((f) => !f.hidden);
