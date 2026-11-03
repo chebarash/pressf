@@ -118,7 +118,8 @@ async function usersByStudentId(): Promise<Map<string, string>> {
  * Fills the student ID for synced students whose cached profile predates it:
  * one GET /users/current with their own session each, a few at a time.
  */
-export async function backfillStudentIds(limit = 40): Promise<{ checked: number; found: number }> {
+export async function backfillStudentIds(limit = 40, budgetMs = 60_000): Promise<{ checked: number; found: number }> {
+  const until = Date.now() + budgetMs;
   const rows = await db()
     .select({ userId: lmsCache.userId })
     .from(lmsCache)
@@ -127,6 +128,7 @@ export async function backfillStudentIds(limit = 40): Promise<{ checked: number;
     .limit(limit);
   let found = 0;
   for (const { userId } of rows) {
+    if (Date.now() > until) break;
     const session = await sessionFor(userId).catch(() => null);
     const me = session ? await currentUser(session).catch(() => null) : null;
     if (!session || !me) continue;
@@ -219,6 +221,8 @@ export async function importSchedule(input: SourceInput, data: Normalised, opts:
   const sourceId = source.id;
 
   const courseOf = await matchCourses([...data.exams, ...data.seats]);
+  // Students synced before IDs were kept get theirs first (a short budget), so their seats aren't dropped.
+  if (data.seats.length) await backfillStudentIds(500, 20_000).catch(() => undefined);
   const ids = await usersByStudentId();
 
   // Course-level exams, one row per course and time.
@@ -347,7 +351,8 @@ const hashTabs = (tabs: Tab[]) => createHash("sha256").update(JSON.stringify(tab
 
 async function readAndImport(input: SourceInput, tabs: Tab[], opts: { actor?: string | null; force?: boolean; now?: Date }) {
   const [existing] = await db().select().from(examSources).where(eq(examSources.key, input.key));
-  const hash = hashTabs(tabs);
+  // A new Press F student with an ID re-reads an unchanged sheet: their seat was dropped before.
+  const hash = `${hashTabs(tabs)}:${(await usersByStudentId()).size}`;
   if (existing && !opts.force && existing.status === "ok" && existing.contentHash === hash) {
     await db().update(examSources).set({ fetchedAt: opts.now ?? new Date() }).where(eq(examSources.id, existing.id));
     return { sourceId: existing.id, stats: existing.stats as ImportStats, unchanged: true };

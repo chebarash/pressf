@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const tg = vi.hoisted(() => ({ send: vi.fn() }));
 vi.mock("@/lib/telegram/api", async (orig) => ({ ...(await orig<object>()), ...tg }));
 vi.mock("@/server/sync/refresh", () => ({ scheduleRefresh: vi.fn(), refreshOnce: vi.fn(), refreshStudent: vi.fn() }));
+const lms = vi.hoisted(() => ({ sessionFor: vi.fn(), currentUser: vi.fn() }));
+vi.mock("@/lib/lms/store", async (orig) => ({ ...(await orig<object>()), sessionFor: lms.sessionFor }));
+vi.mock("@/lib/lms/client", async (orig) => ({ ...(await orig<object>()), currentUser: lms.currentUser }));
 
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -67,6 +70,17 @@ describe("import", () => {
     expect(dump).not.toContain(STRANGER);
     const slots = await db().select().from(examSlots);
     expect(slots.find((s) => s.code === "PHYS101")).toMatchObject({ courseId: "102", day: "2026-11-03", start: "09:45", minutes: 90, rooms: ["UCA 204", "UCA 205"] });
+  });
+
+  it("reads the student ID of a student synced before IDs were kept (GET /users/current)", async () => {
+    await db().update(lmsCache).set({ data: cache }).where(eq(lmsCache.userId, me));
+    lms.sessionFor.mockResolvedValue({ token: "t" });
+    lms.currentUser.mockResolvedValue({ id: "1", email: "s@newuu.uz", external_id: Number(MINE) });
+    const { stats } = await importJson(schedule(), null, NOW);
+    expect(stats.usersMatched).toBe(1);
+    expect(lms.currentUser).toHaveBeenCalledTimes(1);
+    const [row] = await db().select().from(lmsCache).where(eq(lmsCache.userId, me));
+    expect((row.data as typeof cache & { profile: { studentId?: string } }).profile.studentId).toBe(MINE);
   });
 
   it("shows a student their seat, and a classmate without a seat the course's rooms", async () => {
