@@ -68,10 +68,10 @@ export function courseDemo(code: string, demo: string): CourseView {
   const took = demo === "took";
   const mine = !guest && demo !== "notmine";
   const terms = [
-    { courseId: "c26f", semesterId: "26f", term: "Fall 2026", teachers: ["Gonçalo Pinto", "Emily Carter"], current: true },
-    { courseId: "c26s", semesterId: "26s", term: "Spring 2026", teachers: ["Emily Carter"], current: false },
-    { courseId: "c25f", semesterId: "25f", term: "Fall 2025", teachers: ["Gonçalo Pinto", "Emily Carter"], current: false },
-    { courseId: "c24f", semesterId: "24f", term: "Fall 2024", teachers: ["Gonçalo Pinto"], current: false },
+    { courseId: "c26f", courseIds: ["c26f"], semesterId: "26f", term: "Fall 2026", teachers: ["Gonçalo Pinto", "Emily Carter"], current: true },
+    { courseId: "c26s", courseIds: ["c26s"], semesterId: "26s", term: "Spring 2026", teachers: ["Emily Carter"], current: false },
+    { courseId: "c25f", courseIds: ["c25f"], semesterId: "25f", term: "Fall 2025", teachers: ["Gonçalo Pinto", "Emily Carter"], current: false },
+    { courseId: "c24f", courseIds: ["c24f"], semesterId: "24f", term: "Fall 2024", teachers: ["Gonçalo Pinto"], current: false },
   ];
   const term = took ? terms[2] : terms[0];
   const w8 = [file("mrs", "Midterm review slides", "lecture", 8, "2 Nov"), demo === "students" ? file("mx", "Midterm exam, Fall 2025", "exam", 8, "3 Nov", "From students") : file("mm", "Mock midterm with answers", "mock", 8, "3 Nov", "Channel")];

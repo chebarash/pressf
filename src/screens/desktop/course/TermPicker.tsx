@@ -11,12 +11,19 @@ export type TermOption = { label: string; href: string; selected?: boolean };
  * D4 semester picker: the "Fall 2026 · Now" pill opens a menu of the semesters
  * the course ran. Click or Enter/Space/↓ opens it; ↑↓ move, Enter picks, Esc or
  * a click outside closes; picking a semester closes it and loads that semester.
+ * The other semesters are prefetched in full once the page is idle, so a pick
+ * swaps the content in place instead of showing the loading skeleton.
  */
 export function TermPicker({ label, options }: { label: string; options: TermOption[] }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const menuId = useId();
+  const [warm, setWarm] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setWarm(true), 800);
+    return () => window.clearTimeout(id);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -64,7 +71,15 @@ export function TermPicker({ label, options }: { label: string; options: TermOpt
   }
 
   return (
-    <div ref={root} className={c.termSwitch} onKeyDown={onKey}>
+    <div ref={root} className={c.termSwitch} onKeyDown={onKey} onPointerEnter={() => setWarm(true)}>
+      {warm && !open && (
+        // Full prefetch of each semester (Link prefetch={true}); invisible, not focusable, not announced.
+        <div aria-hidden style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", opacity: 0, pointerEvents: "none" }}>
+          {options.filter((o) => !o.selected).map((o) => (
+            <Link key={o.href} href={o.href} prefetch tabIndex={-1} scroll={false}>{o.label}</Link>
+          ))}
+        </div>
+      )}
       <button ref={button} type="button" className={c.termPill} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? menuId : undefined} onClick={() => setOpen((o) => !o)}>
         <Icon name="calendar" size={16} />
         {label}
@@ -73,7 +88,7 @@ export function TermPicker({ label, options }: { label: string; options: TermOpt
       {open && (
         <div id={menuId} className={c.termMenu} role="menu" aria-label="Semester">
           {options.map((o) => (
-            <Link key={o.href} href={o.href} role="menuitemradio" aria-checked={!!o.selected} className={c.termItem} scroll={false} onClick={() => setOpen(false)}>
+            <Link key={o.href} href={o.href} prefetch role="menuitemradio" aria-checked={!!o.selected} className={c.termItem} scroll={false} onClick={() => setOpen(false)}>
               <span>{o.label}</span>
               {o.selected && <Icon name="check" size={16} />}
             </Link>

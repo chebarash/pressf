@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { teacherNamesByCode } from "@/server/views/shared";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Metadata } from "next";
 import { cache } from "react";
@@ -153,7 +154,7 @@ export const fileOg = cache(async (id: string): Promise<FileOg | null> => {
   const [[f], edit] = await Promise.all([db().select().from(lmsFiles).where(eq(lmsFiles.id, id)), fileOverride(id)]);
   if (!f || edit?.hidden) return null;
   const [c] = await db().select({ name: lmsCourses.name, code: lmsCourses.code }).from(lmsCourses).where(eq(lmsCourses.id, f.courseId));
-  const d = describeFile(f.name, { courseCode: c?.code ?? f.code, courseName: c?.name, extension: f.extension ?? undefined });
+  const d = describeFile(f.name, { courseCode: c?.code ?? f.code, courseName: c?.name, extension: f.extension ?? undefined, teachers: (await teacherNamesByCode())[f.code ?? ""] });
   // Admin edits (rename, type, week) show on the card too.
   const shown = overlay({ title: d.title, type: d.type, week: d.week ?? null }, edit)!;
   return {

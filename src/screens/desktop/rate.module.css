@@ -1,8 +1,8 @@
 /* Figma D5 Dialog (4216:8983): 720 wide, 2px ink border, radius 24, 8px key shadow, no close button (Esc). */
-.dialog { width: min(720px, calc(100vw - 48px)); border: 2px solid var(--border-strong); border-radius: 24px; box-shadow: 0 8px 0 var(--shadow-key); }
+.dialog.dialog { width: min(720px, calc(100vw - 48px)); max-width: none; border: 2px solid var(--border-strong); border-radius: 24px; box-shadow: 0 8px 0 var(--shadow-key); }
 .dialog > div:first-child { padding: 28px 32px 24px; }
 .dialog > div:first-child > button[aria-label="Close"] { display: none; }
-.body { display: flex; flex-direction: column; gap: 16px; min-width: 0; color: var(--text-primary); }
+.body { display: flex; flex-direction: column; gap: 16px; min-width: 0; color: var(--text-primary); container-type: inline-size; }
 .head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); min-width: 0; }
 .esc { flex: none; margin-top: 10px; appearance: none; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 6px; }
 .esc:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; }
@@ -33,8 +33,8 @@
 .optOn { background: var(--bg-accent); color: var(--text-on-accent); border-width: 2px; box-shadow: 0 1px 0 var(--shadow-key); }
 .optHard.optOn { background: var(--tint-rust); color: var(--text-primary); }
 .opt kbd { flex: none; padding: 2px 6px; border: 1.25px solid var(--border-strong); border-radius: 6px; box-shadow: 0 1px 0 var(--shadow-key); font: 600 11px/14px var(--font-sans); background: var(--bg-page); color: var(--text-primary); }
-/* Narrow windows: the question goes above its answers so the options keep their labels. */
-@media (max-width: 760px) {
+/* A narrow dialog: the question goes above its answers so the options keep their labels. */
+@container (max-width: 600px) {
   .q { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .opts { flex-wrap: wrap; }
   .opt { flex: 1 0 auto; }

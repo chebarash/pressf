@@ -70,9 +70,19 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
  * A readable title: no extension, no course code, no week prefix, no "(1)" or
  * "final_v2" noise, words split. Short codes like "L5" become "Lecture 5".
  */
-export function cleanTitle(name: string, opts: { courseCode?: string; courseName?: string } = {}): string {
+export function cleanTitle(name: string, opts: { courseCode?: string; courseName?: string; teachers?: string[] } = {}): string {
   let t = name.replace(/\.[A-Za-z0-9]{1,5}$/, "");
+  // The LMS stores "(…)" as "_…_": "Review _Problem Solving_ _1_" → "Review (Problem Solving) (1)".
+  t = t.replace(/(^|\s)_([^_]+)_(?=\s|$)/g, "$1($2)");
   t = t.replace(/[_]+/g, " ").replace(/\s*\((\d+|copy)\)\s*$/i, "");
+  // Who posted it is not the title: the teachers' names and initials ("Sejuti Rahman", "SR").
+  for (const person of opts.teachers ?? []) {
+    const parts = person.trim().split(/\s+/).filter((w) => w.length > 1).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    if (parts.length < 2) continue;
+    t = t.replace(new RegExp(`(^|[\\s-])(${parts.join("[\\s-]+")}|${[...parts].reverse().join("[\\s-]+")})(?=$|[\\s-])`, "gi"), "$1");
+    const initials = parts.map((w) => w[0]).join("");
+    t = t.replace(new RegExp(`(^|\\s)(${initials}|${[...initials].reverse().join("")})$`), "$1");
+  }
   if (opts.courseCode) {
     // "CS412", "CS 412", "CS-412", "cs_412": letters and digits with anything (or nothing) between.
     const [, letters, digits] = opts.courseCode.replace(/\s+/g, "").match(/^([A-Za-z]+)(\d+[A-Za-z]?)$/) ?? [];
@@ -86,11 +96,18 @@ export function cleanTitle(name: string, opts: { courseCode?: string; courseName
     const nameRe = words.join("[\\s\\-]*");
     const stripped = t.replace(new RegExp(`^\\s*${nameRe}\\s*[-:–—,.]?\\s*`, "i"), "").replace(new RegExp(`\\s*[-:–—,(]?\\s*${nameRe}\\s*\\)?\\s*$`, "i"), "");
     if (stripped.trim()) t = stripped;
+    // Its acronym as a word ("DL" for Deep Learning).
+    const acronym = opts.courseName.trim().split(/\s+/).filter((w) => /^[A-Za-z]/.test(w) && !/^(and|of|the|in|to|for)$/i.test(w)).map((w) => w[0]).join("");
+    if (acronym.length >= 2) t = t.replace(new RegExp(`(^|\\s)${acronym}(?=\\s|$)`, "g"), "$1");
   }
   t = t.replace(/\b(?:week|wk|w)[\s-]*0?\d{1,2}\b\s*[-:–—.]?/gi, " ");
   t = t.replace(/\b(final|v\d+|ver\d+|copy|new|upd(ated)?)\b\s*$/gi, "");
+  // Two lectures in one file: "L7 8", "L3 L4", "L9-10", "L910" → "Lectures 7–8".
+  t = t.replace(/(^|\s)L\s?(\d{1,2})(?:\s*[,&+\-–]\s*|\s+)(?:L\s?)?(\d{1,2})\b/g, (m, pre: string, a: string, b: string) => (Number(b) === Number(a) + 1 ? `${pre}Lectures ${a}\u2060${b}` : m));
+  t = t.replace(/(^|\s)L(\d{1,2}?)(\d{2})\b/g, (m, pre: string, a: string, b: string) => (Number(b) === Number(a) + 1 ? `${pre}Lectures ${a}\u2060${b}` : m));
+  t = t.replace(/(^|\s)Lectures? (\d{1,2})(?:\s*[,&+\-–]\s*|\s+)(?:Lecture\s)?(\d{1,2})\b/g, (m, pre: string, a: string, b: string) => (Number(b) === Number(a) + 1 ? `${pre}Lectures ${a}\u2060${b}` : m));
   t = t.replace(/(^|\s)L\s?(\d+)\b/g, "$1Lecture $2").replace(/(^|\s)P\s?(\d+)\b/g, "$1Practice $2").replace(/(^|\s)LB\s?(\d+)\b/g, "$1Lab $2").replace(/(^|\s)T\s?(\d+)\b/g, "$1Tutorial $2");
-  t = t.replace(/\s*[-–—:]\s*/g, " — ").replace(/\s+/g, " ").replace(/^[\s—.]+|[\s—.]+$/g, "");
+  t = t.replace(/\s*[-–—:]\s*/g, " — ").replace(/\s+/g, " ").replace(/^[\s—.]+|[\s—.]+$/g, "").replace(/\u2060/g, "–");
   return t ? cap(t) : "Untitled file";
 }
 
@@ -104,7 +121,7 @@ export function fileList(titles: string[], max = 3) {
 
 export type FileMeta = { title: string; type: FileType; format: FileFormat; week: number | null };
 
-export function describeFile(name: string, opts: { courseCode?: string; courseName?: string; extension?: string } = {}): FileMeta {
+export function describeFile(name: string, opts: { courseCode?: string; courseName?: string; extension?: string; teachers?: string[] } = {}): FileMeta {
   return { title: cleanTitle(name, opts), type: typeOf(name), format: formatOf(name, opts.extension), week: weekOf(name) };
 }
 

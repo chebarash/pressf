@@ -1,4 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
+import { teacherNamesByCode } from "@/server/views/shared";
 import { describeFile } from "@/core/files";
 import { addDays, localDay } from "@/core/time";
 import { db } from "@/lib/db";
@@ -201,6 +202,7 @@ async function pullOneCourse(session: lms.LmsSession, ids: string[]) {
 /** New LMS files per current course, bundled at most once an hour; the first sync only remembers. */
 async function newFiles(ids: string[], prev: SyncSnapshot, sent: Record<string, string>, now: Date, named: (id: string) => { name: string; code: string }) {
   const rows = ids.length ? await db().select({ id: lmsFiles.id, courseId: lmsFiles.courseId, name: lmsFiles.name, code: lmsFiles.code }).from(lmsFiles).where(inArray(lmsFiles.courseId, ids)) : [];
+  const people = await teacherNamesByCode();
   const seen = new Set(prev.seenFiles);
   const alerts: Alert[] = [];
   if (!prev.at) return { alerts, seen: [...new Set([...seen, ...rows.map((r) => r.id)])] };
@@ -211,7 +213,7 @@ async function newFiles(ids: string[], prev: SyncSnapshot, sent: Record<string, 
     if (last && now.getTime() - Date.parse(last) < FILES_BUNDLE_MS) continue;
     const course = named(id);
     alerts.push(fileAlert({ id, code: course.code || fresh[0].code, name: course.name }, fresh.map((f) => {
-      const meta = describeFile(f.name, { courseCode: f.code, courseName: course.name });
+      const meta = describeFile(f.name, { courseCode: f.code, courseName: course.name, teachers: people[f.code ?? ""] });
       return { id: f.id, title: meta.title, week: meta.week };
     }), now));
     for (const f of fresh) seen.add(f.id);

@@ -18,15 +18,15 @@ import type { CourseScreen, CourseTab } from "./views";
  */
 export default function Course({ data }: { data: CourseScreen }) {
   const latest = data.terms.find((t) => t.current);
-  const termParam = data.term && data.term.courseId !== latest?.courseId ? data.term.term : undefined;
+  const termParam = data.term && data.term.term !== latest?.term ? data.term.term : undefined;
   const href = (tab: CourseTab) => path({ to: "course", code: data.code, tab, term: termParam });
-  const note = (courseId: string) => (data.term?.courseId === courseId && data.termStatus === "took" ? "You took it" : latest?.courseId === courseId ? "Now" : null);
+  const note = (term: string) => (data.term?.term === term && data.termStatus === "took" ? "You took it" : latest?.term === term ? "Now" : null);
   const terms: TermLink[] = data.terms.map((t) => ({
     term: t.term,
-    note: note(t.courseId),
+    note: note(t.term),
     teachers: t.teachers.join(", "),
-    href: path({ to: "course", code: data.code, tab: data.tab, term: t.courseId === latest?.courseId ? undefined : t.term }),
-    selected: t.courseId === data.courseId,
+    href: path({ to: "course", code: data.code, tab: data.tab, term: t.term === latest?.term ? undefined : t.term }),
+    selected: t.courseIds.includes(data.courseId),
   }));
   const tabs = [
     { tab: "overview" as const, label: "Overview" },
@@ -51,7 +51,7 @@ export default function Course({ data }: { data: CourseScreen }) {
           <ShareButton target={{ to: "course", code: data.code }} title={data.name} text={data.name} className={s.shareCourse} />
         </div>
         <h1 className={s.title}>{data.name}</h1>
-        {data.signedIn && data.term && data.terms.length > 1 ? <SemesterSwitch label={`${data.term.term}${note(data.term.courseId) ? ` · ${note(data.term.courseId)}` : ""}`} terms={terms} /> : null}
+        {data.signedIn && data.term && data.terms.length > 1 ? <SemesterSwitch label={`${data.term.term}${note(data.term.term) ? ` · ${note(data.term.term)}` : ""}`} terms={terms} /> : null}
         <CourseRatingStrip summary={data.ratings} />
       </header>
 

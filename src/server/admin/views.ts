@@ -3,6 +3,7 @@
  * queries inside. Nothing here can link a person to a rating or to an
  * Anonymous post: ratings are counted by pseudonym, posts carry no author.
  */
+import { teacherNamesByCode } from "@/server/views/shared";
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, like, max, ne, notInArray, or, sql, sum } from "drizzle-orm";
 import { describeFile, TYPE_LABEL, type FileType } from "@/core/files";
 import { displayName, initials } from "@/core/people";
@@ -467,13 +468,14 @@ export async function courseFiles(code: string, now = new Date()) {
       .leftJoin(lmsCache, eq(lmsCache.userId, uploads.uploaderId))
       .where(and(eq(uploads.courseCode, code), inArray(uploads.status, ["live", "hidden"]))),
   ]);
+  const people = await teacherNamesByCode();
   const course = courseRows[0];
   if (!course) return null;
   const today = localDay(now);
   const added = (d: Date) => (localDay(d) === today ? "today" : `${Number(localDay(d).slice(8))} ${MONTHS[Number(localDay(d).slice(5, 7)) - 1].slice(0, 3)}`);
   const files = [
     ...lms.map((f) => {
-      const meta = describeFile(f.name, { courseCode: code, courseName: course.name, extension: f.extension ?? undefined });
+      const meta = describeFile(f.name, { courseCode: code, courseName: course.name, extension: f.extension ?? undefined, teachers: people[code ?? ""] });
       const type = (f.o?.type as FileType | null) ?? meta.type;
       return { key: `lms:${f.id}`, source: "lms" as const, id: f.id, title: f.o?.title ?? meta.title, type, typeLabel: TYPE_LABEL[type] ?? type, week: f.o?.week ?? meta.week, hidden: !!f.o?.hidden, from: "LMS", fromStudents: false, added: added(f.fetchedAt), at: f.fetchedAt.getTime(), opens: null as number | null };
     }),

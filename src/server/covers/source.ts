@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { teacherNamesByCode } from "@/server/views/shared";
 import { eq } from "drizzle-orm";
 import { describeFile, TYPE_LABEL, type FileType } from "@/core/files";
 import { webUrl } from "@/core/links";
@@ -33,7 +34,7 @@ export async function fileSource(id: string, userId: string | null): Promise<Sou
   if (!f) return null;
   const [c] = await db().select({ name: lmsCourses.name }).from(lmsCourses).where(eq(lmsCourses.id, f.courseId));
   const name = f.extension && !f.name.toLowerCase().endsWith(`.${f.extension.toLowerCase()}`) ? `${f.name}.${f.extension}` : f.name;
-  const meta = describeFile(f.name, { courseCode: f.code, courseName: c?.name, extension: f.extension ?? undefined });
+  const meta = describeFile(f.name, { courseCode: f.code, courseName: c?.name, extension: f.extension ?? undefined, teachers: (await teacherNamesByCode())[f.code ?? ""] });
   return {
     key: f.storageKey, name, mimeType: f.mimeType,
     // LMS files have no content hash; the id and LMS version identify the bytes.

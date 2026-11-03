@@ -1,4 +1,5 @@
 import { and, count, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { teacherNamesByCode } from "@/server/views/shared";
 import { describeFile, type FileType } from "@/core/files";
 import { roleOf } from "@/core/people";
 import { shortDate } from "@/core/time";
@@ -92,10 +93,11 @@ async function freshFiles(): Promise<GuestFile[]> {
     db().select({ id: uploads.id, title: uploads.title, type: uploads.type, code: uploads.courseCode, courseName: lmsCourses.name, at: uploads.createdAt })
       .from(uploads).leftJoin(lmsCourses, eq(lmsCourses.id, uploads.courseId)).where(eq(uploads.status, "live")).orderBy(desc(uploads.createdAt)).limit(FRESH),
   ]);
+  const people = await teacherNamesByCode();
   const items = [
     ...lms.map((f) => {
       const course = f.courseName ?? f.code;
-      const d = describeFile(f.name, { courseCode: f.code, courseName: course, extension: f.extension ?? undefined });
+      const d = describeFile(f.name, { courseCode: f.code, courseName: course, extension: f.extension ?? undefined, teachers: people[f.code ?? ""] });
       const meta = overlay({ title: d.title, type: d.type, week: null }, f.edit ? { ...f.edit, hidden: false } : null)!;
       return { at: new Date(f.at), item: { id: f.id, title: meta.title, type: meta.type, course, source: { label: "LMS", kind: "lms" as const }, href: `/f/${f.id}` } };
     }),

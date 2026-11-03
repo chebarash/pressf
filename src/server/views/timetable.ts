@@ -7,7 +7,7 @@ import type { LmsLesson, LmsSubject } from "@/lib/lms/types";
 import { fileOverridesMap, overlayAll } from "@/server/decisions";
 import { classesBetween, type ClassView } from "./classes";
 import { progressCourses, type AbsencesView } from "./progress";
-import { DAY_ABBR, lmsFileItem, type FileItem } from "./shared";
+import { DAY_ABBR, lmsFileItem, teacherNamesByCode, type FileItem } from "./shared";
 import { loadStudent, type SyncState } from "./student";
 
 /** Timetable (Figma 3.1–3.7) with the class sheet's data for each class. */
@@ -46,7 +46,8 @@ export async function timetable(userId: string, day?: string, now = new Date()):
   const onDay = classes.filter((c) => localDay(new Date(c.start)) === selected);
   const lessonIds = onDay.flatMap((c) => c.lessonIds);
   const courseIds = [...new Set(onDay.map((c) => c.courseId ?? "").filter(Boolean))];
-  const [files, raws, overrides] = await Promise.all([
+  const [people, files, raws, overrides] = await Promise.all([
+    teacherNamesByCode(),
     lessonIds.length ? db().select().from(lmsFiles).where(inArray(lmsFiles.lessonId, lessonIds)) : Promise.resolve([]),
     courseIds.length && lessonIds.length ? db().select({ id: lmsCourses.id, raw: lmsCourses.raw }).from(lmsCourses).where(inArray(lmsCourses.id, courseIds)) : Promise.resolve([]),
     lessonIds.length ? fileOverridesMap() : Promise.resolve({}),
@@ -67,7 +68,7 @@ export async function timetable(userId: string, day?: string, now = new Date()):
     classes: onDay.map((c) => ({
       ...c,
       lesson: c.lessonIds.map((id) => lessonName.get(id)).find(Boolean) ?? null,
-      materials: overlayAll(files.filter((f) => c.lessonIds.includes(f.lessonId ?? "")).map((f) => lmsFileItem(f, { code: c.code, name: c.name }, new Map())), overrides),
+      materials: overlayAll(files.filter((f) => c.lessonIds.includes(f.lessonId ?? "")).map((f) => lmsFileItem(f, { code: c.code, name: c.name, teachers: people[c.code] }, new Map())), overrides),
       absences: courses.find((p) => p.courseId === c.courseId)?.absences ?? null,
     })),
     weekClasses: classes.filter((c) => { const d = localDay(new Date(c.start)); return d >= monday && d <= addDays(monday, 6); }),

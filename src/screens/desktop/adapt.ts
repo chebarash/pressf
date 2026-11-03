@@ -2,6 +2,7 @@
  * View model (src/server/views) → what the desktop frames draw (./model).
  * Pure functions: no fetching, no React. One per screen.
  */
+import { fileList } from "@/core/files";
 import { COURSE_TAG_ORDER } from "@/core/ratings";
 import { tier } from "@/core/grades";
 import { weekOf } from "@/core/semester";
@@ -260,10 +261,8 @@ export function courseList(my: V.MyCoursesView, list: string, earlier: V.TermRes
 export function course(v: V.CourseView): M.CourseData {
   const status = v.termStatus === "now" ? " · Now" : v.termStatus === "took" ? " · You took it" : "";
   const weeks = v.weeks ?? [];
-  // Only weeks with something in them, the three closest to this week (D4).
-  const nowWeek = weeks.find((w) => w.current)?.week ?? v.teachingWeek ?? null;
-  const filled = weeks.filter((w) => w.week != null && (w.files.length > 0 || !!w.topic?.trim()));
-  const shown = (nowWeek == null ? filled.slice(-3) : [...filled].sort((a, b) => Math.abs(a.week! - nowWeek) - Math.abs(b.week! - nowWeek) || a.week! - b.week!).slice(0, 3)).sort((a, b) => a.week! - b.week!);
+  // Every week with files, in order; this week too when it has any (D4). Empty weeks stay out.
+  const shown = weeks.filter((w) => w.week != null && w.files.length > 0).sort((a, b) => a.week! - b.week!);
   const allFiles = v.files?.items ?? [];
   const inWeeks = new Set(weeks.filter((w) => w.week != null).flatMap((w) => w.files.map((f) => f.id)));
   const otherFiles = allFiles.filter((f) => f.week == null && !inWeeks.has(f.id));
@@ -283,10 +282,10 @@ export function course(v: V.CourseView): M.CourseData {
     name: v.name,
     kind: null,
     // The current semester is the plain course link; earlier ones carry ?term=.
-    term: { label: v.term ? `${v.term.term}${status}` : "All semesters", options: v.terms.map((t) => ({ label: t.current ? `${t.term} · Now` : t.term, href: t.current ? `/c/${v.code}` : `/c/${v.code}?term=${encodeURIComponent(t.term)}`, selected: t.courseId === v.courseId })) },
+    term: { label: v.term ? `${v.term.term}${status}` : "All semesters", options: v.terms.map((t) => ({ label: t.current ? `${t.term} · Now` : t.term, href: t.current ? `/c/${v.code}` : `/c/${v.code}?term=${encodeURIComponent(t.term)}`, selected: t.courseIds.includes(v.courseId) })) },
     strip: strip(v.ratings),
     tabs: { overview: "Overview", files: v.files?.all ?? 0, anonymous: v.anonymous.count, filesHref: `/c/${v.code}/files`, anonymousHref: `/c/${v.code}/anonymous` },
-    weeks: shown.map((w) => ({ n: w.week ?? 0, title: w.topic?.trim() || plural(w.files.length, "file"), current: w.current, files: w.files.map((f) => fileRow(f)) })),
+    weeks: shown.map((w) => ({ n: w.week ?? 0, title: w.topic?.trim() || fileList(w.files.map((f) => f.title), 2), current: w.current, files: w.files.map((f) => fileRow(f)) })),
     otherFiles: otherFiles.map((f) => fileRow(f)),
     files: allFiles.map((f) => ({ ...fileRow(f), week: f.week })),
     topics: Object.fromEntries(weeks.filter((w) => w.week != null && w.topic?.trim()).map((w) => [w.week!, w.topic!.trim()])),
@@ -686,7 +685,7 @@ export function curriculum(v: V.CurriculumView): M.CurriculumData {
   return {
     program: v.program?.name ?? "Curriculum",
     line: join(v.years.length > 0 && plural(v.years.length, "year"), v.years.reduce((n, y) => n + y.terms.reduce((a, t) => a + t.courses.reduce((e, c) => e + (c.ects ?? 0), 0), 0), 0) + " ECTS"),
-    programs: v.programs.map((p) => ({ id: p.id, name: p.name, href: `/programs/${p.id}`, on: p.id === v.program?.id })),
+    programs: v.programs.map((p) => ({ id: p.id, name: p.name, href: `/programs/${p.id}/curriculum`, on: p.id === v.program?.id })),
     years: v.years.map((y) => ({
       label: `Year ${y.year}`,
       semesters: y.terms.map((t) => ({ label: t.label, ects: t.courses.reduce((e, c) => e + (c.ects ?? 0), 0), courses: t.courses.map((c) => ({ code: c.code ?? "", name: c.name, ects: c.ects, pct: c.recommendPct, status: c.status, href: c.href })) })),
