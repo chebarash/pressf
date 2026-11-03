@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { HOURS, HOURS_LABEL, MAX_TAGS, TEACHER_TAGS, toHours, type CourseTag, type Hours, type RatingInput, type Recommend, type TeacherTag } from "@/core/ratings";
 import { EmptyState, Sheet } from "@/ui/components";
 import type { RateData } from "../model";
@@ -41,7 +41,11 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
   const [sent, setSent] = useState(false);
   const [pending, start] = useTransition();
 
+  // Closing fires twice (our call, then the <dialog>'s own close event): go back only once.
+  const closing = useRef(false);
   const close = () => {
+    if (closing.current) return;
+    closing.current = true;
     setOpen(false);
     if (window.history.length > 1) router.back();
     else router.push("/");

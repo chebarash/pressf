@@ -1,5 +1,6 @@
 "use client";
 
+import { parentOf } from "@/platform/TelegramBridge";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { GO_TO, isTyping, openPalette, openShortcuts, toggleTheme } from "./bus";
@@ -125,6 +126,15 @@ export function DesktopKeyboard() {
         e.preventDefault();
         if (target.matches("input, textarea, select")) target.focus();
         else target.click();
+        return;
+      }
+      // Esc with nothing open goes back: to the previous screen, or up to the section when the page was opened directly.
+      if (key === "Escape" && !document.querySelector("dialog[open], [role=dialog], [aria-modal=true]") && window.location.pathname !== "/") {
+        e.preventDefault();
+        const nav = (window as unknown as { navigation?: { canGoBack?: boolean } }).navigation;
+        const canBack = typeof nav?.canGoBack === "boolean" ? nav.canGoBack : window.history.length > 1;
+        if (canBack) router.back();
+        else router.push(parentOf(window.location.pathname));
       }
     };
 
