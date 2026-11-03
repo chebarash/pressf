@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compact, createIndex, editDistance, fold, nameSimilarity, phonetic, TIER, words } from "@/core/search";
+import { compact, createIndex, editDistance, fold, phonetic, TIER, words } from "@/core/search";
 
 const COURSES = [
   { code: "MATH111", name: "Calculus 1" },
@@ -234,20 +234,6 @@ describe("file ranking", () => {
     expect(found("midtrem").sort()).toEqual(["F1", "F4"]);
     expect(found("integrls")).toEqual(["F5"]);
     expect(found("lecture 5 integrals")).toEqual(["F5"]);
-  });
-});
-
-describe("name similarity", () => {
-  it("scores the same person high in any order and spelling", () => {
-    expect(nameSimilarity("Gonçalo Pinto", "Pinto Goncalo")).toBe(1);
-    expect(nameSimilarity("Dilnoza Khasanova", "Xasanova Dilnoza")).toBe(1);
-    expect(nameSimilarity("Гонсало Пинто", "Gonçalo Pinto")).toBeGreaterThan(0.8);
-    expect(nameSimilarity("G. Pinto", "Gonçalo Pinto")).toBeGreaterThan(0.7);
-  });
-
-  it("scores different people low", () => {
-    expect(nameSimilarity("Ivan Petrov", "Gonçalo Pinto")).toBeLessThan(0.5);
-    expect(nameSimilarity("", "Gonçalo Pinto")).toBe(0);
   });
 });
 

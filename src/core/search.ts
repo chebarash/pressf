@@ -241,30 +241,3 @@ export function createIndex<T>(input: Array<SearchDoc<T>>, opts: { names?: boole
   };
 }
 
-/* ───────────── name similarity (old faces → current professors) ───────────── */
-
-/**
- * 0–1: how alike two people's names are, in any word order, forgiving accents,
- * transliteration and a typo per word. 1 means the same words. With
- * `over: "a"` only `a`'s words must be found in `b` (b may add a patronymic).
- */
-export function nameSimilarity(a: string, b: string, over: "both" | "a" = "both"): number {
-  const x = words(a, true);
-  const y = words(b, true);
-  if (!x.length || !y.length) return 0;
-  const used = new Set<number>();
-  let total = 0;
-  for (const w of x) {
-    let best = 0;
-    let at = -1;
-    y.forEach((v, j) => {
-      if (used.has(j)) return;
-      const longest = Math.max(w.length, v.length);
-      const s = w === v ? 1 : (w.length === 1 || v.length === 1) && w[0] === v[0] ? 0.6 : 1 - editDistance(w, v, longest) / longest;
-      if (s > best) { best = s; at = j; }
-    });
-    if (at >= 0) used.add(at);
-    total += best;
-  }
-  return total / (over === "a" ? x.length : Math.max(x.length, y.length));
-}

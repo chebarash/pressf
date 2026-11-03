@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { assignOldFace, discardOldFace, removeFace, transferFaces, uploadFace, type Result } from "@/app/admin/actions";
+import { removeFace, uploadFace, type Result } from "@/app/admin/actions";
 import type { facesPage } from "@/server/admin/faces";
 import { Btn, Chip, Head, KV, Label, cx, s } from "./ui";
 import { useKeys } from "./useKeys";
@@ -21,7 +21,7 @@ function FaceImg({ src, size, alt = "" }: { src: string | null; size: number; al
   return <img src={safe} alt={alt} width={size} height={size} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, opacity: safe === DEFAULT_FACE ? 0.35 : 1 }} />;
 }
 
-/** A6 Professors · Faces: drawn faces only (never photos). Upload, replace, remove, and re-use faces from the old catalog. */
+/** A6 Professors · Faces: drawn faces only (never photos). Upload, replace and remove. */
 export function ProfessorFaces({ data }: { data: FacesData }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -45,7 +45,6 @@ export function ProfessorFaces({ data }: { data: FacesData }) {
   const tabs: Array<{ id: FacesData["show"]; label: string; n: number }> = [
     { id: "missing", label: "No face", n: data.counts.missing },
     { id: "with", label: "With face", n: data.counts.with },
-    { id: "old", label: "Old faces", n: data.counts.old },
   ];
 
   return (
@@ -64,36 +63,29 @@ export function ProfessorFaces({ data }: { data: FacesData }) {
             </Link>
           ))}
         </div>
-        {data.show !== "old" ? (
-          <>
-            <form className={s.search} action="/admin/professors">
-              <input type="hidden" name="tab" value="faces" />
-              <input type="hidden" name="show" value={data.show} />
-              <input ref={search} name="q" defaultValue={data.q} placeholder="Professor's name" aria-label="Search professors" autoComplete="off" />
-              <kbd className={s.key}>/</kbd>
-            </form>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div className={cx(s.tr, s.trHead)}>
-                <span className={s.td} style={{ width: 32 }} />
-                <span className={cx(s.td, s.tdGrow)}>NAME</span>
-                <span className={s.td} style={{ width: 70 }}>COURSES</span>
-              </div>
-              {data.list.length === 0 && <p className={s.small}>{data.q ? `Nobody matches “${data.q}”.` : data.show === "missing" ? "Every professor has a face." : "No faces yet."}</p>}
-              {data.list.map((t) => (
-                <Link key={t.id} href={href({ id: t.id })} className={cx(s.tr, s.trLink, t.id === data.selected?.id && s.trSelected)} prefetch={false} scroll={false}>
-                  <FaceImg src={t.face} size={32} />
-                  <span className={cx(s.td, s.tdGrow, s.tdStrong)}>{t.name}</span>
-                  <span className={s.td} style={{ width: 70 }}>{t.courses}</span>
-                </Link>
-              ))}
-            </div>
-          </>
-        ) : (
-          <OldFaces data={data} pending={pending} run={run} />
-        )}
-        {data.show === "old" && note && <div className={note.ok ? s.small : s.error}>{note.text}</div>}
+        <form className={s.search} action="/admin/professors">
+          <input type="hidden" name="tab" value="faces" />
+          <input type="hidden" name="show" value={data.show} />
+          <input ref={search} name="q" defaultValue={data.q} placeholder="Professor's name" aria-label="Search professors" autoComplete="off" />
+          <kbd className={s.key}>/</kbd>
+        </form>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className={cx(s.tr, s.trHead)}>
+            <span className={s.td} style={{ width: 32 }} />
+            <span className={cx(s.td, s.tdGrow)}>NAME</span>
+            <span className={s.td} style={{ width: 70 }}>COURSES</span>
+          </div>
+          {data.list.length === 0 && <p className={s.small}>{data.q ? `Nobody matches “${data.q}”.` : data.show === "missing" ? "Every professor has a face." : "No faces yet."}</p>}
+          {data.list.map((t) => (
+            <Link key={t.id} href={href({ id: t.id })} className={cx(s.tr, s.trLink, t.id === data.selected?.id && s.trSelected)} prefetch={false} scroll={false}>
+              <FaceImg src={t.face} size={32} />
+              <span className={cx(s.td, s.tdGrow, s.tdStrong)}>{t.name}</span>
+              <span className={s.td} style={{ width: 70 }}>{t.courses}</span>
+            </Link>
+          ))}
+        </div>
       </section>
-      {data.show !== "old" && data.selected ? <Detail key={data.selected.id} sel={data.selected} pending={pending} run={run} note={note} /> : <section className={cx(s.detail, s.detailNarrow)} />}
+      {data.selected ? <Detail key={data.selected.id} sel={data.selected} pending={pending} run={run} note={note} /> : <section className={cx(s.detail, s.detailNarrow)} />}
     </>
   );
 }
@@ -164,53 +156,5 @@ function Detail({ sel, pending, run, note }: { sel: NonNullable<FacesData["selec
         )}
       </div>
     </section>
-  );
-}
-
-function OldFaces({ data, pending, run }: { data: FacesData; pending: boolean; run: (fn: () => Promise<Result>) => void }) {
-  const [manual, setManual] = useState<Record<string, string>>({});
-  if (!data.old.length) return <p className={s.small}>No faces left from the old catalog. Upload new drawings from the No face tab.</p>;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <p className={s.small} style={{ margin: 0 }}>
-        Faces drawn for the old catalog, kept under its teacher ids. Sure matches move by themselves on every deploy; these need a person. Each shows its old name and the closest current professors without a face. Assigning moves the drawing; nothing is re-uploaded.
-      </p>
-      <div className={s.hstack}>
-        <Btn disabled={pending} onClick={() => run(() => transferFaces())}>Move sure matches now</Btn>
-      </div>
-      {data.old.map((o) => (
-        <div key={o.oldId} className={s.card} style={{ gap: 10 }}>
-          <div className={s.hstack} style={{ gap: 12 }}>
-            <FaceImg src={o.image} size={64} alt={o.oldName ?? ""} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, flex: "1 0 0" }}>
-              <span className={s.cardName}>{o.oldName ?? "Unknown name"}</span>
-              <span className={s.small}>Old id {o.oldId}</span>
-            </div>
-          </div>
-          {o.matches.length > 0 ? (
-            <div className={s.wrap}>
-              {o.matches.map((m) => (
-                <Btn key={m.id} tone={m === o.matches[0] ? "accent" : "plain"} disabled={pending} onClick={() => run(() => assignOldFace(o.oldId, m.id))}>
-                  {m.name} · {m.pct}%
-                </Btn>
-              ))}
-            </div>
-          ) : (
-            <span className={s.small}>No close name among professors without a face.</span>
-          )}
-          <div className={s.hstack}>
-            <select className={s.inputInline} value={manual[o.oldId] ?? ""} onChange={(e) => setManual((v) => ({ ...v, [o.oldId]: e.target.value }))} aria-label="Assign to another professor">
-              <option value="">Another professor…</option>
-              {data.choices.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <Btn disabled={pending || !manual[o.oldId]} onClick={() => run(() => assignOldFace(o.oldId, manual[o.oldId]))}>Assign</Btn>
-            <div className={s.spacer} />
-            <Btn tone="danger" disabled={pending} onClick={() => confirm("Discard this old face? It stays in the bucket.") && run(() => discardOldFace(o.oldId))}>Discard</Btn>
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }
