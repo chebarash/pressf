@@ -11,6 +11,7 @@ import { trustFor } from "@/server/uploads";
 import { hiddenPosts, postMuted, sessionsRevokedAt, settings } from "@/server/admin/marks";
 import * as ops from "@/server/admin/ops";
 import { auditPage, audienceSize, chrome, courseFiles, coursesPage, overview, peoplePage, professorsPage, reportsPage, systemPage, uploadsPage } from "@/server/admin/views";
+import { mentionLinksPage } from "@/server/admin/mention-links";
 import { resetDb } from "../fixtures/db";
 
 const newUser = async (email: string, extra: Partial<typeof users.$inferInsert> = {}) => (await db().insert(users).values({ email, ...extra }).returning())[0].id;
@@ -128,6 +129,52 @@ describe("reports", () => {
     await ops.resolveReport(mod, { kind: "post", id: "42" }, "keep");
     expect((await reportsPage("open", undefined)).items).toHaveLength(0);
     expect((await reportsPage("resolved", undefined)).counts.resolved).toBe(1);
+  });
+});
+
+describe("Anonymous links", () => {
+  beforeEach(async () => {
+    await db().insert(lmsTeachers).values({ id: "36", firstName: "Gonçalo", surName: "Pinto" });
+    await db().insert(mentions).values({ postId: 7, url: "https://t.me/c/7", text: "Calculus 1 with prof Pinto?" });
+    await db().insert(mentionLinks).values([{ postId: 7, kind: "course", target: "MATH111" }, { postId: 7, kind: "teacher", target: "36" }]);
+  });
+  const links = async () => (await db().select().from(mentionLinks)).map((l) => `${l.kind} ${l.target}`).sort();
+
+  it("hides a wrong link for good, restores it, and audits both", async () => {
+    await expect(ops.hideMentionLink(student, { postId: 7, kind: "teacher", target: "36" })).rejects.toBeInstanceOf(ops.Forbidden);
+    await ops.hideMentionLink(mod, { postId: 7, kind: "teacher", target: "36" });
+    expect(await links()).toEqual(["course MATH111"]);
+    const page = await mentionLinksPage({});
+    expect(page.posts[0].links).toEqual([
+      { kind: "course", target: "MATH111", label: "MATH111 · Calculus 1", hidden: false },
+      { kind: "teacher", target: "36", label: "Gonçalo Pinto", hidden: true },
+    ]);
+    expect(page.totals).toMatchObject({ course: 1, teacher: 0, hidden: 1 });
+    await ops.restoreMentionLink(mod, { postId: 7, kind: "teacher", target: "36" });
+    expect(await links()).toEqual(["course MATH111", "teacher 36"]);
+    expect(await actions()).toEqual(["mention.link.hide", "mention.link.restore"]);
+    const audit = await auditPage({}, new Date());
+    expect(audit.rows.map((r) => r.what)).toContain("post:7 · teacher 36");
+  });
+
+  it("filters by course or professor and by text, never showing authors", async () => {
+    await db().insert(mentions).values({ postId: 8, url: "https://t.me/c/8", text: "MATH111 notes anyone?" });
+    await db().insert(mentionLinks).values({ postId: 8, kind: "course", target: "MATH111" });
+    expect((await mentionLinksPage({ kind: "teacher", target: "36" })).posts.map((p) => p.id)).toEqual([7]);
+    expect((await mentionLinksPage({ q: "notes" })).posts.map((p) => p.id)).toEqual([8]);
+    const page = await mentionLinksPage({});
+    expect(page.top.course).toEqual([{ target: "MATH111", label: "MATH111 · Calculus 1", posts: 2 }]);
+    expect(Object.keys(page.posts[0]).sort()).toEqual(["id", "links", "text", "url"]);
+  });
+
+  it("refuses a post that is gone", async () => {
+    await expect(ops.hideMentionLink(mod, { postId: 99, kind: "course", target: "MATH111" })).rejects.toBeInstanceOf(ops.AdminError);
+  });
+
+  it("moves a merged professor's posts to the kept page", async () => {
+    await db().insert(lmsTeachers).values({ id: "37", firstName: "Gonçalo", surName: "Pinto" });
+    await ops.mergeTeachers(admin, "37", "36");
+    expect(await links()).toEqual(["course MATH111", "teacher 37"]);
   });
 });
 
