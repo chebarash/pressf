@@ -17,7 +17,7 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           SITE_URL: ${{ vars.SITE_URL }}
         run: |
-          result=$(curl --fail --silent --show-error --max-time 280 -X POST \
+          result=$(curl --fail --silent --show-error --retry 3 --retry-delay 90 --retry-all-errors --max-time 280 -X POST \
             -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/sync")
           echo "$result"
           test "$(echo "$result" | jq '.failed | length')" = 0

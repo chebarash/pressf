@@ -17,9 +17,13 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           SITE_URL: ${{ vars.SITE_URL }}
+        # A deploy restarts the site for a minute (502/503): wait and try again, up to 4 times.
         run: |
-          code=$(curl --silent --show-error --max-time 900 -o body.txt -w "%{http_code}" -X POST \
-            -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/harvest")
-          echo "HTTP $code"
-          echo "BODY: $(cat body.txt)"
+          for attempt in 1 2 3 4; do
+            code=$(curl --silent --show-error --max-time 900 -o body.txt -w "%{http_code}" -X POST \
+              -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/cron/harvest" || echo 000)
+            echo "Attempt $attempt: HTTP $code"
+            case "$code" in 502|503|504|000) sleep 90 ;; *) break ;; esac
+          done
+          echo "BODY: $(cat body.txt 2>/dev/null)"
           test "$code" = "200"
