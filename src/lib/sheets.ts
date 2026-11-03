@@ -72,7 +72,15 @@ export function readCsv(text: string): Grid {
 
 /* ───────────── HTML (a sheet's /htmlview, or a saved web page) ───────────── */
 
-const cellText = (html: string) => decode(html.replace(/<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim();
+/** A cell's text: tags stripped until none are left, then entities decoded (the result is plain text, never markup). */
+function cellText(html: string) {
+  let text = html.replace(/<br\s*\/?>/gi, " ");
+  for (let prev = ""; prev !== text; ) {
+    prev = text;
+    text = text.replace(/<[^<>]*>/g, "");
+  }
+  return decode(text.replace(/[<>]/g, "")).replace(/\s+/g, " ").trim();
+}
 
 /** The first data table in an HTML page; Google's row/column headers and freeze bars are left out. */
 export function readHtmlTable(html: string): Grid {
