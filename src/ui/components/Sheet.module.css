@@ -9,6 +9,10 @@
   color: var(--text-primary);
 }
 .root::backdrop { background: var(--scrim); }
+/* showModal() focuses the dialog itself when nothing inside asks for focus; Chromium then draws
+   a focus ring around the whole container. Focus stays there (Tab moves into the sheet), only the ring goes. */
+.root:focus,
+.root:focus-visible { outline: none; }
 .root[open] { display: flex; flex-direction: column; }
 
 .panel {

@@ -8,11 +8,17 @@ import { Dismissible } from "./parts/Dismiss";
 import t from "./today.module.css";
 
 /** D1 Today — bento: next class and the day on top, then the feed, deadlines, exam, courses and rating. */
-export default function DesktopToday({ data }: { data: TodayView }) {
-  return <TodayScreen data={adapt.today(data)} />;
+export type TodayActions = {
+  /** "Later" on the rating ask: counts a dismissal for that term (server action). */
+  dismissRating?: (term: string) => Promise<unknown>;
+};
+
+export default function DesktopToday({ data, actions }: { data: TodayView; actions?: TodayActions }) {
+  return <TodayScreen data={adapt.today(data)} actions={actions} />;
 }
 
-export function TodayScreen({ data }: { data: TodayData }) {
+export function TodayScreen({ data, actions }: { data: TodayData; actions?: TodayActions }) {
+  const dismiss = data.rate?.term && actions?.dismissRating ? actions.dismissRating.bind(null, data.rate.term) : undefined;
   return (
     <main data-desktop-screen className={cx(css.screen, t.main)}>
       <header className={t.header}>
@@ -129,7 +135,7 @@ export function TodayScreen({ data }: { data: TodayData }) {
         </div>
 
         {data.rate && (
-          <Dismissible className={cx(css.card, t.rate)}>
+          <Dismissible className={cx(css.card, t.rate)} onDismiss={dismiss}>
             <p className={t.rateEyebrow}>{data.rate.eyebrow}</p>
             <h2 className={t.rateTitle}>{data.rate.title}</h2>
             <p className={t.rateText}>{data.rate.text}</p>

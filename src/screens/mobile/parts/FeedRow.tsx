@@ -9,8 +9,8 @@ const TYPE: Record<FeedKind, FeedType> = {
 
 const SOURCE: Partial<Record<FeedKind, string>> = { announcement: "LMS", anonymous: "Anonymous" };
 
-/** "LMS · Calculus 1 · 1 h ago · needs your OK". */
-export const feedMeta = (item: FeedView) => [SOURCE[item.kind], item.courseName, item.ago, item.needsAck ? "needs your OK" : null].filter(Boolean).join(" · ");
+/** "LMS · Calculus 1 · Gonçalo Pinto · 1 h ago · needs your OK" (Figma 2.9): the byline for LMS announcements. */
+export const feedMeta = (item: FeedView) => [...(item.byline ? [item.byline] : [SOURCE[item.kind], item.courseName]), item.ago, item.needsAck ? "needs your OK" : null].filter(Boolean).join(" · ");
 
 /** One feed entry (kit FeedItem): a link on Today, a button that opens the sheet on Notifications. */
 export function FeedRow({ item, href, onOpen }: { item: FeedView; href?: string; onOpen?: () => void }) {

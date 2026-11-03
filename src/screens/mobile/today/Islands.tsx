@@ -56,9 +56,9 @@ export function TodayBanner({ banner }: { banner: BannerView }) {
  * The one bottom button Today shows: "Scan attendance QR" while a class is
  * open for check-in (10.1), else the loudest rating ask with shine (2.11).
  */
-export function TodayBar({ checkIn, classEnd, classLine, rating }: { checkIn: boolean; classEnd?: string; classLine?: string; rating: RatingAskView | null }) {
+export function TodayBar({ checkIn, classEnd, classLine, course, rating }: { checkIn: boolean; classEnd?: string; classLine?: string; course?: string | null; rating: RatingAskView | null }) {
   const router = useRouter();
-  if (checkIn) return <QrFlow classEnd={classEnd} classLine={classLine} />;
+  if (checkIn) return <QrFlow classEnd={classEnd} classLine={classLine} course={course} />;
   if (rating?.level === "shine")
     return <BottomBar main={{ text: `Rate ${rating.term} · ${rating.courses.length} ${rating.courses.length === 1 ? "course" : "courses"}`, shine: true, onClick: () => router.push("/rate") }} />;
   return null;

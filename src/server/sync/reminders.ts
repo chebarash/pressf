@@ -84,12 +84,12 @@ export async function runReminders(userId: string, now = new Date()): Promise<Re
   if (phase && (phase.kind === "midterm" || phase.kind === "final") && localWeekday(now) === 5 && phase.inDays > 0 && phase.inDays <= 3 && minutes >= 16 * 60 && minutes < 20 * 60) {
     const exams = classes.filter((c) => c.kind === "exam" && localDay(new Date(c.start)) >= phase.starts)
       .map((c) => ({ day: `${weekdayName(new Date(c.start)).slice(0, 3)} ${shortDate(new Date(c.start))}`, time: c.time, name: c.name, room: c.room }));
-    await go(`examweek:${phase.starts}`, "system", msg.examWeek({ kind: phase.kind, exams: exams.map((e) => ({ when: `${e.day} ${e.time}`, course: e.name, room: e.room })) }));
+    await go(`examweek:${phase.starts}`, "exams", msg.examWeek({ kind: phase.kind, exams: exams.map((e) => ({ when: `${e.day} ${e.time}`, course: e.name, room: e.room })) }));
   }
   if (minutes >= 18 * 60 && minutes < 21 * 60) {
     for (const c of classes.filter((x) => x.kind === "exam" && localDay(new Date(x.start)) === addDays(day, 1))) {
       const kind = /final/i.test(c.name) || phase?.kind === "final" ? "final" : /mid/i.test(c.name) || phase?.kind === "midterm" ? "midterm" : "exam";
-      await go(`exam:${c.key}`, "system", msg.examTomorrow({ course: c.name, courseCode: c.code, exam: kind, time: c.time, room: c.room }));
+      await go(`exam:${c.key}`, "exams", msg.examTomorrow({ course: c.name, courseCode: c.code, exam: kind, time: c.time, room: c.room }));
     }
   }
 
@@ -112,12 +112,12 @@ export async function runReminders(userId: string, now = new Date()): Promise<Re
         const inDays = daysBetween(day, p.startDay);
         if (inDays < 1 || inDays > 3) continue;
         const when = inDays === 1 ? "tomorrow" : `on ${weekdayName(p.startDay)} ${shortDate(p.startDay)}`;
-        await go(`cohort:${p.semesterId}:${p.startDay}`, "system", msg.cohortSelection({ when, target: { to: "next" } }));
+        await go(`cohort:${p.semesterId}:${p.startDay}`, "registration", msg.cohortSelection({ when, target: { to: "next" } }));
       }
       if (p.kind === "add-drop" && p.endDay === addDays(day, 1)) {
         const end = new Date(p.ends);
         const time = clock(end);
-        await go(`adddrop:${p.semesterId}:${p.endDay}`, "system", msg.addDropCloses({ when: time === "00:00" ? "tomorrow" : `tomorrow ${time}`, term: p.semester ?? "next semester" }));
+        await go(`adddrop:${p.semesterId}:${p.endDay}`, "registration", msg.addDropCloses({ when: time === "00:00" ? "tomorrow" : `tomorrow ${time}`, term: p.semester ?? "next semester" }));
       }
     }
   }

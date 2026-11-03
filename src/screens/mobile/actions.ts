@@ -9,6 +9,7 @@ import { sessionFor } from "@/lib/lms/store";
 import { dismissAsk } from "@/server/ratings";
 import { acknowledge, markAllRead, readNotification } from "@/server/sync/actions";
 import { syncStudent } from "@/server/sync/student";
+import { courseAttendance } from "@/server/views/progress";
 
 /**
  * Mutations behind Today, Notifications and the QR check-in. Each checks the
@@ -69,14 +70,30 @@ export async function retrySync(): Promise<{ ok: boolean }> {
   return { ok: !!result?.ok };
 }
 
-export type CheckIn = QrOutcome | { kind: "offline" } | { kind: "signin" } | { kind: "invalid" };
+/** `absencesLeft` on a mark: "N absences left in this course" (Figma 10.3), from the stored snapshot. */
+export type CheckIn =
+  | Exclude<QrOutcome, { kind: "marked" }>
+  | (Extract<QrOutcome, { kind: "marked" }> & { absencesLeft?: number | null })
+  | { kind: "offline" }
+  | { kind: "signin" }
+  | { kind: "invalid" };
+
+/** Absences left in the course a check-in counted for: the LMS reply names it, else the class on now. */
+async function absencesLeft(userId: string, names: Array<string | null | undefined>): Promise<number | null> {
+  for (const name of names) {
+    if (!name) continue;
+    const hit = await courseAttendance(userId, name).catch(() => null);
+    if (hit) return hit.absences?.left ?? null;
+  }
+  return null;
+}
 
 /**
  * Sends a scanned classroom code to the LMS with the student's own session.
  * The scan was checked on the device; it is checked again here so only the
  * LMS attendance link can ever be called.
  */
-export async function checkIn(text: string): Promise<CheckIn> {
+export async function checkIn(text: string, course?: string | null): Promise<CheckIn> {
   const user = await getUser();
   if (!user) return { kind: "signin" };
   const parsed = parseQr(String(text).slice(0, 2000));
@@ -85,7 +102,10 @@ export async function checkIn(text: string): Promise<CheckIn> {
   if (!session) return { kind: "signin" };
   try {
     const { status, body } = await activateQr(session, parsed.token);
-    return qrOutcome(status, body as Parameters<typeof qrOutcome>[1]);
+    const outcome = qrOutcome(status, body as Parameters<typeof qrOutcome>[1]);
+    if (outcome.kind !== "marked") return outcome;
+    const hint = typeof course === "string" ? course.slice(0, 200) : null;
+    return { ...outcome, absencesLeft: await absencesLeft(user.id, [outcome.subject, hint]) };
   } catch (e) {
     if (e instanceof LmsError && e.status === 401) return { kind: "signin" };
     if (e instanceof LmsError && e.status === 0) return { kind: "offline" };

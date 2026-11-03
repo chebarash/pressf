@@ -34,11 +34,15 @@ export const demo = {
 export function rateScreen(queue: views.RateQueueView, courseId?: string, from?: string): RateScreen {
   if (!courseId) return { ...queue, open: null };
   const waiting = queue.waiting.find((w) => w.courseId === courseId);
+  // This semester's courses, once the rating window is open (Figma 4.2 "Rate this course").
+  const current = (queue.current ?? []).find((w) => w.courseId === courseId);
   const rated = queue.rated.find((r) => r.courseId === courseId && r.canEdit);
-  const item = waiting ?? rated;
+  const item = waiting ?? current ?? rated;
   if (!item) return { ...queue, open: null };
   const course = from && /^\/c\/[A-Za-z0-9]{1,16}$/.test(from) ? from : null;
-  return { ...queue, open: { item, draft: null, mode: waiting && !course ? "queue" : "single", returnHref: course ?? "/rate" } };
+  // "Edit your rating" opens on the saved answers.
+  const draft = !waiting && !current && rated?.answers ? rated.answers : null;
+  return { ...queue, open: { item, draft, mode: waiting && !course ? "queue" : "single", returnHref: course ?? "/rate" } };
 }
 
 export const loadRate = async (userId: string, courseId?: string, from?: string) => {

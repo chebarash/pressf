@@ -22,16 +22,19 @@ function feedItem(f: V.FeedView, section?: string): M.FeedItemVM {
     id: f.id,
     kind: f.kind,
     title: f.title,
-    meta: join(f.courseName, f.ago, f.needsAck && !f.read && "needs your OK"),
+    // D7 / D1: "LMS · Calculus 1 · 1 h ago · needs your OK"; the author shows when no course is named.
+    meta: join(SOURCE[f.kind], f.courseName ?? f.author, f.ago, f.needsAck && !f.read && "needs your OK"),
     unread: !f.read,
     href: `/notifications?open=${encodeURIComponent(f.id)}`,
     section,
-    eyebrow: join(KIND_EYEBROW[f.kind], f.courseName, f.ago),
+    // "LMS announcement · Calculus 1 · Gonçalo Pinto · 1 h ago".
+    eyebrow: join(KIND_EYEBROW[f.kind], f.courseName, f.author, f.ago),
     body: f.body ? f.body.split(/\n{2,}|\n/).map((p) => p.trim()).filter(Boolean) : [],
     needsAck: f.needsAck,
     open: f.href ? { label: f.courseName ? `Open ${f.courseName}` : "Open", href: f.href } : null,
   };
 }
+const SOURCE: Record<string, string> = { announcement: "LMS", anonymous: "Anonymous" };
 const KIND_EYEBROW: Record<string, string> = { announcement: "LMS announcement", grade: "New grade", absence: "Absence", file: "New files", deadline: "Deadline", anonymous: "Anonymous", upload: "Your upload", system: "Press F" };
 
 function summaryProps(r: V.RatingSummaryView, title: string): RatingSummaryProps | null {
@@ -50,7 +53,7 @@ function summaryProps(r: V.RatingSummaryView, title: string): RatingSummaryProps
 const strip = (r: V.RatingSummaryView | null | undefined): M.Strip =>
   r?.enough ? { recommendPct: r.recommendPct, hours: r.hours, difficulty: r.difficulty, difficultyWord: r.difficultyLabel } : { recommendPct: null, hours: null, difficulty: null, difficultyWord: null };
 
-const card = (c: V.CourseCard): M.CourseCardVM => ({ code: c.code, name: c.name, href: c.href, recommendPct: c.recommendPct, teacher: c.teacher ? { name: c.teacher.name, face: null } : null, line: c.when ?? "" });
+const card = (c: V.CourseCard): M.CourseCardVM => ({ code: c.code, name: c.name, href: c.href, recommendPct: c.recommendPct, teacher: c.teacher ? { name: c.teacher.name, face: c.teacher.face ?? null } : null, line: c.when ?? "" });
 
 /* ---------- Today ---------- */
 
@@ -96,7 +99,7 @@ export function today(v: V.TodayView): M.TodayData {
     courses: v.courses.map(card),
     rate:
       v.rating.level !== "none" && v.rating.waiting.length
-        ? { eyebrow: `${v.rating.waiting.length} course${v.rating.waiting.length === 1 ? "" : "s"} · 30 seconds`, title: `Rate ${v.rating.term ?? "last semester"}`, text: "Next year's students choose by this. Anonymous.", href: "/rate" }
+        ? { eyebrow: `${v.rating.waiting.length} course${v.rating.waiting.length === 1 ? "" : "s"} · 30 seconds`, title: `Rate ${v.rating.term ?? "last semester"}`, text: "Next year's students choose by this. Anonymous.", href: "/rate", term: v.rating.term }
         : null,
   };
 }
@@ -107,25 +110,32 @@ const TONE: Record<string, M.ClassTone> = { lecture: "teal", practice: "teal", l
 
 export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData {
   const index = new Map(v.week.map((d, i) => [d.day, i]));
-  const classes = v.classes.map((c): M.TimetableClass => {
+  const exam = /midterm/i.test(v.weekLabel ?? "") ? "MIDTERM" : /final/i.test(v.weekLabel ?? "") ? "FINAL" : "EXAM";
+  // D3: the whole week from `weekClasses`; the selected day's classes carry the inspector extras (materials, absences, lesson).
+  const detailed = new Map(v.classes.map((c) => [c.key, c]));
+  const week = v.weekClasses?.length ? v.weekClasses.filter((c) => index.has(localDay(new Date(c.start)))) : v.classes;
+  const classes = week.map((base): M.TimetableClass => {
+    const c: V.ClassView & Partial<Pick<V.TimetableClass, "lesson" | "materials" | "absences">> = detailed.get(base.key) ?? base;
     const start = new Date(c.start);
     return {
       id: c.key,
       day: index.get(localDay(start)) ?? 0,
       start: localMinutes(start),
       end: localMinutes(new Date(c.end)),
-      title: c.kind === "exam" ? `${c.name} · EXAM` : c.name,
-      meta: join(c.time, c.room, c.changedFrom ? "moved" : KIND_LABEL[c.kind]),
+      title: c.kind === "exam" ? `${c.name} · ${exam}` : c.name,
+      meta: c.kind === "exam" ? join(`${c.time}–${c.endTime}`, c.room) : join(c.time, c.room, c.changedFrom ? "moved" : KIND_LABEL[c.kind]),
       tone: c.changedFrom ? "mustard" : (TONE[c.kind] ?? "moss"),
       tags: [c.code, c.lesson ?? KIND_LABEL[c.kind]].filter(Boolean) as string[],
       when: `${new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" }).format(start)} · ${c.time}–${c.endTime}`,
       room: c.room ? join(c.room, c.changedFrom && `moved from ${c.changedFrom}`) : null,
       teacher: c.teacher ? join(c.teacher.name, KIND_LABEL[c.kind]?.toLowerCase()) : null,
-      files: c.materials.map((f) => fileRow(f)),
+      files: (c.materials ?? []).map((f) => fileRow(f)),
       absences: c.absences ? { line: `Absences in this course: ${c.absences.missed} of ${c.absences.limit}`, left: `${c.absences.left} left` } : null,
       href: `/c/${c.code}`,
     };
   });
+  const weekLoaded = !!v.weekClasses?.length;
+  const selectedIdx = index.get(v.day) ?? -1;
   const starts = classes.map((c) => c.start);
   const ends = classes.map((c) => c.end);
   const startHour = Math.min(9, ...starts.map((m) => Math.floor(m / 60)));
@@ -137,12 +147,16 @@ export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData
     prevHref: `/timetable?day=${addDays(monday, -7)}`,
     nextHref: `/timetable?day=${addDays(monday, 7)}`,
     todayHref: "/timetable",
-    days: v.week.map((d) => ({ label: `${d.label} ${d.date.split(" ")[0]}`, today: d.today, href: `/timetable?day=${d.day}`, count: d.classes, loaded: d.selected })),
+    days: v.week.map((d) => ({ label: `${d.label} ${d.date.split(" ")[0]}`, today: d.today, href: `/timetable?day=${d.day}`, count: d.classes, loaded: weekLoaded || d.selected })),
     startHour,
     endHour,
     now: todayIdx >= 0 ? { day: todayIdx, minutes: localMinutes(now) } : null,
     classes,
-    selected: classes.find((c) => c.start >= localMinutes(now))?.id ?? classes[0]?.id ?? null,
+    selected: (() => {
+      const onDay = classes.filter((c) => c.day === selectedIdx);
+      const pool = onDay.length ? onDay : classes;
+      return (v.day === localDay(now) ? pool.find((c) => c.end >= localMinutes(now)) : undefined)?.id ?? pool[0]?.id ?? null;
+    })(),
     empty: v.holiday ? `${v.holiday.name} · no classes` : !classes.length && v.nextClass ? `No classes. Next: ${v.nextClass.label}, ${v.nextClass.class.name}${v.nextClass.class.room ? ` in ${v.nextClass.class.room}` : ""}.` : null,
   };
 }
@@ -186,7 +200,7 @@ export function course(v: V.CourseView): M.CourseData {
     weeks: shown.map((w) => ({ n: w.week ?? 0, title: w.topic ?? "—", current: w.current, files: w.files.map((f) => fileRow(f)) })),
     weeksTotal: v.totalWeeks,
     filesTotal: v.files?.all ?? 0,
-    teachers: v.teachers.map((t) => ({ id: t.id, name: t.name, face: null, href: t.href, line: join(t.roleLabel, t.when), pressFPct: t.pressFPct })),
+    teachers: v.teachers.map((t) => ({ id: t.id, name: t.name, face: t.face ?? null, href: t.href, line: join(t.roleLabel, t.when), pressFPct: t.pressFPct })),
     grading: (s?.grading ?? []).filter((g) => g.weight != null).map((g) => ({ pct: g.weight!, title: g.name, note: g.timing ?? "" })),
     syllabus,
     me:
@@ -204,20 +218,53 @@ export function course(v: V.CourseView): M.CourseData {
     summary: summaryProps(v.ratings, "Recommend by semester"),
     mention: mention ? { date: mention.date ?? "", text: mention.text, tag: "Course", href: mention.url } : null,
     rateHref: v.rate?.canRate ? v.rate.href : null,
-    myCourses: null,
+    rate: v.rate?.canRate ? { label: v.rate.rated ? "Edit your rating" : "Rate this course", opensIn: null } : v.rate?.opensIn ? { label: "Rate this course", opensIn: v.rate.opensIn } : null,
+    // D4: the student's current courses next to the course.
+    myCourses: v.myCourses?.length ? v.myCourses.map(listItem) : null,
     terms: null,
     locked: !v.signedIn,
   };
 }
 
+const sizeLabel = (n: number | null) => (n ? (n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`) : null);
+
 export function file(v: V.FileView): M.FileData {
   if (v.locked) return { file: null, course: null, courseLink: v.course ? { name: v.course.name, href: `/c/${v.course.code}` } : null };
-  const size = v.size ? (v.size > 1e6 ? `${(v.size / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(v.size / 1e3))} KB`) : null;
   const href = v.url ?? `/files/${v.id}`;
+  const pages = v.pages ? `${v.pages} page${v.pages === 1 ? "" : "s"}` : null;
+  const me: V.FileItem = { id: v.id, source: v.source, title: v.title, type: v.type, typeLabel: v.typeLabel, format: v.format, formatCode: v.formatCode, week: v.week, date: v.date, dateLabel: v.dateLabel, from: v.from, lessonId: null, size: v.size, pages: v.pages, href: `/f/${v.id}` };
+  const weekFiles = [me, ...(v.sameWeek ?? [])].map((f) => fileRow(f));
+  const code = v.course.code;
   return {
-    file: { id: v.id, title: v.title, meta: join(v.week != null && `Week ${v.week}`, v.dateLabel, v.from, v.formatCode, size), type: v.type, previewUrl: v.url && v.format === "pdf" ? v.url : null, downloadHref: href, openHref: href },
-    course: null,
-    courseLink: { name: v.course.name, href: `/c/${v.course.code}` },
+    // D12: "Week 8 · 2 Nov · LMS · 24 pages · 3.1 MB".
+    file: { id: v.id, title: v.title, meta: join(v.week != null && `Week ${v.week}`, v.dateLabel, v.from, pages ?? v.formatCode, sizeLabel(v.size)), type: v.type, previewUrl: v.url && v.format === "pdf" ? v.url : null, downloadHref: href, openHref: href },
+    // D12 middle pane: the course around the file — its week and who teaches it (from file()).
+    course: code
+      ? {
+          code,
+          name: v.course.name,
+          kind: null,
+          term: { label: "", options: [] },
+          strip: strip(null),
+          tabs: { overview: "Overview", files: 0, anonymous: 0, filesHref: `/c/${code}/files`, anonymousHref: `/c/${code}/anonymous` },
+          weeks: v.week != null ? [{ n: v.week, title: `${weekFiles.length} file${weekFiles.length === 1 ? "" : "s"}`, current: false, files: weekFiles }] : [],
+          weeksTotal: 16,
+          filesTotal: 0,
+          teachers: v.teacher ? [{ id: v.teacher.id, name: v.teacher.name, face: v.teacher.face, href: `/p/${v.teacher.id}`, line: "Lectures", pressFPct: null }] : [],
+          grading: [],
+          syllabus: [],
+          me: null,
+          summary: null,
+          mention: null,
+          rateHref: null,
+          rate: null,
+          myCourses: null,
+          terms: null,
+          locked: false,
+          context: true,
+        }
+      : null,
+    courseLink: { name: v.course.name, href: `/c/${code}` },
   };
 }
 
@@ -237,23 +284,39 @@ export function professor(v: V.ProfessorView): M.ProfessorData {
   return {
     crumbs: [{ label: "Professors", href: "/professors" }, { label: join(v.school, v.department) || v.name }],
     name: v.name,
-    face: null,
+    face: v.face ?? null,
     title: join(v.position, v.department, v.school),
-    stats: [...(s.enough ? [{ value: `${s.pressFPct}%`, label: "pressed F", accent: true }] : []), { value: String(s.count), label: "students rated" }, { value: String(v.courses.length), label: "courses now" }],
+    stats: [
+      ...(s.enough ? [{ value: `${s.pressFPct}%`, label: "pressed F", accent: true }] : []),
+      { value: String(s.count), label: "students rated" },
+      { value: String(v.courses.length), label: "courses now" },
+      ...(v.years ? [{ value: `${v.years} yr${v.years === 1 ? "" : "s"}`, label: "at NewUU" }] : []),
+    ],
     schedule: { term: "this semester", rows: v.when.map((w) => ({ day: w.day, time: w.time, course: w.course, href: `/c/${w.code}`, role: "", room: w.room ?? "" })) },
     summary,
     courses: v.courses.map((c) => ({ code: c.code, name: c.name, role: c.roleLabel, pct: c.pressFPct, href: c.href })),
     tags: s.enough ? s.tags.map((t) => ({ tag: t.tag, pct: t.pct })) : [],
     mention: mention ? { date: mention.date ?? "", text: mention.text, tag: "Teacher", href: mention.url } : null,
-    background: [],
-    rateHref: v.teachesYou ? "/rate" : null,
+    background: background(v),
+    // D9 "Press F if they taught you": straight to the rating of the viewer's course with them.
+    rateHref: v.signedIn && (v.teachesYou || (v.rateHref && v.rateHref !== "/rate")) ? (v.rateHref ?? "/rate") : null,
   };
+}
+
+/** D9 Background: degrees, research area and publications from the LMS staff profile. */
+function background(v: V.ProfessorView): M.ProfessorData["background"] {
+  const out: M.ProfessorData["background"] = (v.education ?? []).map((e) => ({ title: [e.degree, e.field].filter(Boolean).join(" in ") || "Degree", meta: join(e.institution, e.year) }));
+  if (v.research) out.push({ title: v.research, meta: "Research area" });
+  const pubs = v.publications ?? [];
+  const latest = [...pubs].sort((a, b) => Number(b.year ?? 0) - Number(a.year ?? 0))[0];
+  if (latest) out.push({ title: `${pubs.length} publication${pubs.length === 1 ? "" : "s"}`, meta: `Latest: ${join(latest.title, latest.year)}` });
+  return out;
 }
 
 export function professors(v: V.ProfessorsView): M.ProfessorsData {
   const yours = new Set(v.yours.map((p) => p.id));
   const rows = [...v.yours, ...v.all.filter((p) => !yours.has(p.id))];
-  return { schools: v.schools, items: rows.map((p) => ({ id: p.id, name: p.name, face: null, dept: p.department ?? "", school: p.school, courses: p.course ?? "", pct: p.pressFPct, href: p.href, yours: yours.has(p.id) })) };
+  return { schools: v.schools, items: rows.map((p) => ({ id: p.id, name: p.name, face: p.face ?? null, dept: p.department ?? "", school: p.school, courses: p.course ?? "", pct: p.pressFPct, href: p.href, yours: yours.has(p.id) })) };
 }
 
 /* ---------- Progress ---------- */
@@ -410,6 +473,8 @@ const ALERTS: Array<{ id: keyof V.ProfileView["alerts"]; title: string; note: st
   { id: "announcement", title: "LMS announcements", note: "Teachers and university" },
   { id: "deadline", title: "Deadlines", note: "48 h and 3 h before" },
   { id: "rating", title: "Rating reminders", note: "When a semester's grades are in" },
+  { id: "registration", title: "Registration and add/drop", note: "Cohort selection, add/drop windows" },
+  { id: "exams", title: "Exams", note: "Week before and evening before" },
   { id: "anonymous", title: "Replies on Anonymous", note: "Your posts only" },
 ];
 
@@ -426,13 +491,29 @@ export function profile(v: V.ProfileView): M.SettingsData {
 /* ---------- Rate ---------- */
 
 export function rate(v: V.RateQueueView, courseId?: string | null): M.RateData {
-  const item = v.waiting.find((w) => w.courseId === courseId || w.code === courseId) ?? v.waiting[0] ?? null;
+  const find = <T extends V.RateItem>(list: T[] | undefined) => list?.find((w) => w.courseId === courseId || w.code === courseId);
+  // A course waiting, this semester's course once its window is open, or a rating being edited (prefilled, D5).
+  const rated = courseId ? v.rated.find((r) => (r.courseId === courseId || r.code === courseId) && r.canEdit) : undefined;
+  const item = find(v.waiting) ?? find(v.current) ?? rated ?? v.waiting[0] ?? null;
+  const answers = item && item === rated ? rated.answers : undefined;
   return {
     course: item ? { id: item.courseId, name: item.name, term: item.term, href: `/c/${item.code}` } : null,
     waiting: v.waiting.length,
     teachers: item ? item.teachers.map((t) => ({ id: t.id, name: t.name, role: t.roleLabel, kind: t.role, face: null })) : [],
     tags: [...COURSE_TAGS],
-    initial: null,
+    initial: answers ? initialFrom(answers) : null,
+  };
+}
+
+/** Saved answers → the D5 dialog's starting state. */
+export function initialFrom(a: NonNullable<V.RatedItem["answers"]>): NonNullable<M.RateData["initial"]> {
+  return {
+    recommend: a.recommend,
+    hours: a.hours,
+    difficulty: a.difficulty,
+    tags: [...a.tags],
+    pressed: a.teachers.filter((t) => t.pressF).map((t) => t.teacherId),
+    teacherTags: Object.fromEntries(a.teachers.map((t) => [`${t.teacherId}|${t.role}`, [...t.tags]])),
   };
 }
 

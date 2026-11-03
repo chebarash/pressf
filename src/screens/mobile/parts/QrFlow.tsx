@@ -56,6 +56,8 @@ export type QrFlowProps = {
   classEnd?: string;
   /** "Physics 1 · A-108", shown when the LMS reply names no class. */
   classLine?: string;
+  /** The class's course (LMS subject id or code), to count absences left after a mark. */
+  course?: string | null;
   /** Show the "Scan attendance QR" bottom button while idle. */
   idleButton?: boolean;
   /** Called with the class result so the parent can show its own state. */
@@ -66,7 +68,7 @@ export type QrFlowProps = {
 
 export type QrResult = Result;
 
-export function QrFlow({ autoStart, classEnd, classLine, idleButton = true, onDone, initial }: QrFlowProps) {
+export function QrFlow({ autoStart, classEnd, classLine, course, idleButton = true, onDone, initial }: QrFlowProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>(initial === "shortcut" ? { at: "shortcut" } : initial ? { at: "result", result: initial } : { at: "idle" });
   const retry = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -83,7 +85,7 @@ export function QrFlow({ autoStart, classEnd, classLine, idleButton = true, onDo
       setPhase({ at: "busy" });
       let result: CheckIn;
       try {
-        result = await checkIn(text);
+        result = await checkIn(text, course);
       } catch {
         result = { kind: "offline" };
       }
@@ -91,7 +93,7 @@ export function QrFlow({ autoStart, classEnd, classLine, idleButton = true, onDo
       else store.set(PENDING, null);
       show(result);
     },
-    [show],
+    [show, course],
   );
 
   const scan = useCallback(async () => {
@@ -115,7 +117,7 @@ export function QrFlow({ autoStart, classEnd, classLine, idleButton = true, onDo
         return show({ kind: "error", message: "offline too long" });
       }
       if (typeof navigator !== "undefined" && !navigator.onLine) return;
-      const result = await checkIn(p.text).catch((): CheckIn => ({ kind: "offline" }));
+      const result = await checkIn(p.text, course).catch((): CheckIn => ({ kind: "offline" }));
       if (result.kind === "offline") return;
       store.set(PENDING, null);
       show(result);
@@ -126,7 +128,7 @@ export function QrFlow({ autoStart, classEnd, classLine, idleButton = true, onDo
       if (retry.current) clearInterval(retry.current);
       window.removeEventListener("online", tick);
     };
-  }, [show]);
+  }, [show, course]);
 
   const started = useRef(false);
   useEffect(() => {
@@ -210,7 +212,9 @@ export function resultCopy(r: Result, classEnd?: string, classLine?: string, now
   switch (r.kind) {
     case "marked": {
       const time = r.time && HHMM.test(r.time) ? r.time.slice(0, 5) : clock(now);
-      return { tag: `Present · ${time}`, tone: "accent", title: "You're marked", body: r.subject ?? classLine ?? "Your check-in is in the LMS." };
+      const left = "absencesLeft" in r && typeof r.absencesLeft === "number" ? r.absencesLeft : null;
+      const note = left === null ? undefined : left === 0 ? "No absences left in this course." : `${left} ${left === 1 ? "absence" : "absences"} left in this course.`;
+      return { tag: `Present · ${time}`, tone: "accent", title: "You're marked", body: r.subject ?? classLine ?? "Your check-in is in the LMS.", note };
     }
     case "expired":
       return { tag: "Not marked", tone: "management", title: "This code expired", body: "Codes refresh every few seconds.", note: "Ask the teacher to show the code again and scan once more." };

@@ -120,7 +120,7 @@ export default function Notifications({ data }: { data: NotificationsView }) {
                 : { text: "Close", onClick: close }
           }
         >
-          <p className={s.sheetEyebrow}>{[KIND_LABEL[open.kind], open.courseName, open.ago].filter(Boolean).join(" · ")}</p>
+          <p className={s.sheetEyebrow}>{[KIND_LABEL[open.kind], open.courseName, open.author, open.ago].filter(Boolean).join(" · ")}</p>
           <h2 className={`${s.sheetTitle} t-display-xs`}>{open.title}</h2>
           {open.body && <p className={s.sheetBody}>{open.body}</p>}
           {open.needsAck && <p className={s.sheetNote}>The teacher asked to confirm you read this. Got it confirms it in LMS too.</p>}

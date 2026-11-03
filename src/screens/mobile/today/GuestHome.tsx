@@ -33,7 +33,7 @@ export function GuestHome({ data }: { data: GuestHomeData }) {
                   name={c.name}
                   href={c.href}
                   line={c.line ?? undefined}
-                  teacher={c.teacher ? { name: c.teacher.name, face: null } : undefined}
+                  teacher={c.teacher ? { name: c.teacher.name, face: c.teacher.face ?? null } : undefined}
                   recommend={c.recommendPct == null ? undefined : { pct: c.recommendPct }}
                 />
               ))}

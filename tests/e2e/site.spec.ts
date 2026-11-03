@@ -10,7 +10,9 @@ test("sign-in shows the LMS form and explains a non-student login", async ({ pag
   await page.getByLabel("Email").fill("someone@gmail.com");
   await page.getByLabel("Password").fill("not-a-real-password");
   // Phones submit with the bottom (Telegram Main) button, desktop with the keycap button.
-  await page.locator(isMobile ? ".sh-bottombar button" : ".sh-signin__actions button").click();
+  // The desktop keycap lifts on hover, so click it without waiting for it to hold still.
+  if (isMobile) await page.locator(".sh-bottombar button").click();
+  else await page.locator(".sh-signin__actions").getByRole("button").first().click({ force: true });
   await expect(page.locator(".sh-field__error")).toContainText("isn't a student account");
   await expect(page.getByLabel("Password")).toHaveValue("not-a-real-password");
 });

@@ -31,11 +31,13 @@ export default function Course({ data }: { data: CourseScreen }) {
     ...(data.signedIn && data.files ? [{ tab: "files" as const, label: data.files.all ? `Files ${data.files.all}` : "Files" }] : []),
     { tab: "anonymous" as const, label: `Anonymous ${data.anonymous.count}` },
   ];
-  const action = !data.signedIn
+  const action: { text: string; href?: string; disabled?: boolean } | null = !data.signedIn
     ? { text: "Sign in with LMS", href: `/sign-in?next=${encodeURIComponent(href(data.tab))}` }
     : data.rate?.canRate
       ? { text: data.rate.rated || data.notice === "rating-sent" ? "Edit your rating" : "Rate this course", href: `${data.rate.href}?from=${encodeURIComponent(`/c/${data.code}`)}` }
-      : null;
+      : data.rate?.opensIn
+        ? { text: `Opens in week ${data.rate.opensIn}`, disabled: true }
+        : null;
 
   return (
     <div className={cx(b.screen, !action && b.noButton)}>
@@ -53,7 +55,7 @@ export default function Course({ data }: { data: CourseScreen }) {
       {data.tab === "files" && data.files ? <FilesTab data={data} /> : data.tab === "anonymous" ? <AnonymousTab data={data} /> : <Overview data={data} filesHref={href("files")} />}
 
       {data.notice === "rating-sent" ? <Notice text="Rating sent. Thanks — it's anonymous." param="sent" /> : null}
-      {action ? <MainButton text={action.text} href={action.href} /> : null}
+      {action ? <MainButton text={action.text} href={action.href} disabled={action.disabled} /> : null}
     </div>
   );
 }
@@ -74,13 +76,14 @@ function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }
     </TelegramLink>
   ) : null;
   const hasFiles = !!data.files?.all;
+  // Figma 4.18: under 5 ratings the "Not enough ratings yet" card takes the summary's place.
+  const ratings = data.ratings.enough ? <CourseRatingSummary summary={data.ratings} /> : <FewRatings count={data.ratings.count} />;
 
   return (
     <>
       <div className={s.content}>
-        {!data.ratings.enough ? <FewRatings count={data.ratings.count} /> : null}
         {data.you ? <YouCard you={data.you} /> : null}
-        {summaryFirst ? <CourseRatingSummary summary={data.ratings} /> : null}
+        {summaryFirst ? ratings : null}
 
         {data.weeks ? (
           <section className={s.weeks}>
@@ -128,7 +131,7 @@ function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }
           </section>
         ) : null}
 
-        {!summaryFirst ? <CourseRatingSummary summary={data.ratings} /> : null}
+        {!summaryFirst ? ratings : null}
       </div>
 
       {data.anonymous.latest.length ? (

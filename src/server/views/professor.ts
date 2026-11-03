@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { roleOf } from "@/core/people";
 import type { TeacherRole, TeacherSummary } from "@/core/ratings";
+import { ratingWindow } from "@/core/semester";
 import { db } from "@/lib/db";
 import { lmsCourseTeachers, lmsCourses, lmsDepartments, lmsSemesters, lmsTeachers, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
 import { termName } from "@/server/sync/types";
@@ -38,6 +39,11 @@ export type ProfessorView = {
   signedIn: boolean;
   /** The viewer is taught by this teacher now. */
   teachesYou: boolean;
+  /**
+   * Where "Press F" goes: the rating of the viewer's own course with this
+   * teacher (`/rate/<courseId>`, newest first), else the rating queue. Always set by the server.
+   */
+  rateHref?: string;
 };
 
 type Dept = { id: string; parentId: string | null; name: string | null };
@@ -63,7 +69,7 @@ function semesterStart(s: { name: string | null; starts: string | null }): strin
 /** Whole years since `startDay`, at least 1. */
 export const yearsSince = (startDay: string, now: Date) => Math.max(1, Math.floor((now.getTime() - Date.parse(`${startDay}T00:00:00+05:00`)) / (365.25 * 86_400_000)));
 
-type ProfessorPublic = Omit<ProfessorView, "signedIn" | "teachesYou" | "years"> & { sinceDay: string | null };
+type ProfessorPublic = Omit<ProfessorView, "signedIn" | "teachesYou" | "years" | "rateHref"> & { sinceDay: string | null; courseIds: string[] };
 
 const professorPublic = publicCache(
   "professor-public",
@@ -124,6 +130,7 @@ const professorPublic = publicCache(
       research: profile?.research ?? null,
       since: first ? (first.name ? termName(first.name) || first.name : null) : null,
       sinceDay: first?.day ?? null,
+      courseIds: ids,
       anonymous,
     };
   },
@@ -133,8 +140,24 @@ const professorPublic = publicCache(
 export async function professor(id: string, viewer: Viewer, now = new Date()): Promise<ProfessorView | null> {
   const [pub, student] = await Promise.all([professorPublic(id), viewer ? loadStudent(viewer.userId, { refresh: false }) : Promise.resolve(null)]);
   if (!pub) return null;
-  const { sinceDay, ...rest } = pub;
-  return { ...rest, years: sinceDay ? yearsSince(sinceDay, now) : null, signedIn: !!student, teachesYou: !!student?.cache?.timetable.some((l) => l.teacher === id) };
+  const { sinceDay, courseIds, ...rest } = pub;
+  return {
+    ...rest,
+    years: sinceDay ? yearsSince(sinceDay, now) : null,
+    signedIn: !!student,
+    teachesYou: !!student?.cache?.timetable.some((l) => l.teacher === id),
+    rateHref: student ? rateHrefFor(student.sync.courses, courseIds, ratingWindow(now).open ? new Set() : new Set(student.sync.semesters.filter((s) => s.open).map((s) => s.id))) : "/rate",
+  };
+}
+
+/**
+ * The viewer's newest course taught by this teacher that can be rated, as its
+ * rating link (`closed`: semesters whose rating window has not opened); the rating queue when there is none.
+ */
+export function rateHrefFor(taken: Array<{ subjectId: string; semesterId: string }>, teacherCourseIds: string[], closed: Set<string> = new Set()): string {
+  const ids = new Set(teacherCourseIds);
+  const hit = taken.filter((c) => ids.has(c.subjectId) && !closed.has(c.semesterId)).sort((a, b) => Number(b.semesterId) - Number(a.semesterId))[0];
+  return hit ? `/rate/${encodeURIComponent(hit.subjectId)}` : "/rate";
 }
 
 export type ProfessorsView = {

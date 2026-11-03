@@ -6,7 +6,11 @@ import { Face } from "./Face";
 import { RatingRing } from "./RatingRing";
 import type { Split } from "./rating-geometry";
 import { Tag } from "./Tag";
+import { pctTier, type ScoreTier } from "./score-tier";
 import s from "./CourseCard.module.css";
+
+/** Sticker tint by tier (Figma CourseCard): teal high, mustard mid, rust low. */
+const STICKER: Record<ScoreTier, "high" | "mid" | "low"> = { high: "high", mid: "mid", low: "low", none: "high" };
 
 export type CourseCardProps = {
   /** Course code shown in the tag, e.g. MATH111. */
@@ -30,7 +34,7 @@ export function CourseCard({ code, name, teacher, line, lineIcon, recommend, hre
       <span className={s.top}>
         <Tag tone="accent">{code}</Tag>
         {recommend ? (
-          <span className={s.sticker} aria-label={`${recommend.pct}% recommend`}>
+          <span className={cx(s.sticker, s[STICKER[pctTier(recommend.pct)]])} aria-label={`${recommend.pct}% recommend`}>
             <RatingRing split={recommend.split ?? recommend.pct} size={20} />
             <span>{recommend.pct}%</span>
           </span>

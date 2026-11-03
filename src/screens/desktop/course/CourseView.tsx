@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import type { CourseData } from "../model";
 import { RatingSummary } from "@/ui/components";
-import { ButtonLink, css, cx, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, Tag } from "../parts";
+import { Button, ButtonLink, css, cx, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, Tag } from "../parts";
 import c from "./course.module.css";
 import { CourseList } from "./CourseList";
 
@@ -27,6 +27,12 @@ function CourseDetail({ data }: { data: CourseData }) {
           {data.kind && <Tag tone="neutral">{data.kind}</Tag>}
         </div>
         <h1 className={c.name}>{data.name}</h1>
+        {data.context ? (
+          <Link href={`/c/${data.code}`} className={c.more}>
+            Open the course <Icon name="chevron-right" size={18} />
+          </Link>
+        ) : (
+          <>
         <details className={c.termSwitch}>
           <summary>
             <Icon name="calendar" size={16} />
@@ -42,8 +48,11 @@ function CourseDetail({ data }: { data: CourseData }) {
           </div>
         </details>
         <RatingStrip strip={data.strip} />
+          </>
+        )}
       </header>
 
+      {!data.context && (
       <nav className={c.tabs} aria-label="Course sections">
         <span className={cx(c.tab, c.tabOn)} aria-current="page">
           {data.tabs.overview}
@@ -57,6 +66,7 @@ function CourseDetail({ data }: { data: CourseData }) {
           Anonymous {data.tabs.anonymous}
         </Link>
       </nav>
+      )}
 
       {data.locked && <p className={c.boxMeta}>Sign in to see the weeks, files and your marks for this course.</p>}
 
@@ -79,6 +89,7 @@ function CourseDetail({ data }: { data: CourseData }) {
               )}
             </Fragment>
           ))}
+          {!data.context && (
           <div className={c.links}>
             <Link href={data.tabs.filesHref} className={c.more}>
               All {data.weeksTotal} weeks <Icon name="chevron-right" size={18} />
@@ -87,6 +98,7 @@ function CourseDetail({ data }: { data: CourseData }) {
               All {data.filesTotal} files <Icon name="chevron-right" size={18} />
             </Link>
           </div>
+          )}
         </section>
       )}
 
@@ -197,14 +209,19 @@ function CourseInspector({ data }: { data: CourseData }) {
         </>
       )}
 
-      {data.rateHref && (
+      {data.rateHref ? (
         <div className={c.rate}>
           <ButtonLink href={data.rateHref} keyName="r">
-            Rate this course
+            {data.rate?.label ?? "Rate this course"}
           </ButtonLink>
           <Hint>R</Hint>
         </div>
-      )}
+      ) : data.rate?.opensIn ? (
+        <div className={c.rate}>
+          <Button disabled>{data.rate.label}</Button>
+          <span className={c.boxMeta}>Opens in week {data.rate.opensIn}</span>
+        </div>
+      ) : null}
     </aside>
   );
 }
