@@ -15,6 +15,7 @@ import {
   lmsCourseTeachers, lmsFiles, lmsTeachers, mentionLinks, mentions, reports, searchEvents, teacherAliases, teacherRatings, uploads, userRoles, users,
 } from "@/lib/db/schema";
 import { pseudonym } from "@/server/identity";
+import { syllabusQueueItems } from "@/server/syllabus-queue";
 import { openReports } from "@/server/reports";
 import { settings } from "./marks";
 import { orderBy, type AuditSort, type CourseSort, type PeopleSort, type UploadSort } from "./sorts";
@@ -795,8 +796,9 @@ const toClock = (d: Date) => new Date(d.getTime() + 5 * HOUR).toISOString().slic
 /* ───────── A10 System ───────── */
 
 export async function systemPage(now = new Date()) {
-  const h = await health(now);
+  const [h, waiting] = await Promise.all([health(now), syllabusQueueItems()]);
   return {
+    syllabusQueue: waiting.map((item) => ({ ...item, queuedText: ago(new Date(item.createdAt), now) })),
     jobs: h.jobs.map(({ lastRun, ...j }) => ({ ...j, lastRun: lastRun?.toISOString() ?? null })),
     lms: { api: process.env.LMS_API_URL?.replace(/^https?:\/\//, "") ?? "api.newuzbekistan.hero.study", signIns: h.signIns, syncPaused: h.settings["sync-paused"] },
     bot: { delivered: h.delivered, linked: h.linked },

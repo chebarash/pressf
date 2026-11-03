@@ -1,8 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { DEFAULT_FACE_SPEC, FACE_OPTION_LABELS, FACE_PART_LABELS, FACE_PART_ORDER, FACE_PARTS, FaceSpecSchema, LEGACY_OPTIONS, migrateFaceSpec, parseFaceSpec, randomFaceSpec, renderFace, type FaceSpec } from "@/core/face-parts";
+import { parsePastedFaceSpec } from "@/core/face-paste";
 import { checkFace } from "@/core/faces";
-import { describeFace, photoType, PhotoFaceError } from "@/lib/face-photo";
 
 const bytes = (svg: string) => new TextEncoder().encode(svg);
 
@@ -83,40 +82,36 @@ describe("face constructor", () => {
   });
 });
 
-describe("face from a photo", () => {
-  it("knows images by their bytes", () => {
-    expect(photoType(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0]))).toBe("image/jpeg");
-    expect(photoType(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]))).toBe("image/png");
-    expect(photoType(new Uint8Array([...bytes("RIFF"), 0, 0, 0, 0, ...bytes("WEBP")]))).toBe("image/webp");
-    expect(photoType(bytes("%PDF-1.7 hello world"))).toBeNull();
-    expect(photoType(bytes("<svg></svg> padding"))).toBeNull();
+describe("pasting a face spec", () => {
+  const other = <K extends keyof FaceSpec>(part: K) => FACE_PARTS[part].find((v) => v !== DEFAULT_FACE_SPEC[part]) as FaceSpec[K];
+
+  it("fills the given parts and keeps the rest of the current face", () => {
+    const current = { ...DEFAULT_FACE_SPEC, glasses: other("glasses") };
+    const r = parsePastedFaceSpec(JSON.stringify({ hair: other("hair"), mouth: other("mouth") }), current);
+    expect(r).toEqual({ ok: true, spec: { ...current, hair: other("hair"), mouth: other("mouth") }, filled: ["hair", "mouth"] });
+    if (r.ok) expect(checkFace(bytes(renderFace(r.spec)))).toMatchObject({ ok: true });
   });
 
-  const client = (parse: (...args: unknown[]) => unknown) => ({ beta: { messages: { parse: vi.fn(parse) } } }) as unknown as Anthropic;
-  const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4, 5, 6, 7, 8]);
-
-  it("asks for parts only, with the photo inline and nothing else about the person", async () => {
-    const { tone: _tone, hairColor: _color, details: _details, ...parts } = DEFAULT_FACE_SPEC;
-    const c = client(async () => ({ stop_reason: "end_turn", parsed_output: { spec: { ...parts, hair: "bun" }, note: "Clear photo." } }));
-    const out = await describeFace(jpeg, "image/jpeg", c);
-    expect(out.spec.hair).toBe("bun");
-    const req = (c.beta.messages.parse as ReturnType<typeof vi.fn>).mock.calls[0][0] as Record<string, unknown> & { system: string; messages: Array<{ content: Array<{ type: string; source?: { data: string } }> }> };
-    expect(req.model).toBe("claude-opus-5-5");
-    expect(req.system).toMatch(/Never infer or mention identity/);
-    expect(req.messages[0].content[0]).toMatchObject({ type: "image", source: { media_type: "image/jpeg", data: Buffer.from(jpeg).toString("base64") } });
+  it("takes a full spec, or one wrapped in { spec }", () => {
+    const full = { ...DEFAULT_FACE_SPEC, hair: other("hair") };
+    expect(parsePastedFaceSpec(JSON.stringify(full), DEFAULT_FACE_SPEC)).toMatchObject({ ok: true, spec: full });
+    expect(parsePastedFaceSpec(`  ${JSON.stringify({ spec: full, note: "clear photo" })}\n`, DEFAULT_FACE_SPEC)).toMatchObject({ ok: true, spec: full });
   });
 
-  it("turns API failures into a message for the admin", async () => {
-    const credit = client(async () => {
-      throw new Anthropic.BadRequestError(400, { type: "error", error: { type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." } }, "Your credit balance is too low to access the Anthropic API.", new Headers());
-    });
-    await expect(describeFace(jpeg, "image/jpeg", credit)).rejects.toThrow(/out of credit/);
-    await expect(describeFace(jpeg, "image/jpeg", credit)).rejects.toBeInstanceOf(PhotoFaceError);
-    const refused = client(async () => ({ stop_reason: "refusal", parsed_output: null }));
-    await expect(describeFace(jpeg, "image/jpeg", refused)).rejects.toThrow(/by hand/);
-    const offline = client(async () => {
-      throw new Anthropic.APIConnectionError({ message: "fetch failed" });
-    });
-    await expect(describeFace(jpeg, "image/jpeg", offline)).rejects.toThrow(/by hand/);
+  it("refuses anything that isn't a spec of known parts and options", () => {
+    const fail = (text: string) => {
+      const r = parsePastedFaceSpec(text, DEFAULT_FACE_SPEC);
+      expect(r.ok, text).toBe(false);
+      return r.ok ? "" : r.error;
+    };
+    expect(fail("")).toMatch(/Paste/);
+    expect(fail("{hair: short}")).toMatch(/JSON/);
+    expect(fail("[1, 2]")).toMatch(/object/);
+    expect(fail('"short"')).toMatch(/object/);
+    expect(fail("{}")).toMatch(/no parts/);
+    expect(fail('{"hair": "mohawk"}')).toMatch(/hair can't be "mohawk": use /);
+    expect(fail('{"glasses": 1}')).toMatch(/glasses/);
+    expect(fail('{"hairr": "short", "colour": "red"}')).toMatch(/Unknown parts: hairr, colour/);
+    expect(fail(JSON.stringify({ hair: "short", pad: "x".repeat(5000) }))).toMatch(/too long/);
   });
 });

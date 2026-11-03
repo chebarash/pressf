@@ -1,7 +1,8 @@
 /**
  * A6 Professors · Faces: admins draw, upload and assign professor faces.
- * Faces are drawings, never photos: a photo may only be used once, in memory,
- * to pick the parts of a drawn face (faceFromPhoto) and is never stored.
+ * Faces are drawings, never photos: the site never receives a photo. The
+ * operator may read one outside the site and send back the parts, which an
+ * admin pastes into the constructor.
  * Every change is audited and expires the cached professor, course and search
  * data that shows the face.
  */
@@ -11,7 +12,6 @@ import { checkFace } from "@/core/faces";
 import { displayName } from "@/core/people";
 import { createIndex } from "@/core/search";
 import { db } from "@/lib/db";
-import { describeFace, PHOTO_MAX_BYTES, PhotoFaceError, photoType } from "@/lib/face-photo";
 import { faces, lmsCourseTeachers, lmsTeachers, teacherAliases } from "@/lib/db/schema";
 import { putObject } from "@/lib/storage";
 import { audit } from "@/server/audit";
@@ -54,24 +54,6 @@ export async function buildFace(actorId: string, teacherId: string, input: unkno
   const parsed = FaceSpecSchema.safeParse(migrateFaceSpec(input));
   if (!parsed.success) throw new AdminError("Pick an option for every part");
   return setFace(actorId, teacherId, new TextEncoder().encode(renderFace(parsed.data)), parsed.data);
-}
-
-/**
- * Picks constructor parts from a photo. The photo exists only in this call's
- * memory: it is checked, sent to the vision model to be described, and dropped.
- * Nothing about it is stored, logged or audited (the audit gets the saved face later).
- */
-export async function faceFromPhoto(actorId: string, bytes: Uint8Array, describe = describeFace) {
-  await authorize(actorId, "admin:catalog");
-  if (!bytes.length) throw new AdminError("Pick a photo");
-  if (bytes.length > PHOTO_MAX_BYTES) throw new AdminError("Photos up to 8 MB");
-  const type = photoType(bytes);
-  if (!type) throw new AdminError("Use a JPEG, PNG, WebP or GIF photo");
-  try {
-    return await describe(bytes, type);
-  } catch (e) {
-    throw new AdminError(e instanceof PhotoFaceError ? e.message : "The photo couldn't be read. Build the face by hand.");
-  }
 }
 
 export async function removeFace(actorId: string, teacherId: string) {

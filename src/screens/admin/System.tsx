@@ -97,6 +97,32 @@ export function System({ data }: { data: SystemData }) {
           <KV k="Blocked us" wide>Not tracked yet</KV>
         </section>
       </div>
+      <section className={s.cardSoft} aria-label="Syllabi waiting to be parsed">
+        <h2 className={s.h4}>Syllabi waiting to be parsed · {data.syllabusQueue.length}</h2>
+        <p className={s.small} style={{ margin: 0 }}>
+          Syllabus files from the LMS and channel imports. The operator reads each one and submits its fields; it then shows on the course page and leaves this list.
+        </p>
+        {data.syllabusQueue.length ? (
+          <div className={cx(s.card, s.table)}>
+            <div className={cx(s.tr, s.trHead)}>
+              <span className={s.td} style={{ width: 110 }}>COURSE</span>
+              <span className={cx(s.td, s.tdGrow)}>FILE</span>
+              <span className={s.td} style={{ width: 90 }}>FROM</span>
+              <span className={s.td} style={{ width: 120 }}>QUEUED</span>
+            </div>
+            {data.syllabusQueue.map((item) => (
+              <div key={item.id} className={s.tr}>
+                <span className={cx(s.td, s.tdStrong)} style={{ width: 110 }}>{item.courseCode}</span>
+                <span className={cx(s.td, s.tdGrow)} title={item.sourceKey}>{item.name}</span>
+                <span className={s.td} style={{ width: 90 }}>{item.origin === "lms" ? "LMS" : "Import"}</span>
+                <span className={s.td} style={{ width: 120 }} title={item.createdAt}>{item.queuedText}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={s.small}>Nothing waiting.</div>
+        )}
+      </section>
       <section className={cx(s.cardSoft, s.tintMustard)} style={{ gap: 8 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
           Maintenance banner — shows &apos;Press F is updating, back in a few minutes&apos; to everyone{maintenance ? " · on now" : ""}

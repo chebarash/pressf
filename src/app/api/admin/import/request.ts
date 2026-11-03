@@ -1,21 +1,9 @@
 import { z } from "zod";
-import { can } from "@/core/roles";
-import { getUser } from "@/lib/auth";
-import { cronAuthorized } from "@/app/api/cron/auth";
-import { roleOf } from "@/server/identity";
 import { ImportError, type ImportDecision, type ImportMeta } from "@/server/import";
+import { adminActor } from "../auth";
 
-/**
- * Who may import: the import script with `Authorization: Bearer <CRON_SECRET>`,
- * or a signed-in admin (for an admin screen later). Null for everyone else.
- */
-export async function importActor(request: Request): Promise<{ id: string | null } | null> {
-  if (cronAuthorized(request)) return { id: null };
-  if (request.headers.get("authorization")) return null;
-  const user = await getUser().catch(() => null);
-  if (user && can(await roleOf(user.id), "admin:catalog")) return { id: user.id };
-  return null;
-}
+/** Who may import: the import script (Bearer CRON_SECRET) or a signed-in admin. */
+export const importActor = adminActor;
 
 const Meta = z.object({
   channel: z.object({ id: z.union([z.string().regex(/^[\w-]{1,64}$/), z.number().int()]), name: z.string().trim().min(1).max(200) }),

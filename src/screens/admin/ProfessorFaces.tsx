@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
-import { buildFace, faceFromPhoto, removeFace, uploadFace, type Result } from "@/app/admin/actions";
+import { buildFace, removeFace, uploadFace, type Result } from "@/app/admin/actions";
+import { parsePastedFaceSpec } from "@/core/face-paste";
 import { DEFAULT_FACE_SPEC, FACE_OPTION_LABELS, FACE_PART_LABELS, FACE_PART_ORDER, FACE_PARTS, randomFaceSpec, renderFace, type FacePart, type FaceSpec } from "@/core/face-parts";
 import type { facesPage } from "@/server/admin/faces";
 import f from "./faces.module.css";
@@ -151,7 +152,7 @@ function FaceView({ sel, pending, run, note, build }: DetailProps & { build: () 
       </div>
       <Label>DRAWN FACES ONLY</Label>
       <p className={s.small} style={{ margin: 0 }}>
-        Build the face from parts, or upload a line drawing of the head in the Press F style: PNG with a transparent background or a plain SVG, about square, 96–2048 px, under 512 KB. Never a photo: a photo can only help pick the parts, and it isn&apos;t kept.
+        Build the face from parts, or upload a line drawing of the head in the Press F style: PNG with a transparent background or a plain SVG, about square, 96–2048 px, under 512 KB. Never a photo.
       </p>
       <div className={s.actions}>
         <Btn onClick={build} disabled={pending}>{sel.spec ? "Edit the drawing" : "Build a face"}</Btn>
@@ -174,54 +175,20 @@ function FaceView({ sel, pending, run, note, build }: DetailProps & { build: () 
 
 /* ───────── Build a face ───────── */
 
-const PHOTO_MAX_BYTES = 8 * 1024 * 1024;
 const PREVIEW_SIZES = [120, 64, 48, 32];
-
-/** The photo shrunk in the browser (smaller upload, no metadata). Falls back to the file as picked. */
-async function shrink(file: File): Promise<Blob> {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, 1568 / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/jpeg", 0.9));
-    return blob ?? file;
-  } catch {
-    return file;
-  }
-}
 
 function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: () => void }) {
   const [spec, setSpec] = useState<FaceSpec>(sel.spec ?? DEFAULT_FACE_SPEC);
-  const [reading, setReading] = useState(false);
-  const [photoNote, setPhotoNote] = useState<{ ok: boolean; text: string } | null>(null);
-  const photo = useRef<HTMLInputElement>(null);
+  const [pasted, setPasted] = useState("");
+  const [pasteNote, setPasteNote] = useState<{ ok: boolean; text: string } | null>(null);
   const src = useMemo(() => `data:image/svg+xml,${encodeURIComponent(renderFace(spec))}`, [spec]);
   const set = <K extends FacePart>(part: K, value: FaceSpec[K]) => setSpec((old) => ({ ...old, [part]: value }));
 
-  const fromPhoto = async (file: File | undefined) => {
-    if (photo.current) photo.current.value = "";
-    setPhotoNote(null);
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return setPhotoNote({ ok: false, text: "Pick a photo (JPEG, PNG, WebP or GIF)" });
-    if (file.size > PHOTO_MAX_BYTES) return setPhotoNote({ ok: false, text: "Photos up to 8 MB" });
-    setReading(true);
-    try {
-      const form = new FormData();
-      form.set("photo", await shrink(file), "photo");
-      const r = await faceFromPhoto(form);
-      if (r.ok) {
-        setSpec((old) => ({ ...r.spec, tone: old.tone, hairColor: old.hairColor, details: old.details }));
-        setPhotoNote({ ok: true, text: `Parts picked from the photo — check them before saving. ${r.note}`.trim() });
-      } else setPhotoNote({ ok: false, text: r.error });
-    } catch {
-      setPhotoNote({ ok: false, text: "The photo couldn't be sent. Build the face by hand." });
-    } finally {
-      setReading(false);
-    }
+  const applyPaste = () => {
+    const r = parsePastedFaceSpec(pasted, spec);
+    if (!r.ok) return setPasteNote({ ok: false, text: r.error });
+    setSpec(r.spec);
+    setPasteNote({ ok: true, text: `Filled in ${r.filled.length} part${r.filled.length === 1 ? "" : "s"} — check them before saving.` });
   };
 
   const save = () =>
@@ -248,12 +215,22 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
         ))}
       </div>
       <div className={s.actions}>
-        <Btn onClick={() => setSpec(randomFaceSpec())} disabled={reading}>Randomize</Btn>
-        <Btn onClick={() => photo.current?.click()} disabled={reading || pending}>{reading ? "Reading the photo…" : "From a photo"}</Btn>
-        <input ref={photo} type="file" accept="image/*" hidden onChange={(e) => fromPhoto(e.target.files?.[0])} aria-label="Photo to pick parts from" />
+        <Btn onClick={() => setSpec(randomFaceSpec())}>Randomize</Btn>
       </div>
-      {photoNote && <div className={photoNote.ok ? s.small : s.error}>{photoNote.text}</div>}
-      <p className={s.small} style={{ margin: 0 }}>The photo is only read to suggest parts; it is never saved or kept. Only the drawing is saved.</p>
+      <p className={s.small} style={{ margin: 0 }}>From a photo: send the photo to the operator; the spec can be pasted here. Only the drawing is saved.</p>
+      <div className={s.hstack} style={{ alignItems: "flex-start" }}>
+        <textarea
+          className={s.input}
+          style={{ flex: "1 0 0", minHeight: 64, fontFamily: "var(--font-mono, monospace)", fontSize: 12 }}
+          value={pasted}
+          onChange={(e) => setPasted(e.target.value)}
+          placeholder='{"hair": "short", "glasses": "round", …}'
+          aria-label="Paste spec (JSON)"
+          spellCheck={false}
+        />
+        <Btn onClick={applyPaste} disabled={!pasted.trim()}>Paste spec (JSON)</Btn>
+      </div>
+      {pasteNote && <div className={pasteNote.ok ? s.small : s.error}>{pasteNote.text}</div>}
       <div className={f.parts}>
         {FACE_PART_ORDER.map((part) => (
           <div key={part} className={f.part} role="radiogroup" aria-label={FACE_PART_LABELS[part]}>
@@ -271,7 +248,7 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
       {note && !note.ok && <div className={s.error}>{note.text}</div>}
       <div className={s.spacer} />
       <div className={s.actions}>
-        <Btn tone="accent" onClick={save} disabled={pending || reading}>Use this face</Btn>
+        <Btn tone="accent" onClick={save} disabled={pending}>Use this face</Btn>
         <Btn onClick={close} disabled={pending}>Cancel</Btn>
       </div>
     </section>
