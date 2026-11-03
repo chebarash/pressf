@@ -21,7 +21,7 @@ import { createHash } from "node:crypto";
 import { compact, editDistance, fold, phonetic } from "./search";
 
 /** Bump when the rules change: the next sync re-matches every stored post. */
-export const MATCHER_VERSION = 1;
+export const MATCHER_VERSION = 2;
 
 export type MentionKind = "course" | "teacher";
 export type MentionLink = { kind: MentionKind; target: string };
@@ -178,7 +178,7 @@ function usable(words: string[], fullName: string[]): boolean {
 
 function compileCourses(courses: MentionCourse[]) {
   const codes = new Map<string, string>();
-  const byPhrase = new Map<string, { words: string[]; targets: Set<string> }>();
+  const byPhrase = new Map<string, { words: string[]; targets: Set<string>; loose: boolean }>();
   for (const c of courses) {
     const key = compact(c.code);
     if (key) codes.set(key, c.code);
@@ -186,15 +186,29 @@ function compileCourses(courses: MentionCourse[]) {
     for (const words of courseVariants(c.name)) {
       if (!usable(words, full)) continue;
       const k = words.join(" ");
-      const entry = byPhrase.get(k) ?? { words, targets: new Set<string>() };
+      // One word, or a name without its "Introduction to": loose enough to be the start of another course's name.
+      const loose = words.length === 1 || (full[0] === "introduction" && words[0] !== "introduction" && words[0] !== "intro");
+      const entry = byPhrase.get(k) ?? { words, targets: new Set<string>(), loose: false };
       entry.targets.add(c.code);
+      entry.loose ||= loose;
       byPhrase.set(k, entry);
     }
   }
-  // A phrase that names two courses names neither.
-  const index = new Map<string, Phrase[]>();
+  // The courses each phrase is the start of ("calculus" → Calculus 1, Calculus 2; "data science" → Data Science Fundamentals).
+  const startOf = new Map<string, Set<string>>();
   for (const { words, targets } of byPhrase.values()) {
+    for (let n = 1; n < words.length; n++) {
+      const head = words.slice(0, n).join(" ");
+      const set = startOf.get(head) ?? new Set<string>();
+      for (const t of targets) set.add(t);
+      startOf.set(head, set);
+    }
+  }
+  // A phrase that names two courses names neither; a loose one that starts another course's name too.
+  const index = new Map<string, Phrase[]>();
+  for (const [k, { words, targets, loose }] of byPhrase) {
     if (targets.size !== 1) continue;
+    if (loose && [...(startOf.get(k) ?? [])].some((t) => !targets.has(t))) continue;
     const phrase = { words, target: [...targets][0], endings: !/^\d/.test(words[words.length - 1]) };
     const list = index.get(words[0]);
     if (list) list.push(phrase);
