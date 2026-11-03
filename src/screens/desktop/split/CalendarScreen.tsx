@@ -5,6 +5,9 @@ import { useState } from "react";
 import k from "../calendar.module.css";
 import type { CalendarData, CalendarKind } from "../model";
 import { AnchorButton, css, cx } from "../parts";
+import { SITE_URL } from "@/core/links";
+
+const ICS_HOST = SITE_URL.replace(/^https?:\/\//, "");
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const LOOK: Record<CalendarKind, string> = { week: k.week_, class: k.class_, deadline: k.deadline, exam: k.exam, registration: k.registration, holiday: k.holiday };
@@ -102,9 +105,15 @@ export function CalendarScreen({ data }: { data: CalendarData }) {
               </span>
             </div>
           ))}
-          <AnchorButton href={data.icsHref} variant="secondary">
+          {/* A subscription, so the calendar app keeps it up to date: Apple/Outlook via webcal://, Google via its add-by-URL link. */}
+          <AnchorButton href={`webcal://${ICS_HOST}${data.icsHref}`} variant="secondary">
             Add to my calendar
           </AnchorButton>
+          <p className={k.itemMeta}>
+            <a href={`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(`webcal://${ICS_HOST}${data.icsHref}`)}`} target="_blank" rel="noopener">Google Calendar</a>
+            {" · "}
+            <a href={data.icsHref} download>Download .ics</a>
+          </p>
         </aside>
       </div>
     </main>
