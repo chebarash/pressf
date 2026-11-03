@@ -325,15 +325,24 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
       ? null
       : you.status === "took"
         ? { canRate: !!waitingHere || !!rated, rated: !!rated, term: waitingHere?.term ?? rated?.term ?? you.term, href: `/rate/${taken.subjectId}`, answers: rated?.answers ?? null, opensIn: null }
-        : {
-            // This semester's course (Figma 4.2): open from the last 3 teaching weeks; before that, disabled with "Opens in week 14".
-            canRate: !!rated || !!queue?.current?.some((c) => c.courseId === taken.subjectId),
-            rated: !!rated,
-            term: rated?.term ?? queue?.currentTerm ?? null,
-            href: `/rate/${taken.subjectId}`,
-            answers: rated?.answers ?? null,
-            opensIn: rated ? null : (queue?.window?.opensIn ?? null),
-          },
+        : nowRate(taken.subjectId, rated, queue),
+  };
+}
+
+/**
+ * Rating this semester's course (Figma 4.2): open from the last 3 teaching weeks;
+ * before that, disabled with "Opens in week 14". Only a rating of this very
+ * course this term counts as "rated" (an earlier take of the same code doesn't).
+ */
+function nowRate(courseId: string, mine: Awaited<ReturnType<typeof myRatingFor>>, queue: Awaited<ReturnType<typeof rateQueueFor>> | null): NonNullable<CourseView["rate"]> {
+  const rated = mine && mine.courseId === courseId && mine.term === queue?.currentTerm ? mine : null;
+  return {
+    canRate: !!rated || !!queue?.current?.some((c) => c.courseId === courseId),
+    rated: !!rated,
+    term: rated?.term ?? queue?.currentTerm ?? null,
+    href: `/rate/${courseId}`,
+    answers: rated?.answers ?? null,
+    opensIn: rated ? null : (queue?.window?.opensIn ?? null),
   };
 }
 
