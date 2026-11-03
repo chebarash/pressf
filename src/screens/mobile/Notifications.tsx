@@ -71,12 +71,10 @@ export default function Notifications({ data }: { data: NotificationsView }) {
   };
 
   return (
-    <div className={s.screen}>
-      <header className={s.head} style={{ paddingBottom: "var(--space-3)" }}>
-        <h1 className={`${s.title} t-mobile-title`}>Notifications</h1>
-      </header>
+    <div className={`${s.screen} ${s.notifBody}`}>
+      <h1 className={s.notifTitle}>Notifications</h1>
       <div className={s.unreadRow}>
-        <p className={`${s.subtitle} t-body-md`}>{unread ? `${unread} unread` : "All read"}</p>
+        <p className={s.unreadCount}>{unread ? `${unread} unread` : "All read"}</p>
         <button type="button" className={s.linkButton} onClick={markAll} disabled={!canMarkAll}>
           Mark all read
         </button>
@@ -88,18 +86,14 @@ export default function Notifications({ data }: { data: NotificationsView }) {
       </nav>
 
       {sections.length ? (
-        <div className={s.feedSections}>
-          {sections.map((sec) => (
-            <section key={sec.title} aria-label={sec.title}>
-              <h2 className={s.feedSectionTitle}>{sec.title}</h2>
-              <div className={s.listTight}>
-                {sec.items.map((i) => (
-                  <FeedRow key={i.id} item={i} onOpen={() => openItem(i)} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        sections.map((sec) => (
+          <section key={sec.title} aria-label={sec.title} className={s.feedSection}>
+            <h2 className={s.feedSectionTitle}>{sec.title}</h2>
+            {sec.items.map((i) => (
+              <FeedRow key={i.id} item={i} onOpen={() => openItem(i)} />
+            ))}
+          </section>
+        ))
       ) : (
         <EmptyState
           title={data.filter === "all" ? "Nothing here yet" : "Nothing in this filter"}
@@ -112,6 +106,7 @@ export default function Notifications({ data }: { data: NotificationsView }) {
         <ActionSheet
           title={open.title}
           onClose={close}
+          className={s.noteSheet}
           main={
             open.needsAck
               ? { text: "Got it", onClick: () => gotIt(open) }
@@ -121,9 +116,9 @@ export default function Notifications({ data }: { data: NotificationsView }) {
           }
         >
           <p className={s.sheetEyebrow}>{[KIND_LABEL[open.kind], open.courseName, open.author, open.ago].filter(Boolean).join(" · ")}</p>
-          <h2 className={`${s.sheetTitle} t-display-xs`}>{open.title}</h2>
+          <h2 className={s.noteTitle}>{open.title}</h2>
           {open.body && <p className={s.sheetBody}>{open.body}</p>}
-          {open.needsAck && <p className={s.sheetNote}>The teacher asked to confirm you read this. Got it confirms it in LMS too.</p>}
+          {open.needsAck && <p className={s.noteFine}>The teacher asked to confirm you read this. Got it confirms it in LMS too.</p>}
         </ActionSheet>
       )}
     </div>

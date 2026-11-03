@@ -6,7 +6,7 @@ import s from "./mobile.module.css";
 import { FeedRow } from "./parts/FeedRow";
 import { GuestHome } from "./today/GuestHome";
 import { RatingCard, TodayBanner, TodayBar } from "./today/Islands";
-import { caughtUp, checkInClass, details, dueLate, hero, nextExamCard, ratingAsk, showClasses, subtitle, tiles, todayFeed, type Tile } from "./today/model";
+import { caughtUp, checkInClass, details, dueLate, feedHasMore, hero, nextExamCard, ratingAsk, showClasses, subtitle, tiles, todayFeed, type Tile } from "./today/model";
 import { isGuest, type TodayData } from "./today/types";
 
 /** Today on mobile (Figma 2.1–2.13, 10.1; 1.2 for guests). */
@@ -99,7 +99,7 @@ function StudentHome({ v }: { v: TodayView }) {
 
         {v.notifications.items.length > 0 && (
           <section className={s.section} aria-label="Notifications">
-            <SectionHead title="Notifications" href={caughtUp(v) ? undefined : "/notifications"} />
+            <SectionHead title="Notifications" href={feedHasMore(v) ? "/notifications" : undefined} />
             {caughtUp(v) ? (
               <p className={s.caughtUp}>
                 <CheckIcon size={18} />

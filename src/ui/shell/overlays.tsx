@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
  * Bottom sheet over a scrim (sign-in, alerts, home screen). The grabber and the
  * scrim close it when `onClose` is given; the bottom buttons stay above it.
  */
-export function Sheet({ label, onClose, children }: { label: string; onClose?: () => void; children: React.ReactNode }) {
+export function Sheet({ label, onClose, className, children }: { label: string; onClose?: () => void; className?: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     ref.current?.focus();
@@ -18,7 +18,7 @@ export function Sheet({ label, onClose, children }: { label: string; onClose?: (
   return (
     <>
       <div className="sh-scrim" onClick={onClose} />
-      <div className="sh-sheet" role="dialog" aria-modal="true" aria-label={label} ref={ref} tabIndex={-1}>
+      <div className={className ? `sh-sheet ${className}` : "sh-sheet"} role="dialog" aria-modal="true" aria-label={label} ref={ref} tabIndex={-1}>
         <div className="sh-sheet__grab" aria-hidden="true" />
         {children}
       </div>

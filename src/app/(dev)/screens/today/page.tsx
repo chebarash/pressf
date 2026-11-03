@@ -6,6 +6,10 @@ import MobileQr from "@/screens/mobile/Qr";
 import type { QrResult } from "@/screens/mobile/parts/QrFlow";
 import MobileToday from "@/screens/mobile/Today";
 import { Shell } from "@/ui/shell/Shell";
+import { BottomBar } from "@/ui/shell/BottomBar";
+import Loading from "@/app/(app)/loading";
+import { FirstSync } from "@/ui/shell/FirstSync";
+import { HomeScreenPreview } from "./HomeScreenPreview";
 
 /**
  * Dev-only preview of every Figma state of Today, Notifications and QR on
@@ -14,7 +18,7 @@ import { Shell } from "@/ui/shell/Shell";
 
 const QR: Record<string, QrResult | "shortcut" | undefined> = {
   "10.2-scanner": undefined,
-  "10.3-marked": { kind: "marked", subject: "Physics 1 · Lecture 15 · A-108", time: "10:04" },
+  "10.3-marked": { kind: "marked", subject: "Physics 1 · Lecture 15 · A-108", time: "10:04", absencesLeft: 11 },
   "10.4-expired": { kind: "expired" },
   "10.5-not-your-class": { kind: "not-your-class", subject: "Discrete Mathematics, cohort 874" },
   "10.6-shortcut": "shortcut",
@@ -36,12 +40,24 @@ export default async function Preview({ searchParams }: Props) {
     </>
   );
   if (state && state in TODAY_STATES) return framed(<MobileToday data={TODAY_STATES[state as keyof typeof TODAY_STATES]()} />);
+  if (state === "1.1-loading") return framed(<Loading />);
+  if (state === "1.9-home-screen") return framed(<><MobileToday data={TODAY_STATES["2.1-morning"]()} /><HomeScreenPreview /></>);
+  if (state === "1.7-first-sync" || state === "1.8-alerts")
+    return (
+      <>
+        {themeScript}
+        <div className="sh-auth-mobile">
+          <FirstSync next="/" preview={{ states: { profile: "done", courses: "done", timetable: "done", grades: state === "1.8-alerts" ? "done" : "running", files: state === "1.8-alerts" ? "done" : "waiting" }, askAlerts: state === "1.8-alerts" }} />
+          <BottomBar />
+        </div>
+      </>
+    );
   if (state === "1.2-guest") return framed(<MobileToday data={GUEST} />);
   if (state === "2.9-notifications") return framed(<MobileNotifications data={notificationsFixture()} />);
   if (state === "2.10-notification-open") return framed(<MobileNotifications data={notificationsFixture("lms:1")} />);
   if (state && state in QR) return framed(<MobileQr data={qrFixture()} preview={QR[state]} />);
 
-  const all = [...Object.keys(TODAY_STATES), "1.2-guest", "2.9-notifications", "2.10-notification-open", ...Object.keys(QR)];
+  const all = [...Object.keys(TODAY_STATES), "1.1-loading", "1.2-guest", "1.7-first-sync", "1.8-alerts", "1.9-home-screen", "2.9-notifications", "2.10-notification-open", ...Object.keys(QR)];
   return (
     <ul style={{ padding: 24, display: "grid", gap: 8 }}>
       {all.map((s) => (

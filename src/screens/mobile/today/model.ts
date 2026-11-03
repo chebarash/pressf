@@ -122,7 +122,10 @@ export function nextExamCard(v: TodayView) {
 
 /** On Today the feed shows unread items; with none it says "all caught up" (Figma 2.12). */
 export const caughtUp = (v: TodayView) => v.notifications.items.length > 0 && v.notifications.unread === 0;
-export const todayFeed = (v: TodayView) => v.notifications.items.filter((i) => !i.read).slice(0, 4);
+/** The latest four items, unread first; read ones stay, without the dot (Figma 2.1). */
+export const todayFeed = (v: TodayView) => [...v.notifications.items.filter((i) => !i.read), ...v.notifications.items.filter((i) => i.read)].slice(0, 4);
+/** The view holds the latest four; a shorter list is everything, so no "All" (Figma 2.5). */
+export const feedHasMore = (v: TodayView) => v.notifications.items.length >= 4;
 
 /** "2 COURSES WAITING · 30 SECONDS · ANONYMOUS". */
 export const ratingEyebrow = (n: number) => `${n} ${n === 1 ? "course" : "courses"} waiting · 30 seconds · anonymous`;

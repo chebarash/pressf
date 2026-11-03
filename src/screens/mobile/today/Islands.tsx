@@ -46,7 +46,7 @@ export function TodayBanner({ banner }: { banner: BannerView }) {
     ? { label: banner.action.label, href: banner.action.href }
     : { label: pending ? "Retrying…" : banner.action.label, onClick: () => start(async () => (await retrySync(), router.refresh())) };
   return (
-    <Banner tone={banner.kind === "semester-start" ? "info" : "warning"} action={action} className={s.bannerBleed}>
+    <Banner tone={banner.kind === "semester-start" || banner.kind === "exams" ? "info" : "warning"} action={action} className={s.bannerBleed}>
       {banner.text}
     </Banner>
   );

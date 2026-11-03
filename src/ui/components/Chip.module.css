@@ -5,7 +5,7 @@
   gap: var(--space-2);
   height: 36px;
   padding: 0 var(--space-4);
-  border: 1.5px solid var(--border-strong);
+  border: 2px solid var(--border-strong);
   border-radius: var(--radius-full);
   background: var(--bg-surface);
   color: var(--text-primary);

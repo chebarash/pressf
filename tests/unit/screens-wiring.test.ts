@@ -50,6 +50,13 @@ describe("notification previews show the LMS byline (2.9, D7)", () => {
     expect(feedMeta(feed({ kind: "grade", byline: null, author: null, needsAck: false, courseName: "Physics 1", ago: "2 h ago" }))).toBe("Physics 1 · 2 h ago");
   });
 
+  it("the Notifications list names older days in full and leaves deadlines and room changes untimed (2.9)", () => {
+    const absence = feed({ kind: "absence", byline: null, author: null, needsAck: false, courseName: "Physics 1 · Practice 14", at: "2026-10-29T08:00:00Z", ago: "29 Oct" });
+    expect(feedMeta(absence, true)).toBe("Physics 1 · Practice 14 · Thu 29 Oct");
+    expect(feedMeta(absence)).toBe("Physics 1 · Practice 14 · 29 Oct");
+    expect(feedMeta(feed({ kind: "deadline", byline: null, needsAck: false, courseName: "Software Project Management · Thursday 23:59", ago: "yesterday" }), true)).toBe("Software Project Management · Thursday 23:59");
+  });
+
   it("desktop names the author in the detail eyebrow, and in the row when there is no course", () => {
     const d = adapt.notifications({ unread: 1, open: null, sections: [{ title: "Today", items: [feed({}), feed({ id: "f2", courseId: null, courseName: null, needsAck: false, ago: "3 h ago", author: "Alisher Ikramov" })] }] } as never);
     expect(d.items[0].meta).toBe("LMS · Calculus 1 · 1 h ago · needs your OK");

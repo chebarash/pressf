@@ -84,7 +84,7 @@ export function SignInForm({ mode = "first", desktop, next = "/", email: initial
         <input
           id={`${id}-email`} type="email" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false}
           placeholder="s.student@newuu.uz" value={email} disabled={busy}
-          aria-invalid={fieldError === "wrong-password" || undefined}
+          aria-invalid={(desktop && fieldError === "wrong-password") || undefined}
           onChange={(e) => { setEmail(e.target.value); if (error === "not-student") setError(null); }}
         />
       </div>
@@ -93,7 +93,7 @@ export function SignInForm({ mode = "first", desktop, next = "/", email: initial
         <input
           id={`${id}-password`} ref={passwordRef} type="password" autoComplete="current-password"
           value={password} disabled={busy}
-          aria-invalid={!!error || undefined}
+          aria-invalid={(!!error && error !== "lms-down") || undefined}
           aria-describedby={error ? `${id}-error` : undefined}
           onChange={(e) => setPassword(e.target.value)}
         />

@@ -7,7 +7,6 @@ import { parseQr, shouldRetry } from "@/core/qr";
 import { clock } from "@/core/time";
 import { checkIn, type CheckIn } from "../actions";
 import s from "../mobile.module.css";
-import { Tag, type TagTone } from "@/ui/components";
 import { QrIcon } from "@/ui/icons";
 import { ActionSheet } from "./ActionSheet";
 import { BottomBar } from "./BottomBar";
@@ -157,13 +156,14 @@ export function QrFlow({ autoStart, classEnd, classLine, course, idleButton = tr
       <ActionSheet
         title="Scan in one tap"
         onClose={() => setPhase({ at: "idle" })}
+        className={s.shortcutSheet}
         main={{ text: "Add to home screen", onClick: () => (addToHomeScreen(() => toast("Press F added to your home screen")), setPhase({ at: "idle" })) }}
         secondary={{ text: "Not now", onClick: () => setPhase({ at: "idle" }) }}
       >
         <span className={s.appIcon} aria-hidden>
           <QrIcon size={32} />
         </span>
-        <h2 className={`${s.sheetTitle} t-display-xs`}>Scan in one tap</h2>
+        <h2 className={s.qrTitle}>Scan in one tap</h2>
         <p className={s.sheetBody}>Put a Scan QR icon on your home screen. Tap it in class and the scanner opens straight away — no menus.</p>
         <p className={s.sheetSmall}>Shown once, after your first QR check-in.</p>
       </ActionSheet>
@@ -183,13 +183,11 @@ export function QrFlow({ autoStart, classEnd, classLine, course, idleButton = tr
               ? { text: "Done", onClick: close }
               : { text: copy.action ?? "Scan again", onClick: scan };
     return (
-      <ActionSheet title={copy.title} onClose={close} main={main}>
-        <span className={s.sheetTag}>
-          <Tag tone={copy.tone}>{copy.tag}</Tag>
-        </span>
-        <h2 className={`${s.sheetTitle} t-display-xs`}>{copy.title}</h2>
-        <p className={s.sheetBody}>{copy.body}</p>
-        {copy.note && <p className={s.sheetNote}>{copy.note}</p>}
+      <ActionSheet title={copy.title} onClose={close} main={main} className={s.noteSheet}>
+        <span className={`${s.qrPill} ${s[`qrPill_${copy.tone}`]}`}>{copy.tag}</span>
+        <h2 className={s.qrTitle}>{copy.title}</h2>
+        <p className={s.qrBody}>{copy.body}</p>
+        {copy.note && <p className={s.qrNote}>{copy.note}</p>}
       </ActionSheet>
     );
   }
@@ -202,7 +200,9 @@ export function QrFlow({ autoStart, classEnd, classLine, course, idleButton = tr
   );
 }
 
-type Copy = { tag: string; tone: TagTone; title: string; body: string; note?: string; action?: string };
+/** Result pill tints (Figma 10.3 teal, 10.4/10.8/10.9 mustard, 10.5 rust). */
+type PillTone = "accent" | "mustard" | "rust";
+type Copy = { tag: string; tone: PillTone; title: string; body: string; note?: string; action?: string };
 
 const HHMM = /^\d{1,2}:\d{2}/;
 
@@ -217,21 +217,21 @@ export function resultCopy(r: Result, classEnd?: string, classLine?: string, now
       return { tag: `Present · ${time}`, tone: "accent", title: "You're marked", body: r.subject ?? classLine ?? "Your check-in is in the LMS.", note };
     }
     case "expired":
-      return { tag: "Not marked", tone: "management", title: "This code expired", body: "Codes refresh every few seconds.", note: "Ask the teacher to show the code again and scan once more." };
+      return { tag: "Not marked", tone: "mustard", title: "This code expired", body: "Codes refresh every few seconds.", note: "Ask the teacher to show the code again and scan once more." };
     case "not-your-class":
-      return { tag: "Not marked", tone: "engineering", title: "This code isn't for your class", body: r.subject ? `It belongs to ${r.subject}.` : "It belongs to another class.", note: "Check you're in the right room. If this is your class, tell the teacher." };
+      return { tag: "Not marked", tone: "rust", title: "This code isn't for your class", body: r.subject ? `It belongs to ${r.subject}.` : "It belongs to another class.", note: "Check you're in the right room. If this is your class, tell the teacher." };
     case "not-found":
     case "invalid":
-      return { tag: "Not marked", tone: "management", title: "That isn't an attendance code", body: "Scan the QR code your teacher shows for attendance." };
+      return { tag: "Not marked", tone: "mustard", title: "That isn't an attendance code", body: "Scan the QR code your teacher shows for attendance." };
     case "offline":
-      return { tag: "Saved", tone: "management", title: "Scanned — sending when online", body: "No internet right now. We keep the scan for 2 minutes." };
+      return { tag: "Saved", tone: "mustard", title: "Scanned — sending when online", body: "No internet right now. We keep the scan for 2 minutes.", note: "If it can't be sent in time, the code will have expired — show this screen to the teacher." };
     case "signin":
-      return { tag: "Signed out", tone: "engineering", title: "Sign in to check in", body: "Your LMS sign-in stopped working. Sign in again, then scan." };
+      return { tag: "Signed out", tone: "rust", title: "Sign in to check in", body: "Your LMS sign-in stopped working. Sign in again, then scan." };
     case "camera-off":
-      return { tag: "Camera off", tone: "management", title: "Telegram can't use the camera", body: "Allow camera access for Telegram in your phone settings.", note: `Or ask the teacher to mark you${still}`, action: "Try again" };
+      return { tag: "Camera off", tone: "mustard", title: "Telegram can't use the camera", body: "Allow camera access for Telegram in your phone settings.", note: `Or ask the teacher to mark you${still}`, action: "Open settings" };
     case "unsupported":
-      return { tag: "Telegram only", tone: "management", title: "Scan in Telegram", body: "Attendance codes are scanned in the Press F Mini App, with Telegram's camera." };
+      return { tag: "Telegram only", tone: "mustard", title: "Scan in Telegram", body: "Attendance codes are scanned in the Press F Mini App, with Telegram's camera." };
     default:
-      return { tag: "LMS error", tone: "engineering", title: "The LMS didn't answer", body: "Your check-in didn't go through. Scan the code again.", note: `If it keeps failing, ask the teacher to mark you${still}` };
+      return { tag: "LMS error", tone: "rust", title: "The LMS didn't answer", body: "Your check-in didn't go through. Scan the code again.", note: `If it keeps failing, ask the teacher to mark you${still}` };
   }
 }
