@@ -160,6 +160,7 @@ export function UploadViaBot({ code, href, className, children }: { code: string
       className={className}
       target="_blank"
       rel="noreferrer"
+      data-own-click
       onClick={(e) => {
         e.preventDefault();
         void uploadViaBot(code);
@@ -178,6 +179,7 @@ export function TelegramLink({ href, className, children }: { href: string; clas
       className={className}
       target="_blank"
       rel="noreferrer"
+      data-own-click
       onClick={(e) => {
         e.preventDefault();
         openTelegramLink(href);
