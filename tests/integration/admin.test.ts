@@ -208,7 +208,7 @@ describe("broadcasts", () => {
   it("schedules outside quiet hours and once per day per student", async () => {
     const now = new Date("2026-11-03T10:00:00+05:00");
     const row = await ops.scheduleBroadcast(admin, { audience: { years: [1, 2] }, text: "Registration opens tomorrow", button: { label: "Plan next semester", target: "/next" }, bannerUntil: null, sendAt: new Date("2026-11-03T23:00:00+05:00") }, now);
-    expect(row.sendAt).toEqual(new Date("2026-11-04T08:00:00+05:00"));
+    expect(row.sendAt).toEqual(new Date("2026-11-04T07:00:00+05:00"));
     await expect(ops.scheduleBroadcast(admin, { audience: {}, text: "Again", button: null, bannerUntil: null, sendAt: new Date("2026-11-04T19:00:00+05:00") }, now)).rejects.toBeInstanceOf(ops.AdminError);
     await ops.scheduleBroadcast(admin, { audience: { years: [3] }, text: "Year 3 only", button: null, bannerUntil: null, sendAt: new Date("2026-11-04T19:00:00+05:00") }, now);
     expect(await db().select().from(broadcasts)).toHaveLength(2);

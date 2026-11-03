@@ -151,8 +151,11 @@ export const DEFAULT_ALERTS: AlertSettings = {
   registration: true, exams: true,
 };
 
-/** Quiet hours 22:00–08:00 Tashkent; urgent kinds still go through. */
+/** Quiet hours 23:00–07:00 Tashkent (Figma 8.5); urgent kinds still go through. */
+export const QUIET_HOURS = { from: 23 * 60, to: 7 * 60, label: "23:00–07:00" } as const;
+export const isQuiet = (localMinutes: number) => localMinutes >= QUIET_HOURS.from || localMinutes < QUIET_HOURS.to;
+
 export function deliverNow(kind: FeedKind, localMinutes: number) {
-  const quiet = localMinutes >= 22 * 60 || localMinutes < 8 * 60;
+  const quiet = isQuiet(localMinutes);
   return !quiet || kind === "absence";
 }

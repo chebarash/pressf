@@ -26,14 +26,14 @@ const SEMESTER: Row[] = [
   { key: "rating", label: "Rating reminders", hint: "After final grades, up to 3 times" },
 ];
 
-/** Mobile Alerts settings (Figma 8.5): what the bot sends, per type. Quiet hours from core (22:00–08:00). */
+/** Mobile Alerts settings (Figma 8.5): what the bot sends, per type. Quiet hours from core (23:00–07:00). */
 export default function Alerts({ data }: { data: ProfileView }) {
   return (
     <Screen className={s.noTopBar}>
       <div className={cx(s.body, s.tight)}>
         <h1 className={cx(s.title, "t-mobile-title")}>Alerts</h1>
         <p className={cx(s.p0, s.t14, s.soft)} style={{ lineHeight: 1.4 }}>
-          What the Press F bot sends you in Telegram. Quiet hours 22:00–08:00.
+          What the Press F bot sends you in Telegram. Quiet hours 23:00–07:00.
         </p>
         {!data.telegramLinked ? <p className={cx(s.p0, s.t13, s.lowText)}>Open Press F from the bot once to link Telegram; these apply after that.</p> : null}
         {(
