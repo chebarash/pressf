@@ -1,5 +1,6 @@
 "use client";
 
+import { useSwipeDown } from "./useSwipeDown";
 import { useEffect, useRef, type ReactNode } from "react";
 import { XIcon } from "../icons";
 import { cx } from "./cx";
@@ -25,6 +26,8 @@ export type SheetProps = {
  */
 export function Sheet({ open, onClose, title, heading = true, variant = "sheet", children, footer, className }: SheetProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  // Bottom sheets close with a swipe down too (dialogs keep Esc, the scrim and ×).
+  useSwipeDown(ref, onClose, variant === "sheet" && open);
 
   useEffect(() => {
     const d = ref.current;

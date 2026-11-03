@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useSwipeDown } from "@/ui/components/useSwipeDown";
 
 /**
- * Bottom sheet over a scrim (sign-in, alerts, home screen). The grabber and the
- * scrim close it when `onClose` is given; the bottom buttons stay above it.
+ * Bottom sheet over a scrim (sign-in, alerts, home screen). The grabber, the
+ * scrim and a swipe down close it when `onClose` is given; the bottom buttons stay above it.
  */
 export function Sheet({ label, onClose, className, children }: { label: string; onClose?: () => void; className?: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  useSwipeDown(ref, onClose);
   useEffect(() => {
     ref.current?.focus();
     if (!onClose) return;
