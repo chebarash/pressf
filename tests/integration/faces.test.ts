@@ -128,6 +128,19 @@ describe("admin faces", () => {
     expect((await facesPage("with", "", "T1")).selected).toMatchObject({ format: "SVG", spec: null });
   });
 
+  it("keeps faces saved by the first constructor editable", async () => {
+    // A spec as PR #123 stored it: renamed options and no hair colour or details.
+    const legacy = { head: "oval", ears: "normal", tone: "dots", hair: "side", facialHair: "none", brows: "straight", eyes: "almond", glasses: "none", nose: "hook", mouth: "smile", headwear: "none" };
+    await buildFace(admin, "T1", { ...DEFAULT_FACE_SPEC });
+    await db().update(faces).set({ spec: legacy }).where(eq(faces.teacherId, "T1"));
+    const migrated = { ...DEFAULT_FACE_SPEC, hair: "sidePart", eyes: "open", nose: "long", mouth: "smile" };
+    expect((await facesPage("with", "", "T1")).selected?.spec).toEqual(migrated);
+    // An old page posting the old ids still saves, in the new form.
+    await buildFace(admin, "T1", legacy);
+    const [row] = await db().select().from(faces).where(eq(faces.teacherId, "T1"));
+    expect(row.spec).toEqual(migrated);
+  });
+
   it("reads parts from a photo in memory only, admins only", async () => {
     const jpeg = new Uint8Array(4096);
     jpeg.set([0xff, 0xd8, 0xff, 0xe0]);

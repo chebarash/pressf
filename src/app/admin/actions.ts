@@ -6,7 +6,7 @@ import type { RejectReason, Trust } from "@/core/uploads";
 import { env } from "@/lib/env";
 import { authorize } from "@/server/admin/access";
 import type { SettingKey } from "@/server/admin/marks";
-import type { FaceSpec } from "@/core/face-parts";
+import type { PhotoFaceSpec } from "@/core/face-parts";
 import { FACE_MAX_BYTES } from "@/core/faces";
 import { PHOTO_MAX_BYTES } from "@/lib/face-photo";
 import { COVERAGE_TAG, moveCourse as moveCourseOp } from "@/server/admin/coverage";
@@ -77,7 +77,7 @@ export const removeFace = async (teacherId: string) => run((a) => faces.removeFa
 /** A face from the constructor: the server draws the SVG from the parts and saves it like an upload. */
 export const buildFace = async (teacherId: string, spec: unknown) => run((a) => faces.buildFace(a, teacherId, spec), [`/p/${teacherId}`]);
 
-export type PhotoResult = { ok: true; spec: Omit<FaceSpec, "tone">; note: string } | { ok: false; error: string };
+export type PhotoResult = { ok: true; spec: PhotoFaceSpec; note: string } | { ok: false; error: string };
 /**
  * Picks constructor parts from a photo (`photo` in form data). The photo is
  * read into memory for this request only: never stored, logged or cached.

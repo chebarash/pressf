@@ -214,7 +214,7 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
       form.set("photo", await shrink(file), "photo");
       const r = await faceFromPhoto(form);
       if (r.ok) {
-        setSpec((old) => ({ ...r.spec, tone: old.tone }));
+        setSpec((old) => ({ ...r.spec, tone: old.tone, hairColor: old.hairColor, details: old.details }));
         setPhotoNote({ ok: true, text: `Parts picked from the photo — check them before saving. ${r.note}`.trim() });
       } else setPhotoNote({ ok: false, text: r.error });
     } catch {
