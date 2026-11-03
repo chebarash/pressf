@@ -68,7 +68,11 @@
 .plum { background: var(--tint-plum); border-color: var(--school-humanities); }
 .moss { background: var(--tint-moss); border-color: var(--school-medicine); }
 .rust { background: var(--tint-rust); border-color: var(--bg-danger); }
-.teal.classOn, .mustard.classOn, .plum.classOn, .moss.classOn, .rust.classOn { border-color: var(--border-strong); }
+/* More course colours, mixed from the school colours so they hold in both themes. */
+.sky { background: color-mix(in srgb, var(--school-computing) 14%, var(--bg-surface)); border-color: var(--school-computing); }
+.rose { background: color-mix(in srgb, var(--school-engineering) 12%, var(--bg-surface)); border-color: var(--school-engineering); }
+.sand { background: color-mix(in srgb, var(--school-management) 14%, var(--bg-surface)); border-color: var(--school-management); }
+.teal.classOn, .mustard.classOn, .plum.classOn, .moss.classOn, .rust.classOn, .sky.classOn, .rose.classOn, .sand.classOn { border-color: var(--border-strong); }
 
 .now { position: absolute; left: 0; right: 0; height: 2px; background: var(--bg-danger); z-index: 2; pointer-events: none; }
 .now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--bg-danger); }
