@@ -6,6 +6,7 @@ import { Syllabus } from "@/screens/mobile/parts/CourseParts";
 import { Button, ButtonLink, css, cx, Empty, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, shareHref, Tag } from "../parts";
 import c from "./course.module.css";
 import { CourseFiles } from "./CourseFiles";
+import { MoreMentions } from "@/screens/shared/MoreMentions";
 import { CourseList } from "./CourseList";
 import { TermPicker } from "./TermPicker";
 
@@ -101,6 +102,7 @@ function CoursePosts({ data }: { data: CourseData }) {
         {posts.map((m) => (
           <MentionCard key={m.href} m={m} />
         ))}
+        <MoreMentions kind="course" target={data.code} shown={posts.length} total={data.tabs.anonymous} variant="desktop" tag="Course" className={c.morePosts} />
       </div>
     </section>
   );

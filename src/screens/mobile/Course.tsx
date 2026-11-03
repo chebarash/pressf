@@ -1,4 +1,5 @@
 import { BOT_USERNAME, path, uploadLink } from "@/core/links";
+import { MoreMentions } from "@/screens/shared/MoreMentions";
 import { cx, EmptyState, Tabs, Tag } from "@/ui/components";
 import b from "./parts/base.module.css";
 import s from "./parts/Course.module.css";
@@ -207,6 +208,7 @@ function AnonymousTab({ data }: { data: CourseScreen }) {
         {data.anonymous.latest.map((m) => (
           <MentionCard key={m.id} m={m} />
         ))}
+        <MoreMentions kind="course" target={data.code} shown={data.anonymous.latest.length} total={data.anonymous.count} variant="mobile" tag="Course" className={b.moreButton} />
       </section>
     </div>
   );

@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { MoreMentions } from "@/screens/shared/MoreMentions";
+import { MentionCard } from "./parts/CourseParts";
+import b from "./parts/base.module.css";
 import { Fragment } from "react";
 import type { ProfessorView } from "@/server/views";
 import { Chip, ExternalIcon, Face, RatingSummary, SendIcon, Tag } from "./mc/kit";
@@ -157,22 +160,11 @@ export default function Professor({ data }: { data: ProfessorView }) {
 
       {data.anonymous.latest.length ? (
         <section className={c.band} aria-label="What Anonymous says">
-          <h2 className={cx(s.section, "t-mobile-section")}>What Anonymous says</h2>
+          <h2 className={cx(s.section, "t-mobile-section")}>What Anonymous says · {data.anonymous.count}</h2>
           {data.anonymous.latest.map((m) => (
-            <a key={m.id} href={m.url} target="_blank" rel="noreferrer" className={c.mention}>
-              <span className={c.mentionHead}>
-                <SendIcon size={16} aria-hidden />
-                <span className={s.t13m}>Anonymous</span>
-                <span className={cx(s.t14, s.soft)}>{dateOf(m.date)}</span>
-              </span>
-              <p className="t-body-md">{m.text.length > 220 ? `${m.text.slice(0, 217)}…` : m.text}</p>
-              <span className={c.mentionFoot}>
-                <Tag>Teacher</Tag>
-                <span className={s.t13m}>Open post</span>
-                <ExternalIcon size={14} aria-hidden />
-              </span>
-            </a>
+            <MentionCard key={m.id} m={m} tag="Teacher" />
           ))}
+          <MoreMentions kind="teacher" target={data.id} shown={data.anonymous.latest.length} total={data.anonymous.count} variant="mobile" tag="Teacher" className={b.moreButton} />
         </section>
       ) : null}
       {data.signedIn ? (data.rateHref ? <MainButton text={`Press F for ${data.name}`} href={data.rateHref} /> : null) : <MainButton text="Sign in to press F" href={`/sign-in?next=${encodeURIComponent(`/p/${data.id}`)}`} />}

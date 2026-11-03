@@ -9,7 +9,7 @@ import { facultyPeople, lmsCourseTeachers, lmsCourses, lmsDepartments, lmsSemest
 import { termName } from "@/server/sync/types";
 import { publicCache, TAGS } from "./cache";
 import { DECISION_TAGS } from "@/server/decisions";
-import { DAY_ABBR, lessonSlots, mentionsOf, ROLE_LABEL, teacherSummaries, teachersByIds, type MentionsView } from "./shared";
+import { DAY_ABBR, lessonSlots, mentionsOf, MENTIONS_PAGE, ROLE_LABEL, teacherSummaries, teachersByIds, type MentionsView } from "./shared";
 import type { Viewer } from "./courses";
 import { loadStudent } from "./student";
 
@@ -109,7 +109,7 @@ const professorPublic = publicCache(
       ids.length ? db().select().from(lmsCourses).where(inArray(lmsCourses.id, ids)) : Promise.resolve([]),
       teacherSummaries([id]),
       db().select({ id: lmsDepartments.id, parentId: lmsDepartments.parentId, name: lmsDepartments.name }).from(lmsDepartments),
-      mentionsOf("teacher", id),
+      mentionsOf("teacher", id, MENTIONS_PAGE),
     ]);
     const summary = summaries[id] ?? { enough: false, count: 0 };
     const deptMap = new Map(depts.map((d) => [d.id, d]));

@@ -218,7 +218,7 @@ export function Syllabus({ syl }: { syl: SyllabusFold }) {
 
 const longDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Tashkent" }) : null);
 
-export function MentionCard({ m }: { m: MentionView }) {
+export function MentionCard({ m, tag = "Course" }: { m: MentionView; tag?: string }) {
   // Figma MentionCard: the whole card opens the post; footer is Tag · "Open post" · external icon, spread apart.
   return (
     <a href={m.url} className={s.mention} target="_blank" rel="noreferrer">
@@ -231,7 +231,7 @@ export function MentionCard({ m }: { m: MentionView }) {
       </span>
       <span className={s.mentionText}>{m.text}</span>
       <span className={s.mentionFoot}>
-        <Tag>Course</Tag>
+        <Tag>{tag}</Tag>
         <span className={s.openPost}>Open post</span>
         <ExternalIcon size={14} />
       </span>
