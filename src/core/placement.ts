@@ -5,8 +5,9 @@
  * it. Pure: the coverage report feeds it rows from Postgres.
  *
  * Precedence for a course: an admin's move > the LMS department (when named) >
- * the department most of its teachers belong to (lecturers weigh most) > the
- * code prefix > Unassigned.
+ * a code prefix naming one department (ECON → Economics) > the department most
+ * of its teachers belong to (lecturers weigh most) > a school-wide code prefix
+ * (HASS) > Unassigned.
  */
 
 export const UNASSIGNED = "Unassigned";
@@ -203,9 +204,12 @@ export function place(input: PlaceInput): Placement {
     const unit = unitOf(chain[chain.length - 1], chain.length > 1 ? chain[0] : null);
     if (unit) return { ...unit, by: "lms" };
   }
+  // A code naming one department (ECON, MATH, PHYS…) is surer than who teaches it:
+  // teachers often teach outside their department (an economist from Agrotechnologies).
+  const c = placeByCode(input.code);
+  if (c && c.department !== SCHOOL_WIDE) return { ...c, by: "code" };
   const t = placeByTeachers(input.teachers ?? []);
   if (t) return { ...t, by: "teachers" };
-  const c = placeByCode(input.code);
   if (c) return { ...c, by: "code" };
   return { school: UNASSIGNED, department: UNASSIGNED, by: null };
 }

@@ -226,10 +226,11 @@ describe("course placement on the coverage report", () => {
     await db().insert(teacherOverrides).values({ teacherId: "t-ai", department: "Department of AI" });
   });
 
-  it("places courses the LMS leaves unnamed by their teachers, then by code, else Unassigned", async () => {
+  it("places courses the LMS leaves unnamed by code, then by their teachers, else Unassigned", async () => {
     const r = await coverageNow(NOW);
     const at = Object.fromEntries(r.courses.map((c) => [c.code, [c.school, c.department, c.placedBy]]));
-    expect(at.ECON101).toEqual(["School of Humanities, Natural and Social Sciences", "Mathematics", "teachers"]);
+    // A department-specific code beats the teachers' department.
+    expect(at.ECON101).toEqual(["School of Humanities, Natural and Social Sciences", "Economics", "code"]);
     expect(at.GRAD601).toEqual(["School of Computing", "AI", "teachers"]);
     expect(at.ABC200).toEqual(["School of Management", "Industrial Management", "teachers"]);
     expect(at.XYZ100).toEqual(["Unassigned", "Unassigned", null]);

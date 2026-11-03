@@ -22,8 +22,11 @@ describe("course placement", () => {
 
   it("falls back to the department most teachers belong to, lecturers weighted highest", () => {
     // One lecturer (3) outweighs two lab teachers (2).
-    expect(place({ code: "ECON101", lms: [], teachers: [lecturer("Department of Mathematics", "School of Humanities, Natural and Social Sciences"), lab("Department of Physics"), lab("Department of Physics")] }))
+    expect(place({ code: "GRAD101", lms: [], teachers: [lecturer("Department of Mathematics", "School of Humanities, Natural and Social Sciences"), lab("Department of Physics"), lab("Department of Physics")] }))
       .toEqual({ school: "School of Humanities, Natural and Social Sciences", department: "Mathematics", by: "teachers" });
+    // A code naming one department wins over the teachers (an economist from Agrotechnologies teaching ECON).
+    expect(place({ code: "ECON301", lms: [], teachers: [lecturer("Department of Agrotechnologies", "School of Agrotechnologies")] }))
+      .toEqual({ school: "School of Humanities, Natural and Social Sciences", department: "Economics", by: "code" });
     // Three lab teachers (3) tie with one lecturer (3): the lecturer's department wins.
     expect(placeByTeachers([lab("Department of Physics"), lab("Department of Physics"), lab("Department of Physics"), lecturer("Department of Economics")])).toMatchObject({ department: "Economics" });
     // A teacher listed under a school only places the course in that school.
