@@ -86,7 +86,7 @@ export function hero(v: TodayView, weeks: CalendarWeek[] = WEEKS): Hero | null {
 /** Class rows show unless the day is over (the hero says what is next). */
 export const showClasses = (v: TodayView) => v.classes.length > 0 && v.state !== "over" && !isBreak(v);
 
-export type Tile = { id: "timetable" | "progress" | "calendar" | "courses" | "qr"; title: string; sub: string; tone: "default" | "warn" | "accent"; href: string };
+export type Tile = { id: "timetable" | "progress" | "courses" | "qr"; title: string; sub: string; tone: "default" | "warn" | "accent"; href: string };
 
 export function tiles(v: TodayView): Tile[] {
   const t = v.tiles;
@@ -100,7 +100,6 @@ export function tiles(v: TodayView): Tile[] {
       tone: a && a.left <= 2 ? "warn" : "default",
       href: a && a.left <= 2 ? `/progress/${encodeURIComponent(a.courseId)}` : "/progress",
     },
-    { id: "calendar", title: "Calendar", sub: t.exam?.label ?? v.weekLabel ?? "Semester", tone: "default", href: "/calendar" },
     { id: "courses", title: "Courses", sub: `${t.courses} this term`, tone: "default", href: "/courses" },
     { id: "qr", title: "Scan QR", sub: t.qrOpen ? "In class now" : "Attendance", tone: t.qrOpen ? "accent" : "default", href: "/qr" },
   ];

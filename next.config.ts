@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
     // with no loading screen. Mutations still refresh through server actions.
     staleTimes: { dynamic: 60, static: 300 },
   },
+  // Calendar was merged into Timetable: its month view. The query (?layers=…) is kept.
+  async redirects() {
+    return [{ source: "/calendar", destination: "/timetable?view=month", permanent: false }];
+  },
   serverExternalPackages: ["pdf-lib", "@pdf-lib/fontkit", "pdfjs-dist", "pg"],
   outputFileTracingIncludes: {
     "/api/telegram/files": ["./src/lib/telegram/fonts/*.ttf", "./src/server/covers/assets/*"],

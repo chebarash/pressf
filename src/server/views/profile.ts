@@ -5,6 +5,7 @@ import { ago, shortDate } from "@/core/time";
 import { REJECT_REASONS, type RejectReason, type UploadStatus } from "@/core/uploads";
 import { db } from "@/lib/db";
 import { lmsCourses, uploads } from "@/lib/db/schema";
+import { feedSettings } from "@/server/calendar-feed";
 import { roleOf } from "@/server/identity";
 import type { Role } from "@/core/roles";
 import { rateQueueFor } from "./rate";
@@ -26,15 +27,18 @@ export type ProfileView = {
   sync: SyncState & { label: string | null };
   ratings: { count: number; waiting: number };
   uploads: { count: number; live: number };
+  /** "In Google Calendar": what the student's Google Calendar feed carries. */
+  feed: Array<{ id: string; label: string; on: boolean }>;
 };
 
 export async function profile(userId: string, now = new Date()): Promise<ProfileView | null> {
   const student = await loadStudent(userId);
   if (!student) return null;
-  const [queue, role, mine] = await Promise.all([
+  const [queue, role, mine, feed] = await Promise.all([
     rateQueueFor(student, now),
     roleOf(userId),
     db().select({ status: uploads.status }).from(uploads).where(eq(uploads.uploaderId, userId)),
+    feedSettings(userId),
   ]);
   const name = student.cache?.profile?.name ?? student.email;
   return {
@@ -48,6 +52,7 @@ export async function profile(userId: string, now = new Date()): Promise<Profile
     sync: { ...student.state, label: student.state.syncedAt ? ago(new Date(student.state.syncedAt), now) : null },
     ratings: { count: queue.rated.length, waiting: queue.waiting.length },
     uploads: { count: mine.length, live: mine.filter((u) => u.status === "live").length },
+    feed,
   };
 }
 

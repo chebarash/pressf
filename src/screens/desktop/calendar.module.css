@@ -1,22 +1,7 @@
 .main { padding: 28px var(--space-5) var(--space-6) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
 .header { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
-.title { flex: 1; font: 400 48px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; white-space: nowrap; }
-.filters { display: flex; gap: 12px; flex-wrap: wrap; }
-.filter {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  height: 36px;
-  padding: 0 var(--space-4);
-  border: 1.5px solid var(--border-strong);
-  border-radius: var(--radius-full);
-  box-shadow: 0 3px 0 var(--shadow-key);
-  background: var(--bg-surface);
-  font: 500 15px/normal var(--font-sans);
-  color: var(--text-primary);
-  cursor: pointer;
-}
-.filterOn { background: var(--bg-accent); color: var(--text-on-accent); }
+.title { font: 400 48px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; white-space: nowrap; }
+.sub { flex: 1; font: 600 15px/normal var(--font-sans); color: var(--text-secondary); padding-top: 6px; margin: 0; }
 
 .body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
 .month { background: var(--bg-surface); border: 1.5px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; }
@@ -33,6 +18,19 @@
 .out .date { color: var(--text-secondary); }
 .today { background: var(--bg-accent-soft); }
 .date { font: 500 13px/normal var(--font-sans); padding: 0 2px; }
+/* The date opens that day's week; the dots are its classes, one per class in its course colour. */
+.dayLink { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; color: inherit; border-radius: 6px; }
+.dayLink:hover .date { text-decoration: underline; }
+.dots { display: inline-flex; gap: 3px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-secondary); }
+.tone_teal { background: var(--border-accent); }
+.tone_mustard { background: var(--rating-mid); }
+.tone_plum { background: var(--school-humanities); }
+.tone_moss { background: var(--school-medicine); }
+.tone_rust { background: var(--bg-danger); }
+.tone_sky { background: var(--school-computing); }
+.tone_rose { background: var(--school-engineering); }
+.tone_sand { background: var(--school-management); }
 .event { display: block; padding: 4px 8px; border-left: 3px solid; border-radius: 4px; font: 600 11px/1.3 var(--font-sans); color: var(--text-primary); margin-right: 4px; }
 .week_ { background: var(--tint-plum); border-color: var(--school-humanities); }
 .class_ { background: var(--tint-teal); border-color: var(--bg-accent); }

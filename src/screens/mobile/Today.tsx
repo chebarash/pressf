@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { TodayView } from "@/server/views";
 import { CourseCard, QuickTile, Tag } from "@/ui/components";
-import { BookIcon, CalendarIcon, CheckIcon, ChevronRightIcon, ClockIcon, QrIcon } from "@/ui/icons";
+import { BookIcon, CheckIcon, ChevronRightIcon, ClockIcon, QrIcon } from "@/ui/icons";
 import s from "./mobile.module.css";
 import { FeedRow } from "./parts/FeedRow";
 import { GuestHome } from "./today/GuestHome";
@@ -18,7 +18,6 @@ export default function Today({ data }: { data: TodayData }) {
 const TILE_ICON: Record<Tile["id"], React.ReactNode> = {
   timetable: <ClockIcon size={18} />,
   progress: <CheckIcon size={18} />,
-  calendar: <CalendarIcon size={18} />,
   courses: <BookIcon size={18} />,
   qr: <QrIcon size={18} />,
 };
@@ -135,7 +134,7 @@ function StudentHome({ v }: { v: TodayView }) {
         )}
 
         {exam && (
-          <Link href="/calendar" className={s.hero}>
+          <Link href="/timetable?view=month" className={s.hero}>
             <span className={s.heroEyebrow}>Next exams</span>
             <span className={`${s.heroTitle} t-mobile-section`}>{exam.title}</span>
             <span className={s.heroLine}>{exam.line}</span>

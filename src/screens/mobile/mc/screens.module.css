@@ -50,6 +50,11 @@
 .wrapLine { line-height: 1.32; }
 .subscribe { align-self: flex-start; padding-bottom: 5px; }
 .subscribeHint { margin: -8px 0 0; font-size: 12px; line-height: 1.32; color: var(--text-secondary); }
+/* "In Google Calendar": a compact list of switches, the feed's own settings. */
+.feedLayers { display: flex; flex-direction: column; border: 1.5px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface); overflow: hidden; }
+.feedTitle { margin: 0; padding: 10px var(--space-4) 4px; font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
+.feedRow { padding-top: 6px; padding-bottom: 6px; }
+.feedRow + .feedRow { border-top: 1px solid var(--border-subtle); }
 /* 6.3 toast (4236:15459): text only, 13/1.32 medium, 38 above the bottom edge (no MainButton here). */
 .subViewport { --toast-offset: 38px; }
 .subToast > span:first-child { display: none; }

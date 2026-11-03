@@ -8,7 +8,7 @@ import { GET } from "@/app/calendar/feed/[token]/route";
 import { db } from "@/lib/db";
 import { calendarFeeds } from "@/lib/db/schema";
 import { deleteAccount } from "@/server/account";
-import { calendarFeed, feedOwner, personalFeed, personalSubscription, resetCalendarFeed, saveCalendarLayers } from "@/server/calendar-feed";
+import { calendarFeed, feedOwner, feedSettings, personalFeed, personalSubscription, resetCalendarFeed, saveFeedLayers } from "@/server/calendar-feed";
 import { resetDb } from "../fixtures/db";
 import { NOW, seedStudent } from "../fixtures/student";
 
@@ -48,7 +48,7 @@ describe("calendar feed token", () => {
 
   it("reset revokes the old link and keeps the layers", async () => {
     const { token: old } = await calendarFeed(userId);
-    await saveCalendarLayers(userId, ["holidays"]);
+    await saveFeedLayers(userId, ["holidays"]);
     const next = await resetCalendarFeed(userId);
     expect(next).not.toBe(old);
     expect(await feedOwner(old)).toBeNull();
@@ -93,7 +93,7 @@ describe("calendar feed route", () => {
 
 describe("calendar feed content", () => {
   const feed = async (layers: string[] | null) => {
-    if (layers) await saveCalendarLayers(userId, layers);
+    if (layers) await saveFeedLayers(userId, layers);
     return (await personalFeed((await calendarFeed(userId)).token, NOW))!;
   };
 
@@ -145,11 +145,21 @@ describe("calendar feed content", () => {
     expect(events(await feed([]))).toHaveLength(0);
   });
 
-  it("uses the Calendar page's default layers before the student picks any", async () => {
+  it("carries every layer, classes included, until the student changes its settings", async () => {
     const summaries = events(await feed(null)).map((e) => field(e, "SUMMARY"));
     expect(summaries).toContain("Due: Lab 6 report");
     expect(summaries).toContain("Constitution Day");
+    expect(summaries.some((s) => s?.startsWith("Calculus 1 ·"))).toBe(true);
+    expect(await feedSettings(userId)).toEqual(ALL.map((id) => expect.objectContaining({ id, on: true })));
+  });
+
+  it("reads only its own settings (In Google Calendar), turned one switch at a time", async () => {
+    await saveFeedLayers(userId, ALL.filter((l) => l !== "classes"));
+    expect((await feedSettings(userId)).filter((l) => !l.on).map((l) => l.id)).toEqual(["classes"]);
+    const summaries = events(await feed(null)).map((e) => field(e, "SUMMARY"));
     expect(summaries.some((s) => s?.startsWith("Calculus 1 ·"))).toBe(false);
+    expect(summaries).toContain("Constitution Day");
+    expect((await feedOwner((await calendarFeed(userId)).token))?.layers).toEqual(["exams", "deadlines", "holidays", "registration"]);
   });
 
   it("keeps UIDs stable between polls and unique within a feed", async () => {

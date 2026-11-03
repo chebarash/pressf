@@ -85,6 +85,29 @@ export type TimetableData = {
   classes: TimetableClass[];
   selected: string | null;
   empty: string | null;
+  /** Timetable's Week | Month switch and "Coming up"; absent in previews of the bare grid. */
+  nav?: ScheduleNav;
+  /** Calendar events over the week: all-day bars under the day heads, and deadlines at their time. */
+  overlays?: WeekOverlays;
+};
+
+/** What Week and Month share: the Week | Month switch and "Coming up" with the Google Calendar feed. */
+export type ScheduleNav = {
+  views: Array<{ label: "Week" | "Month"; href: string; active: boolean }>;
+  coming: Array<{ key: string; title: string; meta: string; kind: CalendarKind; href?: string | null }>;
+  /** Nothing in "Coming up". */
+  empty: string | null;
+  /** Google Calendar's add-by-URL page for the feed; `personal` when it is the student's own. */
+  subscribe: { google: string; personal: boolean };
+  /** "In Google Calendar": what the student's feed carries (its own settings); null for guests. */
+  feed: Array<{ id: string; label: string; on: boolean }> | null;
+};
+
+export type WeekOverlays = {
+  /** All-day events (exam weeks, registration, holidays, deadlines outside the hours shown) from day column `from` to `to`, in lane `lane`. */
+  lanes: Array<{ key: string; title: string; kind: CalendarKind; href?: string | null; from: number; to: number; lane: number }>;
+  /** Deadlines inside the hours shown: a line at their time in their day. */
+  markers: Array<{ key: string; title: string; day: number; minutes: number; href?: string | null }>;
 };
 
 export type CourseListItem = { code: string; name: string; href: string; recommendPct: number | null; next: string; absences: string | null; /** An earlier semester's course: that semester ("Fall 2025"). */ term?: string };
@@ -237,17 +260,28 @@ export type NotificationsData = { unread: number; items: FeedItemVM[]; open: str
 export type CalendarKind = "week" | "deadline" | "exam" | "registration" | "holiday" | "class";
 export type CalendarMonth = {
   label: string;
-  weeks: Array<Array<{ key: string; date: number; inMonth: boolean; today: boolean; items: Array<{ title: string; kind: CalendarKind; href?: string | null }> }>>;
+  weeks: Array<Array<{
+    key: string; date: number; inMonth: boolean; today: boolean; items: Array<{ title: string; kind: CalendarKind; href?: string | null }>;
+    /** One dot per class that day, in its course colour (Classes layer on). */
+    classes?: ClassTone[];
+    /** The week view at this day. */
+    href?: string;
+  }>>;
+  /** The Week tab while this month shows: its first week (or this week). */
+  weekHref?: string;
   /** Multi-day events (exam weeks, registration) per week row: a bar from column `from` to `to` (0 = Mon) in lane `lane`. */
   spans?: Array<Array<{ key: string; title: string; kind: CalendarKind; href?: string | null; from: number; to: number; lane: number }>>;
 };
 export type CalendarData = {
   months: CalendarMonth[];
-  filters: Array<{ id: string; label: string; on: boolean; href: string }>;
   coming: Array<{ title: string; meta: string; kind: CalendarKind }>;
   empty: string | null;
   /** Google Calendar's add-by-URL page for the feed; `personal` when it is the student's own. */
   subscribe: { google: string; personal: boolean };
+  /** The month that opens first. */
+  start?: number;
+  /** Timetable's Week | Month switch and "Coming up" (the month is Timetable's view). */
+  nav?: ScheduleNav;
 };
 
 export type SearchItem = { id: string; title: string; meta: string; right: string | null; href: string };
@@ -287,6 +321,8 @@ export type SettingsData = {
   lms: { line: string };
   telegram: { linked: boolean; line: string; href: string };
   alerts: Array<{ id: string; title: string; note: string; on: boolean }>;
+  /** "In Google Calendar": the layers the student's Google Calendar feed carries. */
+  feed?: Array<{ id: string; label: string; on: boolean }>;
   credit: string;
 };
 

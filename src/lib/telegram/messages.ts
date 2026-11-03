@@ -177,7 +177,7 @@ export const deadline = (a: { title: string; course: string; due: string; hoursL
   const when = a.hoursLeft >= 24 ? `${Math.round(a.hoursLeft / 24)} ${Math.round(a.hoursLeft / 24) === 1 ? "day" : "days"}` : `${a.hoursLeft} ${a.hoursLeft === 1 ? "hour" : "hours"}`;
   return {
     text: card(`Due in ${when}: ${a.title}`, [a.course, a.due, a.submitted === false && "not submitted yet"].filter(Boolean).join(" · ")),
-    keyboard: open("Open assignment", a.target ?? { to: "calendar" }),
+    keyboard: open("Open assignment", a.target ?? { to: "timetable", view: "month" }),
   };
 };
 
@@ -252,7 +252,7 @@ export const examChanged = (a: { title: string; now: string; was: string }): Bot
 /** When the final exam timetable is published. */
 export const finalTimesOut = (a: { exams: number; dates: string }): BotMessage => ({
   text: card("Final exam times are out", `${a.exams} ${a.exams === 1 ? "exam" : "exams"}, ${a.dates} · added to your calendar`),
-  keyboard: open("See calendar", { to: "calendar" }),
+  keyboard: open("See dates", { to: "timetable", view: "month" }),
 });
 
 /** When final grades are in. */
@@ -270,7 +270,7 @@ export const rateAsk = (a: { term: string; courses: number }): BotMessage => ({
 /** Break starts. */
 export const breakStarts = (a: { name: string; until: string; note?: string | null }): BotMessage => ({
   text: card(`${a.name} until ${a.until}`, a.note),
-  keyboard: open("See calendar", { to: "calendar" }),
+  keyboard: open("See dates", { to: "timetable", view: "month" }),
 });
 
 /** When the saved LMS password stops working. */

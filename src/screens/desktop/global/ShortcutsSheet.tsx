@@ -25,7 +25,7 @@ const columns = (mod: string): Array<{ title: string; rows: Array<[string, strin
       ["Open", ["↵"]],
       ["Rate this course", ["R"]],
       ["Press F · course files", ["F", "F"]],
-      ["Previous / next week", ["←", "→"]],
+      ["Previous / next week or month", ["←", "→"]],
       ["Filter the list", ["/"]],
       ["Mark all read", ["⇧", "R"]],
     ],

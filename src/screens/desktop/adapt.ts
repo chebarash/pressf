@@ -12,6 +12,7 @@ import type * as V from "@/server/views";
 import type { RatingSummaryProps } from "@/ui/components";
 import type * as M from "./model";
 import { slugify } from "@/screens/mobile/mc/format";
+import { timetableHref } from "@/core/links";
 
 const TZ = "Asia/Tashkent";
 const join = (...parts: Array<string | number | null | undefined | false>) => parts.filter((p) => p !== null && p !== undefined && p !== false && p !== "").join(" · ");
@@ -64,7 +65,7 @@ export function openAction(f: Pick<V.FeedView, "kind" | "href" | "courseName">):
   if (href.startsWith("/progress/")) return { label: f.kind === "absence" ? "See attendance" : "See grades", href };
   if (href.startsWith("/progress")) return { label: f.kind === "deadline" ? "See deadlines" : "Open progress", href };
   if (href.startsWith("/timetable")) return { label: "Open timetable", href };
-  if (href.startsWith("/calendar")) return { label: "Open calendar", href };
+  if (href.startsWith("/calendar")) return { label: "Open timetable", href: "/timetable?view=month" };
   if (href.startsWith("/rate")) return { label: "Rate it", href };
   if (href.startsWith("/c/")) {
     if (f.kind === "file" || f.kind === "upload") return { label: "See files", href: /\/files(\?|$)/.test(href) ? href : href.replace(/^(\/c\/[^/?#]+)/, "$1/files") };
@@ -544,14 +545,22 @@ export function notifications(v: V.NotificationsView): M.NotificationsData {
   return { unread: v.unread, items, open: v.open?.id ?? items[0]?.id ?? null };
 }
 
-/* ---------- Calendar ---------- */
+/* ---------- Timetable: Week and Month (Calendar merged into Timetable) ---------- */
 
 const CAL_KIND: Record<V.CalendarLayer, M.CalendarKind> = { classes: "class", exams: "exam", deadlines: "deadline", holidays: "holiday", registration: "registration" };
 
-export function calendar(v: V.CalendarView, now = new Date()): M.CalendarData {
-  const todayKey = v.days.find((d) => d.today)?.day ?? localDay(now);
+/** Month view options: which months, the class dots per day, the month to open. */
+type MonthOpts = { months?: string[]; focus?: string; classDays?: Record<string, string[]> };
+
+const nextMonthKey = (m: string) => {
+  const [y, mo] = m.split("-").map(Number);
+  return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`;
+};
+
+/** D8 month: multi-day phases as bars across their days, the rest in their day, a dot per class; a day's date opens its week. */
+export function calendar(v: V.CalendarView, now = new Date(), opts: MonthOpts = {}): M.CalendarData {
+  const todayKey = localDay(now);
   const events = v.days.flatMap((d) => d.events);
-  // Multi-day phases span their days as one bar per week row (D8); the rest sit in their day.
   const multi = [...new Map(events.filter((e) => e.endDay && e.endDay > e.day).map((e) => [e.key, e])).values()];
   const multiKeys = new Set(multi.map((e) => e.key));
   const byDay = new Map<string, V.CalendarEvent[]>();
@@ -570,35 +579,109 @@ export function calendar(v: V.CalendarView, now = new Date()): M.CalendarData {
         return { key: e.key, title: e.title, kind: CAL_KIND[e.layer], href: e.href, from, to, lane };
       });
   };
-  const months: M.CalendarMonth[] = [];
-  const [y0, m0] = todayKey.split("-").map(Number);
-  for (let i = 0; i < 5; i++) {
-    const y = y0 + Math.floor((m0 - 1 + i) / 12);
-    const m = ((m0 - 1 + i) % 12) + 1;
-    const first = `${y}-${String(m).padStart(2, "0")}-01`;
+  // Class dots: one colour per course, courses in code order (as in the week).
+  const classDays = opts.classDays ?? {};
+  const order = [...new Set(Object.values(classDays).flat())].sort((a, b) => a.localeCompare(b));
+  const toneOf = (course: string) => COURSE_TONES[order.indexOf(course) % COURSE_TONES.length];
+  const keys = opts.months?.length ? opts.months : [todayKey.slice(0, 7)];
+  while (keys.length < 5 && !opts.months?.length) keys.push(nextMonthKey(keys.at(-1)!));
+  const months: M.CalendarMonth[] = keys.map((key) => {
+    const first = `${key}-01`;
+    const m = Number(key.slice(5, 7));
     const lead = (new Date(`${first}T00:00:00Z`).getUTCDay() + 6) % 7;
     let day = addDays(first, -lead);
     const weeks: M.CalendarMonth["weeks"] = [];
     do {
       const week: M.CalendarMonth["weeks"][number] = [];
       for (let d = 0; d < 7; d++) {
-        week.push({ key: day, date: Number(day.slice(8)), inMonth: Number(day.slice(5, 7)) === m, today: day === todayKey, items: (byDay.get(day) ?? []).map((e) => ({ title: e.title, kind: CAL_KIND[e.layer], href: e.href })) });
+        week.push({
+          key: day,
+          date: Number(day.slice(8)),
+          inMonth: Number(day.slice(5, 7)) === m,
+          today: day === todayKey,
+          items: (byDay.get(day) ?? []).map((e) => ({ title: e.title, kind: CAL_KIND[e.layer], href: e.href })),
+          classes: (classDays[day] ?? []).map(toneOf),
+          href: timetableHref({ day }),
+        });
         day = addDays(day, 1);
       }
       weeks.push(week);
     } while (Number(day.slice(5, 7)) === m);
-    months.push({ label: new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${first}T12:00:00Z`)), weeks, spans: weeks.map((w) => spansOf(w.map((d) => d.key))) });
-  }
-  const onIds = v.layers.filter((l) => l.on).map((l) => l.id);
+    return {
+      label: new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${first}T12:00:00Z`)),
+      weeks,
+      spans: weeks.map((w) => spansOf(w.map((d) => d.key))),
+      // The Week tab opens this week in the current month, else the month's first week.
+      weekHref: timetableHref({ day: key === todayKey.slice(0, 7) ? null : first }),
+    };
+  });
   return {
     months,
-    filters: v.layers.map((l) => {
-      const next = l.on ? onIds.filter((x) => x !== l.id) : [...onIds, l.id];
-      return { id: l.id, label: l.label, on: l.on, href: `/calendar?layers=${next.join(",")}` };
-    }),
     coming: events.filter((e) => e.layer !== "classes").slice(0, 6).map((e) => ({ title: e.title, meta: e.sub, kind: CAL_KIND[e.layer] })),
     empty: v.empty?.text ?? null,
     subscribe: v.subscribe,
+    start: Math.max(0, keys.indexOf((opts.focus ?? todayKey).slice(0, 7))),
+  };
+}
+
+/** The Week | Month switch and "Coming up" with "Add to Google Calendar", shared by both views. */
+function scheduleNav(v: V.ScheduleView, now: Date): M.ScheduleNav {
+  const day = v.day === localDay(now) ? null : v.day;
+  return {
+    views: [
+      { label: "Week", href: timetableHref({ day }), active: v.view === "week" },
+      { label: "Month", href: timetableHref({ view: "month", day }), active: v.view === "month" },
+    ],
+    coming: v.coming.map((e) => ({ key: e.key, title: e.title, meta: e.sub, kind: CAL_KIND[e.layer], href: e.href })),
+    empty: v.coming.length ? null : "Nothing coming up.",
+    subscribe: v.calendar.subscribe,
+    feed: v.feed?.layers ?? null,
+  };
+}
+
+/** Week overlays: all-day and multi-day events as bars under the day heads; deadlines inside the hours shown as lines at their time. */
+export function weekOverlays(events: V.CalendarEvent[], days: string[], hours: { start: number; end: number }): M.WeekOverlays {
+  const lanes: number[][] = [];
+  const out: M.WeekOverlays = { lanes: [], markers: [] };
+  if (!days.length) return out;
+  const last = days.length - 1;
+  for (const e of [...events].sort((a, b) => a.day.localeCompare(b.day) || b.endDay.localeCompare(a.endDay))) {
+    const minutes = e.time && /^\d\d:\d\d$/.test(e.time) ? Number(e.time.slice(0, 2)) * 60 + Number(e.time.slice(3, 5)) : null;
+    const col = days.indexOf(e.day);
+    if (e.layer === "deadlines" && minutes !== null && col >= 0 && minutes >= hours.start * 60 && minutes < hours.end * 60) {
+      out.markers.push({ key: e.key, title: `${e.title} · ${e.time}`, day: col, minutes, href: e.href });
+      continue;
+    }
+    // Clipped to the days shown; an event only on a day off the grid (Sunday) is left out.
+    if (e.day > days[last] || e.endDay < days[0]) continue;
+    const from = e.day <= days[0] ? 0 : col;
+    const to = e.endDay >= days[last] ? last : days.indexOf(e.endDay);
+    if (from < 0 || to < 0) continue;
+    let lane = lanes.findIndex((used) => used.every((c) => c < from || c > to));
+    if (lane < 0) lane = lanes.push([]) - 1;
+    for (let c = from; c <= to; c++) lanes[lane].push(c);
+    out.lanes.push({ key: e.key, title: e.layer === "deadlines" && e.time ? `${e.title} · ${e.time}` : e.title, kind: CAL_KIND[e.layer], href: e.href, from, to, lane });
+  }
+  return out;
+}
+
+/** Timetable (D3 week, D8 month) from the one view model. */
+export function schedule(v: V.ScheduleView, now = new Date(), open: string | null = null): { view: "week"; data: M.TimetableData } | { view: "month"; data: M.CalendarData & { nav: M.ScheduleNav } } {
+  const nav = scheduleNav(v, now);
+  if (v.view === "month" || !v.week) {
+    const data = calendar(v.calendar, now, { months: v.months, focus: v.day, classDays: v.classDays });
+    return { view: "month", data: { ...data, coming: nav.coming, empty: nav.empty, nav } };
+  }
+  const base = timetable(v.week, now);
+  return {
+    view: "week",
+    data: {
+      ...base,
+      // Nothing is picked until a class is clicked (or ?class= names one): the panel shows what is coming up.
+      selected: open && base.classes.some((c) => c.id === open) ? open : null,
+      nav,
+      overlays: weekOverlays(v.overlays, v.week.week.map((d) => d.day), { start: base.startHour, end: base.endHour }),
+    },
   };
 }
 
@@ -676,6 +759,7 @@ export function profile(v: V.ProfileView): M.SettingsData {
     lms: { line: join(v.sync.label ? `Last sync ${v.sync.label}` : null, "password stored encrypted") },
     telegram: { linked: v.telegramLinked, line: v.telegramLinked ? "Linked — alerts and QR check-in live there" : "Not linked — alerts and QR check-in live there", href: "/link" },
     alerts: ALERTS.map((a) => ({ ...a, on: !!v.alerts[a.id] })),
+    feed: v.feed,
     credit: "Made with love by chebarash · issues or ideas? Reach out on Telegram.",
   };
 }

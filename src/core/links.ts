@@ -9,14 +9,14 @@ export const BOT_USERNAME = "pressfapp";
 
 export type Target =
   | { to: "today" }
-  | { to: "timetable"; day?: string }
+  /** One section for the week grid and the month (the old Calendar is `view: "month"`). */
+  | { to: "timetable"; day?: string; view?: "week" | "month" }
   | { to: "courses" }
   | { to: "course"; code: string; term?: string; tab?: "overview" | "files" | "anonymous" }
   | { to: "file"; id: string }
   | { to: "professor"; id: string }
   | { to: "progress"; courseId?: string }
   | { to: "notifications"; id?: string }
-  | { to: "calendar" }
   | { to: "rate"; courseId?: string }
   | { to: "next"; code?: string }
   | { to: "qr" }
@@ -29,14 +29,16 @@ const slug = (s: string) => s.replace(/[^A-Za-z0-9_-]/g, "");
 export function path(t: Target): string {
   switch (t.to) {
     case "today": return "/";
-    case "timetable": return t.day ? `/timetable?day=${t.day}` : "/timetable";
+    case "timetable": {
+      const q = [t.view === "month" ? "view=month" : "", t.day ? `day=${t.day}` : ""].filter(Boolean).join("&");
+      return q ? `/timetable?${q}` : "/timetable";
+    }
     case "courses": return "/courses";
     case "course": return `/c/${slug(t.code)}${t.tab && t.tab !== "overview" ? `/${t.tab}` : ""}${t.term ? `?term=${encodeURIComponent(t.term)}` : ""}`;
     case "file": return `/f/${slug(t.id)}`;
     case "professor": return `/p/${slug(t.id)}`;
     case "progress": return t.courseId ? `/progress/${slug(t.courseId)}` : "/progress";
     case "notifications": return t.id ? `/notifications?open=${encodeURIComponent(t.id)}` : "/notifications";
-    case "calendar": return "/calendar";
     case "rate": return t.courseId ? `/rate/${slug(t.courseId)}` : "/rate";
     // "Next semester" was removed: old links land on the course or the curriculum.
     case "next": return t.code ? `/c/${slug(t.code)}` : "/programs/mine/curriculum";
@@ -45,6 +47,9 @@ export function path(t: Target): string {
     case "link": return `/link/${slug(t.token)}`;
   }
 }
+
+/** A Timetable link: `/timetable?view=month&day=2026-11-09` (the same as `path` for a timetable target). */
+export const timetableHref = (q: { view?: "week" | "month"; day?: string | null }): string => path({ to: "timetable", view: q.view, day: q.day ?? undefined });
 
 /** `startapp` payload for t.me/<bot>?startapp=… (the bot's Main Mini App). */
 export function startParam(t: Target): string {
@@ -56,6 +61,7 @@ export function startParam(t: Target): string {
     case "rate": return t.courseId ? `r_${slug(t.courseId)}` : "rate";
     case "next": return t.code ? `n_${slug(t.code)}` : "next";
     case "notifications": return "inbox";
+    case "timetable": return t.view === "month" ? "month" : "timetable";
     case "link": return `l_${slug(t.token)}`;
     default: return t.to;
   }
@@ -75,7 +81,9 @@ export function parseStartParam(p: string | null | undefined): Target {
     case "l": return value ? { to: "link", token: value } : { to: "today" };
     case "inbox": return { to: "notifications" };
     case "upload": return { to: "uploads" };
-    case "timetable": case "courses": case "progress": case "calendar": case "rate": case "next": case "qr": case "uploads": case "today":
+    // "calendar" is the old Calendar section's code, still in sent messages.
+    case "month": case "calendar": return { to: "timetable", view: "month" };
+    case "timetable": case "courses": case "progress": case "rate": case "next": case "qr": case "uploads": case "today":
       return { to: prefix } as Target;
     default: return { to: "today" };
   }

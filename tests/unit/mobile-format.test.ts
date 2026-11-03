@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LAYERS, lowerDay, parseLayers, schoolTone, since, termShort, toggleLayerHref, trendDelta } from "@/screens/mobile/mc/format";
+import { lowerDay, schoolTone, since, termShort, trendDelta } from "@/screens/mobile/mc/format";
 
 describe("mobile screen formatting", () => {
   it("says when cached LMS data is from (5.5)", () => {
@@ -19,15 +19,6 @@ describe("mobile screen formatting", () => {
   it("lower-cases today/tomorrow inside a line", () => {
     expect(lowerDay("Tomorrow 09:00")).toBe("tomorrow 09:00");
     expect(lowerDay("Sunday 23:59")).toBe("Sunday 23:59");
-  });
-
-  it("reads and toggles calendar layers, classes off by default (6.1, 6.2)", () => {
-    expect(parseLayers(null)).toEqual(DEFAULT_LAYERS);
-    expect(DEFAULT_LAYERS).not.toContain("classes");
-    expect(parseLayers("holidays,bogus,exams")).toEqual(["exams", "holidays"]);
-    expect(parseLayers("")).toEqual([]);
-    expect(toggleLayerHref(["exams", "holidays"], "classes")).toBe("/calendar?layers=classes,exams,holidays");
-    expect(toggleLayerHref(["exams", "holidays"], "exams")).toBe("/calendar?layers=holidays");
   });
 
   it("colours schools by name (7.8)", () => {

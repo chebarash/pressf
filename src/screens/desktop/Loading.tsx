@@ -180,7 +180,6 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/timetable/, "Timetable"],
   [/^\/next/, "Next semester"],
   [/^\/progress/, "Progress"],
-  [/^\/calendar/, "Calendar"],
   [/^\/professors|^\/p\//, "Professors"],
   [/^\/programs|^\/schools/, "Curriculum"],
   [/^\/search/, "Search"],

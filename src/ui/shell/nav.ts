@@ -15,10 +15,17 @@ export const NAV: NavItem[] = [
   { label: "Timetable", href: path({ to: "timetable" }), icon: "clock", key: "t", group: "main" },
   { label: "Courses", href: path({ to: "courses" }), icon: "book", key: "c", group: "main" },
   { label: "Progress", href: path({ to: "progress" }), icon: "check", key: "p", group: "main" },
-  { label: "Calendar", href: path({ to: "calendar" }), icon: "calendar", key: "k", group: "main" },
   { label: "Notifications", href: path({ to: "notifications" }), icon: "mail", key: "n", group: "main", badge: "count" },
   { label: "Professors", href: "/professors", icon: "users", key: "r", group: "browse" },
   { label: "Curriculum", href: "/programs", icon: "file", key: "u", group: "browse" },
+];
+
+/**
+ * F-shortcuts to a view of a section, not in the sidebar: F K opens Timetable on
+ * its month (Calendar was merged into Timetable; K was its letter).
+ */
+export const NAV_VIEWS: Array<{ label: string; href: string; key: string }> = [
+  { label: "Timetable · Month", href: path({ to: "timetable", view: "month" }), key: "k" },
 ];
 
 /** Active when the path is the item's or below it (Today only on "/"). */

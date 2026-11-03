@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { DEFAULT_ALERTS, type AlertSettings } from "@/core/notifications";
 import { getUser } from "@/lib/auth";
 import { deleteAccount } from "@/server/account";
-import { resetCalendarFeed, saveCalendarLayers } from "@/server/calendar-feed";
+import { calendarFeed, feedLayersOf, resetCalendarFeed, saveFeedLayers } from "@/server/calendar-feed";
 import { setAlerts } from "@/server/feed";
 import { syncNowFor, type ManualSync } from "@/server/sync/manual";
 import { invalidateRating } from "@/server/views";
@@ -48,11 +48,15 @@ export async function deleteMyData(): Promise<{ ok: boolean }> {
   return { ok: true };
 }
 
-/** The Calendar page's layer choice, kept for the student's calendar feed. */
-export async function rememberCalendarLayers(layers: string[]): Promise<void> {
+/** "In Google Calendar": turn one layer of the student's feed on or off. The site shows everything either way. */
+export async function setFeedLayer(layer: string, on: boolean): Promise<string[] | null> {
   const user = await getUser();
-  if (!user || !Array.isArray(layers)) return;
-  await saveCalendarLayers(user.id, layers.filter((l) => typeof l === "string"));
+  if (!user || typeof layer !== "string" || typeof on !== "boolean") return null;
+  const current = feedLayersOf((await calendarFeed(user.id)).layers);
+  const next = on ? [...current, layer] : current.filter((l) => l !== layer);
+  const saved = await saveFeedLayers(user.id, next);
+  revalidatePath("/me");
+  return saved;
 }
 
 /** Settings' "Reset link": the old calendar feed URL stops working; add the calendar again with the new one. */
@@ -60,6 +64,6 @@ export async function resetCalendarLink(): Promise<{ ok: boolean }> {
   const user = await getUser();
   if (!user) return { ok: false };
   await resetCalendarFeed(user.id);
-  revalidatePath("/calendar");
+  revalidatePath("/timetable");
   return { ok: true };
 }
