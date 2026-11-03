@@ -39,6 +39,8 @@ export function formatOf(name: string, extension?: string): FileFormat {
 const TYPE_RULES: Array<[FileType, RegExp]> = [
   ["syllabus", /syllab/i],
   ["mock", /\bmock\b/i],
+  // Review slides and lectures about an exam are teaching material, not the exam paper.
+  ["lecture", /\b(review|revision)\b.*\b(slides?|lecture)\b|\b(slides?|lecture)\b.*\b(review|revision)\b/i],
   ["exam", /\b(midterm|mid-term|final exam|finals?|exam|quiz)\b/i],
   ["assignment", /\b(assignment|homework|hw\s?\d|problem set|pset|project brief)\b/i],
   ["lab", /\b(lab|laboratory)\b|(^|[\s_-])LB\s?\d+\b/i],
