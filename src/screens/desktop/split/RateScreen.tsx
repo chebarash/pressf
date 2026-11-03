@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { HOURS, MAX_TAGS, type CourseTag, type Hours, type RatingInput, type Recommend, type TeacherTag } from "@/core/ratings";
 import { EmptyState, Sheet } from "@/ui/components";
 import type { RateData } from "../model";
-import { Button, cx, Face, Hint } from "../parts";
+import { Button, cx, Face, Keys } from "../parts";
 import r from "../rate.module.css";
 
 export type RateActions = { submit?: (courseId: string, input: RatingInput) => Promise<void> };
@@ -113,11 +113,13 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
           <>
             <div className={r.head}>
               <h2 className={r.title}>Rate {data.course.name}</h2>
-              <Hint>Esc</Hint>
+              <button type="button" className={r.esc} onClick={close} aria-label="Close">
+                <Keys keys={["Esc"]} />
+              </button>
             </div>
             <p className={r.sub}>{data.course.term} · anonymous · about 30 seconds · everything works from the keyboard</p>
 
-            <div className={cx(r.q, q === 0 && r.qOn)} onFocus={() => setQ(0)}>
+            <div className={r.q} onFocus={() => setQ(0)}>
               <span className={r.qLabel}>Would you recommend it?</span>
               <div className={r.opts} role="radiogroup" aria-label="Would you recommend it?">
                 {RECOMMEND.map((o) => (
@@ -127,7 +129,7 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
                 ))}
               </div>
             </div>
-            <div className={cx(r.q, q === 1 && r.qOn)} onFocus={() => setQ(1)}>
+            <div className={r.q} onFocus={() => setQ(1)}>
               <span className={r.qLabel}>Hours a week outside class</span>
               <div className={r.opts} role="radiogroup" aria-label="Hours a week outside class">
                 {HOURS.map((h, i) => (
@@ -137,7 +139,7 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
                 ))}
               </div>
             </div>
-            <div className={cx(r.q, q === 2 && r.qOn)} onFocus={() => setQ(2)}>
+            <div className={r.q} onFocus={() => setQ(2)}>
               <span className={r.qLabel}>How hard was it?</span>
               <div className={r.opts} role="radiogroup" aria-label="How hard was it?">
                 {HARD.map((h, i) => (
@@ -177,11 +179,11 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
             )}
 
             <div className={r.foot}>
-              <p>Tab moves between questions · digits answer · F1–F{Math.max(1, data.teachers.length)} press F</p>
+              <p>Tab moves between questions · digits answer · {data.teachers.length > 1 ? `F1–F${data.teachers.length}` : "F1"} press F</p>
               <Button onClick={send} disabled={!recommend || pending} loading={pending}>
                 Send rating
               </Button>
-              <Hint>⌘↵</Hint>
+              <Keys keys={["⌘↵"]} />
             </div>
           </>
         )}

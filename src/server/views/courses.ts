@@ -371,6 +371,10 @@ export type FileView =
       teacher?: { id: string; name: string; face: string | null } | null;
       /** Other files of the same course and week (D12). Always set by the server. */
       sameWeek?: FileItem[];
+      /** The viewer's current courses, for the desktop list pane left of the file (D12). Always set by the server. */
+      myCourses?: CourseCard[] | null;
+      /** The file's course as on its own page, for the detail pane next to the file (D12). Always set by the server. */
+      courseDetail?: CourseView | null;
       mimeType: string | null;
       downloadName: string;
       /** Signed bucket URL (1 h), null when storage is not configured. */
@@ -402,6 +406,12 @@ async function fileContext(code: string, courseId: string, week: number | null, 
   };
 }
 
+/** D12 beside a file: the course as on its page (with the viewer's course list), signed-in only. */
+async function fileCourse(code: string, viewer: Viewer) {
+  const detail = code ? await course(code, null, viewer).catch(() => null) : null;
+  return { courseDetail: detail, myCourses: detail?.myCourses ?? null };
+}
+
 /** Figma 4.9. Files are for signed-in students only; guests get `locked`. */
 export async function file(id: string, viewer: Viewer): Promise<FileView | null> {
   if (UUID.test(id)) {
@@ -414,9 +424,10 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
     const type = (u.type as FileType) ?? "other";
     const ext = meta.format === "other" ? "" : u.fileName.match(/\.([A-Za-z0-9]{1,5})$/)?.[1] ?? "";
     const name = downloadName(u.title, course.name, meta.format, ext);
-    const [url, ctx] = await Promise.all([sign(u.storageKey, name), fileContext(course.code, u.courseId, u.week, id)]);
+    const [url, ctx, around] = await Promise.all([sign(u.storageKey, name), fileContext(course.code, u.courseId, u.week, id), fileCourse(course.code, viewer)]);
     return {
       ...ctx,
+      ...around,
       locked: false, id, source: "students", title: u.title, course, week: u.week, type, typeLabel: TYPE_LABEL[type] ?? "File", format: meta.format, formatCode: FORMAT_CODE[meta.format],
       from: shownAs(u.showName, null), date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), size: u.size, pages: null, mimeType: u.mimeType, downloadName: name, url,
     };
@@ -432,9 +443,10 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
   const shown = overlay({ title: meta.title, type: meta.type, week: meta.week ?? lessonWeek }, edit)!;
   const name = downloadName(shown.title, course.name, meta.format, f.extension ?? "");
   const week = shown.week;
-  const [url, ctx] = await Promise.all([sign(f.storageKey, name), fileContext(f.code, f.courseId, week, id)]);
+  const [url, ctx, around] = await Promise.all([sign(f.storageKey, name), fileContext(f.code, f.courseId, week, id), fileCourse(f.code, viewer)]);
   return {
     ...ctx,
+    ...around,
     locked: false, id, source: "lms", title: shown.title, course, week, type: shown.type, typeLabel: TYPE_LABEL[shown.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
     from: "LMS", date: lmsFileDate(f).toISOString(), dateLabel: shortDate(lmsFileDate(f)), size: f.size, pages: f.pages, mimeType: f.mimeType, downloadName: name, url,
   };

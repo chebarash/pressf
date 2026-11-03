@@ -35,7 +35,7 @@ img, svg { display: block; }
   padding: 1px 4px;
   border: 1.25px solid var(--border-subtle);
   border-radius: 5px;
-  font: 600 11px/normal var(--font-sans);
+  font: 600 11px/14px var(--font-sans);
   color: var(--text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
@@ -232,7 +232,6 @@ img, svg { display: block; }
   gap: 8px;
   width: 100%;
   padding: 8px 8px 8px 10px;
-  border: 1.5px solid transparent;
   border-radius: 10px;
   font: 500 14px/normal var(--font-sans);
   color: var(--text-secondary);
@@ -242,16 +241,16 @@ img, svg { display: block; }
 .sh-nav-item:hover { background: var(--bg-hover); }
 .sh-nav-item[aria-current="page"] {
   background: var(--bg-surface);
-  border-color: var(--border-strong);
+  border: 1.5px solid var(--border-strong);
   box-shadow: var(--shadow-key-sm);
   font-weight: 600;
   color: var(--text-primary);
 }
 .sh-nav-item--strong { color: var(--text-primary); }
-.sh-divider { flex-shrink: 0; height: 1.5px; margin: 8px 0; background: var(--border-subtle); }
+.sh-divider { flex-shrink: 0; height: 1.5px; margin: 12px 0; background: var(--border-subtle); }
 .sh-grow { flex: 1 0 12px; }
-.sh-synced { display: flex; align-items: center; gap: 8px; padding: 0 4px 10px; font: 500 12px/normal var(--font-sans); color: var(--text-secondary); }
-.sh-synced::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--school-medicine); }
+.sh-synced { display: flex; align-items: center; gap: 8px; padding: 0 4px 6px; font: 500 12px/normal var(--font-sans); color: var(--text-secondary); }
+.sh-synced::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--school-medicine); }
 .sh-synced[data-stale="true"]::before { background: var(--rating-mid); }
 .sh-utilities { display: flex; gap: 8px; }
 .sh-utility {
@@ -272,7 +271,7 @@ img, svg { display: block; }
   align-items: center;
   gap: 10px;
   padding: 10px;
-  margin-top: 10px;
+  margin-top: 6px;
   border: 1.5px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
@@ -287,13 +286,13 @@ img, svg { display: block; }
   display: grid;
   gap: 10px;
   padding: 14px;
-  margin-bottom: 10px;
   border: 1.5px solid var(--border-strong);
   border-radius: 16px;
   background: var(--bg-accent-soft);
   box-shadow: var(--shadow-key-md);
 }
 .sh-invite__head { display: flex; align-items: center; gap: 12px; }
+.sh-invite__head > div { display: grid; gap: 2px; }
 .sh-invite__qr { width: 64px; height: 64px; flex-shrink: 0; padding: 3px; border: 1.25px solid var(--border-strong); border-radius: 8px; background: var(--doc-page); }
 .sh-invite__title { font: 400 18px/1.15 var(--font-serif); }
 .sh-invite__sub { font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }

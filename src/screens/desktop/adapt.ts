@@ -4,6 +4,7 @@
  */
 import { COURSE_TAGS } from "@/core/ratings";
 import { tier } from "@/core/grades";
+import { weekOf } from "@/core/semester";
 import { addDays, localDay, localMinutes, toLocal } from "@/core/time";
 import type * as V from "@/server/views";
 import type { RatingSummaryProps } from "@/ui/components";
@@ -57,6 +58,16 @@ const card = (c: V.CourseCard): M.CourseCardVM => ({ code: c.code, name: c.name,
 
 /* ---------- Today ---------- */
 
+/** "Fall 2026" for the semester running on `now` (Figma D9 "When and where · Fall 2026"). */
+const termName = (now: Date) => {
+  const w = weekOf(localDay(now));
+  if (!w || w.term === "summer") return null;
+  const year = Number(w.starts.slice(0, 4));
+  // Fall runs into January: those weeks still belong to the autumn's year.
+  return w.term === "fall" ? `Fall ${Number(w.starts.slice(5, 7)) < 8 ? year - 1 : year}` : `Spring ${year}`;
+};
+const ROLE_ONE: Record<string, string> = { lecture: "Lecture", tutorial: "Tutorial", lab: "Lab", practice: "Practice", other: "" };
+
 export function today(v: V.TodayView): M.TodayData {
   const now = new Date(v.now);
   const hour = toLocal(now).getUTCHours();
@@ -77,8 +88,18 @@ export function today(v: V.TodayView): M.TodayData {
   const nowTime = now.toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
   const exam = v.nextExams[0] ?? v.examsThisWeek[0] ?? null;
   const absences = v.tiles.absences;
+  const b = v.banner;
+  const at = v.sync.syncedAt ? new Date(v.sync.syncedAt).toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }) : null;
   return {
-    greeting: hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening",
+    // D15: "hero.study isn't answering. You're seeing what we had at 08:40 — grades and files may be a bit behind."
+    banner: b
+      ? {
+          text: b.kind === "lms-down" && at ? `hero.study isn't answering. You're seeing what we had at ${at} — grades and files may be a bit behind.` : b.text,
+          tone: b.kind === "lms-down" || b.kind === "sign-in" ? "warning" : "info",
+          action: b.action ? { label: b.action.label, href: b.action.href ?? "/" } : null,
+        }
+      : null,
+    greeting: (hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening") + (v.firstName ? `, ${v.firstName}` : ""),
     title: v.title,
     dateLine,
     next: cls
@@ -238,8 +259,10 @@ export function file(v: V.FileView): M.FileData {
   return {
     // D12: "Week 8 · 2 Nov · LMS · 24 pages · 3.1 MB".
     file: { id: v.id, title: v.title, meta: join(v.week != null && `Week ${v.week}`, v.dateLabel, v.from, pages ?? v.formatCode, sizeLabel(v.size)), type: v.type, previewUrl: v.url && v.format === "pdf" ? v.url : null, downloadHref: href, openHref: href },
-    // D12 middle pane: the course around the file — its week and who teaches it (from file()).
-    course: code
+    // D12: your courses on the left, the course as on its page in the middle (from file()).
+    course: v.courseDetail
+      ? { ...course(v.courseDetail), myCourses: v.myCourses?.length ? v.myCourses.map(listItem) : null }
+      : code
       ? {
           code,
           name: v.course.name,
@@ -292,7 +315,7 @@ export function professor(v: V.ProfessorView): M.ProfessorData {
       { value: String(v.courses.length), label: "courses now" },
       ...(v.years ? [{ value: `${v.years} yr${v.years === 1 ? "" : "s"}`, label: "at NewUU" }] : []),
     ],
-    schedule: { term: "this semester", rows: v.when.map((w) => ({ day: w.day, time: w.time, course: w.course, href: `/c/${w.code}`, role: "", room: w.room ?? "" })) },
+    schedule: { term: termName(new Date()) ?? "this semester", rows: v.when.map((w) => ({ day: w.day, time: w.time, course: w.course, href: `/c/${w.code}`, role: ROLE_ONE[v.courses.find((c) => c.code === w.code)?.role ?? "other"], room: w.room ?? "" })) },
     summary,
     courses: v.courses.map((c) => ({ code: c.code, name: c.name, role: c.roleLabel, pct: c.pressFPct, href: c.href })),
     tags: s.enough ? s.tags.map((t) => ({ tag: t.tag, pct: t.pct })) : [],

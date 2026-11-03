@@ -137,15 +137,17 @@ function CourseDetail({ data }: { data: CourseData }) {
                   </span>
                   <Icon name="chevron-down" size={18} />
                 </div>
-                {data.grading.map((g) => (
-                  <div key={g.title} className={c.assess}>
-                    <span className={c.assessPct}>{g.pct}%</span>
-                    <span className={c.boxText}>
-                      <span className={c.assessTitle}>{g.title}</span>
-                      <span className={c.assessNote}>{g.note}</span>
-                    </span>
-                  </div>
-                ))}
+                <div className={c.assessList}>
+                  {data.grading.map((g) => (
+                    <div key={g.title} className={c.assess}>
+                      <span className={c.assessPct}>{g.pct}%</span>
+                      <span className={c.boxText}>
+                        <span className={c.assessTitle}>{g.title}</span>
+                        <span className={c.assessNote}>{g.note}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </>
             )}
             {data.syllabus.map((r) => {

@@ -29,6 +29,8 @@ export type FeedItemVM = {
 };
 
 export type TodayData = {
+  /** Status line under the header (Figma D15: LMS not answering). */
+  banner?: { text: string; tone: "info" | "warning"; action: { label: string; href: string } | null } | null;
   greeting: string;
   title: string;
   dateLine: string;

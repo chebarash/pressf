@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useOptimistic, useSyncExternalStore, useTransition } from "react";
 import { setTheme } from "@/platform/PlatformProvider";
 import { signOutWithConfirm } from "@/ui/shell/signOut";
-import { Button, Switch, SwitchGroup } from "@/ui/components";
+import { Button, Switch } from "@/ui/components";
 import { openShortcuts } from "../global/bus";
 import type { SettingsData } from "../model";
 import { ButtonLink, css, cx, Hint } from "../parts";
@@ -107,7 +107,7 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
                 <span>Press F forgets your LMS password; your ratings stay</span>
               </span>
             </button>
-            <a className={cx(x.row, x.danger)} href="/me/delete">
+            <a className={x.row} href="/me/delete">
               <span className={x.text}>
                 <b>Delete my data</b>
                 <span>Removes your account, saved password and ratings</span>
@@ -119,10 +119,10 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
         <section className={x.box}>
           <h2 className={x.boxTitle}>Alerts in Telegram</h2>
           <div className={x.alerts}>
-            <SwitchGroup>
               {alerts.map((a) => (
                 <Switch
                   key={a.id}
+                  className={x.alertRow}
                   label={a.title}
                   description={a.note}
                   checked={a.on}
@@ -135,7 +135,6 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
                   }}
                 />
               ))}
-            </SwitchGroup>
           </div>
         </section>
       </div>

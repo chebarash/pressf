@@ -45,6 +45,8 @@ export type PhaseView = { kind: Phase["kind"]; title: string; starts: string; en
 
 export type TodayView = {
   now: string;
+  /** Given name for the greeting ("Good morning, Shamsiddin"), from the LMS profile. */
+  firstName?: string | null;
   /** "Today", or the weekday on weekends ("Saturday"). */
   title: string;
   /** "Week 8 of 16", "Midterm exams", "Break · 21 Dec – 3 Jan". */
@@ -124,6 +126,11 @@ function banner(student: Student, now: Date, opts: { courses: ProgressCourse[]; 
   return null;
 }
 
+const givenName = (full: string | null | undefined) => {
+  const first = full?.trim().split(/\s+/)[0];
+  return first ? first[0].toUpperCase() + first.slice(1).toLowerCase() : null;
+};
+
 export async function today(userId: string, now = new Date()): Promise<TodayView | null> {
   const student = await loadStudent(userId);
   if (!student) return null;
@@ -170,6 +177,7 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
 
   return {
     now: now.toISOString(),
+    firstName: givenName(student.cache?.profile?.name),
     title: info.weekend ? weekdayName(now) : "Today",
     weekLabel: phase ? `Break · ${range(phase.starts, phase.ends)}` : info.label,
     state: a.state,

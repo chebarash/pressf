@@ -16,7 +16,7 @@ export default function DesktopFile({ data }: { data: FileView }) {
 export function FileScreen({ data }: { data: FileData }) {
   const back = data.courseLink;
   const preview = data.file ? (
-    <FilePreview file={data.file} back={back} />
+    <FilePreview file={data.file} back={back} crumb={!data.course} />
   ) : (
     <aside className={c.file}>
       <Empty title="Sign in to open files">LMS files and course details are only for signed-in students.</Empty>
@@ -26,10 +26,11 @@ export function FileScreen({ data }: { data: FileData }) {
   return <div data-desktop-screen className={cx(css.screen, c.single)}>{preview}</div>;
 }
 
-function FilePreview({ file, back }: { file: NonNullable<FileData["file"]>; back: FileData["courseLink"] }) {
+function FilePreview({ file, back, crumb }: { file: NonNullable<FileData["file"]>; back: FileData["courseLink"]; crumb: boolean }) {
   return (
     <aside className={c.file} aria-label="File preview">
-      {back && (
+      {/* With the course open next to it (Figma D12) the head is first; Esc goes back. */}
+      {back && crumb && (
         <Link href={back.href} className={c.back}>
           <Icon name="chevron-left" size={16} />
           {back.name}
@@ -60,7 +61,6 @@ function FilePreview({ file, back }: { file: NonNullable<FileData["file"]>; back
       <div className={c.fileActions}>
         <AnchorButton href={file.downloadHref} download data-key="d">
           Download
-          <Icon name="download" size={20} />
         </AnchorButton>
         <Hint>D</Hint>
         <AnchorButton href={file.openHref} variant="secondary" target="_blank" rel="noopener" data-key="mod+Enter">
