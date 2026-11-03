@@ -416,6 +416,9 @@ export function professor(v: V.ProfessorView): M.ProfessorData {
     courses: v.courses.map((c) => ({ code: c.code, name: c.name, role: c.roleLabel, pct: c.pressFPct, href: c.href })),
     tags: s.enough ? s.tags.map((t) => ({ tag: t.tag, pct: t.pct })) : [],
     mention: mention ? { date: postDate(mention.date), text: mention.text, tag: "Teacher", href: mention.url } : null,
+    id: v.id,
+    posts: v.anonymous.latest.map((m) => ({ date: postDate(m.date), text: m.text, tag: "Teacher", href: m.url })),
+    postsTotal: v.anonymous.count,
     background: background(v),
     // D9 "Press F if they taught you": straight to the rating of the viewer's course with them.
     rateHref: v.signedIn ? (v.rateHref ?? null) : null,

@@ -247,11 +247,14 @@ export const teacherSummaries = publicCache(
 export type MentionView = { id: number; url: string; text: string; date: string | null };
 export type MentionsView = { count: number; latest: MentionView[] };
 
+/** Posts per page on the Anonymous lists; "Show more" loads the next page. */
+export const MENTIONS_PAGE = 20;
+
 /** Posts hidden by a moderator or under a live mute are left out (count included). */
-export async function mentionsOf(kind: "course" | "teacher", target: string, limit = 3): Promise<MentionsView> {
+export async function mentionsOf(kind: "course" | "teacher", target: string, limit = 3, offset = 0): Promise<MentionsView> {
   const where = and(eq(mentionLinks.kind, kind), eq(mentionLinks.target, target), postVisible(mentionLinks.postId));
   const [rows, [{ n }]] = await Promise.all([
-    db().select({ id: mentions.postId, url: mentions.url, text: mentions.text, date: mentions.date }).from(mentions).innerJoin(mentionLinks, eq(mentionLinks.postId, mentions.postId)).where(where).orderBy(desc(mentions.postId)).limit(limit),
+    db().select({ id: mentions.postId, url: mentions.url, text: mentions.text, date: mentions.date }).from(mentions).innerJoin(mentionLinks, eq(mentionLinks.postId, mentions.postId)).where(where).orderBy(desc(mentions.postId)).limit(limit).offset(offset),
     db().select({ n: count() }).from(mentionLinks).where(where),
   ]);
   return { count: n, latest: rows.map((r) => ({ ...r, date: r.date?.toISOString() ?? null })) };

@@ -151,6 +151,8 @@ export type FileData = {
 };
 
 export type ProfessorData = {
+  /** LMS teacher id (loads more Anonymous posts). */
+  id?: string;
   crumbs: Array<{ label: string; href?: string }>;
   name: string;
   face: string | null;
@@ -165,6 +167,9 @@ export type ProfessorData = {
   courses: Array<{ code: string; name: string; role: string; pct: number | null; href: string }>;
   tags: Array<{ tag: string; pct: number }>;
   mention: Mention | null;
+  /** Every loaded Anonymous post (first page) and the total, for the full list with "Show more". */
+  posts?: Mention[];
+  postsTotal?: number;
   background: Array<{ title: string; meta: string }>;
   rateHref: string | null;
 };

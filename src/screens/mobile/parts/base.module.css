@@ -74,3 +74,7 @@ a.row:active { background: var(--bg-hover); }
 
 /* Until the shell lands its reset: every Mobile B box sizes border-box. */
 .screen, .screen *, .screen *::before, .screen *::after { box-sizing: border-box; }
+
+/* "Show more" under a list that loads its next page in place. */
+.moreButton { align-self: stretch; padding: 12px 16px; border-radius: var(--radius-full); border: 1.5px solid var(--border-strong); background: var(--bg-surface); font: 600 15px/normal var(--font-sans); color: var(--text-primary); box-shadow: 0 2px 0 var(--shadow-key); }
+.moreButton:disabled { opacity: 0.6; }
