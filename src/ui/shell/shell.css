@@ -221,6 +221,8 @@ img, svg { display: block; }
 .sh-logo { display: flex; align-items: center; gap: 10px; }
 .sh-logo img { width: 40px; height: 40px; object-fit: contain; }
 .sh-logo span { font: 400 34px/1.04 var(--font-serif); color: var(--bg-inverse); white-space: nowrap; }
+/* The logo breathes before the search field (20px with the sidebar gap). */
+.sh-sidebar > .sh-logo { margin-bottom: var(--space-4); }
 .sh-sidebar__search {
   display: flex;
   align-items: center;
