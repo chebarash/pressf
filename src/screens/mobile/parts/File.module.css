@@ -1,7 +1,8 @@
 /* Figma 4.9 File · preview. */
-/* The file viewer has no App/TopBar: the header sits right under Telegram's controls, all on the sunken page. */
-.screen { min-height: 100dvh; background: var(--bg-sunken); }
-:global(.sh-mobile):has(.screen) { background: var(--bg-sunken); }
+/* The file viewer has no App/TopBar: the header sits right under Telegram's controls.
+   One background from top to the bottom bar, the page colour Telegram's header and bottom bar use too. */
+.screen { min-height: 100dvh; }
+:global(.sh-mobile):has(.screen) { background: var(--bg-page); }
 :global(.sh-mobile):has(.screen) :global(.sh-topbar) { display: none; }
 .head { display: flex; align-items: center; gap: var(--space-3); padding: 0 0 var(--space-3); }
 .flag { align-self: auto; height: 40px; }
@@ -9,7 +10,16 @@
 .title { margin: 0; overflow: hidden; font-family: var(--font-sans); font-size: 17px; font-weight: 600; line-height: normal; white-space: nowrap; text-overflow: ellipsis; }
 .meta { margin: 0; overflow: hidden; color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: normal; white-space: nowrap; text-overflow: ellipsis; }
 .share { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 20px; height: 40px; padding: 0; border: 0; background: none; color: var(--text-secondary); cursor: pointer; }
-.preview { display: block; width: 100%; height: calc(100dvh - 300px); min-height: 470px; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--doc-page); }
+/* PDF pages stacked in the page's own scroll, each a sheet like Figma's preview (1px subtle border, 6px corners). */
+.pages { display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-6); }
+.page { position: relative; display: block; width: 100%; padding: 0; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--doc-page); cursor: zoom-in; -webkit-tap-highlight-color: transparent; }
+.canvas { display: block; width: 100%; height: 100%; }
+.canvas[hidden] { display: none; }
+/* Loading sheet: a title bar and text lines in the paper's ink. */
+.pageSkeleton { position: absolute; inset: 9% 10%; background: linear-gradient(var(--doc-line) 0 0) 0 0 / 55% 16px no-repeat, repeating-linear-gradient(var(--doc-line) 0 7px, transparent 7px 20px) 0 40px / 100% calc(100% - 40px) no-repeat; animation: page-pulse 1.4s ease-in-out infinite; }
+@keyframes page-pulse { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .pageSkeleton { animation: none; } }
+.more { padding: var(--space-3) var(--space-4); border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: 0 3px 0 var(--shadow-key); color: var(--text-primary); font-family: var(--font-sans); font-size: 15px; font-weight: 600; cursor: pointer; }
 .noPreview { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); min-height: 470px; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--doc-page); text-align: center; }
 .noPreviewTitle { margin: 0; font-family: var(--font-serif); font-size: 28px; line-height: 1.1; }
 .format { padding: 4px 10px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); font-family: var(--font-sans); font-size: 13px; font-weight: 600; }
