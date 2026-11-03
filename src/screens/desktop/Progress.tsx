@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import type { ProgressView } from "@/server/views";
 import * as adapt from "./adapt";
 import type { ProgressData, ProgressRow } from "./model";
-import { ButtonLink, css, cx, Empty, Hint } from "./parts";
+import { css, cx, Empty, Hint, Icon } from "./parts";
 import g from "./progress.module.css";
 
 /** D6 Progress — tiles, one table for every course (J/K, Enter opens), GPA by semester, rating nudge. */
@@ -81,12 +81,22 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
               .filter((s) => !s.current)
               .reverse()
               .slice(0, 3)
-              .map((s) => (
-                <p key={s.term} className={g.semRow}>
-                  <span>{s.term}</span>
-                  <span>{s.line}</span>
-                </p>
-              ))}
+              .map((s) =>
+                s.href ? (
+                  // Opens that semester's results (5.6 layout), which links on to the curriculum.
+                  <Link key={s.term} href={s.href} className={cx(g.semRow, g.semLink)}>
+                    <span>{s.term}</span>
+                    <span>
+                      {s.line} <Icon name="chevron-right" size={14} />
+                    </span>
+                  </Link>
+                ) : (
+                  <p key={s.term} className={g.semRow}>
+                    <span>{s.term}</span>
+                    <span>{s.line}</span>
+                  </p>
+                ),
+              )}
           </div>
         )}
         {data.rate && (

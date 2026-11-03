@@ -170,9 +170,19 @@ export type ProgressData = {
   week: { title: string; note: string } | null;
   rows: ProgressRow[];
   open: string | null;
-  semesters: Array<{ term: string; short: string; value: number | null; current: boolean; line: string }>;
+  /** `href`: an earlier semester's results page (/progress/term/…). */
+  semesters: Array<{ term: string; short: string; value: number | null; current: boolean; line: string; href?: string | null }>;
   rate: null | { title: string; line: string; href: string };
   empty: boolean;
+};
+/** D6 for an earlier semester: the 5.6 results (final mark and status per course), rating nudge, curriculum. */
+export type TermResultsData = {
+  title: string;
+  sub: string;
+  tiles: Array<{ label: string; value: string; note: string }>;
+  rows: Array<{ id: string; name: string; meta: string; final: number | null; tier: Tier; status: string; statusTone: "ok" | "low" | "none"; ects: number | null; href: string | null }>;
+  rate: null | { title: string; line: string; href: string };
+  curriculum: { title: string; line: string; href: string };
 };
 export type CourseProgressData = { course: { name: string; code: string; href: string; term: string | null; teacher: string | null }; row: ProgressRow };
 

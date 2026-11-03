@@ -10,7 +10,7 @@ import { resetDb } from "../fixtures/db";
 const newUser = async (email: string) => (await db().insert(users).values({ email }).returning())[0].id;
 
 const rating = (over: Partial<RatingInput> = {}): RatingInput => ({
-  recommend: "yes", hours: "2-4", difficulty: 2, tags: [],
+  recommend: "yes", hours: "2-5", difficulty: 2, tags: [],
   teachers: [{ teacherId: "t1", role: "lecture", pressF: true, tags: [] }], ...over,
 });
 

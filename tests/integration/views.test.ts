@@ -23,7 +23,7 @@ beforeEach(async () => {
 const rateMany = async (n: number, recommend: "yes" | "no" = "yes") => {
   for (let i = 0; i < n; i++) {
     const [u] = await db().insert(users).values({ email: `r${i}-${recommend}@newuu.uz` }).returning();
-    await saveRating(u.id, { id: "90", code: "MATH111" }, "Fall 2025", { recommend, hours: "4-6", difficulty: 4, tags: ["Useful later"], teachers: [{ teacherId: "T1", role: "lecture", pressF: true, tags: ["Explains clearly"] }] });
+    await saveRating(u.id, { id: "90", code: "MATH111" }, "Fall 2025", { recommend, hours: "5-10", difficulty: 4, tags: ["Useful later"], teachers: [{ teacherId: "T1", role: "lecture", pressF: true, tags: ["Explains clearly"] }] });
   }
 };
 
@@ -87,7 +87,7 @@ describe("course", () => {
   it("shows ratings from five students and the result of a past semester", async () => {
     await rateMany(5);
     const c = (await views.course("MATH111", "6", { userId }, NOW))!;
-    expect(c.ratings).toMatchObject({ enough: true, count: 5, recommendPct: 100, hoursLabel: "≈ 5 h/wk", difficultyLabel: "Hard" });
+    expect(c.ratings).toMatchObject({ enough: true, count: 5, recommendPct: 100, hoursLabel: "≈ 8 h/wk", difficultyLabel: "Hard" });
     expect(c.termStatus).toBe("took");
     expect(c.you).toMatchObject({ status: "took", mark: 86, passed: true, ects: 6 });
     expect(c.teachers[0]).toMatchObject({ pressFPct: 100, roleLabel: "Lectures" });
@@ -132,6 +132,23 @@ describe("progress, notifications, calendar, profile", () => {
     expect(one.events.map((e) => [e.lesson, e.mark, e.score])).toEqual([["Quiz 5", "present", 7], ["Lecture 14", "absent", null]]);
     const a = (await views.assignments(userId, NOW))!;
     expect(a.dueThisWeek.map((d) => d.title)).toEqual(["Lab 6 report"]);
+  });
+
+  it("opens an earlier semester's results from Progress", async () => {
+    const p = (await views.progress(userId, NOW))!;
+    expect(p.earlier).toEqual([expect.objectContaining({ term: "Fall 2025", href: "/progress/term/fall-2025" })]);
+    const t = (await views.termResults(userId, "fall-2025", NOW))!;
+    expect(t).toMatchObject({ term: "Fall 2025", overallGpa: 3.62, ectsEarned: 168, ectsTotal: 240, ects: 6, passed: 1, curriculumHref: "/programs/mine/curriculum" });
+    expect(t.courses).toEqual([{ courseId: "90", code: "MATH111", name: "Calculus 1", mark: 86, passed: true, fx: false, ects: 6, href: "/progress/90" }]);
+    // Calculus 1 (Fall 2025) is not rated yet: the "Rate Fall 2025" card shows.
+    expect(t.rate).toEqual({ waiting: 1, href: "/rate" });
+    expect((await views.termResults(userId, "Fall%202025", NOW))?.term).toBe("Fall 2025");
+    // The running semester and unknown ones are not "earlier".
+    expect(await views.termResults(userId, "fall-2026", NOW)).toBeNull();
+    expect(await views.termResults(userId, "spring-1999", NOW)).toBeNull();
+    // Rated: the card goes away.
+    await saveRating(userId, { id: "90", code: "MATH111" }, "Fall 2025", { recommend: "yes", hours: "2-5", difficulty: null, tags: [], teachers: [] });
+    expect((await views.termResults(userId, "fall-2025", NOW))!.rate).toBeNull();
   });
 
   it("filters and sections the feed", async () => {

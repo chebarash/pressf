@@ -77,3 +77,25 @@
 .rateTitle { font: 400 26px/1.08 var(--font-serif); margin: 0; }
 .rateLine { font: 500 13px/normal var(--font-sans); }
 .back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; font: 600 13px/normal var(--font-sans); color: var(--text-accent); }
+
+/* Earlier semester rows open that semester's results. */
+.semLink { color: var(--text-primary); border-radius: 8px; margin-inline: -8px; padding: 4px 8px; }
+.semLink:hover { background: var(--bg-hover); }
+.semLink span:last-child { display: inline-flex; align-items: center; gap: 4px; }
+
+/* An earlier semester (D6 layout, 5.6 content): Course · Final · Status · ECTS. */
+.termCols { grid-template-columns: minmax(0, 1fr) 90px 160px 80px; }
+.rowStatic { cursor: default; }
+.rowStatic:hover { background: none; }
+.final { font: 400 22px/1.08 var(--font-serif); }
+.finalHigh { color: var(--rating-high); }
+.finalMid { color: var(--text-primary); }
+.finalLow { color: var(--rating-low); }
+.finalNone { color: var(--text-secondary); }
+.status { font: 600 13px/normal var(--font-sans); color: var(--text-secondary); }
+.statusOk { color: var(--text-accent); }
+.statusLow { color: var(--rating-low); }
+.bottomOne { grid-template-columns: minmax(0, 1fr); }
+.curriculum { flex-direction: row; align-items: center; justify-content: space-between; color: var(--text-primary); }
+.curriculum:hover { background: var(--bg-hover); }
+.curriculumText { display: flex; flex-direction: column; gap: 6px; }

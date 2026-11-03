@@ -44,8 +44,8 @@ export default function Progress({ data }: { data: ProgressView }) {
               <>
                 <h2 className={cx(s.section, "t-mobile-section")}>Earlier semesters</h2>
                 {data.earlier.map((e) => (
-                  // Figma 5.1: a quiet row with a chevron; the curriculum lists that term's courses and results.
-                  <RowLink key={e.term} href="/programs/mine/curriculum" quiet>
+                  // Figma 5.1: a quiet row with a chevron; it opens that semester's results (5.6 layout).
+                  <RowLink key={e.term} href={e.href ?? "/programs/mine/curriculum"} quiet>
                     <div className={s.lines}>
                       <p className={s.t15sb}>{e.term}</p>
                       <p className={cx(s.t12, s.soft)}>
@@ -110,37 +110,85 @@ function Results({ data }: { data: ProgressView }) {
   const r = data.results!;
   const passed = r.courses.filter((c) => c.passed).length;
   return (
+    <SemesterResults
+      term={r.term}
+      line={`Final grades are in · ${r.gpa != null ? `semester GPA ${r.gpa.toFixed(2)}` : `${passed} of ${r.courses.length} passed`}`}
+      kpis={[
+        r.gpa != null ? { value: r.gpa.toFixed(2), label: "semester GPA" } : null,
+        data.gpa !== null ? { value: data.gpa.toFixed(2), label: r.gpa != null ? "overall" : "overall GPA" } : null,
+        data.ectsEarned !== null ? { value: String(data.ectsEarned), label: data.ectsTotal ? `of ${data.ectsTotal} ECTS` : "ECTS" } : null,
+      ]}
+      courses={r.courses.map((c) => ({ key: c.courseId, name: c.name, mark: c.mark, passed: c.passed, fx: c.fx, ects: null, href: `/progress/${c.courseId}` }))}
+      rate={data.rate.waiting ? { term: data.rate.term ?? r.term, waiting: data.rate.waiting, href: "/rate" } : null}
+    />
+  );
+}
+
+export type ResultRow = { key: string; name: string; mark: number | null; passed: boolean | null; fx: boolean; ects: number | null; href: string | null };
+
+/**
+ * The 5.6 "semester results" layout: "<Term> done", KPIs, every course with its
+ * final mark and status, the "Rate <term>" card, and an optional footer row.
+ * Used for the semester that just ended and for earlier ones (/progress/term/…).
+ */
+export function SemesterResults({ term, line, kpis, courses, rate, footer }: {
+  term: string;
+  line: string;
+  kpis: Array<{ value: string; label: string } | null>;
+  courses: ResultRow[];
+  rate: { term: string; waiting: number; href: string } | null;
+  footer?: { label: string; sub?: string; href: string };
+}) {
+  const shown = kpis.filter((k): k is { value: string; label: string } => k !== null);
+  return (
     <Screen>
       <div className={cx(s.body, s.tight)}>
-        <h1 className={s.title54}>{r.term} done</h1>
-        <p className={cx(s.p0, s.t14, s.soft)}>
-          Final grades are in · {r.gpa != null ? `semester GPA ${r.gpa.toFixed(2)}` : `${passed} of ${r.courses.length} passed`}
-        </p>
-        <div className={s.stats} style={{ gap: 24 }}>
-          {r.gpa != null ? <Stat size="kpi" value={r.gpa.toFixed(2)} label="semester GPA" /> : null}
-          {data.gpa !== null ? <Stat size="kpi" value={data.gpa.toFixed(2)} label={r.gpa != null ? "overall" : "overall GPA"} /> : null}
-          {data.ectsEarned !== null ? <Stat size="kpi" value={String(data.ectsEarned)} label={data.ectsTotal ? `of ${data.ectsTotal} ECTS` : "ECTS"} /> : null}
-        </div>
-        {r.courses.map((c) => {
+        <h1 className={s.title54}>{term} done</h1>
+        <p className={cx(s.p0, s.t14, s.soft)}>{line}</p>
+        {shown.length ? (
+          <div className={s.stats} style={{ gap: 24 }}>
+            {shown.map((k) => (
+              <Stat key={k.label} size="kpi" value={k.value} label={k.label} />
+            ))}
+          </div>
+        ) : null}
+        {courses.map((c) => {
           const mark = c.mark === null ? null : Math.round(c.mark);
           const t: ScoreTier = c.fx || c.passed === false ? "low" : TIER[tier(c.mark)];
-          return (
-            <Link key={c.courseId} href={`/progress/${c.courseId}`} prefetch scroll={false} className={cx(s.rowCard, s.pressable)}>
+          const body = (
+            <>
               <Score value={c.fx ? "FX" : mark === null ? "—" : String(mark)} tier={t} label={`${c.name}: ${c.fx ? "FX" : mark ?? "no mark"}`} />
               <div className={s.lines}>
                 <p className={s.t15sb}>{c.name}</p>
-                <p className={cx(s.t12, s.soft)}>{[mark, c.fx ? "resit" : c.passed ? "passed" : c.passed === false ? "not passed" : null].filter((x) => x !== null).join(" · ")}</p>
+                <p className={cx(s.t12, s.soft)}>{[mark, c.fx ? "resit" : c.passed ? "passed" : c.passed === false ? "not passed" : null, c.ects !== null ? `${c.ects} ECTS` : null].filter((x) => x !== null).join(" · ")}</p>
               </div>
+            </>
+          );
+          return c.href ? (
+            <Link key={c.key} href={c.href} prefetch scroll={false} className={cx(s.rowCard, s.pressable)}>
+              {body}
             </Link>
+          ) : (
+            <div key={c.key} className={s.rowCard}>
+              {body}
+            </div>
           );
         })}
-        {data.rate.waiting ? (
-          <Link href="/rate" prefetch className={cx(s.card, s.warm, s.pressable, s.rateBig)}>
-            <p className={cx(s.p0, s.rateTitle)}>Rate {data.rate.term ?? r.term}</p>
+        {rate ? (
+          <Link href={rate.href} prefetch className={cx(s.card, s.warm, s.pressable, s.rateBig)}>
+            <p className={cx(s.p0, s.rateTitle)}>Rate {rate.term}</p>
             <p className={cx(s.p0, s.t13m)}>
-              {data.rate.waiting} {data.rate.waiting === 1 ? "course" : "courses"} · 30 seconds each · anonymous
+              {rate.waiting} {rate.waiting === 1 ? "course" : "courses"} · 30 seconds each · anonymous
             </p>
           </Link>
+        ) : null}
+        {footer ? (
+          <RowLink href={footer.href} quiet>
+            <div className={s.lines}>
+              <p className={s.t15sb}>{footer.label}</p>
+              {footer.sub ? <p className={cx(s.t12, s.soft)}>{footer.sub}</p> : null}
+            </div>
+          </RowLink>
         ) : null}
       </div>
     </Screen>

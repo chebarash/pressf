@@ -373,11 +373,39 @@ export function progress(v: V.ProgressView): M.ProgressData {
     rows: v.courses.map(row),
     open: null,
     semesters: [
-      ...[...v.earlier].reverse().map((e) => ({ term: e.term, short: shortTerm(e.term), value: e.gpa, current: false, line: join(e.gpa != null && `GPA ${e.gpa.toFixed(2)}`, e.ects != null && `${e.ects} ECTS`) })),
+      ...[...v.earlier].reverse().map((e) => ({ term: e.term, short: shortTerm(e.term), value: e.gpa, current: false, line: join(e.gpa != null ? `GPA ${e.gpa.toFixed(2)}` : plural(e.courses, "course"), e.ects != null && `${e.ects} ECTS`), href: e.href ?? null })),
       ...(v.currentTerm ? [{ term: v.currentTerm, short: shortTerm(v.currentTerm), value: v.gpa, current: true, line: "so far" }] : []),
     ],
     rate: v.rate.waiting > 0 ? { title: `${v.rate.waiting} course${v.rate.waiting === 1 ? "" : "s"} to rate`, line: join(v.rate.term, `${v.rate.rated} of ${v.rate.rated + v.rate.waiting} rated`, "press R to start"), href: "/rate" } : null,
     empty: v.empty,
+  };
+}
+
+/** An earlier semester (D6 style, 5.6 content): final marks, status, rating nudge, the curriculum. */
+export function termResults(v: V.TermResultsView): M.TermResultsData {
+  const tiles: M.TermResultsData["tiles"] = [];
+  if (v.gpa != null) tiles.push({ label: "Semester GPA", value: v.gpa.toFixed(2), note: v.term });
+  if (v.overallGpa != null) tiles.push({ label: v.gpa != null ? "Overall" : "Overall GPA", value: v.overallGpa.toFixed(2), note: "all semesters so far" });
+  if (v.ects != null) tiles.push({ label: "ECTS", value: String(v.ects), note: `this semester · ${plural(v.courses.length, "course")}` });
+  else if (v.ectsEarned != null) tiles.push({ label: "Credits", value: v.ectsTotal ? `${v.ectsEarned} / ${v.ectsTotal}` : String(v.ectsEarned), note: "ECTS earned overall" });
+  if (v.courses.length) tiles.push({ label: "Passed", value: `${v.passed} / ${v.courses.length}`, note: v.courses.some((c) => c.fx) ? "FX goes to a resit" : "courses this semester" });
+  return {
+    title: `${v.term} done`,
+    sub: v.courses.length ? join("Final grades", v.gpa != null ? `semester GPA ${v.gpa.toFixed(2)}` : `${v.passed} of ${v.courses.length} passed`) : "No courses recorded for this semester",
+    tiles,
+    rows: v.courses.map((c, i) => ({
+      id: c.courseId ?? `${c.name}-${i}`,
+      name: c.name,
+      meta: c.code,
+      final: c.mark === null ? null : Math.round(c.mark),
+      tier: c.fx || c.passed === false ? "Low" : tier(c.mark),
+      status: c.fx ? "FX · resit" : c.passed ? "Passed" : c.passed === false ? "Not passed" : "—",
+      statusTone: c.fx || c.passed === false ? "low" : c.passed ? "ok" : "none",
+      ects: c.ects,
+      href: c.href,
+    })),
+    rate: v.rate ? { title: `Rate ${v.term}`, line: join(plural(v.rate.waiting, "course"), "30 seconds each", "anonymous", "press R to start"), href: v.rate.href } : null,
+    curriculum: { title: "See your curriculum", line: "Every semester of your program, with what's left", href: v.curriculumHref },
   };
 }
 

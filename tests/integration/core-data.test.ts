@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { RatingInput } from "@/core/ratings";
@@ -24,7 +26,7 @@ beforeEach(async () => {
 });
 
 const rating = (over: Partial<RatingInput> = {}): RatingInput => ({
-  recommend: "yes", hours: "4-6", difficulty: 3, tags: ["Useful later"],
+  recommend: "yes", hours: "5-10", difficulty: 3, tags: ["Useful later"],
   teachers: [{ teacherId: "t1", role: "lecture", pressF: true, tags: ["Explains clearly"] }], ...over,
 });
 
@@ -44,6 +46,16 @@ describe("identity", () => {
 });
 
 describe("ratings", () => {
+  it("moves earlier five-bucket hours onto the four buckets", async () => {
+    const old = ["0-2", "2-4", "4-6", "6-10", "10+", "bogus", null];
+    await db().insert(courseRatings).values(old.map((hours, i) => ({ rater: `r${i}`, courseId: "77", term: "Fall 2025", recommend: "yes" as const, hours })));
+    const file = readFileSync(join(process.cwd(), "drizzle/0019_hours_buckets.sql"), "utf8");
+    for (const stmt of file.split("--> statement-breakpoint")) await db().execute(sql.raw(stmt));
+    const rows = await db().select({ rater: courseRatings.rater, hours: courseRatings.hours }).from(courseRatings).orderBy(courseRatings.rater);
+    expect(rows.map((r) => r.hours)).toEqual(["0-2", "2-5", "2-5", "5-10", "10+", null, null]);
+    await expect(saveRating(student, { id: "77" }, "Fall 2025", rating({ hours: "4-6" as never }))).rejects.toBeInstanceOf(RatingError);
+  });
+
   it("stores one rating per course and term without the user id", async () => {
     await saveRating(student, { id: "77", code: "MATH111" }, "Fall 2025", rating());
     await saveRating(student, { id: "77", code: "MATH111" }, "Fall 2025", rating({ recommend: "no", teachers: [] }));
@@ -63,7 +75,7 @@ describe("ratings", () => {
     expect(await courseSummary("77")).toEqual({ enough: false, count: 4 });
     await saveRating(student, { id: "77" }, "Fall 2025", rating());
     const s = await courseSummary("77");
-    expect(s).toMatchObject({ enough: true, count: 5, recommendPct: 80, hours: 5, difficulty: 3 });
+    expect(s).toMatchObject({ enough: true, count: 5, recommendPct: 80, hours: 7.5, difficulty: 3 });
     expect(await teacherSummary("t1")).toMatchObject({ enough: true, pressFPct: 100 });
   });
   it("gets louder after dismissals", async () => {
