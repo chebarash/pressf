@@ -10,7 +10,7 @@ export default async function AdminProfessorsPage({ searchParams }: { searchPara
   await requireSection("professors");
   const sp = await searchParams;
   if (sp.tab === "faces") {
-    const show: FacesShow = sp.show === "with" || sp.show === "old" ? sp.show : "missing";
+    const show: FacesShow = sp.show === "with" ? "with" : "missing";
     const data = await facesPage(show, sp.q ?? "", sp.id);
     return <ProfessorFaces key={`${data.show}:${data.selected?.id ?? ""}`} data={data} />;
   }

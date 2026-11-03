@@ -13,23 +13,6 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const MATERIAL_KINDS = [
-  "syllabus",
-  "midterm",
-  "final",
-  "mock",
-  "notes",
-  "textbook",
-] as const;
-export type MaterialKind = (typeof MATERIAL_KINDS)[number];
-
-export const materialStatus = pgEnum("material_status", [
-  "pending",
-  "approved",
-  "rejected",
-]);
-export const materialKind = pgEnum("material_kind", MATERIAL_KINDS);
-
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
@@ -223,75 +206,6 @@ export const lmsAccounts = pgTable("lms_accounts", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** Unused since the rebuild — pending owner-approved drop. Old 5-score ratings; the new app uses course_ratings and teacher_ratings. */
-export const ratings = pgTable(
-  "ratings",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    teacherId: text("teacher_id").notNull(),
-    courseCode: text("course_code").notNull(),
-    clarity: integer("clarity").notNull(),
-    engagement: integer("engagement").notNull(),
-    organization: integer("organization").notNull(),
-    expertise: integer("expertise").notNull(),
-    fairGrading: integer("fair_grading").notNull(),
-    overall: real("overall").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    uniqueIndex("ratings_user_teacher_course").on(t.userId, t.teacherId, t.courseCode),
-    index("ratings_teacher").on(t.teacherId),
-    index("ratings_course").on(t.courseCode),
-  ]
-);
-
-/** Unused since the rebuild — pending owner-approved drop. Old "Press F to pay respects" counter. */
-export const respects = pgTable(
-  "respects",
-  {
-    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    teacherId: text("teacher_id").notNull(),
-  },
-  (t) => [uniqueIndex("respects_user_teacher").on(t.userId, t.teacherId)]
-);
-
-/** Unused since the rebuild — pending owner-approved drop. Old review-flow files; student files are now `uploads`, LMS files `lms_files`. */
-export const materials = pgTable(
-  "materials",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    status: materialStatus("status").notNull().default("pending"),
-    courseCode: text("course_code"),
-    courseName: text("course_name"),
-    type: materialKind("type"),
-    term: text("term"),
-    hasSolutions: boolean("has_solutions").notNull().default(false),
-    author: text("author"),
-    fileName: text("file_name").notNull(),
-    mimeType: text("mime_type").notNull(),
-    size: integer("size").notNull(),
-    caption: text("caption"),
-    telegramFileId: text("telegram_file_id"),
-    telegramFileUniqueId: text("telegram_file_unique_id").unique(),
-    /** Telegram's id for the branded copy, so sending it again needs no upload. */
-    sharedFileId: text("shared_file_id"),
-    sha256: text("sha256").unique(),
-    storageKey: text("storage_key"),
-    originalKey: text("original_key"),
-    /** Kept only until review so the sender can hear the outcome. */
-    submitterChatId: text("submitter_chat_id"),
-    reviewMessageId: integer("review_message_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    publishedAt: timestamp("published_at", { withTimezone: true }),
-  },
-  (t) => [
-    index("materials_course").on(t.status, t.courseCode),
-    index("materials_review").on(t.reviewMessageId),
-    index("materials_submitter").on(t.submitterChatId, t.createdAt),
-  ]
-);
-
 export type SyllabusData = {
   course_code: string;
   course_title: string;
@@ -367,32 +281,10 @@ export const mentionLinks = pgTable(
   (t) => [uniqueIndex("mention_links_unique").on(t.postId, t.kind, t.target), index("mention_links_target").on(t.kind, t.target)]
 );
 
-/** Unused since the rebuild — pending owner-approved drop. What actually ran per term, from the old bot catalog sync. */
-export const termCourses = pgTable(
-  "term_courses",
-  {
-    program: text("program").notNull(),
-    year: integer("year").notNull(),
-    term: text("term").notNull(),
-    courses: jsonb("courses").$type<Array<{ code: string; subject: string }>>().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.program, t.year, t.term] })]
-);
-
 export const faces = pgTable("faces", {
   teacherId: text("teacher_id").primaryKey(),
   storageKey: text("storage_key").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-/** Copy of the bot API, so the site opens when the bot is down. */
-export const catalogCache = pgTable("catalog_cache", {
-  key: text("key").primaryKey(),
-  data: jsonb("data").notNull(),
-  /** The bot's build date, shown when the data goes stale. */
-  sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }),
-  syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /** Anonymous on purpose: what was opened from search, never by whom. */

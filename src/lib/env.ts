@@ -15,7 +15,7 @@ const schema = z.object({
   S3_BUCKET: z.string().optional(),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
-  /** The Press F bot. Falls back to the old TELEGRAM_FILES_* names until they are renamed. */
+  /** The Press F bot (@pressfapp). */
   TELEGRAM_BOT_TOKEN: z.string().default(""),
   TELEGRAM_WEBHOOK_SECRET: z.string().default(""),
   ANTHROPIC_API_KEY: z.string().optional(),
@@ -32,9 +32,6 @@ let cached: z.infer<typeof schema> | undefined;
 export function env() {
   if (cached) return cached;
   const set = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== ""));
-  // Old names, still set on the live deploy: read until they are renamed.
-  set.TELEGRAM_BOT_TOKEN ??= set.TELEGRAM_FILES_BOT_TOKEN;
-  set.TELEGRAM_WEBHOOK_SECRET ??= set.TELEGRAM_FILES_WEBHOOK_SECRET;
   cached = schema.parse(set);
   return cached;
 }

@@ -211,7 +211,7 @@ describe("ratings", () => {
     expect(HOURS.map((h) => HOURS_LABEL[h])).toEqual(["< 2", "2–5", "5–10", "10+"]);
     for (const h of HOURS) expect(validateRating({ ...base, hours: h })).toEqual([]);
     expect(validateRating({ ...base, hours: "4-6" as never })).toContain("bad-hours");
-    expect([null, "0-2", "2-4", "4-6", "6-10", "10+", "nonsense"].map(toHours)).toEqual([null, "0-2", "2-5", "2-5", "5-10", "10+", null]);
+    expect([null, "0-2", "2-5", "10+", "2-4", "nonsense"].map(toHours)).toEqual([null, "0-2", "2-5", "10+", null, null]);
   });
   it("summarizes hours by bucket midpoints", () => {
     const at = (hs: Array<RatingInput["hours"]>) => summarizeCourse(hs.map((hours) => ({ ...base, hours, term: "Fall 2025", courseId: "MATH111" })));
@@ -221,8 +221,6 @@ describe("ratings", () => {
     expect(mid(["5-10", "5-10", "5-10", "10+", "10+"])).toBe(7.5);
     expect(mid(["10+", "10+", "10+", null, null])).toBe(12);
     expect(mid([null, null, null, null, null])).toBeNull();
-    // Older stored answers still count, under today's buckets.
-    expect(mid(["6-10" as never, "6-10" as never, "6-10" as never, "6-10" as never, "6-10" as never])).toBe(7.5);
     expect(hoursLabel(3.5)).toBe("4 h");
     expect(hoursLabel(7.5)).toBe("8 h");
   });
