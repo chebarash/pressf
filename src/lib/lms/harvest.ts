@@ -1,9 +1,9 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { plainText } from "@/core/notifications";
 import { localized, courseTitle } from "@/core/people";
 import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers, type LmsCurriculumData, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
-import { departments, employee, individualPlan, programs, subject, type LmsSession } from "@/lib/lms/client";
+import { departments, employee, individualPlan, myList, programs, subject, type LmsSession } from "@/lib/lms/client";
 import { harvestSemesters, listOf, pick } from "@/lib/lms/semesters";
 import { activeAccountIds, harvestSession, sessionFor } from "@/lib/lms/store";
 import type { LmsEmployee, LmsEmployeeDetail, LmsIepRow, LmsSubject } from "@/lib/lms/types";
@@ -81,7 +81,21 @@ async function saveDepartmentsAndPrograms(session: LmsSession) {
   return { departments: depRows.length, programs: progRows.length };
 }
 
-async function saveCourse(c: LmsSubject) {
+/**
+ * `/subject/get-by-id` sends `lessons[]` (and their weekly `schedule[]`) only to
+ * a student enrolled in the course; anyone else gets the course with no lessons.
+ * The harvest runs as whichever saved account is next, so a lesson-less answer
+ * must not wipe the lessons an enrolled student's session brought in.
+ */
+export async function withKnownLessons(c: LmsSubject): Promise<LmsSubject> {
+  if (c.lessons?.length) return c;
+  const [stored] = await db().select({ raw: lmsCourses.raw }).from(lmsCourses).where(eq(lmsCourses.id, c.id));
+  const lessons = (stored?.raw as LmsSubject | null)?.lessons;
+  return lessons?.length ? { ...c, lessons } : c;
+}
+
+export async function saveCourse(fresh: LmsSubject) {
+  const c = await withKnownLessons(fresh);
   await db().insert(lmsCourses).values({
     id: c.id, code: c.code, name: courseTitle(c.name ?? c.code),
     credits: int(c.credit_count), lectureHours: int(c.lecture_hours), labHours: int(c.laboratory_hours), practiceHours: int(c.practice_hours),
@@ -106,6 +120,29 @@ async function saveCourse(c: LmsSubject) {
   await db().delete(lmsCourseTeachers).where(sql`${lmsCourseTeachers.courseId} = ${c.id}`);
   const links = courseRoles(c).filter((l) => seen.has(l.teacherId)).map((l) => ({ courseId: c.id, ...l }));
   if (links.length) await db().insert(lmsCourseTeachers).values(links).onConflictDoNothing();
+}
+
+/** Re-reads one course with a session that sees its lessons (an enrolled student's) and stores it. */
+export async function refreshCourse(session: LmsSession, subjectId: string) {
+  const c = await subject(session, subjectId);
+  if (!c?.code || c.deleted === "1" || !c.name) return false;
+  await saveCourse(c);
+  return true;
+}
+
+/**
+ * The account's current courses, read with its own session so their lessons
+ * and weekly schedule are stored (the catalog walk's account sees only its own).
+ */
+export async function harvestEnrolledCourses(session: LmsSession) {
+  const list = await myList(session).catch(() => null);
+  const ids = [...new Set((list?.semesters ?? []).filter((s) => String(s.is_open) === "1").flatMap((s) => (s.subjects ?? []).map((x) => x.subject_id)).filter(Boolean))];
+  let saved = 0;
+  for (const id of ids) {
+    if (await refreshCourse(session, id).catch(() => false)) saved++;
+    await sleep(PACE_MS);
+  }
+  return saved;
 }
 
 /**
@@ -269,14 +306,16 @@ export async function harvestAll(opts: { maxId?: number; stopGap?: number } = {}
   if (!session) return { error: "no_lms_account" as const };
   const catalog = await harvestCatalog(session, opts);
   let curricula = 0;
+  let enrolledCourses = 0;
   for (const userId of await activeAccountIds()) {
     const s = await sessionFor(userId).catch(() => null);
     if (!s) continue;
     curricula += (await harvestCurriculum(s).catch(() => ({ curricula: 0 }))).curricula;
+    enrolledCourses += await harvestEnrolledCourses(s).catch(() => 0);
   }
   const { teacherDetails } = await harvestTeacherDetails(session).catch(() => ({ teacherDetails: 0 }));
   const semesters = await harvestSemesters(session).catch(() => ({ semesters: 0, calendars: 0 }));
   // Public pages (courses, professors, curricula) refresh on the next visit.
   invalidateHarvest();
-  return { ...catalog, curricula, teacherDetails, ...semesters };
+  return { ...catalog, curricula, enrolledCourses, teacherDetails, ...semesters };
 }

@@ -1,7 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { roleOf } from "@/core/people";
 import type { TeacherRole, TeacherSummary } from "@/core/ratings";
-import { ratingWindow } from "@/core/semester";
+import { ratingWindow, termOfDate } from "@/core/semester";
 import { db } from "@/lib/db";
 import { lmsCourseTeachers, lmsCourses, lmsDepartments, lmsSemesters, lmsTeachers, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
 import { termName } from "@/server/sync/types";
@@ -23,8 +23,10 @@ export type ProfessorView = {
   department: string | null;
   school: string | null;
   summary: TeacherSummary;
-  courses: Array<{ code: string; name: string; role: TeacherRole; roleLabel: string; pressFPct: number | null; href: string }>;
-  when: Array<{ day: string; weekday: number; time: string; course: string; code: string; room: string | null }>;
+  /** Every course they have taught; `now`: taught this semester. `now` is always set by the server. */
+  courses: Array<{ code: string; name: string; role: TeacherRole; roleLabel: string; pressFPct: number | null; href: string; now?: boolean }>;
+  /** This semester's weekly classes; `role`: the class's lesson type. `role` is always set by the server. */
+  when: Array<{ day: string; weekday: number; time: string; course: string; code: string; room: string | null; role?: TeacherRole }>;
   /** Degrees from the LMS staff profile; null when the LMS has none. */
   education: LmsTeacherEducation[] | null;
   /** Publications from the LMS staff profile; null when the LMS has none. */
@@ -69,10 +71,18 @@ function semesterStart(s: { name: string | null; starts: string | null }): strin
 /** Whole years since `startDay`, at least 1. */
 export const yearsSince = (startDay: string, now: Date) => Math.max(1, Math.floor((now.getTime() - Date.parse(`${startDay}T00:00:00+05:00`)) / (365.25 * 86_400_000)));
 
-type ProfessorPublic = Omit<ProfessorView, "signedIn" | "teachesYou" | "years" | "rateHref"> & { sinceDay: string | null; courseIds: string[] };
+/** A weekly class with the term it runs in ("Fall 2026"). */
+type ProfessorWhen = ProfessorView["when"][number] & { term: string };
+
+type ProfessorPublic = Omit<ProfessorView, "signedIn" | "teachesYou" | "years" | "rateHref" | "courses" | "when"> & {
+  courses: Array<ProfessorView["courses"][number] & { terms: string[] }>;
+  when: ProfessorWhen[];
+  sinceDay: string | null;
+  courseIds: string[];
+};
 
 const professorPublic = publicCache(
-  "professor-public",
+  "professor-public-v2",
   async (id: string): Promise<ProfessorPublic | null> => {
     const [people, [profile]] = await Promise.all([
       teachersByIds([id]),
@@ -101,28 +111,43 @@ const professorPublic = publicCache(
     const first = sems.map((s) => ({ name: s.name, day: semesterStart(s) })).filter((s) => s.day).sort((a, b) => a.day!.localeCompare(b.day!))[0];
     const school = dept ? rootOf(dept.departmentId, deptMap)?.name ?? null : null;
 
-    const courses = new Map<string, ProfessorView["courses"][number]>();
+    // The term each course row ran in: its semester's name, else the dates of its classes.
+    const semTerm = new Map(sems.map((s) => [s.id, s.name ? termName(s.name) : ""]));
+    const slotsOf = new Map(rows.map((r) => [r.id, lessonSlots(r.raw)]));
+    const termsOf = (r: (typeof rows)[number]) => {
+      const named = r.semesterId ? semTerm.get(r.semesterId) : "";
+      if (named && /^(Fall|Spring|Summer) \d{4}$/.test(named)) return [named];
+      return [...new Set((slotsOf.get(r.id) ?? []).map((s) => termOfDate(new Date(s.at))).filter((t): t is string => !!t))];
+    };
+
+    const courses = new Map<string, ProfessorView["courses"][number] & { terms: string[] }>();
     for (const r of newest) {
       for (const l of links.filter((x) => x.courseId === r.id)) {
         const role = roleOf(l.role);
         const key = `${r.code}|${role}`;
-        if (courses.has(key)) continue;
+        const seen = courses.get(key);
+        if (seen) {
+          seen.terms = [...new Set([...seen.terms, ...termsOf(r)])];
+          continue;
+        }
         const pct = summary.enough ? summary.byCourse.find((b) => b.courseId === r.code && b.role === role)?.pct ?? null : null;
-        courses.set(key, { code: r.code, name: r.name, role, roleLabel: ROLE_LABEL[role].toLowerCase(), pressFPct: pct, href: `/c/${r.code}` });
+        courses.set(key, { code: r.code, name: r.name, role, roleLabel: ROLE_LABEL[role].toLowerCase(), pressFPct: pct, href: `/c/${r.code}`, terms: termsOf(r) });
       }
     }
-    // Weekly slots from the newest semester each course ran.
-    const latestByCode = new Map<string, (typeof rows)[number]>();
-    for (const r of newest) if (!latestByCode.has(r.code)) latestByCode.set(r.code, r);
-    const when = new Map<string, ProfessorView["when"][number]>();
-    for (const r of latestByCode.values()) {
-      for (const s of lessonSlots(r.raw).filter((x) => x.teacherId === id)) {
-        const key = `${s.weekday}|${s.time}|${r.code}`;
-        if (!when.has(key)) when.set(key, { day: DAY_ABBR[s.weekday], weekday: s.weekday, time: s.time, course: r.name, code: r.code, room: s.room });
+    // Weekly slots of every semester, each tagged with its term; `professor()` keeps the current one.
+    const when = new Map<string, ProfessorWhen>();
+    for (const r of newest) {
+      for (const s of (slotsOf.get(r.id) ?? []).filter((x) => x.teacherId === id)) {
+        const term = termOfDate(new Date(s.at)) ?? "";
+        const key = `${term}|${s.weekday}|${s.time}|${r.code}`;
+        if (!when.has(key)) when.set(key, { day: DAY_ABBR[s.weekday], weekday: s.weekday, time: s.time, course: r.name, code: r.code, room: s.room, role: s.role, term });
       }
     }
     return {
-      id, name: person.name, position: person.position, face: person.face, department, school, summary,
+      id, name: person.name, position: person.position, face: person.face, department,
+      // "Computer Science · Computer Science": a department named like its school shows once.
+      school: school && department && school.trim().toLowerCase() === department.trim().toLowerCase() ? null : school,
+      summary,
       courses: [...courses.values()],
       when: [...when.values()].sort((a, b) => (a.weekday + 6) % 7 - (b.weekday + 6) % 7 || a.time.localeCompare(b.time)),
       education: profile?.education?.length ? profile.education : null,
@@ -140,9 +165,13 @@ const professorPublic = publicCache(
 export async function professor(id: string, viewer: Viewer, now = new Date()): Promise<ProfessorView | null> {
   const [pub, student] = await Promise.all([professorPublic(id), viewer ? loadStudent(viewer.userId, { refresh: false }) : Promise.resolve(null)]);
   if (!pub) return null;
-  const { sinceDay, courseIds, ...rest } = pub;
+  const { sinceDay, courseIds, courses, when, ...rest } = pub;
+  // Public data is cached across semesters, so "this semester" is decided per request.
+  const term = termOfDate(now);
   return {
     ...rest,
+    courses: courses.map(({ terms, ...c }) => ({ ...c, now: !!term && (terms ?? []).includes(term) })),
+    when: when.filter((w) => w.term === term).map(({ term: _term, ...w }) => w),
     years: sinceDay ? yearsSince(sinceDay, now) : null,
     signedIn: !!student,
     teachesYou: !!student?.cache?.timetable.some((l) => l.teacher === id),

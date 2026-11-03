@@ -19,7 +19,7 @@ vi.mock("@/lib/lms/cache", async (orig) => ({ ...(await orig<object>()), preload
 import { eq } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
 import { db } from "@/lib/db";
-import { faces, feedItems, lmsCache, lmsCourses, lmsFiles, lmsSemesters, lmsTeachers, searchEvents } from "@/lib/db/schema";
+import { faces, feedItems, lmsCache, lmsCourses, lmsDepartments, lmsFiles, lmsSemesters, lmsTeachers, searchEvents } from "@/lib/db/schema";
 import { harvestCourseFiles } from "@/lib/lms/files";
 import { harvestTeacherDetails, teacherProfile } from "@/lib/lms/harvest";
 import { semesterGpas } from "@/lib/lms/profile";
@@ -96,6 +96,23 @@ describe("1. professor background from the LMS staff profile", () => {
     const list = await views.professors(null);
     expect(list.all.find((r) => r.id === "T1")).toMatchObject({ department: "Department of Mathematics", face: expect.stringMatching(/^\/faces\/T1\?v=[a-z0-9]+$/) });
     expect(list.all.find((r) => r.id === "T2")?.face).toBeNull();
+  });
+
+  it("shows this semester's classes with their role, counts only this semester's courses", async () => {
+    await db().insert(lmsSemesters).values([{ id: "6", name: "2023-2024 Fall semester" }, { id: "8", name: "Fall (2026-2027)" }]);
+    const p = (await views.professor("T1", null, NOW))!;
+    expect(p.when).toEqual([{ day: "Mon", weekday: 1, time: "10:00", course: "Calculus 1", code: "MATH111", room: "B-204", role: "lecture" }]);
+    expect(p.courses.filter((c) => c.now).map((c) => c.code)).toEqual(["MATH111"]);
+    // In spring the autumn's classes are not "this semester".
+    expect((await views.professor("T1", null, new Date("2027-03-01T05:00:00Z")))!.when).toEqual([]);
+    expect((await views.professor("T1", null, new Date("2027-03-01T05:00:00Z")))!.courses.some((c) => c.now)).toBe(false);
+  });
+
+  it("names a department once when its school has the same name", async () => {
+    await db().insert(lmsDepartments).values({ id: "D1", parentId: null, name: "Computer Science" });
+    await db().update(lmsCourses).set({ departmentId: "D1" });
+    await db().update(lmsTeachers).set({ department: "Computer Science" }).where(eq(lmsTeachers.id, "T1"));
+    expect(await views.professor("T1", null, NOW)).toMatchObject({ department: "Computer Science", school: null });
   });
 
   it("leaves background null when the LMS has none", async () => {
@@ -254,10 +271,22 @@ describe("7. per-semester GPA", () => {
     expect(semesterGpas({ transcript: { semesters: [{ semester_id: 6, semester_name: "Fall 2025", gpa: "3.71" }] } })).toEqual({ "6": 3.71, "Fall 2025": 3.71 });
   });
 
-  it("returns them in progress, null otherwise", async () => {
-    expect((await views.progress(userId, NOW))!.earlier).toEqual([expect.objectContaining({ term: "Fall 2025", gpa: null })]);
+  it("computes a past semester's GPA from its finals; a transcript figure wins", async () => {
+    // Fall 2025: Calculus 1, final 86 (A, 4.0), 6 ECTS.
+    const p = (await views.progress(userId, NOW))!;
+    expect(p.earlier).toEqual([expect.objectContaining({ term: "Fall 2025", gpa: 4, ects: 6 })]);
+    // The running semester has no finals yet: no semester GPA (never the cumulative one).
+    expect(p.currentGpa).toBeNull();
     await db().update(lmsCache).set({ data: { ...cache, profile: { ...cache.profile!, semesterGpa: { "Fall 2025": 3.71 } } } }).where(eq(lmsCache.userId, userId));
     expect((await views.progress(userId, NOW))!.earlier).toEqual([expect.objectContaining({ term: "Fall 2025", gpa: 3.71 })]);
+  });
+
+  it("weights by the plan's ECTS and leaves a passed pass/fail course out", async () => {
+    await db().update(lmsCache).set({ data: { ...cache, profile: { ...cache.profile!, plan: { "90": { ects: 8, passFail: true } } } } }).where(eq(lmsCache.userId, userId));
+    const p = (await views.progress(userId, NOW))!;
+    expect(p.earlier).toEqual([expect.objectContaining({ term: "Fall 2025", gpa: null, ects: 8 })]);
+    const t = (await views.termResults(userId, "fall-2025", NOW))!;
+    expect(t.courses[0].ects).toBe(8);
   });
 });
 

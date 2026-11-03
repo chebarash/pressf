@@ -7,6 +7,7 @@ import { feedItems, lmsFiles, lmsSemesters } from "@/lib/db/schema";
 import { preloadUser } from "@/lib/lms/cache";
 import * as lms from "@/lib/lms/client";
 import { filesAreStale, harvestCourseFiles } from "@/lib/lms/files";
+import { refreshCourse } from "@/lib/lms/harvest";
 import { parseSemesters, refreshCalendars, saveSemesters, upcomingSemesterIds } from "@/lib/lms/semesters";
 import type { LmsGradebookSemester, LmsMyList } from "@/lib/lms/types";
 import { sessionFor } from "@/lib/lms/store";
@@ -189,6 +190,9 @@ async function pullOneCourse(session: lms.LmsSession, ids: string[]) {
   for (const id of ids) {
     if (!(await filesAreStale(id).catch(() => false))) continue;
     try {
+      // The student is enrolled, so their session sees the lessons and weekly schedule
+      // (the weekly harvest's account may not): store them before pulling files.
+      await refreshCourse(session, id).catch(() => false);
       await harvestCourseFiles(session, id);
       const [ref] = (await coursesByIds([id])).values();
       if (ref) invalidateHarvest([ref.code]);

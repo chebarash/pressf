@@ -88,4 +88,18 @@ describe("harvestCatalog", () => {
     const links = await db().select().from(lmsCourseTeachers).where(eq(lmsCourseTeachers.courseId, "1"));
     expect(links.map((l) => l.teacherId)).toEqual(["9"]);
   });
+
+  it("keeps a course's lessons when the harvesting account is not enrolled (the LMS then sends none)", async () => {
+    const slot = { begin_time: "1789374600", end_time: "1789377900", auditorium: "306", employee_id: "9", employee: { employee_id: "9" } };
+    const enrolled = { ...course(1, "CS412", [emp("9", "Ann", "")]), lessons: [{ id: "52667", name: "Lecture 1", lessonType: { name: "Lecture" }, schedule: [slot] }] };
+    lms.subject.mockImplementation(async (_s, id: number) => (id === 1 ? enrolled : { id: String(id), employee: [] }));
+    await harvestCatalog(session, { stopGap: 5, maxId: 10 });
+    // Next run, another account: same course, no lessons.
+    lms.subject.mockImplementation(async (_s, id: number) => (id === 1 ? { ...course(1, "CS412", [emp("9", "Ann", "")]), lessons: [] } : { id: String(id), employee: [] }));
+    await harvestCatalog(session, { stopGap: 5, maxId: 10 });
+    const [c] = await db().select().from(lmsCourses).where(eq(lmsCourses.id, "1"));
+    expect((c.raw as { lessons: unknown[] }).lessons).toHaveLength(1);
+    // The role still comes from the lessons ("Lecture"), not a blank employee type.
+    expect((await db().select().from(lmsCourseTeachers)).map((l) => l.role)).toEqual(["Lecture"]);
+  });
 });
