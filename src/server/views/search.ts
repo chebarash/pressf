@@ -2,7 +2,7 @@ import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { cleanTitle } from "@/core/files";
 import { displayName } from "@/core/people";
 import { db } from "@/lib/db";
-import { lmsCourses, lmsFiles, lmsTeachers, uploads } from "@/lib/db/schema";
+import { fileOverrides, lmsCourses, lmsFiles, lmsTeachers, uploads } from "@/lib/db/schema";
 import type { Viewer } from "./courses";
 import { ratingsByCode, recommendOf } from "./shared";
 
@@ -39,7 +39,13 @@ export async function search(q: string, viewer: Viewer, limits = { courses: 5, p
       .where(and(...ws.map((w) => or(ilike(lmsTeachers.firstName, like(w)), ilike(lmsTeachers.lastName, like(w))))))
       .limit(limits.people),
     viewer
-      ? db().select({ id: lmsFiles.id, name: lmsFiles.name, code: lmsFiles.code }).from(lmsFiles).where(and(...ws.map((w) => or(ilike(lmsFiles.name, like(w)), ilike(lmsFiles.code, like(w)))))).limit(limits.files)
+      ? // Admin renames are searchable; hidden files are not.
+        db()
+          .select({ id: lmsFiles.id, name: lmsFiles.name, code: lmsFiles.code, title: fileOverrides.title })
+          .from(lmsFiles)
+          .leftJoin(fileOverrides, eq(fileOverrides.fileId, lmsFiles.id))
+          .where(and(sql`coalesce(${fileOverrides.hidden}, false) = false`, ...ws.map((w) => or(ilike(sql`coalesce(${fileOverrides.title}, ${lmsFiles.name})`, like(w)), ilike(lmsFiles.code, like(w))))))
+          .limit(limits.files)
       : Promise.resolve([]),
     viewer
       ? db().select({ id: uploads.id, title: uploads.title, code: uploads.courseCode }).from(uploads).where(and(eq(uploads.status, "live"), ...ws.map((w) => or(ilike(uploads.title, like(w)), ilike(uploads.courseCode, like(w)))))).limit(limits.files)
@@ -63,7 +69,7 @@ export async function search(q: string, viewer: Viewer, limits = { courses: 5, p
     people: people.map((t) => ({ id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }), position: t.position, href: `/p/${t.id}` })),
     files: [
       ...live.map((u) => ({ id: u.id, title: u.title, course: courseName.get(u.code ?? "") ?? u.code ?? "", href: `/f/${u.id}` })),
-      ...lms.map((f) => ({ id: f.id, title: cleanTitle(f.name, { courseCode: f.code, courseName: courseName.get(f.code) }), course: courseName.get(f.code) ?? f.code, href: `/f/${f.id}` })),
+      ...lms.map((f) => ({ id: f.id, title: f.title?.trim() || cleanTitle(f.name, { courseCode: f.code, courseName: courseName.get(f.code) }), course: courseName.get(f.code) ?? f.code, href: `/f/${f.id}` })),
     ].slice(0, limits.files),
     nothing: false,
   };

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { lmsCourseTeachers, lmsCourses, lmsDepartments, lmsSemesters, lmsTeachers, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
 import { termName } from "@/server/sync/types";
 import { publicCache, TAGS } from "./cache";
+import { DECISION_TAGS } from "@/server/decisions";
 import { DAY_ABBR, lessonSlots, mentionsOf, ROLE_LABEL, teacherSummaries, teachersByIds, type MentionsView } from "./shared";
 import type { Viewer } from "./courses";
 import { loadStudent } from "./student";
@@ -126,7 +127,7 @@ const professorPublic = publicCache(
       anonymous,
     };
   },
-  (id) => [TAGS.teacher(id), TAGS.ratings, TAGS.catalog],
+  (id) => [TAGS.teacher(id), TAGS.ratings, TAGS.catalog, DECISION_TAGS.moderation],
 );
 
 export async function professor(id: string, viewer: Viewer, now = new Date()): Promise<ProfessorView | null> {

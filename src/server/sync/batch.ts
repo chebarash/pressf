@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { lmsAccounts, userState, users } from "@/lib/db/schema";
+import { settingIsOn } from "@/server/decisions";
 import { runReminders } from "./reminders";
 import { syncStudent, type SyncResult } from "./student";
 
@@ -12,7 +13,7 @@ import { syncStudent, type SyncResult } from "./student";
 
 export type BatchOptions = { now?: Date; limit?: number; budgetMs?: number; pauseMs?: number; minAgeMs?: number };
 
-export type SyncBatchResult = { processed: number; ok: number; failed: number; skipped: number; sent: number; errors: Array<{ userId: string; error: string }> };
+export type SyncBatchResult = { processed: number; ok: number; failed: number; skipped: number; sent: number; errors: Array<{ userId: string; error: string }>; paused?: boolean };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const lastTry = sql<string | null>`(${userState.snapshot}->'lms'->>'tried')`;
@@ -32,6 +33,7 @@ export async function dueForSync(now: Date, limit: number, minAgeMs: number) {
 
 export async function runSyncBatch(opts: BatchOptions = {}): Promise<SyncBatchResult> {
   const started = Date.now();
+  if (await settingIsOn("sync-paused")) return { processed: 0, ok: 0, failed: 0, skipped: 0, sent: 0, errors: [], paused: true };
   const { limit = 25, budgetMs = 50_000, pauseMs = 500, minAgeMs = 20 * 60_000 } = opts;
   const ids = await dueForSync(opts.now ?? new Date(), limit, minAgeMs);
   const out: SyncBatchResult = { processed: 0, ok: 0, failed: 0, skipped: 0, sent: 0, errors: [] };

@@ -15,6 +15,7 @@ import { hide as hideUpload, publish, reject, trustFor } from "@/server/uploads"
 import { authorize, Forbidden } from "./access";
 import { clearMark, pairKey, setMark, type SettingKey } from "./marks";
 import { notifyUploader } from "@/lib/telegram/notify";
+import { DECISION_TAGS, decisionsChanged } from "@/server/decisions";
 import { messageUserHook } from "./notify";
 import { dayClash, MUTE_DAYS, nextSendable, type Audience } from "./rules";
 
@@ -69,6 +70,7 @@ export async function rejectUpload(actorId: string, id: string, reason: RejectRe
 export async function hideLiveUpload(actorId: string, id: string) {
   await authorize(actorId, "moderate:uploads");
   await hideUpload(uuid.parse(id), actorId);
+  decisionsChanged(DECISION_TAGS.overrides);
 }
 
 /* ───────── Reports ───────── */
@@ -88,6 +90,7 @@ export async function resolveReport(actorId: string, target: ReportTarget, outco
     await resolve(t, "kept", actorId);
     return;
   }
+  decisionsChanged(DECISION_TAGS.marks, DECISION_TAGS.moderation, DECISION_TAGS.overrides);
   if (t.kind === "file") {
     const [row] = await db().select({ status: uploads.status }).from(uploads).where(eq(uploads.id, uuid.parse(t.id)));
     if (row?.status === "live") await hideUpload(t.id, actorId);
@@ -127,6 +130,7 @@ export async function editFile(actorId: string, ref: FileRef, patch: z.input<typ
       .values({ fileId: ref.id, ...p, updatedBy: actorId })
       .onConflictDoUpdate({ target: fileOverrides.fileId, set: { ...p, updatedBy: actorId, updatedAt: new Date() } });
   }
+  decisionsChanged(DECISION_TAGS.overrides);
   await audit(actorId, "file.edit", `${ref.source}:${ref.id}`, { fields: Object.keys(p), ...p });
 }
 
@@ -155,6 +159,7 @@ export async function bulkFiles(actorId: string, refs: FileRef[], op: { week: nu
           .onConflictDoUpdate({ target: fileOverrides.fileId, set: { hidden: op.hidden, updatedBy: actorId, updatedAt: new Date() } });
     }
   });
+  decisionsChanged(DECISION_TAGS.overrides);
   await audit(actorId, "week" in op ? "file.move" : op.hidden ? "file.hide" : "file.show", undefined, { count: refs.length, ...op, files: refs.map((r) => `${r.source}:${r.id}`) });
 }
 
@@ -232,6 +237,7 @@ export async function setPersonRole(actorId: string, userId: string, role: "stud
 export async function signOutEverywhere(actorId: string, userId: string) {
   await authorize(actorId, "admin:people");
   await setMark("signout", uuid.parse(userId), actorId);
+  decisionsChanged(DECISION_TAGS.marks, `signout:${userId}`);
   await audit(actorId, "user.signout", `user:${userId}`);
 }
 
@@ -303,5 +309,6 @@ export async function setSetting(actorId: string, key: SettingKey, on: boolean) 
   const k = z.enum(["maintenance", "sync-paused"]).parse(key);
   if (on) await setMark("setting", k, actorId);
   else await clearMark("setting", k);
+  decisionsChanged(DECISION_TAGS.marks);
   await audit(actorId, on ? "setting.on" : "setting.off", `setting:${k}`);
 }

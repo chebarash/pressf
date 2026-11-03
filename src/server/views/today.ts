@@ -6,6 +6,7 @@ import { dayInfo, nextPhase, type Phase } from "@/core/semester";
 import { addDays, clock, localDay, localWeekday, shortDate, weekdayName } from "@/core/time";
 import { db } from "@/lib/db";
 import { lmsFiles } from "@/lib/db/schema";
+import { fileOverridesMap, overlayAll } from "@/server/decisions";
 import { feed } from "@/server/feed";
 import { classesBetween, toBlocks, type ClassView } from "./classes";
 import { progressCourses, type ProgressCourse } from "./progress";
@@ -156,10 +157,11 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
 
   const focus = current ?? next;
   const lessonIds = focus?.lessonIds ?? [];
-  const [materialRows, cards, feedCourses] = await Promise.all([
+  const [materialRows, cards, feedCourses, overrides] = await Promise.all([
     lessonIds.length ? db().select().from(lmsFiles).where(inArray(lmsFiles.lessonId, lessonIds)) : Promise.resolve([]),
     courseCards(student, courses),
     coursesByIds(items.map((i) => i.courseId ?? "").filter(Boolean)),
+    lessonIds.length ? fileOverridesMap() : Promise.resolve({}),
   ]);
 
   const tight = courses.filter((c) => c.absences).sort((x, y) => x.absences!.left - y.absences!.left)[0];
@@ -184,7 +186,7 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
     current,
     next,
     upcoming,
-    materials: focus ? materialRows.map((f) => lmsFileItem(f, { code: focus.code, name: focus.name }, new Map())) : [],
+    materials: focus ? overlayAll(materialRows.map((f) => lmsFileItem(f, { code: focus.code, name: focus.name }, new Map())), overrides) : [],
     phase: phase ? { kind: phase.kind, title: phase.title, starts: phase.starts, ends: phase.ends, inDays: phase.inDays, rangeLabel: `Until ${shortDate(addDays(phase.ends, 1))}` } : examPhase && examPhase.inDays <= 21 ? { kind: examPhase.kind, title: examPhase.title, starts: examPhase.starts, ends: examPhase.ends, inDays: examPhase.inDays, rangeLabel: range(examPhase.starts, examPhase.ends) } : null,
     examsThisWeek,
     nextExams: exams.slice(0, 3),

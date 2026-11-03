@@ -3,7 +3,8 @@ import { describeFile, type FileType } from "@/core/files";
 import { roleOf } from "@/core/people";
 import { shortDate } from "@/core/time";
 import { db } from "@/lib/db";
-import { courseRatings, lmsCourseTeachers, lmsCourses, lmsFiles, searchEvents, uploads } from "@/lib/db/schema";
+import { courseRatings, fileOverrides, lmsCourseTeachers, lmsCourses, lmsFiles, searchEvents, uploads } from "@/lib/db/schema";
+import { DECISION_TAGS, overlay } from "@/server/decisions";
 import { publicCache, TAGS } from "./cache";
 import { schools, type SchoolsView } from "./curriculum";
 import { ratingsByCode, recommendOf, teachersByIds } from "./shared";
@@ -84,15 +85,18 @@ async function popular(now: Date): Promise<GuestCourse[]> {
 async function freshFiles(): Promise<GuestFile[]> {
   const posted = sql<Date>`coalesce(${lmsFiles.lmsCreatedAt}, ${lmsFiles.lmsUpdatedAt}, ${lmsFiles.fetchedAt})`;
   const [lms, live] = await Promise.all([
-    db().select({ id: lmsFiles.id, name: lmsFiles.name, code: lmsFiles.code, extension: lmsFiles.extension, courseName: lmsCourses.name, at: posted })
-      .from(lmsFiles).leftJoin(lmsCourses, eq(lmsCourses.id, lmsFiles.courseId)).orderBy(desc(posted)).limit(FRESH),
+    // Admin edits apply; hidden files are left out.
+    db().select({ id: lmsFiles.id, name: lmsFiles.name, code: lmsFiles.code, extension: lmsFiles.extension, courseName: lmsCourses.name, at: posted, edit: { title: fileOverrides.title, type: fileOverrides.type, week: fileOverrides.week } })
+      .from(lmsFiles).leftJoin(lmsCourses, eq(lmsCourses.id, lmsFiles.courseId)).leftJoin(fileOverrides, eq(fileOverrides.fileId, lmsFiles.id))
+      .where(sql`coalesce(${fileOverrides.hidden}, false) = false`).orderBy(desc(posted)).limit(FRESH),
     db().select({ id: uploads.id, title: uploads.title, type: uploads.type, code: uploads.courseCode, courseName: lmsCourses.name, at: uploads.createdAt })
       .from(uploads).leftJoin(lmsCourses, eq(lmsCourses.id, uploads.courseId)).where(eq(uploads.status, "live")).orderBy(desc(uploads.createdAt)).limit(FRESH),
   ]);
   const items = [
     ...lms.map((f) => {
       const course = f.courseName ?? f.code;
-      const meta = describeFile(f.name, { courseCode: f.code, courseName: course, extension: f.extension ?? undefined });
+      const d = describeFile(f.name, { courseCode: f.code, courseName: course, extension: f.extension ?? undefined });
+      const meta = overlay({ title: d.title, type: d.type, week: null }, f.edit ? { ...f.edit, hidden: false } : null)!;
       return { at: new Date(f.at), item: { id: f.id, title: meta.title, type: meta.type, course, source: { label: "LMS", kind: "lms" as const }, href: `/f/${f.id}` } };
     }),
     ...live.map((u) => ({ at: u.at, item: { id: u.id, title: u.title, type: (u.type as FileType) ?? "other", course: u.courseName ?? u.code ?? "Course", source: { label: "Students", kind: "channel" as const }, href: `/f/${u.id}` } })),
@@ -109,7 +113,7 @@ const guestPublic = publicCache(
     const [p, f] = await Promise.all([popular(new Date()), freshFiles()]);
     return { guest: true, popular: p, freshFiles: f };
   },
-  () => [TAGS.catalog, TAGS.ratings],
+  () => [TAGS.catalog, TAGS.ratings, DECISION_TAGS.overrides],
   600,
 );
 

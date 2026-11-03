@@ -12,6 +12,7 @@ import { db } from "@/lib/db";
 import { courseRatings, faces, lmsCourses, lmsFiles, lmsSemesters, lmsTeachers, mentionLinks, mentions, teacherRatings, uploads, type LmsSemesterPhase } from "@/lib/db/schema";
 import { termName } from "@/server/sync/types";
 import type { LmsHomework, LmsLesson, LmsSubject } from "@/lib/lms/types";
+import { DECISION_TAGS, fileOverridesMap, overlayAll, postVisible } from "@/server/decisions";
 import { publicCache, TAGS } from "./cache";
 
 /* ───────────── time ───────────── */
@@ -231,8 +232,9 @@ export const teacherSummaries = publicCache(
 export type MentionView = { id: number; url: string; text: string; date: string | null };
 export type MentionsView = { count: number; latest: MentionView[] };
 
+/** Posts hidden by a moderator or under a live mute are left out (count included). */
 export async function mentionsOf(kind: "course" | "teacher", target: string, limit = 3): Promise<MentionsView> {
-  const where = and(eq(mentionLinks.kind, kind), eq(mentionLinks.target, target));
+  const where = and(eq(mentionLinks.kind, kind), eq(mentionLinks.target, target), postVisible(mentionLinks.postId));
   const [rows, [{ n }]] = await Promise.all([
     db().select({ id: mentions.postId, url: mentions.url, text: mentions.text, date: mentions.date }).from(mentions).innerJoin(mentionLinks, eq(mentionLinks.postId, mentions.postId)).where(where).orderBy(desc(mentions.postId)).limit(limit),
     db().select({ n: count() }).from(mentionLinks).where(where),
@@ -301,18 +303,20 @@ export function lessonWeeks(raw: unknown): Map<string, number | null> {
 export const courseFiles = publicCache(
   "course-files",
   async (code: string): Promise<FileItem[]> => {
-    const [courses, lms, live] = await Promise.all([
+    const [courses, lms, live, overrides] = await Promise.all([
       db().select({ id: lmsCourses.id, name: lmsCourses.name, raw: lmsCourses.raw }).from(lmsCourses).where(eq(lmsCourses.code, code)),
       db().select().from(lmsFiles).where(eq(lmsFiles.code, code)),
       db().select().from(uploads).where(and(eq(uploads.status, "live"), or(eq(uploads.courseCode, code), inArray(uploads.courseId, db().select({ id: lmsCourses.id }).from(lmsCourses).where(eq(lmsCourses.code, code)))))),
+      fileOverridesMap(),
     ]);
     const name = courses[0]?.name ?? code;
     const weeks = new Map<string, number | null>();
     for (const c of courses) for (const [k, v] of lessonWeeks(c.raw)) weeks.set(k, v);
-    const items = [...lms.map((f) => lmsFileItem(f, { code, name }, weeks)), ...live.map(uploadItem)];
+    // Admin edits (rename, type, week) apply on top; hidden LMS files drop out.
+    const items = [...overlayAll(lms.map((f) => lmsFileItem(f, { code, name }, weeks)), overrides), ...live.map(uploadItem)];
     return items.sort((a, b) => (a.week ?? 99) - (b.week ?? 99) || a.date.localeCompare(b.date));
   },
-  (code) => [TAGS.files(code), TAGS.course(code)],
+  (code) => [TAGS.files(code), TAGS.course(code), DECISION_TAGS.overrides],
 );
 
 /* ───────────── feed ───────────── */

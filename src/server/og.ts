@@ -9,6 +9,7 @@ import { hoursLabel, MIN_RATINGS } from "@/core/ratings";
 import { WEEKS, nextPhase } from "@/core/semester";
 import { db } from "@/lib/db";
 import { faces, lmsCourseTeachers, lmsCourses, lmsDepartments, lmsFiles, lmsTeachers, uploads } from "@/lib/db/schema";
+import { fileOverride, overlay } from "./decisions";
 import { linkSecret } from "./identity";
 import { courseSummary, teacherSummary } from "./ratings";
 
@@ -149,12 +150,14 @@ export const fileOg = cache(async (id: string): Promise<FileOg | null> => {
       format: FORMAT_CODE[formatOf(u.fileName)], source: type === "exam" || type === "mock" ? "exam" : "students", exam: u.exam, uploadedAt: u.createdAt.toISOString(), showName: u.showName,
     };
   }
-  const [f] = await db().select().from(lmsFiles).where(eq(lmsFiles.id, id));
-  if (!f) return null;
+  const [[f], edit] = await Promise.all([db().select().from(lmsFiles).where(eq(lmsFiles.id, id)), fileOverride(id)]);
+  if (!f || edit?.hidden) return null;
   const [c] = await db().select({ name: lmsCourses.name, code: lmsCourses.code }).from(lmsCourses).where(eq(lmsCourses.id, f.courseId));
   const d = describeFile(f.name, { courseCode: c?.code ?? f.code, courseName: c?.name, extension: f.extension ?? undefined });
+  // Admin edits (rename, type, week) show on the card too.
+  const shown = overlay({ title: d.title, type: d.type, week: d.week ?? null }, edit)!;
   return {
-    id, title: d.title, type: d.type, week: d.week, courseName: c?.name ?? f.code, courseCode: c?.code ?? f.code, term: null,
+    id, title: shown.title, type: shown.type, week: shown.week, courseName: c?.name ?? f.code, courseCode: c?.code ?? f.code, term: null,
     format: FORMAT_CODE[d.format], source: "lms", exam: null, uploadedAt: f.fetchedAt.toISOString(), showName: false,
   };
 });
