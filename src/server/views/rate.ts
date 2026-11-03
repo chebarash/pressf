@@ -64,6 +64,9 @@ export function currentTerm(student: Student): string | null {
   return open?.term ?? (student.cache?.enrollment?.semesterName ? termName(student.cache.enrollment.semesterName) : null);
 }
 
+/** How long "Later" on the rating ask hides it. */
+export const RATE_SNOOZE_MS = 3 * 86_400_000;
+
 export async function rateQueueFor(student: Student, now = new Date()): Promise<RateQueueView> {
   const term = currentTerm(student);
   const semesterTerm = new Map(student.sync.semesters.map((s) => [s.id, s]));
@@ -116,8 +119,11 @@ export async function rateQueueFor(student: Student, now = new Date()): Promise<
   const askTerm = waiting.length ? [...waiting].sort((a, b) => termKey(b.term) - termKey(a.term))[0].term : null;
   const ended = askTerm ? [...semesterTerm.values()].find((s) => s.term === askTerm)?.ends : null;
   const days = ended ? Math.max(0, daysBetween(ended.slice(0, 10), localDay(now))) : 0;
-  const dismissals = asks.find((a) => a.term === askTerm)?.dismissals ?? 0;
-  const level = askLevel(waiting.length, dismissals, days);
+  const ask = asks.find((a) => a.term === askTerm);
+  const dismissals = ask?.dismissals ?? 0;
+  // "Later" snoozes the ask for a few days; it comes back louder after that (askLevel counts dismissals).
+  const snoozed = !!ask?.lastDismissedAt && now.getTime() - ask.lastDismissedAt.getTime() < RATE_SNOOZE_MS;
+  const level = snoozed ? "none" : askLevel(waiting.length, dismissals, days);
 
   return {
     currentTerm: term,
