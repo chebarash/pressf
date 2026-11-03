@@ -22,6 +22,8 @@ export function kindOf(name: string | null | undefined): ClassKind {
 export type ClassEvent = {
   courseId: string;
   courseName: string;
+  /** Who teaches it, when known: a lecture and the next lab by someone else stay apart. */
+  teacherId?: string | null;
   code?: string;
   kind: ClassKind;
   start: Date;
@@ -42,7 +44,8 @@ export function mergeBlocks(events: ClassEvent[], maxGapMin = 15): ClassBlock[] 
   for (const e of sorted) {
     const last = blocks[blocks.length - 1];
     const gap = last ? (e.start.getTime() - last.end.getTime()) / 60_000 : Infinity;
-    if (last && last.courseId === e.courseId && last.kind === e.kind && (last.room ?? "") === (e.room ?? "") && gap >= 0 && gap <= maxGapMin) {
+    const sameTeacher = !last?.teacherId || !e.teacherId || last.teacherId === e.teacherId;
+    if (last && last.courseId === e.courseId && last.kind === e.kind && sameTeacher && (last.room ?? "") === (e.room ?? "") && gap >= 0 && gap <= maxGapMin) {
       if (e.end > last.end) last.end = e.end;
       if (e.lessonId) last.lessonIds.push(e.lessonId);
       continue;

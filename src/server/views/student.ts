@@ -66,7 +66,9 @@ export async function loadStudent(userId: string, opts: { refresh?: boolean } = 
   const account: AccountState = row.status ?? "none";
   const cacheAt = iso(row.cacheAt);
   const syncedAt = newest(cacheAt, sync.at);
-  const stale = !syncedAt || Date.now() - Date.parse(syncedAt) > CACHE_TTL_MS || outdated(sync);
+  // A weekly pattern cached before class types were kept merges lectures with labs: rebuild it now.
+  const untyped = !!(row.cache as UserCache | null)?.timetable?.some((l) => !l.kind);
+  const stale = !syncedAt || Date.now() - Date.parse(syncedAt) > CACHE_TTL_MS || outdated(sync) || untyped;
   const state: SyncState = { syncedAt, stale, lmsDown: !!sync.error, signInAgain: account === "invalid" };
 
   if (opts.refresh !== false && stale && account === "active") scheduleRefresh(userId);
