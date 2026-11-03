@@ -72,7 +72,7 @@ export function Exams({ data }: { data: ExamsData }) {
       <section className={s.card}>
         <h2 className={s.h3}>Add a schedule</h2>
         <p className={s.sub}>
-          Paste a Google Sheets link shared with &ldquo;anyone with the link&rdquo; (it is re-read every hour while the window is near), or upload the sheet as .xlsx / .csv. Only exams and the seats of Press F students
+          Paste a Google Sheets link shared with &ldquo;anyone with the link&rdquo; (it is re-read every hour while the window is near), or upload the sheet as .xlsx (or one .csv per tab). Only exams and the seats of Press F students
           (matched by student ID) are kept; other students&rsquo; rows are dropped and the file is not stored.
         </p>
         <div className={s.hstack} style={{ flexWrap: "wrap", gap: 12 }}>
@@ -99,14 +99,14 @@ export function Exams({ data }: { data: ExamsData }) {
         </label>
         <div className={s.hstack} style={{ gap: 12, flexWrap: "wrap" }}>
           <Btn tone="accent" disabled={pending || !url.trim()} onClick={() => go(() => addExamSheet(form()))}>Add link</Btn>
-          <input ref={file} type="file" accept=".xlsx,.csv,.tsv,.html,.htm" aria-label="Sheet file" />
+          <input ref={file} type="file" multiple accept=".xlsx,.csv,.tsv,.html,.htm" aria-label="Sheet files" />
           <Btn
             disabled={pending}
             onClick={() => {
               const f = form();
-              const picked = file.current?.files?.[0];
-              if (!picked) return setMsg({ ok: false, text: "Choose a file" });
-              f.set("file", picked);
+              const picked = [...(file.current?.files ?? [])];
+              if (!picked.length) return setMsg({ ok: false, text: "Choose a file" });
+              for (const p of picked) f.append("file", p);
               go(() => uploadExamFile(f));
             }}
           >

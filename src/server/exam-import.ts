@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { normRoom, normStudentId, parseCourseName, parseCourses, parseTime, type Normalised } from "@/core/exams";
+import { normCode, normRoom, normStudentId, parseCourseName, parseCourses, parseTime, type Normalised } from "@/core/exams";
 import { ExamError, importSchedule } from "./exams";
 
 /**
@@ -41,6 +41,8 @@ export const ExamImport = z.object({
 export type ExamImportBody = z.infer<typeof ExamImport>;
 
 function course(text: string) {
+  // A bare code ("MATH111") reads like a room to the sheet analyser; here the field is a course.
+  if (/^[A-Za-z]{2,5}\s?-?\s?\d{3}[A-Za-z]?$/.test(text.trim())) return { code: normCode(text), name: null, minutes: null };
   const [hit] = parseCourses(text);
   if (hit) return { code: hit.code, name: hit.name, minutes: hit.minutes };
   const named = parseCourseName(text);
@@ -54,7 +56,7 @@ function hhmm(text: string, where: string) {
 }
 
 /** Validates and stores one posted schedule. */
-export async function importJson(body: unknown, actor: string | null) {
+export async function importJson(body: unknown, actor: string | null, now?: Date) {
   const parsed = ExamImport.safeParse(body);
   if (!parsed.success) throw new ExamError(`Bad schedule: ${parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
   const b = parsed.data;
@@ -71,5 +73,5 @@ export async function importJson(body: unknown, actor: string | null) {
   };
   const url = b.source.url ?? null;
   const key = url ? url.split("#")[0] : `import:${b.source.label.toLowerCase()}`;
-  return importSchedule({ key, label: b.source.label, url, origin: "import", window: b.window }, data, { actor });
+  return importSchedule({ key, label: b.source.label, url, origin: "import", window: b.window }, data, { actor, now });
 }

@@ -120,10 +120,8 @@ export const addExamSheet = async (form: FormData) =>
 export const uploadExamFile = async (form: FormData) =>
   run(async (a) => {
     await authorize(a, "admin:catalog");
-    const file = form.get("file");
-    if (!file || typeof file === "string") throw new exams.ExamError("Choose a file");
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    return { message: examSummary(await exams.addUpload(file.name, bytes, String(form.get("label") ?? ""), examWindow(form), a, String(form.get("url") ?? "") || null)) };
+    const files = await Promise.all(form.getAll("file").filter((f): f is File => typeof f !== "string").map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })));
+    return { message: examSummary(await exams.addUpload(files, String(form.get("label") ?? ""), examWindow(form), a, String(form.get("url") ?? "") || null)) };
   }, ["/admin/exams"]);
 
 export const refreshExamSource = async (id: string) =>

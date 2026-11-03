@@ -62,7 +62,7 @@ const forget = () => { memo = null; };
 
 /** Calendar exam weeks with the admin's overrides, plus admin-made windows. */
 export async function examWindowList(): Promise<ExamWindow[]> {
-  if (memo && Date.now() - memo.at < MEMO_MS) return memo.list;
+  if (memo && Date.now() - memo.at < MEMO_MS && !process.env.VITEST) return memo.list;
   const rows = await db().select().from(examWindows);
   const byKey = new Map(rows.map((r) => [r.key, r]));
   const list: ExamWindow[] = calendarWindows().map((w) => {
@@ -387,13 +387,17 @@ export async function addSheet(url: string, label: string, window: ExamWindowInp
   }
 }
 
-/** An uploaded .xlsx/.csv/.html. With `url`, it stands in for that sheet (same source). The file is not kept. */
-export async function addUpload(fileName: string, bytes: Uint8Array, label: string, window: ExamWindowInput, actor: string | null, url?: string | null) {
+/**
+ * Uploaded .xlsx/.csv/.html files (several CSV or HTML files are the tabs of one
+ * sheet). With `url`, they stand in for that sheet (same source). Files are not kept.
+ */
+export async function addUpload(files: Array<{ name: string; bytes: Uint8Array }>, label: string, window: ExamWindowInput, actor: string | null, url?: string | null) {
   checkWindow(window);
   const key = url?.trim() ? url.trim().split("#")[0] : `upload:${(label.trim() || window.name).toLowerCase()}`;
   const input: SourceInput = { key, label: label.trim() || window.name, url: url?.trim() || null, origin: "upload", window };
   try {
-    return await readAndImport(input, readUpload(fileName, bytes), { actor, force: true });
+    if (!files.length) throw new ExamError("Choose a file");
+    return await readAndImport(input, files.flatMap((f) => readUpload(f.name, f.bytes)), { actor, force: true });
   } catch (e) {
     if (e instanceof SheetError) throw new ExamError(e.message);
     throw e;
