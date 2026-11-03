@@ -124,8 +124,9 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
         ) : sent ? (
           <div className={r.done}>
             <h2 className={r.title}>Sent. Thank you.</h2>
-            <p className={r.sub}>{data.waiting > 1 ? `${data.waiting - 1} more to rate.` : "That was the last one."}</p>
-            <Button onClick={() => (data.waiting > 1 ? router.refresh() : close())}>{data.waiting > 1 ? "Next course" : "Done"}</Button>
+            <p className={r.sub}>{data.nextHref ? `${Math.max(1, data.waiting - 1)} more to rate.` : "That was the last one."}</p>
+            {/* The next course replaces this one in place, so Back still returns to the page the dialog was opened from. */}
+            <Button onClick={() => (data.nextHref ? router.replace(data.nextHref, { scroll: false }) : close())}>{data.nextHref ? "Next course" : "Done"}</Button>
           </div>
         ) : (
           <>

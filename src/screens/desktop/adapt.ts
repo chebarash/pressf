@@ -668,6 +668,11 @@ export function rate(v: V.RateQueueView, courseId?: string | null): M.RateData {
   return {
     course: item ? { id: item.courseId, name: item.name, term: item.term, href: `/c/${item.code}` } : null,
     waiting: v.waiting.length,
+    // The next course still waiting after this one, for "Next course" once this one is sent.
+    nextHref: (() => {
+      const next = v.waiting.find((w) => w.courseId !== item?.courseId);
+      return next ? `/rate/${encodeURIComponent(next.courseId)}` : null;
+    })(),
     teachers: item ? item.teachers.map((t) => ({ id: t.id, name: t.name, role: t.roleLabel, kind: t.role, face: t.face ?? null })) : [],
     tags: [...COURSE_TAG_ORDER],
     initial: answers ? initialFrom(answers) : null,

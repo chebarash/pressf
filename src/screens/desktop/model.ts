@@ -278,6 +278,8 @@ export type SettingsData = {
 export type RateData = {
   course: null | { id: string; name: string; term: string; href: string };
   waiting: number;
+  /** /rate/<next waiting course>, or null when this is the last one. */
+  nextHref?: string | null;
   teachers: Array<{ id: string; name: string; role: string; kind: TeacherRole; face: string | null }>;
   tags: string[];
   /** Saved answers when editing a rating; `pressed` and `teacherTags` are keyed by "teacherId|role". */
