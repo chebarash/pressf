@@ -43,6 +43,10 @@ export const rejectUpload = async (id: string, reason: RejectReason, note: strin
 
 export const resolveReport = async (kind: "post" | "file", id: string, outcome: ops.ReportOutcome) => run((a) => ops.resolveReport(a, { kind, id }, outcome));
 
+/** Anonymous links: hide a wrong course/professor on a post, or restore it. */
+export const hideMentionLink = async (ref: ops.LinkRef) => run((a) => ops.hideMentionLink(a, ref), ["/admin/reports"]);
+export const restoreMentionLink = async (ref: ops.LinkRef) => run((a) => ops.restoreMentionLink(a, ref), ["/admin/reports"]);
+
 export const editFile = async (ref: ops.FileRef, patch: Parameters<typeof ops.editFile>[2]) => run((a) => ops.editFile(a, ref, patch));
 export const bulkFiles = async (refs: ops.FileRef[], op: Parameters<typeof ops.bulkFiles>[2]) => run((a) => ops.bulkFiles(a, refs, op));
 

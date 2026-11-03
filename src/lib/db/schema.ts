@@ -267,6 +267,8 @@ export const mentions = pgTable(
     text: text("text").notNull(),
     /** Most posts come without a date, so ordering relies on the post id. */
     date: timestamp("date", { withTimezone: true }),
+    /** The matcher (rules + courses + teachers, src/core/mentions.ts) that made this post's links; another one re-matches it. */
+    matchedWith: text("matched_with"),
   },
   (t) => [index("mentions_date").on(t.date)]
 );
@@ -392,6 +394,10 @@ export const uploads = pgTable(
     sha256: text("sha256").notNull(),
     storageKey: text("storage_key"),
     telegramFileId: text("telegram_file_id"),
+    /** A file imported from a channel export: "tg:<channelId>:<postId>". Re-importing the post updates this row. */
+    sourceKey: text("source_key"),
+    /** Who it is shown as coming from instead of a person: "the channel PU Materials". */
+    sourceLabel: text("source_label"),
     opens: integer("opens").notNull().default(0),
     reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
@@ -403,6 +409,7 @@ export const uploads = pgTable(
     index("uploads_course_code").on(t.courseCode, t.status),
     index("uploads_uploader").on(t.uploaderId),
     uniqueIndex("uploads_sha").on(t.sha256, t.courseId),
+    uniqueIndex("uploads_source_key").on(t.sourceKey),
   ]
 );
 
@@ -532,6 +539,8 @@ export const fileOverrides = pgTable("file_overrides", {
  * Small moderation and system flags keyed by (kind, target):
  * - `post-hidden` / `post-mute` on an Anonymous post id (a mute acts on the
  *   post's private author token, never on a person),
+ * - `mention-link-hidden` on "post|kind|target": a wrong course/professor link
+ *   on an Anonymous post, kept out of every re-match,
  * - `teachers-distinct` on a teacher pair that is not a duplicate,
  * - `signout` on a user id (sessions issued before `at` are void),
  * - `setting` on a key (`maintenance`, `sync-paused`).

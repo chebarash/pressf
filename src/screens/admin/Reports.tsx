@@ -67,6 +67,7 @@ export function Reports({ data }: { data: ReportsData }) {
         <div className={s.tabs}>
           <Link href="/admin/reports" className={cx(s.chip, open && s.chipInverse)}>Open {open ? items.length : data.counts.open}</Link>
           <Link href="/admin/reports?tab=resolved" className={cx(s.chip, !open && s.chipInverse)}>Resolved {data.counts.resolved}</Link>
+          <Link href="/admin/reports?tab=links" className={s.chip}>Links</Link>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {items.length === 0 && <p className={s.small}>{open ? "No open reports. Nice." : "Nothing resolved yet."}</p>}

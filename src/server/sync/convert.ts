@@ -1,5 +1,5 @@
 import type { ClassKind } from "@/core/agenda";
-import { kindOfLessonType } from "@/core/agenda";
+import { kindOfLessonType, roomLabel } from "@/core/agenda";
 import { attendance, attendanceEvents, classTime, newAbsences, type LmsAdmit, type LmsAttendanceEvent } from "@/core/attendance";
 import { personOf } from "@/core/people";
 import { remindersDue, type Deadline } from "@/core/deadlines";
@@ -152,11 +152,7 @@ const kindFromType = (name: string | null | undefined): ClassKind => {
 };
 
 /** `auditorium` is a string, `{ name }`, or (real `/schedule/list`) `{ aud_num: "306", campus: { name } }`. */
-const roomOf = (a: ScheduleEvent["auditorium"]) => {
-  if (typeof a === "string") return a.trim() || null;
-  const r = (a ?? {}) as { name?: string | null; aud_num?: string | null };
-  return (r.name ?? "").trim() || (r.aud_num ?? "").toString().trim() || null;
-};
+const roomOf = (a: ScheduleEvent["auditorium"]) => roomLabel(a as Parameters<typeof roomLabel>[0]);
 
 /** Dated classes from `/schedule/list`, with `was` set where the LMS moved a class. */
 export function scheduleClasses(days: LmsScheduleDay[], previous: SyncedClass[]): SyncedClass[] {

@@ -169,7 +169,7 @@ export const scheduleDays = [
   { day: "02.11.26", type: "#3c78d8", events: [{
     id: "55640", begin_time: "1793608200", end_time: "1793611500", subject_id: "906", auditorium_id: "13", semester_id: "181", employee_id: "141", lesson_id: "52681", event_type: "4",
     subjectType: { id: "5", type: "0", name: "Lecture", color: "#3c78d8", short_name: "Lec" },
-    auditorium: { id: "13", size: "80", campus_id: "2", aud_num: "306", campus: { id: "2", name: "Main", num: "1", address: "" } },
+    auditorium: { id: "13", size: "80", campus_id: "2", aud_num: "306", campus: { id: "2", name: "M.A.T.H.", num: "2", address: "" } },
     employee: { id: "141", person: names("Aziza", "Karimova") },
   }] },
 ];

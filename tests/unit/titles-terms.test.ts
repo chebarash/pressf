@@ -57,6 +57,16 @@ describe("hours with different teachers stay apart", () => {
   });
 });
 
+import { roomLabel } from "@/core/agenda";
+describe("rooms with their building", () => {
+  it("prefixes the LMS campus without dots", () => {
+    expect(roomLabel({ aud_num: "306", campus: { name: "M.A.T.H." } })).toBe("MATH 306");
+    expect(roomLabel({ aud_num: "209", campus: { name: "U.C.A." } })).toBe("UCA 209");
+    expect(roomLabel({ aud_num: "115" })).toBe("115");
+    expect(roomLabel("B-204")).toBe("B-204");
+  });
+});
+
 import { CLASS_KIND_LABEL, kindOfLessonType } from "@/core/agenda";
 describe("LMS lesson types by number", () => {
   it("maps subjectType.type to the LMS names", () => {
