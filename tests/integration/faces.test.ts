@@ -18,6 +18,8 @@ import { GET as faceRoute } from "@/app/faces/[id]/route";
 import { setRole } from "@/server/identity";
 import { DEFAULT_FACE_SPEC, renderFace } from "@/core/face-parts";
 import { parsePastedFaceSpec } from "@/core/face-paste";
+import { notionFaceString, notionLayers, parseNotionFace } from "@/core/notion-faces";
+import { encodePng } from "@/lib/png";
 import { buildFace, facesPage, removeFace, setFace } from "@/server/admin/faces";
 import { Forbidden } from "@/server/admin/ops";
 import * as views from "@/server/views";
@@ -151,6 +153,42 @@ describe("admin faces", () => {
     expect(row.spec).toMatchObject({ hair: "hijab" });
     // A spec edited around the paste box is still checked by the server.
     await expect(buildFace(admin, "T1", { ...pasted.spec, hair: "mohawk" })).rejects.toThrow(/every part/);
+  });
+
+  it("builds a Notion Faces face: composed on the server from the parts in the bucket, saved as PNG", async () => {
+    // Stand-in parts: a 1200×1200 layer with one small mark each.
+    const part = () => {
+      const data = new Uint8Array(1200 * 1200 * 4);
+      for (let y = 500; y < 700; y++) for (let x = 500; x < 700; x++) data.set([20, 20, 20, 255], (y * 1200 + x) * 4);
+      return encodePng({ width: 1200, height: 1200, data });
+    };
+    const face = parseNotionFace("https://faces.notion.com/?face=s5e37y0b16n7m46h107a3")!;
+    for (const [category, id] of notionLayers(face)) bucket.objects.set(`faces/notion/${category}/${id}.png`, { body: part(), type: "image/png" });
+
+    await expect(buildFace(mod, "T1", face)).rejects.toBeInstanceOf(Forbidden);
+    await expect(buildFace(admin, "T1", { ...face, hair: 99999 })).rejects.toThrow("Pick an option");
+    await expect(buildFace(admin, "T1", { ...face, skin: 0 })).rejects.toThrow("Pick an option");
+    await buildFace(admin, "T1", face);
+    const [row] = await db().select().from(faces).where(eq(faces.teacherId, "T1"));
+    expect(row.storageKey).toMatch(/^faces\/T1\/[a-z0-9]+\.png$/);
+    expect(row.spec).toEqual(face);
+    const stored = bucket.objects.get(row.storageKey)!;
+    expect(stored.type).toBe("image/png");
+    expect(checkFace(stored.body)).toMatchObject({ ok: true, format: { type: "png" } });
+    const page = await facesPage("with", "", "T1");
+    expect(page.selected).toMatchObject({ format: "Built", spec: face });
+    expect(notionFaceString(page.selected!.spec as typeof face)).toBe("s5e37y0b16n7m46h107a3");
+
+    // A part missing from the bucket is an error, not a half-drawn face.
+    bucket.objects.delete("faces/notion/hair/107.png");
+    await expect(buildFace(admin, "T1", { ...face, hair: 1 })).rejects.toThrow(/missing/);
+  });
+
+  it("old drawn (v2) specs still read and still draw until re-saved", async () => {
+    await buildFace(admin, "T1", { ...DEFAULT_FACE_SPEC, hair: "afro" });
+    expect((await facesPage("with", "", "T1")).selected).toMatchObject({ format: "Built", spec: { ...DEFAULT_FACE_SPEC, hair: "afro" } });
+    const [row] = await db().select().from(faces).where(eq(faces.teacherId, "T1"));
+    expect(row.storageKey).toMatch(/\.svg$/);
   });
 
   it("lists professors with and without a face", async () => {

@@ -18,6 +18,15 @@
 /* Same rule as the app's Face in dark mode: a thin white outline follows the head. */
 .stageDark .face { filter: drop-shadow(1px 0 0 var(--native-white)) drop-shadow(-1px 0 0 var(--native-white)) drop-shadow(0 1px 0 var(--native-white)) drop-shadow(0 -1px 0 var(--native-white)); }
 
-.parts { display: flex; flex-direction: column; gap: 10px; }
+.parts { display: flex; flex-direction: column; gap: 14px; }
 .part { display: flex; gap: var(--space-2); align-items: flex-start; }
-.partLabel { width: 110px; flex-shrink: 0; padding-top: 3px; font-size: 13px; color: var(--text-secondary); }
+.partLabel { width: 92px; flex-shrink: 0; padding-top: 3px; font-size: 13px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 2px; }
+.partCount { font-size: 11px; color: var(--text-secondary); }
+.partBody { flex: 1 0 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* Notion's part tiles: the part on white, zoomed on itself (Notion's own tile transform). Two rows, then scroll. */
+.tiles { position: relative; display: grid; grid-template-columns: repeat(auto-fill, 56px); gap: 6px; max-height: 124px; overflow-y: auto; padding: 1px; }
+.tile { position: relative; width: 56px; height: 56px; padding: 0; overflow: hidden; border: 1.5px solid var(--border-subtle); border-radius: 12px; background: var(--native-white); cursor: pointer; }
+.tile img { display: block; width: 100%; height: 100%; }
+.tileNone { font: inherit; font-size: 11px; color: var(--native-camera); }
+.tileOn { border: 2px solid var(--bg-inverse); box-shadow: 0 0 0 1px var(--bg-inverse); }
