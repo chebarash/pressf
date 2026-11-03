@@ -41,6 +41,7 @@ export const ADMIN_SECTIONS: Array<{ id: string; label: string; needs: Action }>
   { id: "courses", label: "Courses & files", needs: "admin:catalog" },
   { id: "coverage", label: "Coverage", needs: "admin:coverage" },
   { id: "professors", label: "Professors", needs: "admin:catalog" },
+  { id: "exams", label: "Exams", needs: "admin:catalog" },
   { id: "people", label: "People", needs: "admin:people" },
   { id: "broadcasts", label: "Broadcasts", needs: "admin:broadcast" },
   { id: "audit", label: "Audit log", needs: "admin:audit" },

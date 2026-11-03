@@ -53,6 +53,7 @@ function StudentHome({ v }: { v: TodayView }) {
       <header className={s.head}>
         <h1 className={`${s.title} t-mobile-title`}>{v.title}</h1>
         <p className={`${s.subtitle} t-body-md`}>{subtitle(v)}</p>
+        {v.examWeek && <p className={`${s.subtitle} t-body-md`}>{v.examWeek}</p>}
       </header>
 
       {top && <TodayBanner banner={top} />}

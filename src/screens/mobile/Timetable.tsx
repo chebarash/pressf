@@ -17,6 +17,7 @@ export default function Timetable({ data }: { data: TimetableView & { open?: str
       <header className={b.head}>
         <h1 className={b.title}>Timetable</h1>
         {data.weekLabel ? <p className={b.sub}>{data.weekLabel}</p> : null}
+        {data.examWeek ? <p className={b.sub}>{data.examWeek}</p> : null}
       </header>
       <Tabs label="Day" size="l" spread className={s.tabs} items={data.week.map((d) => ({ label: d.label, value: d.day, href: `/timetable?day=${d.day}`, active: d.selected }))} />
 
@@ -25,7 +26,7 @@ export default function Timetable({ data }: { data: TimetableView & { open?: str
       ) : (
         <EmptyState
           className={b.bleed}
-          title={data.holiday ? data.holiday.name : `No classes on ${weekday}`}
+          title={data.holiday ? data.holiday.name : data.examWeek ? `No exams on ${weekday}` : `No classes on ${weekday}`}
           text={data.holiday ? `No classes on ${weekday} ${shortDate(data.day)}.${backLine ? ` Back on ${backLine}.` : ""}` : nextLine ? `Next: ${nextLine}.` : undefined}
         />
       )}

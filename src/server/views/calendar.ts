@@ -81,7 +81,7 @@ export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = n
       const exam = c.kind === "exam";
       if (exam ? !on.has("exams") : !on.has("classes") || day > addDays(today, 6)) continue;
       events.push({
-        key: `class:${c.key}`, layer: exam ? "exams" : "classes", title: exam ? `${c.name} exam` : c.name,
+        key: `class:${c.key}`, layer: exam ? "exams" : "classes", title: exam ? `${c.name} ${c.exam?.kind ?? "exam"}` : c.name,
         sub: [LAYER_LABEL[exam ? "exams" : "classes"], c.time, c.room].filter(Boolean).join(" · "), day, endDay: day, time: c.time, href: c.code ? `/c/${c.code}` : null,
       });
     }
