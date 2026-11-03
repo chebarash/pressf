@@ -79,7 +79,7 @@ async function events(student: Student, fromDay: string, toDay: string, today: s
     for (const l of weekly.filter((x) => x.day === weekday)) {
       const course = idForCode.get(l.code);
       out.push({
-        courseId: course?.id ?? l.code, courseName: l.subject, code: l.code, kind: "other",
+        courseId: course?.id ?? l.code, courseName: l.subject, code: l.code, kind: l.kind ?? "other",
         start: at(day, l.starts), end: at(day, l.ends || l.starts), room: l.room ?? undefined, teacherId: l.teacher,
       });
     }

@@ -88,14 +88,7 @@ export const faceUrl = (teacherId: string, version?: Date | string | null) => {
 
 export const ROLE_LABEL: Record<TeacherRole, string> = { lecture: "Lectures", tutorial: "Tutorials", lab: "Labs", practice: "Practice", other: "Teaching" };
 
-export function kindOf(name: string | null | undefined): ClassKind {
-  const t = (name ?? "").toLowerCase();
-  if (/exam|midterm|final|quiz|control/.test(t)) return "exam";
-  if (t.startsWith("lect")) return "lecture";
-  if (t.startsWith("lab")) return "lab";
-  if (/prac|tut|sem/.test(t)) return "practice";
-  return "other";
-}
+export { kindOf } from "@/core/agenda";
 
 export type Slot = { teacherId: string | null; role: TeacherRole; weekday: number; time: string; end: string | null; room: string | null; lessonId: string; lessonName: string; at: string };
 
