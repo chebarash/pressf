@@ -5,12 +5,11 @@ import { useCallback, useOptimistic, useState, useTransition } from "react";
 import type { FeedKind } from "@/core/notifications";
 import type { FeedView, NotificationsView } from "@/server/views";
 import { Chip, EmptyState } from "@/ui/components";
-import { acknowledgeFeed, markAllFeedRead, markFeedRead } from "./actions";
+import { markAllFeedRead, markFeedRead } from "./actions";
 import s from "./mobile.module.css";
 import { allItems, applyChange, orderedFilters, readable, unreadNow } from "./notifications/model";
 import { ActionSheet } from "./parts/ActionSheet";
 import { FeedRow } from "./parts/FeedRow";
-import { haptic } from "./parts/telegram";
 import { useToast } from "./parts/toast";
 
 const KIND_LABEL: Record<FeedKind, string> = {
@@ -40,7 +39,8 @@ export default function Notifications({ data }: { data: NotificationsView }) {
 
   const openItem = (item: FeedView) => {
     setOpenId(item.id);
-    if (!item.read && !item.needsAck)
+    // Opening reads it (and confirms it in the LMS when the teacher asked).
+    if (!item.read)
       start(async () => {
         change({ type: "read", ids: [item.id] });
         await markFeedRead(item.id);
@@ -51,15 +51,6 @@ export default function Notifications({ data }: { data: NotificationsView }) {
     setOpenId(null);
     if (data.open) router.replace(query(data.filter), { scroll: false });
   }, [data.open, data.filter, router]);
-
-  const gotIt = (item: FeedView) => {
-    close();
-    haptic("success");
-    start(async () => {
-      change({ type: "ack", id: item.id });
-      await acknowledgeFeed(item.id);
-    });
-  };
 
   const markAll = () => {
     const ids = readable(sections);
@@ -107,18 +98,12 @@ export default function Notifications({ data }: { data: NotificationsView }) {
           title={open.title}
           onClose={close}
           className={s.noteSheet}
-          main={
-            open.needsAck
-              ? { text: "Got it", onClick: () => gotIt(open) }
-              : open.href
-                ? { text: "Open", onClick: () => router.push(open.href!) }
-                : { text: "Close", onClick: close }
-          }
+          main={open.href ? { text: "Open", onClick: () => router.push(open.href!) } : { text: "Close", onClick: close }}
         >
           <p className={s.sheetEyebrow}>{[KIND_LABEL[open.kind], open.courseName, open.author, open.ago].filter(Boolean).join(" · ")}</p>
           <h2 className={s.noteTitle}>{open.title}</h2>
           {open.body && <p className={s.sheetBody}>{open.body}</p>}
-          {open.needsAck && <p className={s.noteFine}>The teacher asked to confirm you read this. Got it confirms it in LMS too.</p>}
+          {open.acknowledged && <p className={s.noteFine}>Acknowledged in LMS</p>}
         </ActionSheet>
       )}
     </div>

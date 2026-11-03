@@ -25,7 +25,9 @@ const ALL_FILTERS: Array<{ id: FeedFilter; label: string; kinds: FeedKind[] }> =
 export async function notifications(userId: string, opts: { filter?: string; open?: string } = {}, now = new Date()): Promise<NotificationsView | null> {
   const student = await loadStudent(userId);
   if (!student) return null;
-  const items = await feed(userId, 200);
+  // The item opened with ?open= is being read right now (the page writes it back
+  // after responding), so it already shows as read — and confirmed, if the LMS asked.
+  const items = (await feed(userId, 200)).map((i) => (i.id === opts.open ? { ...i, read: true } : i));
   const names = await coursesByIds(items.map((i) => i.courseId ?? "").filter(Boolean));
   const filter = (ALL_FILTERS.find((f) => f.id === opts.filter)?.id ?? "all") as FeedFilter;
   const shown = filter === "deadline" ? items.filter((i) => i.kind === "deadline") : filterFeed(items, filter);

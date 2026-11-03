@@ -1,10 +1,11 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { describeFile, TYPE_LABEL, type FileType } from "@/core/files";
 import { webUrl } from "@/core/links";
 import { db } from "@/lib/db";
 import { lmsCourses, lmsFiles, uploads } from "@/lib/db/schema";
 import { signedUrl } from "@/lib/storage";
+import { linkSecret } from "@/server/identity";
 import { brandedCopy } from "./store";
 
 /**
@@ -42,11 +43,52 @@ export async function fileSource(id: string, userId: string | null): Promise<Sou
 }
 
 
-/** Signed URL of the branded copy, or of the original when the format gets no cover. */
+/** Signed URL of the branded copy, or of the original when the format gets no cover (or branding fails, which is logged). */
 export async function deliverUrl(src: Source) {
   const copy = await brandedCopy(
-    { sha256: src.sha256, name: src.name, mimeType: src.mimeType, load: async () => new Uint8Array(await (await fetch(await signedUrl(src.key))).arrayBuffer()) },
+    {
+      sha256: src.sha256, name: src.name, mimeType: src.mimeType,
+      load: async () => {
+        const res = await fetch(await signedUrl(src.key));
+        if (!res.ok) throw new Error(`bucket answered ${res.status} for ${src.key}`);
+        return new Uint8Array(await res.arrayBuffer());
+      },
+    },
     src.meta,
-  ).catch(() => null);
+  ).catch((error) => {
+    console.error("Cover failed, sending the original", src.key, error instanceof Error ? error.message : error);
+    return null;
+  });
   return copy?.url ?? (await signedUrl(src.key, src.name));
+}
+
+/**
+ * The Download link for a signed-in viewer: /f/<id>/download with a signature
+ * valid for an hour. Telegram's downloadFile fetches it from the native client,
+ * which has no session cookie, so the signature stands in for the sign-in (it
+ * grants what the signed bucket URL on the same page already grants).
+ */
+const DOWNLOAD_TTL_S = 3600;
+const downloadSig = (id: string, exp: number) => createHmac("sha256", linkSecret()).update(`download:${id}:${exp}`).digest("base64url").slice(0, 32);
+
+export function downloadLink(id: string, now = new Date()) {
+  const base = `/f/${encodeURIComponent(id)}/download`;
+  try {
+    const exp = Math.floor(now.getTime() / 1000) + DOWNLOAD_TTL_S;
+    return `${base}?exp=${exp}&sig=${downloadSig(id, exp)}`;
+  } catch {
+    return base; // no secret configured: the cookie still works in a browser
+  }
+}
+
+export function downloadAllowed(id: string, exp: string | null, sig: string | null, now = new Date()) {
+  const e = Number(exp);
+  if (!sig || !Number.isInteger(e) || e < now.getTime() / 1000) return false;
+  try {
+    const want = Buffer.from(downloadSig(id, e));
+    const got = Buffer.from(sig);
+    return want.length === got.length && timingSafeEqual(want, got);
+  } catch {
+    return false;
+  }
 }

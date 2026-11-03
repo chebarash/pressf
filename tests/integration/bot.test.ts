@@ -308,9 +308,15 @@ describe("sending a file to the mini app user", () => {
   });
   it("reuses Telegram's copy on the next send", async () => {
     const file = await publish();
-    await db().insert(telegramFiles).values({ key: `upload:${file.id}`, fileId: "kept-id" });
+    await db().insert(telegramFiles).values({ key: `cover1:upload:${file.id}`, fileId: "kept-id" });
     await ask(file.id, signed(77));
     expect(sent[0].body.document).toBe("kept-id");
+  });
+  it("never resends a copy remembered before files got a cover", async () => {
+    const file = await publish();
+    await db().insert(telegramFiles).values({ key: `upload:${file.id}`, fileId: "original-id" });
+    await ask(file.id, signed(77));
+    expect(sent[0].body.document).not.toBe("original-id");
   });
   it("asks for access when the bot may not write", async () => {
     const file = await publish();
@@ -330,7 +336,7 @@ describe("sending a file to the mini app user", () => {
     const [up] = await db().insert(uploads).values({ courseId: "11", courseCode: "MATH111", title: "Midterm exam, Fall 2026", type: "exam", status: "live", fileName: "a.pdf", mimeType: "application/pdf", size: 1000, sha256: "h", storageKey: "uploads/h-pressf.pdf" }).returning();
     expect((await ask(up.id, signed(77))).status).toBe(200);
     expect(sent[0].body.document).toBe("https://files.test/x");
-    expect((await db().select().from(telegramFiles))[0]).toMatchObject({ key: `upload:${up.id}`, fileId: "tg-sent" });
+    expect((await db().select().from(telegramFiles))[0]).toMatchObject({ key: `cover1:upload:${up.id}`, fileId: "tg-sent" });
     sent = [];
     await ask(up.id, signed(78));
     expect(sent[0].body.document).toBe("tg-sent");
@@ -340,6 +346,6 @@ describe("sending a file to the mini app user", () => {
     expect(await (await ask("m1", signed(77))).json()).toEqual({ error: "sign_in" });
     await db().insert(users).values({ email: "s@newuu.uz", telegramId: "77" });
     expect((await ask("m1", signed(77))).status).toBe(200);
-    expect((await db().select().from(telegramFiles))[0].key).toBe("lms:m1:1");
+    expect((await db().select().from(telegramFiles))[0].key).toBe("cover1:lms:m1:1");
   });
 });

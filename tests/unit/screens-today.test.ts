@@ -83,16 +83,15 @@ describe("Today screen words (Figma 2.x)", () => {
 describe("Notifications optimistic changes (Figma 2.9, 2.10)", () => {
   const view = notificationsFixture();
 
-  it("reading never clears an LMS acknowledgement; Got it does", () => {
+  it("opening reads it and confirms what the LMS asked to confirm (no Got it)", () => {
     const read = applyChange(view.sections, { type: "read", ids: ["lms:1", "grade:1"] });
     const flat = read.flatMap((s) => s.items);
-    expect(flat.find((i) => i.id === "lms:1")).toMatchObject({ read: false, needsAck: true });
-    expect(flat.find((i) => i.id === "grade:1")?.read).toBe(true);
-    const ack = applyChange(read, { type: "ack", id: "lms:1" }).flatMap((s) => s.items);
-    expect(ack.find((i) => i.id === "lms:1")).toMatchObject({ read: true, needsAck: false });
+    expect(flat.find((i) => i.id === "lms:1")).toMatchObject({ read: true, needsAck: false, acknowledged: true });
+    expect(flat.find((i) => i.id === "grade:1")).toMatchObject({ read: true });
+    expect(flat.find((i) => i.id === "grade:1")?.acknowledged).toBeFalsy();
   });
 
-  it("mark all read skips items waiting for Got it, and the count follows", () => {
+  it("mark all read skips items the LMS wants confirmed, and the count follows", () => {
     const ids = readable(view.sections);
     expect(ids).not.toContain("lms:1");
     const after = applyChange(view.sections, { type: "read", ids });

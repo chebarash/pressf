@@ -41,7 +41,7 @@ describe("lmsProfile", () => {
     expect(p).toMatchObject({ name: "Sam Lee", gpa: 3.4, ectsEarned: 120, ectsTotal: 180, honors: false });
     // Newest semester (13) first.
     expect(p!.semesters.map((s) => s.name)).toEqual(["Fall 2024", "Fall 2023"]);
-    expect(p!.semesters[0]).toMatchObject({ open: true, courses: [{ name: "Intro to CS", mark: 40, passed: false }] });
+    expect(p!.semesters[0]).toMatchObject({ open: true, courses: [{ name: "Intro to CS", mark: 40, passed: true }] }); // 40 is the pass mark (minimal_final)
     expect(p!.semesters[1].courses[0]).toMatchObject({ name: "Calculus", mark: 88, passed: true });
   });
 

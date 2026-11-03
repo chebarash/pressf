@@ -2,7 +2,7 @@ import type { ClassKind } from "@/core/agenda";
 import { attendance, attendanceEvents, classTime, newAbsences, type LmsAdmit, type LmsAttendanceEvent } from "@/core/attendance";
 import { personOf } from "@/core/people";
 import { remindersDue, type Deadline } from "@/core/deadlines";
-import { changedGrades } from "@/core/grades";
+import { changedGrades, passedFinal } from "@/core/grades";
 import { fileList } from "@/core/files";
 import { path } from "@/core/links";
 import { fromLms, type AlertSettings, type FeedItem, type LmsNotification } from "@/core/notifications";
@@ -111,7 +111,7 @@ export function gradebookCourses(data: LmsGradebookData | null | undefined, seme
     return {
       subjectId, semesterId, name: (row.subject?.name ?? "").trim() || "Course",
       average: num(row.average), rating: num(row.rating), final,
-      passed: final === null ? null : finalRow?.positive_status ?? null, fx: !!num(row.fx) || row.fx === true,
+      passed: passedFinal(final, finalRow?.positive_status), fx: !!num(row.fx) || row.fx === true,
       admission: num(row.rd), exam, midterm: num(row.rk), siw: num(row.siw_average),
       admitted: admitRow && admitRow.admit !== null && admitRow.admit !== undefined && (Number(admitRow.lessons_count) > 0 || truthy(admitRow.admit)) ? truthy(admitRow.admit) : null,
       teachers: gradebookTeachers((row.subject as { employee?: unknown } | undefined)?.employee),

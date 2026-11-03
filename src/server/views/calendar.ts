@@ -45,6 +45,11 @@ const PHASE_TITLE: Partial<Record<WeekKind, string>> = { midterm: "Midterm exams
 const rangeLabel = (a: string, b: string) =>
   a === b ? `${weekdayName(a).slice(0, 3)} ${shortDate(a)}` : a.slice(0, 7) === b.slice(0, 7) ? `${Number(a.slice(8))}–${shortDate(b)}` : `${shortDate(a)} – ${shortDate(b)}`;
 
+/** Phases longer than two weeks show as open/close markers, not as a band over every day. */
+export const LONG_PHASE_DAYS = 14;
+const BAND_PHASES = new Set(["add-drop", "cohort-selection"]);
+export const isLongPhase = (from: string, to: string) => (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000 + 1 > LONG_PHASE_DAYS;
+
 /** Consecutive calendar weeks of the same kind, merged ("Final exams 11–15 Jan"). */
 function phases(kinds: WeekKind[], from: string, to: string) {
   const out: Array<{ kind: WeekKind; starts: string; ends: string }> = [];
@@ -92,7 +97,17 @@ export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = n
     for (const p of await semesterPhases(today)) {
       if (p.kind === "studies" || p.kind === "other" || p.startDay > to) continue;
       const where = p.semester ? ` · ${p.semester}` : "";
-      events.push({ key: `lms-phase:${p.semesterId}:${p.kind}:${p.startDay}`, layer: "registration", title: p.title, sub: `Registration${where} · Until ${shortDate(p.endDay)}`, day: p.startDay, endDay: p.endDay, time: null, href: "/next" });
+      const key = `lms-phase:${p.semesterId}:${p.kind}:${p.startDay}`;
+      const sub = `Registration${where} · ${shortDate(p.startDay)} – ${shortDate(p.endDay)}`;
+      // Student deadlines (add/drop, cohort selection) stay bands whatever their length.
+      if (BAND_PHASES.has(p.kind) || !isLongPhase(p.startDay, p.endDay)) {
+        events.push({ key, layer: "registration", title: p.title, sub: `Registration${where} · Until ${shortDate(p.endDay)}`, day: p.startDay, endDay: p.endDay, time: null, href: "/next" });
+        continue;
+      }
+      // A long administrative window (the schedule builder runs for months) would
+      // paint every day: show where it opens and where it closes, nothing between.
+      if (p.startDay >= today) events.push({ key: `${key}:opens`, layer: "registration", title: `${p.title} opens`, sub, day: p.startDay, endDay: p.startDay, time: null, href: "/next" });
+      if (p.endDay <= to) events.push({ key: `${key}:closes`, layer: "registration", title: `${p.title} closes`, sub, day: p.endDay, endDay: p.endDay, time: null, href: "/next" });
     }
     for (const p of phases(REG_KINDS, today, to)) {
       events.push({ key: `phase:${p.kind}:${p.starts}`, layer: "registration", title: PHASE_TITLE[p.kind] ?? "Registration", sub: `Registration · Until ${shortDate(p.ends)}`, day: p.starts, endDay: p.ends, time: null, href: "/next" });

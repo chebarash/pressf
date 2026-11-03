@@ -343,7 +343,10 @@ export type FeedView = {
   at: string;
   ago: string;
   read: boolean;
+  /** The LMS asks the student to confirm it and they haven't opened it yet (opening confirms it). */
   needsAck: boolean;
+  /** The LMS asked for a confirmation and the student gave it by opening it ("Acknowledged"). Optional for fixtures. */
+  acknowledged?: boolean;
   href: string | null;
 };
 
@@ -371,7 +374,7 @@ export function feedView(i: FeedItem, now: Date, names: Map<string, CourseRef>):
   return {
     id: i.id, kind: i.kind, title, body, courseId: i.courseId ?? null, courseName, author,
     byline: i.kind === "announcement" ? ["LMS", courseName, author].filter(Boolean).join(" · ") : null,
-    at: i.at.toISOString(), ago: ago(i.at, now), read: i.read, needsAck: !!i.needsAck, href: i.href ?? null,
+    at: i.at.toISOString(), ago: ago(i.at, now), read: i.read, needsAck: !!i.needsAck && !i.read, acknowledged: !!i.needsAck && i.read, href: i.href ?? null,
   };
 }
 

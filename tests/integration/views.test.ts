@@ -4,7 +4,7 @@ const refresh = vi.hoisted(() => ({ scheduleRefresh: vi.fn() }));
 vi.mock("@/server/sync/refresh", () => refresh);
 
 import { db } from "@/lib/db";
-import { lmsAccounts, mentionLinks, mentions, users } from "@/lib/db/schema";
+import { lmsAccounts, lmsSemesters, mentionLinks, mentions, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ingest } from "@/server/feed";
 import { saveRating } from "@/server/ratings";
@@ -48,6 +48,19 @@ describe("today", () => {
     const t = (await views.timetable(userId, "2026-11-03", tue))!;
     expect(t.classes.map((c) => [c.name, c.time, c.room])).toEqual([["Physics 1", "13:00", "A-108"]]);
     expect(t.week.map((d) => d.label)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+  });
+
+  it("never paints this semester's weekly pattern over another term or exam weeks", async () => {
+    const tue = new Date("2026-11-03T06:00:00Z");
+    const classes = async (day: string) => (await views.timetable(userId, day, tue))!.weekClasses!.length;
+    expect(await classes("2026-11-24")).toBeGreaterThan(0); // Fall teaching week
+    expect(await classes("2027-01-12")).toBe(0); // Fall finals: exam times come from the LMS
+    expect(await classes("2027-02-02")).toBe(0); // resit exams
+    expect(await classes("2027-03-02")).toBe(0); // Spring 2027: another semester
+    const { patternFits } = await import("@/server/views/classes");
+    expect(patternFits("2026-11-04", "2026-11-03")).toBe(true);
+    expect(patternFits("2027-03-03", "2026-11-03")).toBe(false);
+    expect(patternFits("2026-12-23", "2026-11-03")).toBe(false); // break
   });
 
   it("asks to sign in again and schedules no refresh for a dead login", async () => {
@@ -97,6 +110,17 @@ describe("course", () => {
     expect(await views.file("F1", null)).toMatchObject({ locked: true, course: { code: "MATH111" } });
     expect(await views.file("F1", { userId })).toMatchObject({ locked: false, title: "Midterm review slides", week: 8, from: "LMS", downloadName: "Midterm review slides — Calculus 1.pdf" });
     expect(await views.file("nope", { userId })).toBeNull();
+  });
+
+  it("downloads go through the branded route with a signed link (no cookie needed, e.g. Telegram's downloader)", async () => {
+    const { downloadAllowed } = await import("@/server/covers/source");
+    const v = await views.file("F1", { userId });
+    const link = new URL((v as { downloadUrl: string }).downloadUrl, "https://x");
+    expect(link.pathname).toBe("/f/F1/download");
+    expect(downloadAllowed("F1", link.searchParams.get("exp"), link.searchParams.get("sig"))).toBe(true);
+    expect(downloadAllowed("F2", link.searchParams.get("exp"), link.searchParams.get("sig"))).toBe(false);
+    expect(downloadAllowed("F1", link.searchParams.get("exp"), "forged")).toBe(false);
+    expect(downloadAllowed("F1", link.searchParams.get("exp"), link.searchParams.get("sig"), new Date(Date.now() + 2 * 3600_000))).toBe(false);
   });
 });
 
@@ -171,6 +195,24 @@ describe("progress, notifications, calendar, profile", () => {
     expect(all.find((e) => e.layer === "deadlines")).toMatchObject({ title: "Lab 6 report", sub: "Deadline · Physics 1 · 23:59" });
     const only = await views.calendar(null, ["holidays"], new Date("2027-04-01T00:00:00Z"));
     expect(only.empty).not.toBeNull();
+  });
+
+  it("shows long administrative phases as open/close markers, short ones as bands", async () => {
+    await db().insert(lmsSemesters).values({ id: "S9", name: "Spring 2027", calendar: [
+      { kind: "schedule-builder", name: "Schedule builder", starts: "2026-07-27T00:00:00+05:00", ends: "2026-12-11T23:59:00+05:00" },
+      { kind: "cohort-selection", name: "Cohort selection", starts: "2026-11-20T00:00:00+05:00", ends: "2027-01-10T23:59:00+05:00" },
+      { kind: "add-drop", name: "Add/drop", starts: "2027-01-25T00:00:00+05:00", ends: "2027-02-05T23:59:00+05:00" },
+    ] });
+    const c = await views.calendar({ userId }, ["registration"], NOW);
+    const reg = c.days.flatMap((d) => d.events).map((e) => [e.title, e.day, e.endDay]);
+    expect(reg).toEqual([
+      // Student deadlines stay bands even when long; the months-long schedule builder does not.
+      ["Cohort selection", "2026-11-20", "2027-01-10"],
+      ["Schedule builder closes", "2026-12-11", "2026-12-11"],
+      ["Add/drop", "2027-01-25", "2027-02-05"],
+      ["Resit registration", "2027-01-25", "2027-01-29"],
+      ["Course registration", "2027-02-15", "2027-02-19"],
+    ]);
   });
 
   it("builds the profile and the rate queue", async () => {

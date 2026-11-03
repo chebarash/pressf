@@ -3,7 +3,7 @@ import { Pool } from "pg";
 import { env } from "@/lib/env";
 import * as schema from "./schema";
 
-type Db = NodePgDatabase<typeof schema>;
+type Db = NodePgDatabase<typeof schema> & { $client: Pool };
 
 const globalForDb = globalThis as unknown as { pressfDb?: Db };
 

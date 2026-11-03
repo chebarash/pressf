@@ -52,8 +52,14 @@ export type CurriculumView = {
 function statusOf(student: Student | null, courseId: string, code: string | null): CurriculumCourseView["status"] {
   if (!student) return null;
   const open = new Set(student.sync.semesters.filter((s) => s.open).map((s) => s.id));
-  const hit = student.sync.courses.find((c) => c.subjectId === courseId);
-  if (hit) return open.has(hit.semesterId) ? "now" : hit.passed === false || hit.fx ? "failed" : "passed";
+  // Every time the student took it: a course failed once and passed on a later
+  // try is passed; "Retake" only while no attempt has passed.
+  const hits = student.sync.courses.filter((c) => c.subjectId === courseId);
+  if (hits.length) {
+    if (hits.some((c) => open.has(c.semesterId))) return "now";
+    if (hits.some((c) => c.passed === true)) return "passed";
+    return hits.some((c) => c.passed === false || c.fx) ? "failed" : "passed";
+  }
   if (code && student.cache?.enrollment?.codes.includes(code)) return "now";
   return "planned";
 }
