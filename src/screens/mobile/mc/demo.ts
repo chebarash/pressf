@@ -113,18 +113,19 @@ const calendarBase: CalendarView = {
 };
 
 export const SEARCH: Record<string, () => SearchView> = {
-  "7.1": () => ({ q: "", courses: [], people: [], files: [], nothing: false }),
+  "7.1": () => ({ q: "", courses: [], people: [], programs: [], files: [], nothing: false }),
   "7.2": () => ({
     q: "calc",
     courses: [
       { code: "MATH111", name: "Calculus 1", recommendPct: 84, href: "/c/MATH111" },
       { code: "MATH211", name: "Calculus 2", recommendPct: 78, href: "/c/MATH211" },
     ],
-    people: [{ id: "t1", name: "Gonçalo Pinto", position: "Professor", href: "/p/t1" }],
+    people: [{ id: "t1", name: "Gonçalo Pinto", position: "Professor", face: null, href: "/p/t1" }],
+    programs: [],
     files: [{ id: "f1", title: "Midterm exam", course: "Calculus 1", href: "/f/f1" }],
     nothing: false,
   }),
-  "7.3": () => ({ q: "quantum", courses: [], people: [], files: [], nothing: true }),
+  "7.3": () => ({ q: "quantum", courses: [], people: [], programs: [], files: [], nothing: true }),
 };
 
 /** 7.1's "Recent", seeded into localStorage by the preview. */

@@ -44,6 +44,7 @@ export function Professors({ data }: { data: ProfessorsData }) {
         <div className={s.tabs}>
           <Link href="/admin/professors" className={cx(s.chip, data.tab === "duplicates" && s.chipInverse)}>Duplicates {data.duplicates.length}</Link>
           <Link href="/admin/professors?tab=all" className={cx(s.chip, data.tab === "all" && s.chipInverse)}>All {data.total}</Link>
+          <Link href="/admin/professors?tab=faces" className={s.chip}>Faces</Link>
           <span className={s.chip}>No LMS link {data.orphans}</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

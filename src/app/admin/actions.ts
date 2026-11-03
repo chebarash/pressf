@@ -6,6 +6,8 @@ import type { RejectReason, Trust } from "@/core/uploads";
 import { env } from "@/lib/env";
 import { authorize } from "@/server/admin/access";
 import type { SettingKey } from "@/server/admin/marks";
+import { FACE_MAX_BYTES } from "@/core/faces";
+import * as faces from "@/server/admin/faces";
 import * as ops from "@/server/admin/ops";
 import type { Audience } from "@/server/admin/rules";
 import { actorId } from "@/server/admin/viewer";
@@ -41,6 +43,20 @@ export const bulkFiles = async (refs: ops.FileRef[], op: Parameters<typeof ops.b
 
 export const mergeTeachers = async (keepId: string, mergeId: string) => run((a) => ops.mergeTeachers(a, keepId, mergeId));
 export const markNotTwins = async (a: string, b: string) => run((actor) => ops.markNotTwins(actor, a, b));
+
+/** Drawn faces (admin only, checked again inside each op). The file comes as form data: `teacherId`, `file`. */
+export async function uploadFace(form: FormData): Promise<Result> {
+  const teacherId = String(form.get("teacherId") ?? "");
+  const file = form.get("file");
+  if (!(file instanceof File) || !file.size) return { ok: false, error: "Pick a PNG or SVG drawing" };
+  if (file.size > FACE_MAX_BYTES) return { ok: false, error: "Faces are line drawings: keep the file under 512 KB" };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  return run((a) => faces.setFace(a, teacherId, bytes), [`/p/${teacherId}`]);
+}
+export const removeFace = async (teacherId: string) => run((a) => faces.removeFace(a, teacherId), [`/p/${teacherId}`]);
+export const assignOldFace = async (oldId: string, teacherId: string) => run((a) => faces.assignOldFace(a, oldId, teacherId), [`/p/${teacherId}`]);
+export const discardOldFace = async (oldId: string) => run((a) => faces.discardOldFace(a, oldId));
+export const transferFaces = async () => run((a) => faces.runFaceTransfer(a));
 
 export const setTrust = async (userId: string, trust: Trust) => run((a) => ops.setTrust(a, userId, trust));
 export const setPersonRole = async (userId: string, role: "student" | "moderator") => run((a) => ops.setPersonRole(a, userId, role));

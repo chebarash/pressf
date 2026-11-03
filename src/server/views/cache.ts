@@ -42,8 +42,21 @@ export function publicCache<A extends unknown[], R>(
   };
 }
 
+const listeners = new Set<() => void>();
+
+/** In-process copies of public data (the search index) register here to be dropped on any invalidation. */
+export function onInvalidate(fn: () => void) {
+  listeners.add(fn);
+}
+
+/** Drops the in-process copies without touching Next tags (admin decisions expire their own tags). */
+export function dropLocalCopies() {
+  for (const fn of listeners) fn();
+}
+
 /** Marks tagged data stale; the next visit serves stale and refreshes in the background. */
 export function invalidate(...tags: string[]) {
+  dropLocalCopies();
   for (const tag of new Set(tags)) {
     try {
       revalidateTag(tag, "max");

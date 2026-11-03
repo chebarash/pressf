@@ -89,12 +89,12 @@ describe("1. professor background from the LMS staff profile", () => {
     await db().insert(faces).values({ teacherId: "T1", storageKey: "faces/t1.png" });
     const p = (await views.professor("T1", null, NOW))!;
     expect(p).toMatchObject({
-      position: "Senior Lecturer", department: "Department of Mathematics", research: "Probability", since: "Fall 2023", years: 3, face: "/faces/T1",
+      position: "Senior Lecturer", department: "Department of Mathematics", research: "Probability", since: "Fall 2023", years: 3, face: expect.stringMatching(/^\/faces\/T1\?v=[a-z0-9]+$/),
       education: [expect.objectContaining({ degree: "PhD" }), expect.objectContaining({ degree: "MSc" })],
       publications: [expect.objectContaining({ title: "Stochastic models of growth" })],
     });
     const list = await views.professors(null);
-    expect(list.all.find((r) => r.id === "T1")).toMatchObject({ department: "Department of Mathematics", face: "/faces/T1" });
+    expect(list.all.find((r) => r.id === "T1")).toMatchObject({ department: "Department of Mathematics", face: expect.stringMatching(/^\/faces\/T1\?v=[a-z0-9]+$/) });
     expect(list.all.find((r) => r.id === "T2")?.face).toBeNull();
   });
 
@@ -268,7 +268,7 @@ describe("guest home, faces, attendance, desktop extras", () => {
     const g = await views.guestHome();
     expect(g.guest).toBe(true);
     expect(g.popular.map((c) => c.code)).toEqual(["PHYS101", "MATH111"]);
-    expect(g.popular[1].teacher).toEqual({ id: "T1", name: "Gonçalo Pinto", face: "/faces/T1" });
+    expect(g.popular[1].teacher).toEqual({ id: "T1", name: "Gonçalo Pinto", face: expect.stringMatching(/^\/faces\/T1\?v=[a-z0-9]+$/) });
     expect(g.freshFiles[0]).toMatchObject({ id: "F1", title: "Midterm review slides", course: "Calculus 1", source: { kind: "lms" }, href: "/f/F1" });
     expect(JSON.stringify(g.freshFiles)).not.toMatch(/storage|url/i);
   });
@@ -276,10 +276,10 @@ describe("guest home, faces, attendance, desktop extras", () => {
   it("puts faces on course cards and teacher entries", async () => {
     await db().insert(faces).values({ teacherId: "T1", storageKey: "faces/t1.png" });
     const t = (await views.today(userId, NOW))!;
-    expect(t.courses.find((c) => c.code === "MATH111")?.teacher).toEqual({ id: "T1", name: "Gonçalo Pinto", face: "/faces/T1" });
+    expect(t.courses.find((c) => c.code === "MATH111")?.teacher).toEqual({ id: "T1", name: "Gonçalo Pinto", face: expect.stringMatching(/^\/faces\/T1\?v=[a-z0-9]+$/) });
     expect(t.courses.find((c) => c.code === "PHYS101")?.teacher?.face).toBeNull();
     const c = (await views.course("MATH111", null, { userId }, NOW))!;
-    expect(c.teachers[0].face).toBe("/faces/T1");
+    expect(c.teachers[0].face).toMatch(/^\/faces\/T1\?v=/);
     expect(c.myCourses?.map((x) => x.code)).toEqual(["MATH111", "PHYS101"]);
     expect((await views.course("MATH111", null, null, NOW))!.myCourses).toBeNull();
   });
