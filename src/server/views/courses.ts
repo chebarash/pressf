@@ -1,6 +1,6 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { teacherNamesByCode } from "@/server/views/shared";
-import { roleOf } from "@/core/people";
+import { courseTitle, roleOf } from "@/core/people";
 import type { RatingInput, TagShare, TeacherRole, TeacherTag } from "@/core/ratings";
 import { dayInfo, termMatches, termOfDate } from "@/core/semester";
 import { termKey } from "@/core/ratings";
@@ -54,7 +54,7 @@ export async function courseCards(student: Student, courses: ProgressCourse[]): 
     const slots = slotsLabel(lessons.map((l) => ({ weekday: (l.day + 1) % 7, time: l.starts })));
     const room = lessons.find((l) => l.room)?.room;
     return {
-      courseId: c.courseId, code: c.code, name: c.name, recommendPct: recommendOf(ratings[c.code]), teacher: t ? { id: t.id, name: t.name, face: t.face } : null,
+      courseId: c.courseId, code: c.code, name: courseTitle(c.name), recommendPct: recommendOf(ratings[c.code]), teacher: t ? { id: t.id, name: t.name, face: t.face } : null,
       when: slots ? `${slots}${room ? ` · ${room}` : ""}` : null, mark: c.mark, href: c.code ? `/c/${c.code}` : c.href,
     };
   });
@@ -276,7 +276,7 @@ const coursePublic = publicCache(
       if (n && !topics[n]) topics[n] = t.topic;
     }
     return {
-      code, name: rows[0].name, rows: rows.map((r) => ({ id: r.id, semesterId: r.semesterId, credits: r.credits })),
+      code, name: courseTitle(rows[0].name), rows: rows.map((r) => ({ id: r.id, semesterId: r.semesterId, credits: r.credits })),
       terms, ratings: ratings[code], anonymous, teachersByCourse, syllabus, topics, totalWeeks: 16,
     };
   },
@@ -304,7 +304,8 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
   const courseId = (picked.courseIds.find((id) => mine.some((m) => m.subjectId === id)) ?? picked.courseId);
 
   const openIds = new Set(student?.sync.semesters.filter((s) => s.open).map((s) => s.id) ?? []);
-  const taken = mine.find((m) => picked.courseIds.includes(m.subjectId)) ?? mine[0];
+  // "You in this course" belongs to the semester the student took it in, not to every semester's page.
+  const taken = mine.find((m) => picked.courseIds.includes(m.subjectId)) ?? (term ? undefined : mine[0]);
   const termStatus: CourseView["termStatus"] = taken && picked.courseIds.includes(taken.subjectId) ? (openIds.has(taken.semesterId) ? "now" : "took") : picked.current ? "now" : null;
 
   const [allFiles, progressRows, queue, rated] = await Promise.all([
@@ -338,7 +339,8 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
     ? [...new Set([...Array.from({ length: pub.totalWeeks }, (_, i) => i + 1), ...files.map((f) => f.week)])]
         .sort((a, b) => (a ?? 99) - (b ?? 99))
         .map((w) => ({ week: w, topic: w ? pub.topics[w] ?? null : null, current: picked.current && w === currentWeek, files: files.filter((f) => f.week === w) }))
-        .filter((w) => w.week !== null || w.files.length)
+        // Only weeks with something in them, on both platforms; an empty week says nothing.
+        .filter((w) => w.files.length > 0)
     : null;
   const byType: Partial<Record<FileType, number>> = {};
   for (const f of files ?? []) byType[f.type] = (byType[f.type] ?? 0) + 1;

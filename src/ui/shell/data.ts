@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { cache } from "react";
 import { getUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { lmsAccounts, lmsCache, users } from "@/lib/db/schema";
+import { lmsAccounts, lmsCache, users, userState } from "@/lib/db/schema";
 import type { UserCache } from "@/lib/lms/cache";
 import { termName } from "@/server/sync/types";
 
@@ -31,9 +31,14 @@ export const shellUser = cache(async (): Promise<ShellUser | null> => {
   const user = await getUser();
   if (!user) return null;
   const [row] = await db()
-    .select({ telegramId: users.telegramId, data: lmsCache.data, syncedAt: lmsCache.syncedAt, status: lmsAccounts.status })
+    .select({
+      telegramId: users.telegramId, data: lmsCache.data, syncedAt: lmsCache.syncedAt, status: lmsAccounts.status,
+      // The background sync's time (grades, attendance, files), every ~20 min; the profile cache refreshes only every 6 h.
+      lastSync: sql<string | null>`${userState.snapshot}->>'at'`,
+    })
     .from(users)
     .leftJoin(lmsCache, eq(lmsCache.userId, users.id))
+    .leftJoin(userState, eq(userState.userId, users.id))
     .leftJoin(lmsAccounts, eq(lmsAccounts.userId, users.id))
     .where(eq(users.id, user.id));
   const data = row?.data as UserCache | null | undefined;
@@ -44,7 +49,7 @@ export const shellUser = cache(async (): Promise<ShellUser | null> => {
     subtitle: (data?.enrollment?.semesterName ? termName(data.enrollment.semesterName) : null) ?? user.email,
     telegramLinked: !!row?.telegramId,
     needsReauth: row?.status === "invalid",
-    syncedAt: row?.syncedAt ? row.syncedAt.toISOString() : null,
+    syncedAt: [row?.syncedAt?.toISOString() ?? null, row?.lastSync ?? null].filter((v): v is string => !!v && !Number.isNaN(Date.parse(v))).sort().at(-1) ?? null,
     email: user.email,
   };
 });
