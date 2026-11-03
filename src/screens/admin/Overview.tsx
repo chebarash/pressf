@@ -31,7 +31,7 @@ export function Overview({ data, canSystem }: { data: OverviewData; canSystem: b
               </span>
               <span className={cx(s.td, s.tdStrong)} style={{ width: 230 }}>{r.title}</span>
               <span className={cx(s.td, s.tdGrow)}>{r.meta}</span>
-              <span className={s.td} style={{ width: 48 }}>{r.age}</span>
+              <span className={s.td} style={{ width: 36, overflow: "visible" }}>{r.age}</span>
             </Link>
           ))}
         </section>

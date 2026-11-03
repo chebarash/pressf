@@ -37,7 +37,7 @@ export function System({ data }: { data: SystemData }) {
           <span className={s.td} style={{ width: 150 }}>EVERY</span>
           <span className={s.td} style={{ width: 140 }}>LAST RUN</span>
           <span className={s.td} style={{ width: 120 }}>RESULT</span>
-          <span className={s.td} style={{ width: 160 }} />
+          <span className={s.td} style={{ width: 110 }} />
         </div>
         {data.jobs.map((j) => (
           <div key={j.id} className={s.tr}>
@@ -45,7 +45,7 @@ export function System({ data }: { data: SystemData }) {
             <span className={s.td} style={{ width: 150 }}>{j.every}</span>
             <span className={s.td} style={{ width: 140 }} title={j.lastRun ?? undefined}>{j.lastRunText}</span>
             <span className={s.td} style={{ width: 120 }}>{j.result}</span>
-            <span className={cx(s.td, s.tdChip, s.hstack)} style={{ width: 160 }}>
+            <span className={cx(s.td, s.tdChip, s.hstack)} style={{ width: 110 }}>
               <Chip tone={j.ok ? "moss" : "mustard"}>{j.ok ? "OK" : "Late"}</Chip>
               {j.run && (
                 <button type="button" className={s.link} style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }} onClick={() => run(j.run!, j.name)} disabled={pending}>
@@ -58,7 +58,7 @@ export function System({ data }: { data: SystemData }) {
       </div>
       <div className={s.row2}>
         <section className={s.cardSoft} style={{ flex: "1 0 0" }}>
-          <h2 className={s.h3}>LMS</h2>
+          <h2 className={s.h4}>LMS</h2>
           <KV k="API" wide>{data.lms.api}</KV>
           <KV k="Sign-ins" wide>{data.lms.signIns}</KV>
           <KV k="Pause syncing" wide>
@@ -71,14 +71,14 @@ export function System({ data }: { data: SystemData }) {
           </KV>
         </section>
         <section className={s.cardSoft} style={{ flex: "1 0 0" }}>
-          <h2 className={s.h3}>Bot</h2>
+          <h2 className={s.h4}>Bot</h2>
           <KV k="Linked" wide>{data.bot.linked.toLocaleString("en-US")} students</KV>
           <KV k="Delivered" wide>{data.bot.delivered}</KV>
           <KV k="Blocked us" wide>Not tracked yet</KV>
         </section>
       </div>
-      <section className={cx(s.cardSoft, s.tintMustard)} style={{ gap: 10 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-on-warm)" }}>
+      <section className={cx(s.cardSoft, s.tintMustard)} style={{ gap: 8 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
           Maintenance banner — shows &apos;Press F is updating, back in a few minutes&apos; to everyone{maintenance ? " · on now" : ""}
         </div>
         <div>
