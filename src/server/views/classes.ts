@@ -1,4 +1,5 @@
 import { mergeBlocks, type ClassBlock, type ClassEvent } from "@/core/agenda";
+import { sameRoom } from "@/server/sync/convert";
 import { dayInfo, weekOf } from "@/core/semester";
 import { addDays, clock, dayStart, localDay } from "@/core/time";
 import { coursesByCodes, coursesByIds, kindOf, teachersByIds, type CourseRef } from "./shared";
@@ -71,7 +72,8 @@ async function events(student: Student, fromDay: string, toDay: string, today: s
     return {
       courseId: c.subjectId, courseName: course?.name ?? "Class", code: course?.code, kind: c.kind,
       start: new Date(c.start), end: new Date(c.end), room: c.room ?? undefined, teacherId: c.teacherId, lessonId: c.lessonId ?? undefined,
-      changedFrom: c.was ?? undefined,
+      // "306" → "MATH 306" is the same room written two ways, not a move.
+      changedFrom: c.was && !sameRoom(c.was, c.room) ? c.was : undefined,
     };
   });
   for (const day of patternDays) {

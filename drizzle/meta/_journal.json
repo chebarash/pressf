@@ -218,6 +218,13 @@
       "when": 1793747432703,
       "tag": "0030_reset_schedules_room_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793748453774,
+      "tag": "0031_drop_room_alerts_again",
+      "breakpoints": true
     }
   ]
 }
