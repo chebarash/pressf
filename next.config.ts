@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
     "/og/[...slug]": ["./src/server/covers/assets/*"],
     // Routes that brand files (the cover reads these fonts and the mascot at run time).
     "/f/[id]/download": ["./src/server/covers/assets/*"],
+    "/f/[id]/raw": ["./src/server/covers/assets/*"],
     "/api/telegram/send-file": ["./src/server/covers/assets/*"],  },
 };
 

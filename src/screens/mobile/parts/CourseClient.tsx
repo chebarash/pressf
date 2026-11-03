@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { byWeek } from "@/core/files";
-import { openTelegramLink } from "@/platform/client";
+import { openTelegramLink, uploadViaBot } from "@/platform/client";
 import { Chip, Collapse, cx, Tag } from "@/ui/components";
 import { Sheet } from "@/ui/shell/overlays";
 import { CalendarIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon } from "@/ui/icons";
@@ -145,6 +145,28 @@ export function FilesBrowser({ files, topics }: { files: FileItem[]; topics: Rec
         ))}
       </div>
     </>
+  );
+}
+
+/**
+ * "Share a file via the bot" (11.1): in the Mini App the bot writes the upload
+ * prompt for this course into the chat and the chat opens; elsewhere the
+ * t.me/<bot>?start=upload_<CODE> link. See uploadViaBot.
+ */
+export function UploadViaBot({ code, href, className, children }: { code: string; href: string; className?: string; children: ReactNode }) {
+  return (
+    <a
+      href={href}
+      className={className}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => {
+        e.preventDefault();
+        void uploadViaBot(code);
+      }}
+    >
+      {children}
+    </a>
   );
 }
 

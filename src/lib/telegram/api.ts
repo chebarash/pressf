@@ -137,7 +137,20 @@ export const answerInlineQuery = (id: string, results: InlineArticle[], opts: { 
     is_personal: opts.personal ?? false,
   });
 
-export const answerCallback = (id: string, text?: string, alert = !!text) =>
+/** A message a Mini App user can send with WebApp.shareMessage(id) (Bot API 8.0). */
+export type PreparedInlineMessage = { id: string; expiration_date: number };
+
+/** Stores an inline result for one user to share from the Mini App (any chat type except bots). */
+export const savePreparedInlineMessage = (userId: number | string, result: InlineArticle) =>
+  call<PreparedInlineMessage>("savePreparedInlineMessage", {
+    user_id: Number(userId),
+    result,
+    allow_user_chats: true,
+    allow_group_chats: true,
+    allow_channel_chats: true,
+  });
+
+export const answerCallback =(id: string, text?: string, alert = !!text) =>
   call<boolean>("answerCallbackQuery", {
     callback_query_id: id,
     text,

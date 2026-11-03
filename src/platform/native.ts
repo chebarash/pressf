@@ -4,6 +4,7 @@
  * Telegram (an in-app dialog, localStorage, a normal link) so screens never
  * branch on the platform themselves.
  */
+import { BOT_USERNAME, startParam, uploadLink, webUrl, type Target } from "@/core/links";
 import { dialog } from "./store";
 import { supports, webApp, type HomeScreenStatus, type PopupButton } from "./telegram";
 
@@ -124,30 +125,127 @@ export function downloadFile(url: string, fileName: string) {
   a.remove();
 }
 
-/** t.me links stay inside Telegram; a new tab elsewhere. */
+/** A link to the bot's own chat (t.me/pressfapp, ?start=…), not to its Mini App (?startapp=…). */
+const isBotChat = (url: string) => {
+  try {
+    const u = new URL(url);
+    return u.hostname === "t.me" && u.pathname.replace(/\/$/, "").toLowerCase() === `/${BOT_USERNAME}` && !u.searchParams.has("startapp");
+  } catch {
+    return false;
+  }
+};
+
+/** t.me links stay inside Telegram; a new tab elsewhere. The bot's own chat closes the Mini App so it shows. */
 export function openTelegramLink(url: string) {
   const app = webApp();
+  if (app && isBotChat(url)) return openBotChat(app, url);
   if (app) return app.openTelegramLink(url);
   window.open(url, "_blank", "noopener");
 }
 
+/** How a share went out (for tests and callers that care). */
+export type ShareRoute = "prepared" | "inline" | "link" | "web-share" | "copy" | "tab" | "none";
+
+const shareLink = (pageUrl: string, text?: string) =>
+  `https://t.me/share/url?url=${encodeURIComponent(pageUrl)}${text ? `&text=${encodeURIComponent(text)}` : ""}`;
+
+const post = (url: string, body: object) =>
+  fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin" });
+
+/** The bot's share card prepared for this user (POST /api/telegram/share), or null when that fails. */
+async function prepareShare(target: Target, initData: string): Promise<{ id: string; receipt: string } | null> {
+  const ref = target.to === "course" ? { kind: "course", id: target.code } : target.to === "file" || target.to === "professor" ? { kind: target.to, id: target.id } : null;
+  if (!ref) return null;
+  try {
+    const response = await post("/api/telegram/share", { ...ref, initData });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { id?: string; receipt?: string };
+    return body.id && body.receipt ? { id: body.id, receipt: body.receipt } : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Share a Press F page. In the Mini App: Telegram's chat picker with the bot's
- * inline query typed in ("c_MATH111"), so the message is the bot's rich card and
- * the send is counted. Elsewhere (or an old Telegram): a t.me/share link to the page.
+ * Share a Press F page (course, file, professor), the ways Telegram designed, in order:
+ * 1. Bot API 8.0+: the bot prepares its rich card for this user
+ *    (savePreparedInlineMessage) and WebApp.shareMessage opens the chat picker;
+ *    a sent message is counted (prepared messages get no chosen_inline_result).
+ * 2. Bot API 6.7+: switchInlineQuery with "c_MATH111" typed in (inline mode; counted by the webhook).
+ * 3. Older Telegram: a t.me/share link to the page.
+ * Outside Telegram: the system share sheet, else copy the link, else t.me/share in a new tab.
  */
-export function shareInline(query: string, pageUrl: string, text?: string) {
+export async function shareTarget(target: Target, text?: string): Promise<ShareRoute> {
+  const pageUrl = webUrl(target);
   const app = webApp();
-  if (app?.switchInlineQuery && app.isVersionAtLeast("6.7")) {
+  if (app) {
+    if (app.shareMessage && app.isVersionAtLeast("8.0")) {
+      const prepared = await prepareShare(target, app.initData);
+      if (prepared) {
+        try {
+          app.shareMessage(prepared.id, (sent) => {
+            if (sent) void post("/api/telegram/share", { sent: prepared.receipt }).catch(() => {});
+          });
+          return "prepared";
+        } catch {
+          // Fall through to inline mode.
+        }
+      }
+    }
+    if (app.switchInlineQuery && app.isVersionAtLeast("6.7")) {
+      try {
+        app.switchInlineQuery(startParam(target), ["users", "groups", "channels"]);
+        return "inline";
+      } catch {
+        // Inline mode off for the bot: fall through to the plain share link.
+      }
+    }
+    app.openTelegramLink(shareLink(pageUrl, text));
+    return "link";
+  }
+  if (typeof navigator !== "undefined" && navigator.share) {
     try {
-      return app.switchInlineQuery(query, ["users", "groups", "channels"]);
-    } catch {
-      // Inline mode off for the bot: fall through to the plain share link.
+      await navigator.share({ url: pageUrl, text });
+      return "web-share";
+    } catch (error) {
+      // Closing the sheet is a choice, not a failure.
+      if (error instanceof Error && error.name === "AbortError") return "none";
     }
   }
-  const share = `https://t.me/share/url?url=${encodeURIComponent(pageUrl)}${text ? `&text=${encodeURIComponent(text)}` : ""}`;
-  if (app) return app.openTelegramLink(share);
-  window.open(share, "_blank", "noopener");
+  if (typeof navigator !== "undefined" && navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(pageUrl);
+      void popup({ message: "Link copied", buttons: [{ id: "ok", text: "OK" }] });
+      return "copy";
+    } catch {
+      // Clipboard blocked: open the share link instead.
+    }
+  }
+  window.open(shareLink(pageUrl, text), "_blank", "noopener");
+  return "tab";
+}
+
+/** Opens the bot's own chat from its Mini App: the chat opens under the Mini App, so close the Mini App to land in it. */
+function openBotChat(app: NonNullable<ReturnType<typeof webApp>>, url: string) {
+  app.openTelegramLink(url);
+  setTimeout(() => app.close(), 150);
+}
+
+/**
+ * "Share a file via the bot" for a course. In the Mini App the bot writes the
+ * upload prompt (course picked) into the student's chat, then the chat opens
+ * and the Mini App closes. If the bot can't write to them yet, the
+ * t.me/<bot>?start=upload_<CODE> link starts the same flow. Elsewhere, the link in a new tab.
+ */
+export async function uploadViaBot(courseCode: string): Promise<"sent" | "link" | "tab"> {
+  const app = webApp();
+  if (!app) {
+    window.open(uploadLink(courseCode), "_blank", "noopener");
+    return "tab";
+  }
+  const ok = await post("/api/telegram/upload", { code: courseCode }).then((r) => r.ok, () => false);
+  openBotChat(app, ok ? `https://t.me/${BOT_USERNAME}` : uploadLink(courseCode));
+  return ok ? "sent" : "link";
 }
 
 /** External sites leave through Telegram's browser; a new tab elsewhere. */
