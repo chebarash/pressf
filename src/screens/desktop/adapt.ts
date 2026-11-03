@@ -10,6 +10,7 @@ import { addDays, localDay, localMinutes, toLocal } from "@/core/time";
 import type * as V from "@/server/views";
 import type { RatingSummaryProps } from "@/ui/components";
 import type * as M from "./model";
+import { slugify } from "@/screens/mobile/mc/format";
 
 const TZ = "Asia/Tashkent";
 const join = (...parts: Array<string | number | null | undefined | false>) => parts.filter((p) => p !== null && p !== undefined && p !== false && p !== "").join(" · ");
@@ -383,10 +384,22 @@ export function professor(v: V.ProfessorView): M.ProfessorData {
     : null;
   const mention = v.anonymous.latest[0];
   return {
-    crumbs: [{ label: "Professors", href: "/professors" }, { label: join(v.school, v.department) || v.name }],
+    // Professors / School / Department, each opening the list filtered to it.
+    crumbs: [
+      { label: "Professors", href: "/professors" },
+      ...(v.school ? [{ label: v.school, href: `/professors?school=${slugify(v.school)}` }] : []),
+      ...(v.department ? [{ label: v.department, href: `/professors?${v.school ? `school=${slugify(v.school)}&` : ""}dept=${slugify(v.department)}` }] : []),
+      ...(!v.school && !v.department ? [{ label: v.name }] : []),
+    ],
     name: v.name,
     face: v.face ?? null,
     title: join(v.position, v.department, v.school),
+    contact: [
+      ...(v.office ? [{ label: `Office ${v.office}` }] : []),
+      ...(v.email ? [{ label: v.email, href: `mailto:${v.email}` }] : []),
+      ...(v.hours ? [{ label: v.hours }] : []),
+    ],
+    note: v.note ?? null,
     stats: [
       ...(s.enough ? [{ value: `${s.pressFPct}%`, label: "pressed F", accent: true }] : []),
       { value: String(s.count), label: "students rated" },
@@ -415,10 +428,10 @@ function background(v: V.ProfessorView): M.ProfessorData["background"] {
   return out;
 }
 
-export function professors(v: V.ProfessorsView): M.ProfessorsData {
+export function professors(v: V.ProfessorsView, initial?: M.ProfessorsData["initial"]): M.ProfessorsData {
   const yours = new Set(v.yours.map((p) => p.id));
   const rows = [...v.yours, ...v.all.filter((p) => !yours.has(p.id))];
-  return { schools: v.schools, items: rows.map((p) => ({ id: p.id, name: p.name, face: p.face ?? null, dept: p.department ?? "", school: p.school, courses: p.course ?? "", pct: p.pressFPct, href: p.href, yours: yours.has(p.id) })) };
+  return { schools: v.schools, departments: v.departments ?? [], initial, items: rows.map((p) => ({ id: p.id, name: p.name, face: p.face ?? null, dept: p.department ?? "", school: p.school, courses: p.course ?? "", pct: p.pressFPct, href: p.href, yours: yours.has(p.id) })) };
 }
 
 /* ---------- Progress ---------- */

@@ -1,8 +1,10 @@
+import Link from "next/link";
+import { Fragment } from "react";
 import type { ProfessorView } from "@/server/views";
 import { Chip, ExternalIcon, Face, RatingSummary, SendIcon, Tag } from "./mc/kit";
 import { MainButton } from "./mc/client";
 import { cx, Screen } from "./mc/parts";
-import { termShort, trendDelta } from "./mc/format";
+import { slugify, termShort, trendDelta } from "./mc/format";
 import s from "./mc/mc.module.css";
 import c from "./mc/screens.module.css";
 
@@ -30,7 +32,18 @@ function ProfileEntry({ title, meta, href }: { title: string; meta: string; href
 /** Mobile Professor (Figma 7.4, 7.5 guest, 7.9 few ratings). Faces are drawn, never photos. */
 export default function Professor({ data }: { data: ProfessorView }) {
   const sum = data.summary;
-  const line = [data.position, data.department, data.school].filter(Boolean).join(" · ");
+  const line = [data.position, data.department && !data.school ? data.department : null].filter(Boolean).join(" · ");
+  // School → department, each opening the professor list filtered to it.
+  const crumbs = [
+    ...(data.school ? [{ label: data.school, href: `/professors?school=${slugify(data.school)}` }] : []),
+    ...(data.school && data.department ? [{ label: data.department, href: `/professors?school=${slugify(data.school)}&dept=${slugify(data.department)}` }] : []),
+  ];
+  // Office, email (mailto) and office hours, from newuu.uz or the admin.
+  const contact: Array<{ label: string; href?: string }> = [
+    ...(data.office ? [{ label: `Office ${data.office}` }] : []),
+    ...(data.email ? [{ label: data.email, href: `mailto:${data.email}` }] : []),
+    ...(data.hours ? [{ label: data.hours }] : []),
+  ];
   const chips = [...new Map(data.courses.map((k) => [k.code, k])).values()];
   const ratedCourses = data.courses.filter((k) => k.pressFPct !== null);
   // 7.5: guests see no Education, Publications or the staff-profile note.
@@ -42,6 +55,27 @@ export default function Professor({ data }: { data: ProfessorView }) {
           <Face src={data.face} size={160} name={data.name} priority />
           <h1 className={cx(s.title, "t-mobile-title")}>{data.name}</h1>
           {line ? <p className={c.profLine}>{line}</p> : null}
+          {crumbs.length ? (
+            <nav aria-label="School and department" className={cx(s.t14, s.soft)}>
+              {crumbs.map((k, i) => (
+                <Fragment key={k.href}>
+                  {i > 0 ? " → " : null}
+                  <Link href={k.href} prefetch={false} className={c.profContact}>{k.label}</Link>
+                </Fragment>
+              ))}
+            </nav>
+          ) : null}
+          {contact.length ? (
+            <p className={cx(s.p0, s.t14, s.soft)}>
+              {contact.map((k, i) => (
+                <Fragment key={k.label}>
+                  {i > 0 ? " · " : null}
+                  {k.href ? <a href={k.href} className={c.profContact}>{k.label}</a> : k.label}
+                </Fragment>
+              ))}
+            </p>
+          ) : null}
+          {data.note ? <p className={cx(s.p0, s.t12, s.soft)}>{data.note}</p> : null}
           {sum.enough ? (
             <RatingSummary
               byline={`By ${sum.count} students · all semesters`}

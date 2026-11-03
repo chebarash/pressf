@@ -4,13 +4,14 @@ import { deadline, type Deadline, type DeadlineStatus } from "@/core/deadlines";
 import { describeFile, fileList, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
 import { attendanceMark, gradeMark, MARK_LABEL, type AttendanceMark, type GradebookCourse, type GradeMark } from "@/core/feed-marks";
 import type { FeedItem, FeedKind } from "@/core/notifications";
+import { mergeProfile } from "@/core/faculty";
 import { roleOf, teacherName } from "@/core/people";
 import { summarizeCourse, summarizeTeacher, toHours, type CourseSummary, type StoredRating, type TeacherRole, type TeacherSummary } from "@/core/ratings";
 import { weekOf as calendarWeekOf } from "@/core/semester";
 import { ago, clock, localDay, localWeekday, shortDate, toLocal, until } from "@/core/time";
 import { shownAs } from "@/core/uploads";
 import { db } from "@/lib/db";
-import { courseRatings, faces, lmsCourseTeachers, lmsCourses, lmsFiles, lmsSemesters, lmsTeachers, mentionLinks, mentions, teacherRatings, uploads, type LmsSemesterPhase } from "@/lib/db/schema";
+import { courseRatings, faces, facultyPeople, lmsCourseTeachers, lmsCourses, lmsFiles, lmsSemesters, lmsTeachers, mentionLinks, mentions, teacherOverrides, teacherRatings, uploads, type LmsSemesterPhase } from "@/lib/db/schema";
 import { termName } from "@/server/sync/types";
 import type { LmsHomework, LmsLesson, LmsSubject } from "@/lib/lms/types";
 import { DECISION_TAGS, fileOverridesMap, overlayAll, postVisible } from "@/server/decisions";
@@ -62,19 +63,33 @@ export type TeacherRef = {
   name: string;
   position: string | null;
   department: string | null;
+  /** School from the admin or the faculty site; null when only the LMS knows (callers derive it from the course). */
+  school: string | null;
   /** Drawn face URL (`/faces/<id>`), null when none is assigned. */
   face: string | null;
 };
 
+/** Teachers as shown: admin overrides, then the faculty site (newuu.uz), then the LMS. */
 export async function teachersByIds(ids: string[]): Promise<Map<string, TeacherRef>> {
   const unique = [...new Set(ids.filter(Boolean))];
   if (!unique.length) return new Map();
-  const rows = await db()
-    .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, surName: lmsTeachers.surName, position: lmsTeachers.position, department: lmsTeachers.department, faceAt: faces.updatedAt })
-    .from(lmsTeachers)
-    .leftJoin(faces, eq(faces.teacherId, lmsTeachers.id))
-    .where(inArray(lmsTeachers.id, unique));
-  return new Map(rows.map((t) => [t.id, { id: t.id, name: teacherName(t), position: t.position, department: t.department, face: t.faceAt ? faceUrl(t.id, t.faceAt) : null }]));
+  const [rows, imported, overrides] = await Promise.all([
+    db()
+      .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, surName: lmsTeachers.surName, position: lmsTeachers.position, department: lmsTeachers.department, faceAt: faces.updatedAt })
+      .from(lmsTeachers)
+      .leftJoin(faces, eq(faces.teacherId, lmsTeachers.id))
+      .where(inArray(lmsTeachers.id, unique)),
+    db().select({ teacherId: facultyPeople.teacherId, position: facultyPeople.position, department: facultyPeople.department, school: facultyPeople.school }).from(facultyPeople).where(inArray(facultyPeople.teacherId, unique)),
+    db().select().from(teacherOverrides).where(inArray(teacherOverrides.teacherId, unique)),
+  ]);
+  const site = new Map(imported.map((r) => [r.teacherId!, r]));
+  const over = new Map(overrides.map((r) => [r.teacherId, r]));
+  return new Map(
+    rows.map((t) => {
+      const p = mergeProfile({ name: teacherName(t), position: t.position, department: t.department }, site.get(t.id), over.get(t.id));
+      return [t.id, { id: t.id, name: p.name ?? teacherName(t), position: p.position, department: p.department, school: p.school, face: t.faceAt ? faceUrl(t.id, t.faceAt) : null }];
+    })
+  );
 }
 
 /**

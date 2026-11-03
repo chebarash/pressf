@@ -548,3 +548,52 @@ export const adminMarks = pgTable(
   },
   (t) => [primaryKey({ columns: [t.kind, t.target] })]
 );
+
+/**
+ * People from the university's public faculty kiosk (interactive.newuu.uz/faculty):
+ * office, email, position, department and school. Never the photo. One row per
+ * site person; `teacherId` links it to an LMS teacher (`lms_teachers.id`) once
+ * matched by name (`match: auto`) or by an admin (`manual`). `dismissed` rows are
+ * kept out of the Unmatched list. Every harvest updates the fields, never a
+ * manual link or a dismissal; a failed fetch keeps the previous values.
+ */
+export const facultyPeople = pgTable(
+  "faculty_people",
+  {
+    /** The site's person id. */
+    siteId: integer("site_id").primaryKey(),
+    /** The site's department listing the details came from. */
+    siteDepartmentId: integer("site_department_id"),
+    name: text("name").notNull(),
+    position: text("position"),
+    department: text("department"),
+    school: text("school"),
+    office: text("office"),
+    email: text("email"),
+    teacherId: text("teacher_id"),
+    match: text("match").$type<"auto" | "manual" | "dismissed" | "none">().notNull().default("none"),
+    /** LMS teacher ids the name could belong to, best first (for the admin's one-click assign). */
+    candidates: jsonb("candidates").$type<string[]>().notNull().default([]),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("faculty_people_teacher").on(t.teacherId)]
+);
+
+/**
+ * Admin edits to a professor's profile. Each set field wins over the imported
+ * (faculty site) and LMS values and survives every harvest; null means "use
+ * the imported or LMS value". `note` and `hours` are shown on the page.
+ */
+export const teacherOverrides = pgTable("teacher_overrides", {
+  teacherId: text("teacher_id").primaryKey(),
+  name: text("name"),
+  position: text("position"),
+  department: text("department"),
+  school: text("school"),
+  office: text("office"),
+  email: text("email"),
+  hours: text("hours"),
+  note: text("note"),
+  updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

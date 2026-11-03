@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { env } from "@/lib/env";
 import { harvestAll } from "@/lib/lms/harvest";
 import { settingIsOn } from "@/server/decisions";
+import { importFaculty } from "@/server/faculty";
 
 /** Harvests the LMS catalog and curricula into our tables. Long-running; guarded by CRON_SECRET. */
 export async function POST(request: Request) {
@@ -14,7 +15,12 @@ export async function POST(request: Request) {
   if (await settingIsOn("sync-paused")) return Response.json({ paused: true });
   try {
     const result = await harvestAll();
-    return Response.json(result, { status: "error" in result ? 503 : 200 });
+    // Office, email, department and school from the university's faculty site, linked to the harvested teachers.
+    // Its own failures keep the previous data and never fail the harvest.
+    const newuu = await importFaculty()
+      .then(({ matched, updated, unmatched, people, failed, error }) => ({ matched, updated, unmatched, people, failed, ...(error ? { error } : {}) }))
+      .catch((error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
+    return Response.json({ ...result, newuu }, { status: "error" in result ? 503 : 200 });
   } catch (error) {
     console.error("Harvest failed", error);
     return Response.json({ error: "failed", message: error instanceof Error ? error.message : String(error) }, { status: 500 });
