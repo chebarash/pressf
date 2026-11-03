@@ -142,6 +142,9 @@
   transition: transform var(--motion-press) var(--ease-standard), box-shadow var(--motion-press) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard);
 }
 .file:hover { background: var(--bg-hover); }
+/* Rows and cards lift a step under the pointer (transform only). */
+@media (hover: hover) { a.file:hover, a.feed:hover, button.feed:hover, a.mentionLink:hover { transform: translateY(-1px); } }
+.file:active, .feed:active { transform: translateY(1px); }
 .fileTitle { font: 600 15px/normal var(--font-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fileMeta { display: flex; align-items: center; gap: 12px; font: 400 12px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; }
 
@@ -160,6 +163,7 @@
   width: 100%;
   font: inherit;
   cursor: pointer;
+  transition: transform var(--motion-fast) var(--ease-gentle), background-color var(--motion-fast) var(--ease-standard);
 }
 .feed:hover { background: var(--bg-hover); }
 .feedSelected, .feedSelected:hover { background: var(--bg-accent-soft); }
@@ -229,7 +233,7 @@
 .mentionFoot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .mentionFoot svg { color: var(--text-accent); }
 /* The whole mention card is the link to the post. */
-.mentionLink { color: inherit; text-decoration: none; cursor: pointer; }
+.mentionLink { color: inherit; text-decoration: none; cursor: pointer; transition: transform var(--motion-fast) var(--ease-gentle), background-color var(--motion-fast) var(--ease-standard); }
 .mentionLink:hover { background: var(--bg-hover); }
 .mentionLink:hover .cardLink { text-decoration: underline; text-underline-offset: 3px; }
 .mentionLink:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; }
@@ -243,7 +247,7 @@
 .inspector {
   background: var(--bg-surface);
   border-left: 1.5px solid var(--border-subtle);
-  padding: 28px var(--space-5) var(--space-5);
+  padding: var(--page-pad-top) var(--inspector-pad-x) var(--space-5);
   display: flex;
   flex-direction: column;
   gap: 14px;

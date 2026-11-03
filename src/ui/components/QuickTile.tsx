@@ -29,7 +29,7 @@ export function QuickTile({ label, info, icon, tone = "default", href, className
   );
   const cls = cx(s.tile, s[tone], className);
   return href ? (
-    <Link href={href} className={cls}>
+    <Link prefetch href={href} className={cls}>
       {body}
     </Link>
   ) : (

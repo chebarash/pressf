@@ -1,7 +1,7 @@
 /* Figma 4.10 To rate and the rating sheet 4.11–4.13, 4.19, 4.20. */
 /* Figma 4.10: one column, 12 px apart; 40 px at the end. */
-.body { display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-2); padding-bottom: 40px; }
-.title { margin: 0; font-family: var(--font-serif); font-size: 54px; font-weight: 400; line-height: 1.04; }
+.body { display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--m-pad-top); padding-bottom: var(--m-pad-bottom); }
+.title { margin: 0; font: 400 var(--m-title)/1 var(--font-serif); letter-spacing: -0.01em; }
 .progress { flex: none; height: 10px; overflow: hidden; border-radius: 5px; background: var(--border-subtle); }
 .progress span { display: block; height: 100%; border-radius: inherit; background: var(--rating-mid); }
 .group { display: contents; }

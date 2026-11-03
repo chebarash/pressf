@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import type { AttendanceStatus } from "@/core/attendance";
+import { CountUp } from "@/ui/components/CountUp";
 import { ChevronRightIcon } from "./kit";
 import s from "./mc.module.css";
 
@@ -18,10 +19,10 @@ export function Screen({ children, className, style }: { children: ReactNode; cl
 export const Chevron = () => <ChevronRightIcon size={18} className={s.chev} aria-hidden />;
 
 /** Figma Stat (4008:1457): serif number over a small label. */
-export function Stat({ value, label, size = "sm" }: { value: string; label: string; size?: "sm" | "kpi" }) {
+export function Stat({ value, label, size = "sm", count }: { value: string; label: string; size?: "sm" | "kpi"; /** Count the number up the first time it appears (Progress). */ count?: boolean }) {
   return (
     <div className={cx(s.stat, size === "kpi" && s.kpi)}>
-      <p className={cx(s.statValue, size === "sm" ? "t-display-sm" : s.kpiValue)}>{value}</p>
+      <p className={cx(s.statValue, size === "sm" ? "t-display-sm" : s.kpiValue)}>{count ? <CountUp value={value} id={label} /> : value}</p>
       <p className={cx(s.statLabel, size === "sm" ? "t-body-sm" : s.t12m)}>{label}</p>
     </div>
   );

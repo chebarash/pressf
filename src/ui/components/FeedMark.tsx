@@ -40,7 +40,7 @@ export function FeedMark({ grade, attendance, href, links = true, size = "row", 
   if (!grade && !attendance) return null;
   const progress = href ? (
     links ? (
-      <Link href={href} className={cx(s.progress, s.link)}>
+      <Link prefetch href={href} className={cx(s.progress, s.link)}>
         See progress
         <ChevronRightIcon size={14} />
       </Link>

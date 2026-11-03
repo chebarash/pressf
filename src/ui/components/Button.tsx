@@ -42,7 +42,7 @@ export function Button({ variant = "primary", size = "m", label, icon = false, l
   );
   if (href && !disabled) {
     return (
-      <Link href={href} className={cls} data-state={state} aria-busy={loading || undefined}>
+      <Link prefetch href={href} className={cls} data-state={state} aria-busy={loading || undefined}>
         {body}
       </Link>
     );

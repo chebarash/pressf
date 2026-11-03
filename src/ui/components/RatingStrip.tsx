@@ -49,7 +49,7 @@ export function RatingStrip({ recommend, hours, difficulty, href, className }: R
     </>
   );
   return href ? (
-    <Link href={href} className={cx(s.strip, className)}>
+    <Link prefetch href={href} className={cx(s.strip, className)}>
       {body}
     </Link>
   ) : (

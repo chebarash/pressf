@@ -8,7 +8,7 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 /** Figma 3.7 Timetable · loading: the frame paints, classes arrive. */
 export function TimetableLoading() {
   return (
-    <div className={cx(b.screen, b.noButton)} role="status" aria-label="Loading timetable">
+    <div className={cx(b.screen, b.noButton)} role="status" aria-busy="true" aria-label="Loading timetable">
       <header className={b.head}>
         <h1 className={b.title}>Timetable</h1>
         <Skeleton width={160} height={16} />
@@ -32,7 +32,7 @@ export function TimetableLoading() {
 /** Figma 4.17 Course · loading: header and tabs first, week blocks as placeholders. */
 export function CourseLoading() {
   return (
-    <div className={cx(b.screen, b.noButton)} role="status" aria-label="Loading course">
+    <div className={cx(b.screen, b.noButton)} role="status" aria-busy="true" aria-label="Loading course">
       <header className={c.header}>
         <div className={c.tags}>
           <Skeleton width={72} height={24} />

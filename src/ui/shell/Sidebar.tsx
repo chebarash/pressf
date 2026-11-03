@@ -112,7 +112,7 @@ export function Sidebar({ user, unread = 0, nextLabel = "Feb", inviteQr, onSearc
         </button>
       </div>
       {user ? (
-        <Link href="/me" className="sh-profile" aria-current={pathname.startsWith("/me") ? "page" : undefined}>
+        <Link prefetch href="/me" className="sh-profile" aria-current={pathname.startsWith("/me") ? "page" : undefined}>
           {/* Students get the drawn mascot face too: no real photos anywhere. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/mascot.png" alt="" width={36} height={36} />

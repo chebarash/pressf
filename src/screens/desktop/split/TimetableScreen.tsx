@@ -40,13 +40,13 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
           <p className={t.sub}>{data.weekLabel}</p>
           {data.nav && <ViewSwitch nav={data.nav} />}
           <nav className={t.weekNav} aria-label="Week">
-            <Link href={data.prevHref} className={t.navBtn} data-key="ArrowLeft" aria-label="Previous week">
+            <Link prefetch href={data.prevHref} className={t.navBtn} data-key="ArrowLeft" aria-label="Previous week">
               ‹
             </Link>
-            <Link href={data.todayHref} className={t.navBtn}>
+            <Link prefetch href={data.todayHref} className={t.navBtn}>
               This week
             </Link>
-            <Link href={data.nextHref} className={t.navBtn} data-key="ArrowRight" aria-label="Next week">
+            <Link prefetch href={data.nextHref} className={t.navBtn} data-key="ArrowRight" aria-label="Next week">
               ›
             </Link>
             <Hint>← →</Hint>
@@ -59,7 +59,7 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
               {data.overlays!.lanes.map((x) => {
                 const style = { gridColumn: `${x.from + 1} / ${x.to + 2}`, gridRow: x.lane + 1 };
                 return x.href ? (
-                  <Link key={x.key} href={x.href} className={cx(k.event, t.laneItem, LOOK[x.kind])} style={style} title={x.title}>
+                  <Link prefetch key={x.key} href={x.href} className={cx(k.event, t.laneItem, LOOK[x.kind])} style={style} title={x.title}>
                     {x.title}
                   </Link>
                 ) : (
@@ -82,7 +82,7 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
               {day.loaded ? (
                 <div className={t.dayHead}>{day.label}</div>
               ) : (
-                <Link href={day.href} className={cx(t.dayHead, t.dayLink)}>
+                <Link prefetch href={day.href} className={cx(t.dayHead, t.dayLink)}>
                   {day.label}
                   {day.count > 0 && <span className={t.dayCount}>{day.count}</span>}
                 </Link>
@@ -99,7 +99,7 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
               {data.overlays?.markers
                 .filter((m) => m.day === d)
                 .map((m) => (
-                  <Link key={m.key} href={m.href ?? "/progress/assignments"} className={t.marker} style={{ top: top(m.minutes) }} title={m.title}>
+                  <Link prefetch key={m.key} href={m.href ?? "/progress/assignments"} className={t.marker} style={{ top: top(m.minutes) }} title={m.title}>
                     <span className={cx(k.event, k.deadline)}>{m.title}</span>
                   </Link>
                 ))}

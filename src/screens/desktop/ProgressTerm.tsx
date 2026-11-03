@@ -25,7 +25,7 @@ const TERM_COLUMNS: SortableColumn<"course" | "final" | "status" | "ects">[] = [
 export function ProgressTermScreen({ data }: { data: TermResultsData }) {
   return (
     <main data-desktop-screen className={cx(css.screen, g.main)}>
-      <Link href="/progress" className={g.back} data-key="Escape">
+      <Link prefetch href="/progress" className={g.back} data-key="Escape">
         <Icon name="chevron-left" size={14} /> Progress
       </Link>
       <h1 className={g.title}>{data.title}</h1>
@@ -63,7 +63,7 @@ export function ProgressTermScreen({ data }: { data: TermResultsData }) {
               </>
             );
             const node = r.href ? (
-              <Link href={r.href} className={cx(g.row, g.termCols)} data-nav-item>
+              <Link prefetch href={r.href} className={cx(g.row, g.termCols)} data-nav-item>
                 {cells}
               </Link>
             ) : (
@@ -76,7 +76,7 @@ export function ProgressTermScreen({ data }: { data: TermResultsData }) {
       )}
 
       <section className={cx(g.bottom, !data.rate && g.bottomOne)}>
-        <Link href={data.curriculum.href} className={cx(css.card, g.semesters, g.curriculum)} data-key="c">
+        <Link prefetch href={data.curriculum.href} className={cx(css.card, g.semesters, g.curriculum)} data-key="c">
           <span className={g.curriculumText}>
             <h2 className={g.cardTitle}>{data.curriculum.title}</h2>
             <span className={g.rateLine}>{data.curriculum.line}</span>
@@ -84,7 +84,7 @@ export function ProgressTermScreen({ data }: { data: TermResultsData }) {
           <Icon name="chevron-right" size={18} />
         </Link>
         {data.rate && (
-          <Link href={data.rate.href} className={g.rate} data-key="r">
+          <Link prefetch href={data.rate.href} className={g.rate} data-key="r">
             <h2 className={g.rateTitle}>{data.rate.title}</h2>
             <p className={g.rateLine}>{data.rate.line}</p>
           </Link>

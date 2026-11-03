@@ -1,6 +1,6 @@
 /* D6 Progress (4245:17756, dark 4245:29582). */
-.main { padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 20px; max-width: 1240px; }
-.title { font: 400 64px/1.04 var(--font-serif); margin: 0; }
+.main { padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); display: flex; flex-direction: column; gap: var(--page-gap); max-width: var(--page-max); }
+.title { font: 400 var(--page-title)/1.04 var(--font-serif); margin: 0; }
 .sub { font: 500 15px/normal var(--font-sans); color: var(--text-secondary); }
 
 /* KPIs: 1.5px cards, radius 18, Key/SM, 16 padding, 6 apart. */
@@ -16,7 +16,10 @@
 .week .tileNote { color: var(--text-primary); }
 .spark { width: 120px; height: 30px; flex: none; }
 .track { height: 8px; border-radius: 4px; background: var(--border-subtle); overflow: hidden; }
-.fill { height: 100%; border-radius: 4px; background: var(--bg-accent); }
+.fill { height: 100%; border-radius: 4px; background: var(--bg-accent); transform-origin: left; animation: grow-x var(--motion-slow) var(--ease-standard) both; }
+/* Bars grow in when the screen mounts (never on a re-render); reduced motion zeroes the duration. */
+@keyframes grow-x { from { transform: scaleX(0); } }
+@keyframes grow-y { from { transform: scaleY(0); } }
 
 /* Table: head 12/20, rows 14/20, columns 260 · 90 · 90 · 80 · 230 · rest, 20 apart, 10 between rows. */
 .table { padding: 0; gap: 10px; overflow: hidden; border-radius: 18px; }
@@ -35,7 +38,7 @@
 .absTop > span { flex: 1; min-width: 0; }
 .absTop b { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
 .absTrack { height: 6px; border-radius: 3px; background: var(--border-subtle); overflow: hidden; }
-.absFill { height: 100%; border-radius: 3px; }
+.absFill { height: 100%; border-radius: 3px; transform-origin: left; animation: grow-x var(--motion-slow) var(--ease-standard) both; }
 .next { font: 400 13px/normal var(--font-sans); }
 
 /* Expanded course */
@@ -45,7 +48,7 @@
 .marks { display: flex; align-items: flex-end; gap: 10px; }
 .mark { display: flex; flex-direction: column; align-items: center; gap: 4px; font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
 .markVal { font: 600 11px/normal var(--font-sans); color: var(--text-secondary); }
-.markBar { width: 26px; border: 1.25px solid var(--border-strong); border-radius: 5px; background: var(--mustard-500); }
+.markBar { transform-origin: bottom; animation: grow-y var(--motion-slow) var(--ease-standard) both; width: 26px; border: 1.25px solid var(--border-strong); border-radius: 5px; background: var(--mustard-500); }
 .markHigh { background: var(--bg-accent); }
 .markLow { background: var(--bg-danger); }
 .markNone { background: var(--bg-surface); border-style: dashed; }
@@ -94,7 +97,7 @@
 .barCol { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
 .barVal { font: 600 11px/normal var(--font-sans); color: var(--text-secondary); }
 .barNow .barVal { color: var(--text-accent); }
-.bar { width: 36px; background: var(--tint-teal); border: 1.5px solid var(--border-strong); border-radius: 6px; }
+.bar { transform-origin: bottom; animation: grow-y var(--motion-slow) var(--ease-standard) both; width: 36px; background: var(--tint-teal); border: 1.5px solid var(--border-strong); border-radius: 6px; }
 .barNow .bar { background: var(--bg-surface); border: 1.5px dashed var(--teal-500); }
 .semRow { display: flex; gap: 8px; justify-content: space-between; font: 600 14px/normal var(--font-sans); }
 .semRow span:last-child { font: 400 13px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; }

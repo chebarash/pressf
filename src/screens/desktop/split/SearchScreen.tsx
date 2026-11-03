@@ -41,7 +41,7 @@ export function SearchScreen({ data }: { data: SearchData }) {
             text={
               data.didYouMean ? (
                 <>
-                  Did you mean <Link href={`/search?q=${encodeURIComponent(data.didYouMean)}`} className={x.mean}>{data.didYouMean}</Link>? {data.suggestion}
+                  Did you mean <Link prefetch href={`/search?q=${encodeURIComponent(data.didYouMean)}`} className={x.mean}>{data.didYouMean}</Link>? {data.suggestion}
                 </>
               ) : (
                 (data.suggestion ?? undefined)

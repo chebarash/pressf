@@ -54,7 +54,7 @@ export function GuestHome({ data }: { data: GuestHomeData }) {
           <section className={`${s.list} ${g.schools}`} aria-label="Start with your school">
             <h2 className={`${s.sectionTitle} t-mobile-section`}>Start with your school</h2>
             {data.schools.map((school, i) => (
-              <Link key={school.id} href={`/schools/${encodeURIComponent(school.id)}`} className={`${g.school} ${toneFor(school.name, i)}`}>
+              <Link prefetch key={school.id} href={`/schools/${encodeURIComponent(school.id)}`} className={`${g.school} ${toneFor(school.name, i)}`}>
                 <span className={g.schoolHead}>
                   <span className="t-label-xs">School of</span>
                   <span className={`${g.schoolName} t-display-xs`}>{school.name.replace(/^School of\s+/i, "")}</span>

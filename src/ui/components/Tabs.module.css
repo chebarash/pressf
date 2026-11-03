@@ -22,5 +22,9 @@
 @media (hover: hover) { .tab:not(.active):hover { background: var(--bg-sunken); } }
 .tab[data-state="hover"]:not(.active) { background: var(--bg-sunken); }
 .active { background: var(--bg-inverse); color: var(--text-inverse); }
+/* In a tab row the ink is a separate pill under the label, so it can slide to the next tab (TabPill). */
+.sliding { position: relative; isolation: isolate; }
+.sliding.active { background: transparent; }
+.pill { position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--bg-inverse); }
 .tab:focus-visible,
 .tab[data-state="focus"] { outline: 3px solid var(--border-accent); outline-offset: 0; }

@@ -16,8 +16,8 @@
 .canvas { display: block; width: 100%; height: 100%; }
 .canvas[hidden] { display: none; }
 /* Loading sheet: a title bar and text lines in the paper's ink. */
-.pageSkeleton { position: absolute; inset: 9% 10%; background: linear-gradient(var(--doc-line) 0 0) 0 0 / 55% 16px no-repeat, repeating-linear-gradient(var(--doc-line) 0 7px, transparent 7px 20px) 0 40px / 100% calc(100% - 40px) no-repeat; animation: page-pulse 1.4s ease-in-out infinite; }
-@keyframes page-pulse { 50% { opacity: 0.45; } }
+.pageSkeleton { position: absolute; inset: 9% 10%; background: linear-gradient(var(--doc-line) 0 0) 0 0 / 55% 16px no-repeat, repeating-linear-gradient(var(--doc-line) 0 7px, transparent 7px 20px) 0 40px / 100% calc(100% - 40px) no-repeat; animation: page-pulse 2s ease-in-out infinite; }
+@keyframes page-pulse { 50% { opacity: 0.65; } }
 @media (prefers-reduced-motion: reduce) { .pageSkeleton { animation: none; } }
 .more { padding: var(--space-3) var(--space-4); border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: 0 3px 0 var(--shadow-key); color: var(--text-primary); font-family: var(--font-sans); font-size: 15px; font-weight: 600; cursor: pointer; }
 .noPreview { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); min-height: 470px; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--doc-page); text-align: center; }

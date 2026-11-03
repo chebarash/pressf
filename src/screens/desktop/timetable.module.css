@@ -1,9 +1,9 @@
 .split { display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: 100dvh; }
 /* Figma D3: the header stops 24px short of the inspector, the week grid runs to 4px from it. */
-.main { padding: 28px 4px var(--space-7) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.main { padding: var(--page-pad-top) 4px var(--page-pad-bottom) var(--page-pad-x); display: flex; flex-direction: column; gap: var(--tool-gap); min-width: 0; }
 
 .header { display: flex; align-items: center; gap: var(--space-3); margin-right: 20px; }
-.title { font: 400 48px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.title { font: 400 var(--tool-title)/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
 .sub { flex: 1; min-width: 0; font: 600 15px/normal var(--font-sans); color: var(--text-secondary); padding-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .weekNav { display: flex; align-items: center; gap: var(--space-2); }
 .navBtn {

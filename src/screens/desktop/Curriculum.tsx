@@ -53,7 +53,7 @@ export function CurriculumScreen({ data }: { data: CurriculumData }) {
                       </>
                     );
                     return c.href ? (
-                      <Link key={c.code + c.name} href={c.href} className={x.course} data-nav-item>
+                      <Link prefetch key={c.code + c.name} href={c.href} className={x.course} data-nav-item>
                         {body}
                       </Link>
                     ) : (

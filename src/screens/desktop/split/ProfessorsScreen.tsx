@@ -63,7 +63,7 @@ export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
           <SortHeader state={state} k="pct" style={{ textAlign: "right" }}>Pressed F</SortHeader>
         </div>
         {rows.map((p) => (
-          <Link key={p.id} href={p.href} className={x.row} data-nav-item>
+          <Link prefetch key={p.id} href={p.href} className={x.row} data-nav-item>
             <Face src={p.face} size={40} />
             <span>
               <span className={x.name}>{p.name}</span>

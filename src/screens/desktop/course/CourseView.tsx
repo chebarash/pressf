@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { CourseData } from "../model";
 import { Disclosure, RatingSummary } from "@/ui/components";
+import { TabPill } from "@/ui/components/TabPill";
 import { Syllabus } from "@/screens/mobile/parts/CourseParts";
 import { Button, ButtonLink, css, cx, Empty, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, shareHref, Tag } from "../parts";
 import c from "./course.module.css";
@@ -48,7 +49,7 @@ function CourseDetail({ data, tab }: { data: CourseData; tab: CourseTab }) {
         </div>
         <h1 className={c.name}>{data.name}</h1>
         {data.context ? (
-          <Link href={`/c/${data.code}`} className={c.more}>
+          <Link prefetch href={`/c/${data.code}`} className={c.more}>
             Open the course <Icon name="chevron-right" size={18} />
           </Link>
         ) : (
@@ -62,16 +63,19 @@ function CourseDetail({ data, tab }: { data: CourseData; tab: CourseTab }) {
       {!data.context && (
       <nav className={c.tabs} aria-label="Course sections">
         <Link href={overviewHref} prefetch scroll={false} className={cx(c.tab, tab === "overview" && c.tabOn)} aria-current={tab === "overview" ? "page" : undefined}>
+          {tab === "overview" && <TabPill group="course-sections" className={c.tabPill} />}
           {data.tabs.overview}
         </Link>
         {!data.locked && (
           <KeyTo k="f">
             <Link href={keep(data.tabs.filesHref)} prefetch scroll={false} className={cx(c.tab, tab === "files" && c.tabOn)} aria-current={tab === "files" ? "page" : undefined}>
+              {tab === "files" && <TabPill group="course-sections" className={c.tabPill} />}
               Files {data.tabs.files || ""}
             </Link>
           </KeyTo>
         )}
         <Link href={keep(data.tabs.anonymousHref)} prefetch scroll={false} className={cx(c.tab, tab === "anonymous" && c.tabOn)} aria-current={tab === "anonymous" ? "page" : undefined}>
+          {tab === "anonymous" && <TabPill group="course-sections" className={c.tabPill} />}
           Anonymous {data.tabs.anonymous}
         </Link>
       </nav>
@@ -186,7 +190,7 @@ function Overview({ data, keep }: { data: CourseData; keep: (href: string) => st
           <h2 className={c.sectionTitle}>Who teaches it</h2>
           <div className={c.box}>
             {data.teachers.map((t) => (
-              <Link key={t.id + t.line} href={t.href} className={c.boxRow}>
+              <Link prefetch key={t.id + t.line} href={t.href} className={c.boxRow}>
                 <Face src={t.face} size={40} />
                 <span className={c.boxText}>
                   <span className={c.boxTitle}>{t.name}</span>
@@ -219,7 +223,7 @@ function CourseInspector({ data }: { data: CourseData }) {
   return (
     <aside className={c.inspector} aria-label="About this course">
       {data.me && (
-        <Link href={data.me.href} className={c.me}>
+        <Link prefetch href={data.me.href} className={c.me}>
           <span className={c.meTop}>
             <Score value={data.me.average ?? "—"} tier={data.me.tier} />
             <span className={c.boxText}>

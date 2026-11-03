@@ -4,23 +4,23 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 480px;
-  margin-inline: auto;
-  padding: 0 var(--space-4);
+  max-width: var(--m-max);
+  margin-inline: var(--m-center);
+  padding: 0 var(--m-pad-x);
   background: var(--bg-page);
   color: var(--text-primary);
   font-family: var(--font-sans);
 }
 /* The kit's sticky bottom bar spans the screen edge to edge. */
-.barBleed { margin-inline: calc(var(--space-4) * -1); }
+.barBleed { margin-inline: calc(var(--m-pad-x) * -1); }
 
 /* Title block */
-.head { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) 0 var(--space-4); }
+.head { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--m-pad-top) 0 var(--space-4); }
 .title { margin: 0; font-weight: 400; color: var(--text-primary); }
 .subtitle { color: var(--text-secondary); }
 
 /* Banners run edge to edge (Figma 2.7, 2.8, 2.13) */
-.bannerBleed { margin: 0 calc(var(--space-4) * -1); }
+.bannerBleed { margin: 0 calc(var(--m-pad-x) * -1); }
 
 /* Quick access strip */
 .tiles { display: flex; gap: 10px; margin: 0 calc(var(--space-4) * -1); padding: var(--space-1) var(--space-4) var(--space-4); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: var(--space-4); }
@@ -80,8 +80,8 @@
 .dueLate { color: var(--rating-low); }
 
 /* Notifications screen (Figma 2.9 Body: one column, 14px between everything) */
-.notifBody { gap: 14px; padding-top: var(--space-2); padding-bottom: 40px; }
-.notifTitle { margin: 0; font: 400 54px/1.04 var(--font-serif); color: var(--text-primary); }
+.notifBody { gap: 14px; padding-top: var(--m-pad-top); padding-bottom: var(--m-pad-bottom); }
+.notifTitle { margin: 0; font: 400 var(--m-title)/1 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); }
 .unreadRow { display: flex; align-items: center; gap: var(--space-2); }
 .unreadCount { flex: 1; min-width: 0; margin: 0; font: 400 15px/normal var(--font-sans); color: var(--text-secondary); }
 .linkButton { padding: 0; border: 0; background: none; color: var(--text-accent); font: 600 14px/normal var(--font-sans); cursor: pointer; }

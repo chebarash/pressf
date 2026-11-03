@@ -27,8 +27,8 @@ export default function Progress({ data }: { data: ProgressView }) {
           <>
             {data.empty ? null : (
               <div className={s.stats}>
-                <Stat value={fmt(data.gpa) ?? "—"} label="GPA" />
-                {data.ectsEarned !== null ? <Stat value={String(data.ectsEarned)} label={data.ectsTotal ? `of ${data.ectsTotal} ECTS` : "ECTS"} /> : null}
+                <Stat count value={fmt(data.gpa) ?? "—"} label="GPA" />
+                {data.ectsEarned !== null ? <Stat count value={String(data.ectsEarned)} label={data.ectsTotal ? `of ${data.ectsTotal} ECTS` : "ECTS"} /> : null}
                 {data.semesterNumber ? <Stat value={String(data.semesterNumber)} label="semester" /> : null}
               </div>
             )}
@@ -148,7 +148,7 @@ export function SemesterResults({ term, line, kpis, courses, rate, footer }: {
         {shown.length ? (
           <div className={s.stats} style={{ gap: 24 }}>
             {shown.map((k) => (
-              <Stat key={k.label} size="kpi" value={k.value} label={k.label} />
+              <Stat key={k.label} count size="kpi" value={k.value} label={k.label} />
             ))}
           </div>
         ) : null}

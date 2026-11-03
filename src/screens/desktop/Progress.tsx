@@ -4,6 +4,7 @@ import * as adapt from "./adapt";
 import type { ClassState, ProgressData, ProgressRow } from "./model";
 import { css, cx, Empty, Hint, Icon } from "./parts";
 import { SortableRows, type SortableColumn } from "@/ui/table/Sort";
+import { CountUp } from "@/ui/components/CountUp";
 import g from "./progress.module.css";
 
 /** D6 Progress — tiles, one table for every course (J/K, Enter opens), GPA by semester, rating nudge. */
@@ -24,7 +25,7 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
           <div className={cx(css.card, g.tile)}>
             <p className={g.tileLabel}>GPA</p>
             <p className={g.tileValue}>
-              {data.gpa.value}
+              <CountUp value={String(data.gpa.value)} id="gpa" />
               <Spark values={data.gpa.trend} />
             </p>
             <p className={g.tileNote}>{data.gpa.delta ? <b>{data.gpa.delta}</b> : null} {data.gpa.note}</p>
@@ -34,7 +35,7 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
           <div className={cx(css.card, g.tile)}>
             <p className={g.tileLabel}>Credits</p>
             <p className={g.tileValue}>
-              {data.credits.done} / {data.credits.total}
+              <CountUp value={String(data.credits.done)} id="credits" /> / {data.credits.total}
             </p>
             <div className={g.track}>
               <div className={g.fill} style={{ width: `${Math.min(100, (data.credits.done / data.credits.total) * 100)}%` }} />
@@ -45,7 +46,7 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
         {data.attendance && (
           <div className={cx(css.card, g.tile)}>
             <p className={g.tileLabel}>Attendance</p>
-            <p className={g.tileValue}>{data.attendance.value}</p>
+            <p className={g.tileValue}><CountUp value={String(data.attendance.value)} id="attendance" /></p>
             <p className={cx(g.tileNote, data.attendance.low && g.tileLow)}>{data.attendance.note}</p>
           </div>
         )}
@@ -88,7 +89,7 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
               .map((s) =>
                 s.href ? (
                   // Opens that semester's results (5.6 layout), which links on to the curriculum.
-                  <Link key={`${s.term}-${s.href}`} href={s.href} className={cx(g.semRow, g.semLink)}>
+                  <Link prefetch key={`${s.term}-${s.href}`} href={s.href} className={cx(g.semRow, g.semLink)}>
                     <span>{s.term}</span>
                     <span>
                       {s.line} <Icon name="chevron-right" size={14} />
@@ -105,7 +106,7 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
         )}
         {data.rate && (
           // Figma D6: the card itself is the way in ("press R to start"), no button.
-          <Link href={data.rate.href} className={g.rate} data-key="r">
+          <Link prefetch href={data.rate.href} className={g.rate} data-key="r">
             <h2 className={g.rateTitle}>{data.rate.title}</h2>
             <p className={g.rateLine}>{data.rate.line}</p>
           </Link>
@@ -144,7 +145,7 @@ export function ProgressTable({ rows, open, sortable = true }: { rows: ProgressR
 function ProgressRowView({ r, open }: { r: ProgressRow; open: string | null }) {
   return (
     <>
-      <Link href={r.href} className={cx(g.row, r.id === open && g.rowOn)} data-nav-item aria-current={r.id === open ? "page" : undefined}>
+      <Link prefetch href={r.href} className={cx(g.row, r.id === open && g.rowOn)} data-nav-item aria-current={r.id === open ? "page" : undefined}>
         <span className={g.course}>
           <span className={g.courseName}>{r.name}</span>
           <span className={g.courseMeta}>{r.meta}</span>
