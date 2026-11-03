@@ -111,11 +111,19 @@ export function requestWriteAccess(): Promise<boolean> {
   return new Promise((resolve) => app.requestWriteAccess!((allowed) => resolve(allowed)));
 }
 
-/** Native download sheet in Telegram (8.0+), a plain download link elsewhere. */
-export function downloadFile(url: string, fileName: string) {
+/** Native download sheet in Telegram (8.0+), a plain download link elsewhere. Resolves once Telegram's sheet is answered. */
+export function downloadFile(url: string, fileName: string): Promise<void> {
   const app = webApp();
   const absolute = new URL(url, location.href).href;
-  if (app?.downloadFile && supports("8.0")) return app.downloadFile({ url: absolute, file_name: fileName });
+  if (app?.downloadFile && supports("8.0")) {
+    return new Promise((resolve) => {
+      try {
+        app.downloadFile!({ url: absolute, file_name: fileName }, () => resolve());
+      } catch {
+        resolve();
+      }
+    });
+  }
   const a = document.createElement("a");
   a.href = absolute;
   a.download = fileName;
@@ -123,6 +131,62 @@ export function downloadFile(url: string, fileName: string) {
   document.body.append(a);
   a.click();
   a.remove();
+  return Promise.resolve();
+}
+
+/** How a Download went (for tests and callers that care). */
+export type FileDelivery = "chat" | "download" | "busy";
+
+/** Files sent (or being sent) to the chat in the last 10 s: a second tap does nothing. */
+const recentSends = new Map<string, number>();
+const RESEND_MS = 10_000;
+
+/**
+ * Download in the Mini App: the bot sends the branded file into the student's
+ * chat (POST /api/telegram/send-file), a popup says so and offers "Open chat",
+ * and the student stays on the page. A tap within 10 s of the last one does
+ * nothing (the server dedupes too). When the bot can't send it (never started
+ * or blocked: 403 no_access; too big; not linked; any failure) the file
+ * downloads as before, and for no_access a popup asks them to press Start.
+ * Outside Telegram: a plain download. `settled` runs once the request is answered
+ * (the MainButton's progress ends there, before any popup).
+ */
+export async function downloadToChat(id: string, url: string, fileName: string, settled?: () => void): Promise<FileDelivery> {
+  const app = webApp();
+  if (!app?.initData) {
+    await downloadFile(url, fileName);
+    return "download";
+  }
+  const last = recentSends.get(id);
+  if (last !== undefined && Date.now() - last < RESEND_MS) return "busy";
+  recentSends.set(id, Date.now());
+
+  const error = await post("/api/telegram/send-file", { id, initData: app.initData }).then(
+    async (r) => (r.ok ? null : (((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? "failed")),
+    () => "failed",
+  );
+  settled?.();
+  if (!error) {
+    haptic.notify("success");
+    const pressed = await popup({
+      message: `Sent to your chat with @${BOT_USERNAME}.`,
+      buttons: [{ id: "open", text: "Open chat" }, { id: "ok", text: "OK" }],
+    }).catch(() => null);
+    if (pressed === "open") openTelegramLink(`https://t.me/${BOT_USERNAME}`);
+    return "chat";
+  }
+
+  recentSends.delete(id);
+  await downloadFile(url, fileName);
+  if (error === "no_access") {
+    const pressed = await popup({
+      title: "Get files in your chat",
+      message: `Press Start in @${BOT_USERNAME} and next time Download sends the file straight to your chat.`,
+      buttons: [{ id: "start", text: "Open bot" }, { id: "later", text: "Later", type: "cancel" }],
+    }).catch(() => null);
+    if (pressed === "start") openTelegramLink(`https://t.me/${BOT_USERNAME}`);
+  }
+  return "download";
 }
 
 /** A link to the bot's own chat (t.me/pressfapp, ?start=…), not to its Mini App (?startapp=…). */

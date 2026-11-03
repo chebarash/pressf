@@ -1,14 +1,25 @@
 "use client";
 
 import type { Target } from "@/core/links";
-import { downloadFile, shareTarget } from "@/platform/client";
+import { useState } from "react";
+import { downloadToChat, shareTarget } from "@/platform/client";
 import { SendIcon } from "@/ui/icons";
 import { MainButton } from "./MainButton";
 import s from "./File.module.css";
 
-/** Download: Telegram's native download sheet in the Mini App, a plain download on the web. */
-export function FileActions({ url, name }: { url: string; name: string }) {
-  return <MainButton text="Download" onClick={() => downloadFile(url, name)} />;
+/**
+ * Download: in the Mini App the bot sends the file into the student's chat
+ * (progress on the MainButton while it sends), falling back to Telegram's
+ * download sheet; a plain download on the web. See downloadToChat.
+ */
+export function FileActions({ id, url, name }: { id: string; url: string; name: string }) {
+  const [sending, setSending] = useState(false);
+  const download = () => {
+    setSending(true);
+    const done = () => setSending(false);
+    void downloadToChat(id, url, name, done).finally(done);
+  };
+  return <MainButton text="Download" loading={sending} onClick={download} />;
 }
 
 /**

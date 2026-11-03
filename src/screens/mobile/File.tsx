@@ -47,7 +47,7 @@ export default function File({ data }: { data: FileView }) {
       ) : (
         <NoPreview code={data.formatCode} title="This file isn't ready yet" text="We're still copying it from LMS. Try again in a few minutes." />
       )}
-      {data.url ? <FileActions url={data.downloadUrl ?? `/f/${data.id}/download`} name={data.downloadName} /> : null}
+      {data.url ? <FileActions id={data.id} url={data.downloadUrl ?? `/f/${data.id}/download`} name={data.downloadName} /> : null}
     </div>
   );
 }
