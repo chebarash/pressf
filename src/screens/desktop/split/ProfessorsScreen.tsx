@@ -6,13 +6,22 @@ import { Chip } from "@/ui/components";
 import x from "../lists.module.css";
 import type { ProfessorsData } from "../model";
 import { css, cx, Face, Hint, Icon, Tag } from "../parts";
+import { slugify } from "@/screens/mobile/mc/format";
 
-/** Professors — everyone who teaches, filter by name or school; J/K move, Enter opens. */
+const shortDept = (name: string) => name.replace(/^Department of /i, "");
+
+/** Professors — everyone who teaches, filter by name, school or department; J/K move, Enter opens. */
 export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
   const [q, setQ] = useState("");
-  const [school, setSchool] = useState<string | null>(null);
+  const [school, setSchool] = useState<string | null>(() => data.schools.find((s) => slugify(s) === data.initial?.school) ?? null);
+  const [dept, setDept] = useState<string | null>(() => data.departments.find((d) => slugify(d.name) === data.initial?.dept)?.name ?? null);
   const needle = q.trim().toLowerCase();
-  const rows = data.items.filter((p) => (!school || p.school === school) && (!needle || `${p.name} ${p.dept} ${p.courses}`.toLowerCase().includes(needle)));
+  const depts = data.departments.filter((d) => !school || d.school === school);
+  const rows = data.items.filter((p) => (!school || p.school === school) && (!dept || p.dept === dept) && (!needle || `${p.name} ${p.dept} ${p.courses}`.toLowerCase().includes(needle)));
+  const pickSchool = (s: string | null) => {
+    setSchool(s);
+    setDept(null);
+  };
   return (
     <main data-desktop-screen className={cx(css.screen, x.main)}>
       <header className={x.head}>
@@ -25,9 +34,17 @@ export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
       </header>
       {data.schools.length > 1 && (
         <div className={css.chips}>
-          <Chip size="s" label="All" selected={!school} onClick={() => setSchool(null)} />
+          <Chip size="s" label="All" selected={!school} onClick={() => pickSchool(null)} />
           {data.schools.map((s) => (
-            <Chip key={s} size="s" label={s} selected={school === s} onClick={() => setSchool(s)} />
+            <Chip key={s} size="s" label={s} selected={school === s} onClick={() => pickSchool(s)} />
+          ))}
+        </div>
+      )}
+      {school && depts.length > 1 && (
+        <div className={css.chips} aria-label="Department">
+          <Chip size="s" label="All departments" selected={!dept} onClick={() => setDept(null)} />
+          {depts.map((d) => (
+            <Chip key={d.name} size="s" label={shortDept(d.name)} selected={dept === d.name} onClick={() => setDept(d.name)} />
           ))}
         </div>
       )}
@@ -55,7 +72,7 @@ export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
             <span className={x.pct}>{p.pct != null ? `${p.pct}%` : "—"}</span>
           </Link>
         ))}
-        {rows.length === 0 && <p className={cx(x.row, x.muted)}>No one matches “{q}”.</p>}
+        {rows.length === 0 && <p className={cx(x.row, x.muted)}>{q ? `No one matches “${q}”.` : "No one here yet."}</p>}
       </section>
     </main>
   );

@@ -8,11 +8,13 @@ import c from "./mc/screens.module.css";
 
 const chipLabel = (school: string) => school.replace(/^School of /i, "").replace(/ & .*/, "");
 
-/** Mobile All professors (Figma 7.7): yours first, then A–Z; "—" under 5 ratings. `school` is the ?school= slug. */
-export default function Professors({ data, school }: { data: ProfessorsView; school?: string | null }) {
+/** Mobile All professors (Figma 7.7): yours first, then A–Z; "—" under 5 ratings. `school` / `dept` are the ?school= / ?dept= slugs. */
+export default function Professors({ data, school, dept }: { data: ProfessorsView; school?: string | null; dept?: string | null }) {
   const picked = data.schools.find((k) => slugify(k) === school) ?? null;
+  const depts = (data.departments ?? []).filter((d) => !picked || d.school === picked);
+  const pickedDept = depts.find((d) => slugify(d.name) === dept)?.name ?? null;
   const yours = new Set(data.yours.map((p) => p.id));
-  const inSchool = (p: ProfessorRow) => !picked || p.school === picked;
+  const inSchool = (p: ProfessorRow) => (!picked || p.school === picked) && (!pickedDept || p.department === pickedDept);
   const mine = data.yours.filter(inSchool);
   const rest = data.all.filter((p) => !yours.has(p.id) && inSchool(p));
   return (
@@ -26,6 +28,14 @@ export default function Professors({ data, school }: { data: ProfessorsView; sch
             <Chip key={k} label={chipLabel(k)} selected={picked === k} href={`/professors?school=${slugify(k)}`} />
           ))}
         </nav>
+        {picked && depts.length > 1 ? (
+          <nav className={cx(c.layers, c.schoolChips)} aria-label="Department">
+            <Chip label="All departments" selected={!pickedDept} href={`/professors?school=${slugify(picked)}`} />
+            {depts.map((d) => (
+              <Chip key={d.name} label={d.name.replace(/^Department of /i, "")} selected={pickedDept === d.name} href={`/professors?school=${slugify(picked)}&dept=${slugify(d.name)}`} />
+            ))}
+          </nav>
+        ) : null}
         {mine.length ? (
           <>
             <h2 className={c.capsFlat}>Your teachers</h2>

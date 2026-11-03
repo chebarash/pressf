@@ -9,6 +9,8 @@ import type { SettingKey } from "@/server/admin/marks";
 import { FACE_MAX_BYTES } from "@/core/faces";
 import * as faces from "@/server/admin/faces";
 import * as ops from "@/server/admin/ops";
+import * as profiles from "@/server/admin/profiles";
+import type { ProfileFields } from "@/core/faculty";
 import type { Audience } from "@/server/admin/rules";
 import { actorId } from "@/server/admin/viewer";
 import { audienceSize } from "@/server/admin/views";
@@ -43,6 +45,13 @@ export const bulkFiles = async (refs: ops.FileRef[], op: Parameters<typeof ops.b
 
 export const mergeTeachers = async (keepId: string, mergeId: string) => run((a) => ops.mergeTeachers(a, keepId, mergeId));
 export const markNotTwins = async (a: string, b: string) => run((actor) => ops.markNotTwins(actor, a, b));
+
+/** Professor profiles (admin only, checked again inside each op). */
+export const saveProfile = async (teacherId: string, fields: Partial<ProfileFields>) => run((a) => profiles.saveProfile(a, teacherId, fields), [`/p/${teacherId}`]);
+export const resetProfile = async (teacherId: string) => run((a) => profiles.resetProfile(a, teacherId), [`/p/${teacherId}`]);
+export const assignNewuuPerson = async (siteId: number, teacherId: string) => run((a) => profiles.assignPerson(a, siteId, teacherId), [`/p/${teacherId}`]);
+export const dismissNewuuPerson = async (siteId: number) => run((a) => profiles.dismissPerson(a, siteId));
+export const importNewuu = async () => run((a) => profiles.startImport(a, (job) => after(job)));
 
 /** Drawn faces (admin only, checked again inside each op). The file comes as form data: `teacherId`, `file`. */
 export async function uploadFace(form: FormData): Promise<Result> {

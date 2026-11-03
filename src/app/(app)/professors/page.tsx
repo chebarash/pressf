@@ -10,5 +10,5 @@ export const metadata: Metadata = { title: "Professors" };
 export default async function ProfessorsPage({ searchParams }: { searchParams: SearchParams }) {
   const [sp, user, isMobile] = await Promise.all([searchParams, getUser(), mobile()]);
   const data = await professors(user ? { userId: user.id } : null);
-  return isMobile ? <Professors data={data} school={one(sp.school)} /> : <DesktopProfessors data={data} />;
+  return isMobile ? <Professors data={data} school={one(sp.school)} dept={one(sp.dept)} /> : <DesktopProfessors data={data} school={one(sp.school)} dept={one(sp.dept)} />;
 }

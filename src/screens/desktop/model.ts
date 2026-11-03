@@ -155,6 +155,10 @@ export type ProfessorData = {
   name: string;
   face: string | null;
   title: string;
+  /** "Office 115", the email (mailto) and office hours, from newuu.uz or the admin. */
+  contact: Array<{ label: string; href?: string }>;
+  /** A short note from the admin. */
+  note: string | null;
   stats: Array<{ value: string; label: string; accent?: boolean }>;
   schedule: { term: string; rows: Array<{ day: string; time: string; course: string; href: string; role: string; room: string }> };
   summary: RatingSummaryProps | null;
@@ -288,6 +292,10 @@ export type RateData = {
 
 export type ProfessorsData = {
   schools: string[];
+  /** Departments with their school, for the second row of filters. */
+  departments: Array<{ name: string; school: string | null }>;
+  /** Filters from the URL (?school=, ?dept= slugs). */
+  initial?: { school: string | null; dept: string | null };
   items: Array<{ id: string; name: string; face: string | null; dept: string; school: string | null; courses: string; pct: number | null; href: string; yours: boolean }>;
 };
 

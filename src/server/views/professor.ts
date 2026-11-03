@@ -4,7 +4,8 @@ import { roleOf } from "@/core/people";
 import type { TeacherRole, TeacherSummary } from "@/core/ratings";
 import { termOfDate } from "@/core/semester";
 import { db } from "@/lib/db";
-import { lmsCourseTeachers, lmsCourses, lmsDepartments, lmsSemesters, lmsTeachers, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
+import { mergeProfile } from "@/core/faculty";
+import { facultyPeople, lmsCourseTeachers, lmsCourses, lmsDepartments, lmsSemesters, lmsTeachers, teacherOverrides, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
 import { termName } from "@/server/sync/types";
 import { publicCache, TAGS } from "./cache";
 import { DECISION_TAGS } from "@/server/decisions";
@@ -23,6 +24,14 @@ export type ProfessorView = {
   face?: string | null;
   department: string | null;
   school: string | null;
+  /** Office room ("115"), from the admin or the university's faculty site. Always set by the server. */
+  office?: string | null;
+  /** University email (mailto), from the admin or the faculty site. Always set by the server. */
+  email?: string | null;
+  /** Office hours as the admin wrote them. Always set by the server. */
+  hours?: string | null;
+  /** A short note from the admin ("On leave in Spring 2027"). Always set by the server. */
+  note?: string | null;
   summary: TeacherSummary;
   /** Every course they have taught; `now`: taught this semester. `now` is always set by the server. */
   courses: Array<{ code: string; name: string; role: TeacherRole; roleLabel: string; pressFPct: number | null; href: string; now?: boolean }>;
@@ -84,11 +93,13 @@ type ProfessorPublic = Omit<ProfessorView, "signedIn" | "teachesYou" | "years" |
 };
 
 const professorPublic = publicCache(
-  "professor-public-v2",
+  "professor-public-v3",
   async (id: string): Promise<ProfessorPublic | null> => {
-    const [people, [profile]] = await Promise.all([
+    const [people, [profile], [site], [over]] = await Promise.all([
       teachersByIds([id]),
-      db().select({ department: lmsTeachers.department, education: lmsTeachers.education, publications: lmsTeachers.publications, research: lmsTeachers.scienceDirection }).from(lmsTeachers).where(eq(lmsTeachers.id, id)),
+      db().select({ education: lmsTeachers.education, publications: lmsTeachers.publications, research: lmsTeachers.scienceDirection }).from(lmsTeachers).where(eq(lmsTeachers.id, id)),
+      db().select({ office: facultyPeople.office, email: facultyPeople.email }).from(facultyPeople).where(eq(facultyPeople.teacherId, id)).limit(1),
+      db().select({ office: teacherOverrides.office, email: teacherOverrides.email, hours: teacherOverrides.hours, note: teacherOverrides.note }).from(teacherOverrides).where(eq(teacherOverrides.teacherId, id)),
     ]);
     const person = people.get(id);
     if (!person) return null;
@@ -104,14 +115,15 @@ const professorPublic = publicCache(
     const deptMap = new Map(depts.map((d) => [d.id, d]));
     const newest = [...rows].sort((a, b) => Number(b.semesterId ?? 0) - Number(a.semesterId ?? 0));
     const dept = newest.find((r) => r.departmentId && deptMap.has(r.departmentId));
-    // The LMS staff profile names the department; the courses' department is the fallback.
-    const department = profile?.department ?? (dept ? deptMap.get(dept.departmentId!)?.name ?? null : null);
+    // Admin, faculty site, then the LMS staff profile name the department; the courses' department is the fallback.
+    const department = person.department ?? (dept ? deptMap.get(dept.departmentId!)?.name ?? null : null);
+    const contact = mergeProfile({}, site, over);
 
     // Years at NewUU: from the earliest semester they taught in that we can date.
     const semesterIds = [...new Set(rows.map((r) => r.semesterId).filter((s): s is string => !!s))];
     const sems = semesterIds.length ? await db().select().from(lmsSemesters).where(inArray(lmsSemesters.id, semesterIds)) : [];
     const first = sems.map((s) => ({ name: s.name, day: semesterStart(s) })).filter((s) => s.day).sort((a, b) => a.day!.localeCompare(b.day!))[0];
-    const school = dept ? rootOf(dept.departmentId, deptMap)?.name ?? null : null;
+    const school = person.school ?? (dept ? rootOf(dept.departmentId, deptMap)?.name ?? null : null);
 
     // The term each course row ran in: its semester's name, else the dates of its classes.
     const semTerm = new Map(sems.map((s) => [s.id, s.name ? termName(s.name) : ""]));
@@ -149,6 +161,7 @@ const professorPublic = publicCache(
       id, name: person.name, position: person.position, face: person.face, department,
       // "Computer Science · Computer Science": a department named like its school shows once.
       school: school && department && school.trim().toLowerCase() === department.trim().toLowerCase() ? null : school,
+      office: contact.office, email: contact.email, hours: contact.hours, note: contact.note,
       summary,
       courses: [...courses.values()],
       when: [...when.values()].sort((a, b) => (a.weekday + 6) % 7 - (b.weekday + 6) % 7 || a.time.localeCompare(b.time)),
@@ -197,6 +210,8 @@ export function rateHrefFor(queue: Pick<RateQueueView, "waiting" | "current" | "
 export type ProfessorsView = {
   count: number;
   schools: string[];
+  /** Departments that have professors, with their school (faculty site structure), A–Z. Always set by the server. */
+  departments?: Array<{ name: string; school: string | null }>;
   yours: Array<ProfessorRow>;
   all: Array<ProfessorRow>;
 };
@@ -207,7 +222,7 @@ export type ProfessorRow = {
 };
 
 const professorsPublic = publicCache(
-  "professors",
+  "professors-v2",
   async (): Promise<Omit<ProfessorsView, "yours">> => {
     const [links, courses, depts] = await Promise.all([
       db().select().from(lmsCourseTeachers),
@@ -224,11 +239,18 @@ const professorsPublic = publicCache(
       const deptId = taught.find((c) => c.departmentId)?.departmentId ?? null;
       const s = summaries[id];
       return {
-        id, name: people.get(id)?.name ?? "Teacher", department: people.get(id)?.department ?? (deptId ? deptMap.get(deptId)?.name ?? null : null), school: rootOf(deptId, deptMap)?.name ?? null,
+        id, name: people.get(id)?.name ?? "Teacher", department: people.get(id)?.department ?? (deptId ? deptMap.get(deptId)?.name ?? null : null), school: people.get(id)?.school ?? rootOf(deptId, deptMap)?.name ?? null,
         course: taught[0]?.name ?? null, pressFPct: s?.enough ? s.pressFPct : null, href: `/p/${id}`, face: people.get(id)?.face ?? null,
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
-    return { count: all.length, schools: [...new Set(all.map((p) => p.school).filter((s): s is string => !!s))].sort(), all };
+    const departments = new Map<string, { name: string; school: string | null }>();
+    for (const p of all) if (p.department && p.department !== p.school && !departments.has(p.department)) departments.set(p.department, { name: p.department, school: p.school });
+    return {
+      count: all.length,
+      schools: [...new Set(all.map((p) => p.school).filter((s): s is string => !!s))].sort(),
+      departments: [...departments.values()].sort((a, b) => a.name.localeCompare(b.name)),
+      all,
+    };
   },
   () => [TAGS.catalog, TAGS.ratings],
 );

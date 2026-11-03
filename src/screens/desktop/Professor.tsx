@@ -32,6 +32,17 @@ export function ProfessorScreen({ data }: { data: ProfessorData }) {
         <div className={p.who}>
           <h1 className={p.name}>{data.name}</h1>
           <p className={p.title}>{data.title}</p>
+          {data.contact.length > 0 && (
+            <p className={p.contact}>
+              {data.contact.map((c, i) => (
+                <Fragment key={c.label}>
+                  {i > 0 && <span aria-hidden> · </span>}
+                  {c.href ? <a href={c.href}>{c.label}</a> : <span>{c.label}</span>}
+                </Fragment>
+              ))}
+            </p>
+          )}
+          {data.note && <p className={p.contactNote}>{data.note}</p>}
           <div className={p.stats}>
             {data.stats.map((s) => (
               <span key={s.label} className={cx(p.stat, s.accent && p.statAccent)}>
