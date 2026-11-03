@@ -40,6 +40,14 @@ export function toggleLayerHref(current: CalLayer[], layer: CalLayer, base = "/c
   return `${base}?layers=${CAL_LAYERS.filter((l) => next.includes(l)).join(",")}`;
 }
 
+/** The line under "Add to Google Calendar". Google polls subscribed calendars itself, often only a few times a day. */
+export const subscribeHint = (personal: boolean) =>
+  personal
+    ? "Your own calendar, with the layers you pick here. Google refreshes it on its own schedule, so changes can take a few hours to appear."
+    : "The academic calendar: holidays, exam weeks and registration. Sign in to add your own classes and deadlines.";
+
+export const RESET_CALENDAR_TEXT = "The Google Calendar you added from Press F stops updating. Add it again from Calendar with the new link.";
+
 const SCHOOL_TONES: Array<[RegExp, "computing" | "engineering" | "management" | "humanities" | "medicine"]> = [
   [/comput|software|cyber|data|informat|\bai\b/i, "computing"],
   [/engineer|mechan|chemi|aero|energy/i, "engineering"],

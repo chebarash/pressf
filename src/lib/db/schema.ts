@@ -471,6 +471,21 @@ export const linkTokens = pgTable("link_tokens", {
   usedAt: timestamp("used_at", { withTimezone: true }),
 });
 
+/**
+ * A student's personal calendar feed (/calendar/feed/<token>.ics) and the
+ * calendar layers it shows. The token is derived from the nonce with a server
+ * secret; only its HMAC is stored for the lookup. Reset = a new nonce.
+ * `layers` null = not chosen yet (the Calendar page's default).
+ */
+export const calendarFeeds = pgTable("calendar_feeds", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  nonce: text("nonce").notNull(),
+  hash: text("hash").notNull().unique(),
+  layers: jsonb("layers").$type<string[]>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 /** Every admin and moderator action. Read-only in the admin. */
 export const auditLog = pgTable(
   "audit_log",

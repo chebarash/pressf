@@ -49,6 +49,7 @@
 .registration { background: var(--plum-500); }
 .wrapLine { line-height: 1.32; }
 .subscribe { align-self: flex-start; padding-bottom: 5px; }
+.subscribeHint { margin: -8px 0 0; font-size: 12px; line-height: 1.32; color: var(--text-secondary); }
 /* 6.3 toast (4236:15459): text only, 13/1.32 medium, 38 above the bottom edge (no MainButton here). */
 .subViewport { --toast-offset: 38px; }
 .subToast > span:first-child { display: none; }

@@ -6,7 +6,8 @@ import { useEffect, useOptimistic, useRef, useState, useTransition } from "react
 import { addToHomeScreen, confirm, haptic, homeScreenStatus, setTheme } from "@/platform/client";
 import { Switch } from "@/ui/components";
 import { signOutWithConfirm } from "@/ui/shell/signOut";
-import { deleteMyData, setAlert } from "./actions";
+import { deleteMyData, resetCalendarLink, setAlert } from "./actions";
+import { RESET_CALENDAR_TEXT } from "./format";
 import { cx } from "./parts";
 import s from "./mc.module.css";
 import c from "./screens.module.css";
@@ -130,6 +131,27 @@ export function DeleteRow() {
     <button type="button" className={cx(c.setting, s.plainButton)} style={{ width: "100%" }} disabled={busy} onClick={() => void run()}>
       {/* No Figma trigger: styled exactly like the other profile rows. */}
       <p className={c.settingLabel}>{busy ? "Deleting…" : "Delete my data"}</p>
+    </button>
+  );
+}
+
+/** "Reset calendar link": the old Google Calendar feed stops working (confirmed natively first). */
+export function ResetCalendarRow() {
+  const [busy, start] = useTransition();
+  const [done, setDone] = useState(false);
+  const run = async () => {
+    const ok = await confirm(RESET_CALENDAR_TEXT, { title: "Reset calendar link?", ok: "Reset", cancel: "Cancel", destructive: true });
+    if (!ok) return;
+    start(async () => {
+      const res = await resetCalendarLink().catch(() => ({ ok: false }));
+      haptic.notify(res.ok ? "success" : "error");
+      setDone(res.ok);
+    });
+  };
+  return (
+    <button type="button" className={cx(c.setting, s.plainButton)} style={{ width: "100%" }} disabled={busy} onClick={() => void run()}>
+      <p className={c.settingLabel}>Calendar link</p>
+      <span className={c.settingValue}>{busy ? "Resetting…" : done ? "Reset" : "Reset link"}</span>
     </button>
   );
 }

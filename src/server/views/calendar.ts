@@ -1,3 +1,5 @@
+import { googleSubscribeUrl } from "@/core/ics";
+import { SITE_URL } from "@/core/links";
 import { HOLIDAYS, nextHoliday, WEEKS, type WeekKind } from "@/core/semester";
 import { addDays, clock, localDay, shortDate, weekdayName } from "@/core/time";
 import { classesBetween } from "./classes";
@@ -34,8 +36,12 @@ export type CalendarView = {
   days: Array<{ day: string; label: string; today: boolean; events: CalendarEvent[] }>;
   /** Nothing in the chosen layers (Figma 6.2). */
   empty: { text: string } | null;
-  icsHref: string;
+  /** "Add to Google Calendar": Google's add-by-URL page for the feed; `personal` when it is the student's own feed. */
+  subscribe: { google: string; personal: boolean };
 };
+
+/** Guests subscribe to the public academic calendar (/calendar.ics); students get their own feed (server/calendar-feed). */
+const publicSubscription = { google: googleSubscribeUrl(`${SITE_URL}/calendar.ics`), personal: false };
 
 const LAYER_LABEL: Record<CalendarLayer, string> = { classes: "Class", exams: "Exam", deadlines: "Deadline", holidays: "Holiday", registration: "Registration" };
 const EXAM_KINDS: WeekKind[] = ["midterm", "final", "resit_exam"];
@@ -87,6 +93,35 @@ export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = n
       }
     }
   }
+  events.push(...(await academicEvents(on, today, to)));
+
+  const groups = new Map<string, CalendarEvent[]>();
+  for (const e of events.sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? "").localeCompare(b.time ?? ""))) {
+    const key = `${e.day}|${e.endDay}`;
+    groups.set(key, [...(groups.get(key) ?? []), e]);
+  }
+  const days = [...groups.entries()].map(([key, list]) => {
+    const [day, end] = key.split("|");
+    return { day, label: `${rangeLabel(day, end)}${day === today ? " · today" : ""}`, today: day === today, events: list };
+  });
+
+  let empty: CalendarView["empty"] = null;
+  if (!days.length) {
+    const h = nextHoliday(now);
+    const only = on.size === 1 ? [...on][0] : null;
+    empty = { text: only === "holidays" && h ? `The next one is ${h.name}, ${shortDate(h.date)}.` : "Nothing coming up in these layers." };
+  }
+  return { sync: student?.state ?? null, layers: LAYERS.map((l) => ({ ...l, on: on.has(l.id) })), days, empty, subscribe: publicSubscription };
+}
+
+/**
+ * The academic calendar in the chosen layers for [from, to]: exam weeks,
+ * registration phases (the LMS semester calendar and the university's weeks)
+ * and holidays. Shared by the Calendar page and the personal calendar feed.
+ */
+export async function academicEvents(on: Set<CalendarLayer>, from: string, to: string): Promise<CalendarEvent[]> {
+  const events: CalendarEvent[] = [];
+  const today = from;
   if (on.has("exams")) {
     for (const p of phases(EXAM_KINDS, today, to)) {
       events.push({ key: `phase:${p.kind}:${p.starts}`, layer: "exams", title: PHASE_TITLE[p.kind] ?? "Exams", sub: "Exam · Your times appear when the LMS publishes them", day: p.starts, endDay: p.ends, time: null, href: null });
@@ -118,22 +153,5 @@ export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = n
       events.push({ key: `holiday:${h.date}`, layer: "holidays", title: h.name, sub: "Holiday · No classes", day: h.date, endDay: h.date, time: null, href: null });
     }
   }
-
-  const groups = new Map<string, CalendarEvent[]>();
-  for (const e of events.sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? "").localeCompare(b.time ?? ""))) {
-    const key = `${e.day}|${e.endDay}`;
-    groups.set(key, [...(groups.get(key) ?? []), e]);
-  }
-  const days = [...groups.entries()].map(([key, list]) => {
-    const [day, end] = key.split("|");
-    return { day, label: `${rangeLabel(day, end)}${day === today ? " · today" : ""}`, today: day === today, events: list };
-  });
-
-  let empty: CalendarView["empty"] = null;
-  if (!days.length) {
-    const h = nextHoliday(now);
-    const only = on.size === 1 ? [...on][0] : null;
-    empty = { text: only === "holidays" && h ? `The next one is ${h.name}, ${shortDate(h.date)}.` : "Nothing coming up in these layers." };
-  }
-  return { sync: student?.state ?? null, layers: LAYERS.map((l) => ({ ...l, on: on.has(l.id) })), days, empty, icsHref: "/calendar.ics" };
+  return events;
 }

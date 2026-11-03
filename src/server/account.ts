@@ -6,8 +6,8 @@ import { pseudonym } from "./identity";
 /**
  * "Delete my data": removes the student and everything keyed to them. The
  * users row cascades to the LMS account (sealed password and token), the LMS
- * cache, the feed, alert settings and snapshots, roles, rating asks and link
- * codes. Ratings hold no user id, only a pseudonym, so they are found by
+ * cache, the feed, alert settings and snapshots, roles, rating asks, link
+ * codes and the calendar feed link. Ratings hold no user id, only a pseudonym, so they are found by
  * recomputing it; teacher answers go with their rating (cascade). Reports stay
  * (moderation needs them; their pseudonym no longer leads to anyone). Uploads
  * stay published but lose their uploader (set null).

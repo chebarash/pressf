@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useSyncExternalStore, useTransition } from "react";
+import { confirm } from "@/platform/client";
 import { setTheme } from "@/platform/PlatformProvider";
+import { RESET_CALENDAR_TEXT } from "@/screens/mobile/mc/format";
 import { signOutWithConfirm } from "@/ui/shell/signOut";
 import { Button, Switch } from "@/ui/components";
 import { openShortcuts } from "../global/bus";
@@ -15,6 +17,8 @@ export type SettingsActions = {
   setAlert?: (id: string, on: boolean) => Promise<void>;
   /** Server action: refresh from the LMS now; resolves with a line to show. */
   syncNow?: () => Promise<{ message: string } | void>;
+  /** Server action: a new calendar feed link; the old one stops working. */
+  resetCalendar?: () => Promise<{ ok: boolean }>;
 };
 
 const THEMES = ["System", "Light", "Dark"] as const;
@@ -52,6 +56,16 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
   const cycleTheme = () => {
     const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
     setTheme(next === "System" ? null : next === "Dark" ? "dark" : "light");
+  };
+  const [resetting, startReset] = useTransition();
+  const [resetNote, setResetNote] = useState<string | null>(null);
+  const resetCalendar = async () => {
+    const ok = await confirm(RESET_CALENDAR_TEXT, { title: "Reset calendar link?", ok: "Reset", cancel: "Cancel", destructive: true });
+    if (!ok) return;
+    startReset(async () => {
+      const res = await actions!.resetCalendar!().catch(() => ({ ok: false }));
+      setResetNote(res.ok ? "Done. Add the calendar again from Calendar" : "Could not reset. Try again");
+    });
   };
   const signOut = async () => {
     if (await signOutWithConfirm()) router.push("/");
@@ -116,6 +130,14 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
                 <span>Press F forgets your LMS password; your ratings stay</span>
               </span>
             </button>
+            {actions?.resetCalendar && (
+              <button type="button" className={x.row} onClick={resetCalendar} disabled={resetting}>
+                <span className={x.text}>
+                  <b>Reset calendar link</b>
+                  <span aria-live="polite">{resetNote ?? "Your Google Calendar link stops working; add it again from Calendar"}</span>
+                </span>
+              </button>
+            )}
             <a className={x.row} href="/me/delete">
               <span className={x.text}>
                 <b>Delete my data</b>

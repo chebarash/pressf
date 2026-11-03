@@ -241,7 +241,8 @@ export type CalendarData = {
   filters: Array<{ id: string; label: string; on: boolean; href: string }>;
   coming: Array<{ title: string; meta: string; kind: CalendarKind }>;
   empty: string | null;
-  icsHref: string;
+  /** Google Calendar's add-by-URL page for the feed; `personal` when it is the student's own. */
+  subscribe: { google: string; personal: boolean };
 };
 
 export type SearchItem = { id: string; title: string; meta: string; right: string | null; href: string };

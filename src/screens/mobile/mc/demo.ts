@@ -109,7 +109,7 @@ const calendarBase: CalendarView = {
     { day: "2027-01-11", label: "11–15 Jan", today: false, events: [ev("fe", "exams", "Final exams", "Exam · Your times appear when the LMS publishes them", "2027-01-11")] },
   ],
   empty: null,
-  icsHref: "/calendar.ics",
+  subscribe: { google: "https://calendar.google.com/calendar/render?cid=webcal%3A%2F%2Fpressf.chebarash.uz%2Fcalendar.ics", personal: false },
 };
 
 export const SEARCH: Record<string, () => SearchView> = {
