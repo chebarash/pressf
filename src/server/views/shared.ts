@@ -69,15 +69,21 @@ export async function teachersByIds(ids: string[]): Promise<Map<string, TeacherR
   const unique = [...new Set(ids.filter(Boolean))];
   if (!unique.length) return new Map();
   const rows = await db()
-    .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, position: lmsTeachers.position, department: lmsTeachers.department, face: faces.teacherId })
+    .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, position: lmsTeachers.position, department: lmsTeachers.department, faceAt: faces.updatedAt })
     .from(lmsTeachers)
     .leftJoin(faces, eq(faces.teacherId, lmsTeachers.id))
     .where(inArray(lmsTeachers.id, unique));
-  return new Map(rows.map((t) => [t.id, { id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }), position: t.position, department: t.department, face: t.face ? faceUrl(t.id) : null }]));
+  return new Map(rows.map((t) => [t.id, { id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }), position: t.position, department: t.department, face: t.faceAt ? faceUrl(t.id, t.faceAt) : null }]));
 }
 
-/** The drawn face (never a photo), served by the faces route. */
-export const faceUrl = (teacherId: string) => `/faces/${encodeURIComponent(teacherId)}`;
+/**
+ * The drawn face (never a photo), served by the faces route. `?v=` changes with
+ * every new face, so the route can cache each version for a year.
+ */
+export const faceUrl = (teacherId: string, version?: Date | string | null) => {
+  const at = version ? new Date(version).getTime() : NaN;
+  return `/faces/${encodeURIComponent(teacherId)}${Number.isFinite(at) ? `?v=${at.toString(36)}` : ""}`;
+};
 
 export const ROLE_LABEL: Record<TeacherRole, string> = { lecture: "Lectures", tutorial: "Tutorials", lab: "Labs", practice: "Practice", other: "Teaching" };
 
