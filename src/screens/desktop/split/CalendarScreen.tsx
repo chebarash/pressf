@@ -44,11 +44,31 @@ export function CalendarScreen({ data }: { data: CalendarData }) {
                 </span>
               ))}
             </div>
-            {month.weeks.map((week) => (
-              <div key={week[0].key} className={k.week} role="row">
+            {month.weeks.map((week, w) => {
+              const spans = month.spans?.[w] ?? [];
+              const lanes = spans.reduce((n, x) => Math.max(n, x.lane + 1), 0);
+              return (
+              <div key={week[0].key} className={k.week} role="row" style={{ ["--lanes" as string]: lanes }}>
+                {spans.length > 0 && (
+                  <div className={k.spans}>
+                    {spans.map((x) => {
+                      const style = { gridColumn: `${x.from + 1} / ${x.to + 2}`, gridRow: x.lane + 1 };
+                      return x.href ? (
+                        <Link key={x.key} href={x.href} className={cx(k.event, k.span, LOOK[x.kind])} style={style}>
+                          {x.title}
+                        </Link>
+                      ) : (
+                        <span key={x.key} className={cx(k.event, k.span, LOOK[x.kind])} style={style}>
+                          {x.title}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
                 {week.map((day) => (
                   <div key={day.key} role="gridcell" className={cx(k.cell, !day.inMonth && k.out, day.today && k.today)} aria-current={day.today ? "date" : undefined}>
                     <span className={k.date}>{day.date}</span>
+                    {lanes > 0 && <span className={k.spanRoom} aria-hidden />}
                     {day.inMonth &&
                       day.items.slice(0, 3).map((it, n) =>
                         it.href ? (
@@ -65,7 +85,8 @@ export function CalendarScreen({ data }: { data: CalendarData }) {
                   </div>
                 ))}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

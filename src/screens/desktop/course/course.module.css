@@ -84,6 +84,11 @@
 .weekFiles { display: flex; flex-direction: column; gap: var(--space-2); padding-left: 44px;  margin-top: -8px; }
 /* Figma D4: a collapsed week row is the 358px WeekRow, its chevron right after the title. */
 .week:not(.weekNow) { width: 358px; max-width: 100%; }
+/* Files tab (4.7) and Anonymous tab on desktop. */
+.fileGroup { display: flex; flex-direction: column; gap: var(--space-2); }
+.groupTitle { font: 600 13px/normal var(--font-sans); color: var(--text-secondary); margin: 0; padding-top: var(--space-2); }
+.groupFiles { display: flex; flex-direction: column; gap: var(--space-2); }
+.posts { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--space-4); }
 .links { display: flex; gap: var(--space-5); padding-top: var(--space-2); }
 .more { display: inline-flex; align-items: center; gap: var(--space-2); font: 500 18px/1.3 var(--font-sans); color: var(--text-accent); }
 .more:hover { text-decoration: underline; text-underline-offset: 4px; }
