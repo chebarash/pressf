@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { compileMatcher, linkKey, type Matcher, type MentionKind } from "@/core/mentions";
 import { db } from "@/lib/db";
-import { adminMarks, lmsCourses, lmsTeachers, mentionLinks, mentions, teacherAliases, teacherOverrides } from "@/lib/db/schema";
+import { adminMarks, lmsCourses, lmsPrograms, lmsTeachers, mentionLinks, mentions, teacherAliases, teacherOverrides } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { invalidate, TAGS } from "@/server/views/cache";
 
@@ -32,17 +32,19 @@ const chunks = <T>(list: T[], size = BATCH) => Array.from({ length: Math.ceil(li
 
 /** One matcher per run: every course and teacher, merges and admin display names folded in. */
 export async function loadMatcher(): Promise<Matcher> {
-  const [courses, teachers, aliases, overrides] = await Promise.all([
+  const [courses, teachers, aliases, overrides, programs] = await Promise.all([
     db().selectDistinct({ code: lmsCourses.code, name: lmsCourses.name }).from(lmsCourses),
     db().select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, surName: lmsTeachers.surName }).from(lmsTeachers),
     db().select().from(teacherAliases),
     db().select({ id: teacherOverrides.teacherId, name: teacherOverrides.name }).from(teacherOverrides),
+    db().selectDistinct({ name: lmsPrograms.name }).from(lmsPrograms),
   ]);
   const shown = new Map(overrides.filter((o) => o.name?.trim()).map((o) => [o.id, o.name]));
   return compileMatcher({
     courses,
     teachers: teachers.map((t) => ({ ...t, displayName: shown.get(t.id) ?? null })),
     aliases: Object.fromEntries(aliases.map((a) => [a.oldId, a.teacherId])),
+    programs: programs.flatMap((p) => (p.name ? [p.name] : [])),
   });
 }
 
