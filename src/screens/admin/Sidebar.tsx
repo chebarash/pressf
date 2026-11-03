@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef } from "react";
 import { Chip, cx, s } from "./ui";
+import { keyName } from "@/platform/keys";
 
 export type SidebarProps = {
   sections: Array<{ id: string; label: string }>;
@@ -26,7 +27,7 @@ export function Sidebar({ sections, counts, me }: SidebarProps) {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (e.metaKey || e.ctrlKey || e.altKey || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT") return;
-      const k = e.key.toLowerCase();
+      const k = keyName(e);
       if (Date.now() - pending.current < 1200 && CHORD[k]) {
         pending.current = 0;
         if (allowed.has(CHORD[k])) {

@@ -3,14 +3,14 @@
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { miniAppUrl } from "@/core/links";
+import { BOT_USERNAME, miniAppUrl } from "@/core/links";
 import { useMainButton } from "@/platform/hooks";
 import { haptic } from "@/platform/native";
 import { whenWebApp } from "@/platform/telegram";
 import { SkeletonPage } from "@/ui/shell/PageHeader";
 import { signedInName } from "../actions";
 
-type State = "working" | "expired" | "browser";
+type State = "working" | "expired" | "unverified" | "browser";
 
 export function RedeemLink({ token }: { token: string }) {
   const router = useRouter();
@@ -26,7 +26,7 @@ export function RedeemLink({ token }: { token: string }) {
       const result = await signIn("link", { token, initData: app.initData, redirect: false }).catch(() => null);
       if (!result?.ok || result.error) {
         haptic.notify("error");
-        return setState("expired");
+        return setState(result?.error === "telegram-unverified" ? "unverified" : "expired");
       }
       haptic.notify("success");
       const name = await signedInName().catch(() => null);
@@ -35,16 +35,18 @@ export function RedeemLink({ token }: { token: string }) {
     })();
   }, [router, token]);
 
-  useMainButton(state === "expired" && { text: "Sign in with LMS", onClick: () => router.replace("/sign-in") });
+  useMainButton((state === "expired" || state === "unverified") && { text: "Sign in with LMS", onClick: () => router.replace("/sign-in") });
 
   if (state === "working") return <SkeletonPage title="Today" />;
   return (
     <div className="sh-setup">
-      <h1 className="t-mobile-title">{state === "expired" ? "That code expired" : "Open it in Telegram"}</h1>
+      <h1 className="t-mobile-title">{state === "expired" ? "That code expired" : state === "unverified" ? "Couldn't confirm Telegram" : "Open it in Telegram"}</h1>
       <p className="sh-setup__text">
         {state === "expired"
           ? "Codes work once and for 10 minutes. Show a new one on your computer, or sign in here with your LMS email."
-          : "This link signs you in inside the Press F Mini App. Scan the code with your phone, or open it in Telegram."}
+          : state === "unverified"
+            ? `Open the code from @${BOT_USERNAME} so Telegram can confirm it's you. Your code is still valid.`
+            : "This link signs you in inside the Press F Mini App. Scan the code with your phone, or open it in Telegram."}
       </p>
       {state === "browser" && <a className="sh-btn sh-btn--primary" href={miniAppUrl({ to: "link", token })}>Open Telegram</a>}
     </div>

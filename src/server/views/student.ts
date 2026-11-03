@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { lmsAccounts, lmsCache, userState, users } from "@/lib/db/schema";
 import { CACHE_TTL_MS, type UserCache } from "@/lib/lms/cache";
+import { lmsDay } from "@/lib/lms/semesters";
 import { SNAPSHOT_KEY, emptySnapshot, type SyncSnapshot } from "@/server/sync/types";
 import { scheduleRefresh } from "@/server/sync/refresh";
 import { DEFAULT_ALERTS, type AlertSettings } from "@/core/notifications";
@@ -59,6 +60,8 @@ export async function loadStudent(userId: string, opts: { refresh?: boolean } = 
   if (!row) return null;
 
   const sync = { ...emptySnapshot(), ...((row.snapshot?.[SNAPSHOT_KEY] as Partial<SyncSnapshot> | undefined) ?? {}) };
+  // Snapshots written before dates were normalised hold LMS raw values (unix numbers…).
+  sync.semesters = (sync.semesters ?? []).map((m) => ({ ...m, starts: lmsDay(m.starts), ends: lmsDay(m.ends) }));
   const account: AccountState = row.status ?? "none";
   const cacheAt = iso(row.cacheAt);
   const syncedAt = newest(cacheAt, sync.at);

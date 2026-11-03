@@ -85,10 +85,12 @@ export const authOptions: NextAuthOptions = {
       name: "Link",
       credentials: { token: {}, initData: {} },
       async authorize(credentials) {
+        // Distinct codes so the Mini App can say what went wrong (shown as result.error).
         const telegramId = verifyInitData(credentials?.initData ?? "");
-        if (!telegramId || !credentials?.token) return null;
+        if (!telegramId) throw new Error("telegram-unverified");
+        if (!credentials?.token) throw new Error("link-expired");
         const userId = await redeemLink(credentials.token);
-        if (!userId) return null;
+        if (!userId) throw new Error("link-expired");
         const [row] = await db().select().from(users).where(eq(users.id, userId));
         if (!row) return null;
         await linkTelegram(row.id, telegramId);

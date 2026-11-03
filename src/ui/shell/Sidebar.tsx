@@ -7,7 +7,7 @@ import { setTheme } from "@/platform/PlatformProvider";
 import { Icon } from "./icons";
 import { isActive, NAV } from "./nav";
 import type { QrData } from "./qr";
-import { QrSvg } from "./QrSvg";
+import { LiveInviteQr } from "./LiveInviteQr";
 
 export type SidebarProps = {
   user: { name: string; subtitle: string; telegramLinked: boolean; syncedAt: string | null } | null;
@@ -81,7 +81,7 @@ export function Sidebar({ user, unread = 0, nextLabel = "Feb", inviteQr, onSearc
         <section className="sh-invite" aria-label="Press F in Telegram">
           <div className="sh-invite__head">
             <button type="button" className="sh-invite__qr" onClick={onLinkTelegram} aria-label="Show the sign-in code for Telegram">
-              <QrSvg qr={inviteQr} size={56} label="Press F in Telegram" />
+              <LiveInviteQr fallback={inviteQr} size={56} />
             </button>
             <div>
               <p className="sh-invite__title">Press F in Telegram</p>

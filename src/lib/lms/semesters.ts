@@ -84,10 +84,12 @@ export function parseCalendar(payload: unknown): LmsSemesterPhase[] {
 
 export type SemesterRow = { id: string; name: string | null; starts: string | null; ends: string | null };
 
-const day = (v: unknown) => {
+/** Any LMS date (unix seconds, ms, "dd.mm.yyyy", ISO…) → Tashkent "YYYY-MM-DD", or null. */
+export const lmsDay = (v: unknown) => {
   const d = lmsDate(v);
   return d ? new Date(d.getTime() + 5 * 3600_000).toISOString().slice(0, 10) : null;
 };
+const day = lmsDay;
 
 /** `/semester/semester-list` (or my-list / gradebook semesters) → id, name and study dates. */
 export function parseSemesters(payload: unknown): SemesterRow[] {

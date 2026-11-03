@@ -7,6 +7,7 @@ import { EmptyState, Sheet } from "@/ui/components";
 import type { RateData } from "../model";
 import { Button, cx, Face, Keys } from "../parts";
 import r from "../rate.module.css";
+import { keyName } from "@/platform/keys";
 
 export type RateActions = { submit?: (courseId: string, input: RatingInput) => Promise<void> };
 
@@ -78,13 +79,13 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
         setQ((x) => (x + (e.shiftKey ? 2 : 1)) % 3);
         return;
       }
-      const k = e.key.toLowerCase();
+      const k = keyName(e);
       if (k === "y" || k === "n" || k === "?") {
         setRecommend(k === "y" ? "yes" : k === "n" ? "no" : "unsure");
         setQ(1);
         return;
       }
-      const n = Number(e.key);
+      const n = Number(keyName(e));
       if (n >= 1 && n <= 5) {
         if (q === 2) setDifficulty(n as RatingInput["difficulty"]);
         else if (n <= HOURS.length) {
