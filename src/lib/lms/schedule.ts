@@ -4,7 +4,7 @@ import { lmsCourses, lmsTeachers } from "@/lib/db/schema";
 import { scheduleList } from "@/lib/lms/client";
 import { sessionFor } from "@/lib/lms/store";
 import type { Lesson } from "@/lib/catalog/types";
-import { kindOfLessonType } from "@/core/agenda";
+import { kindOfLessonType, roomLabel } from "@/core/agenda";
 
 /**
  * The signed-in student's own weekly timetable, read live from the LMS. The LMS
@@ -27,8 +27,7 @@ function at(ts: number) {
 const MERGE_GAP_MIN = 20;
 
 /** A string, `{ name }`, or (real `/schedule/list`) `{ aud_num: "306", campus: { name } }`. */
-const roomOf = (a: { name?: string | null; aud_num?: string | number | null } | string | null | undefined) =>
-  (typeof a === "string" ? a.trim() : (a?.name ?? "").trim() || String(a?.aud_num ?? "").trim()) || null;
+const roomOf = (a: Parameters<typeof roomLabel>[0]) => roomLabel(a);
 
 export async function studentTimetable(userId: string): Promise<Lesson[] | null> {
   const session = await sessionFor(userId);

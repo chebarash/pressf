@@ -26,6 +26,8 @@ export type CoverMeta = {
   uploadedAt?: Date | null;
   /** Student uploader's name, only when they opted in. */
   uploaderName?: string | null;
+  /** Imported from a channel: "the channel PU Materials" (never a person). */
+  channel?: string | null;
   /** Past exams: what and when, so nobody mistakes it for a current paper. */
   exam?: { name?: string | null; date?: Date | null; minutes?: number | null; term?: string | null } | null;
   /** Pages of the original (filled in by the PDF brander when omitted). */
@@ -50,6 +52,7 @@ export function weekLine(m: CoverMeta) {
 
 export function sourceLine(m: CoverMeta) {
   if (m.source === "lms") return m.uploadedAt ? `NewUU LMS, uploaded ${fmtDate(m.uploadedAt)}` : "NewUU LMS";
+  if (m.channel) return `From ${m.channel}`;
   return m.uploaderName ? `Shared by ${m.uploaderName}, checked by a moderator` : "Shared by a student, checked by a moderator";
 }
 

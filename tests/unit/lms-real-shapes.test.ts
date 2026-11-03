@@ -118,7 +118,7 @@ describe("real LMS shapes: notifications, schedule, homework, files", () => {
 
   it("reads the room number and the lesson kind from the schedule", () => {
     const [c] = scheduleClasses(real.scheduleDays as unknown as LmsScheduleDay[], []);
-    expect(c).toMatchObject({ subjectId: "906", room: "306", kind: "lecture", teacherId: "141", lessonId: "52681" });
+    expect(c).toMatchObject({ subjectId: "906", room: "MATH 306", kind: "lecture", teacherId: "141", lessonId: "52681" });
   });
 
   it("reads Russian homework statuses and the working id", () => {
