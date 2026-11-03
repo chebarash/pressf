@@ -2,6 +2,7 @@
  * View model (src/server/views) → what the desktop frames draw (./model).
  * Pure functions: no fetching, no React. One per screen.
  */
+import { CLASS_KIND_LABEL } from "@/core/agenda";
 import { fileList } from "@/core/files";
 import { COURSE_TAG_ORDER } from "@/core/ratings";
 import { tier } from "@/core/grades";
@@ -14,7 +15,7 @@ import { slugify } from "@/screens/mobile/mc/format";
 
 const TZ = "Asia/Tashkent";
 const join = (...parts: Array<string | number | null | undefined | false>) => parts.filter((p) => p !== null && p !== undefined && p !== false && p !== "").join(" · ");
-const KIND_LABEL: Record<string, string> = { lecture: "Lecture", practice: "Practice", lab: "Lab", exam: "Exam", other: "Class" };
+const KIND_LABEL: Record<string, string> = CLASS_KIND_LABEL;
 /** Anonymous post date as in Figma: "Mar 12, 2026". */
 const postDate = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: TZ }) : "");
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
