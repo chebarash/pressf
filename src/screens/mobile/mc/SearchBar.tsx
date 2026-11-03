@@ -1,18 +1,26 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SearchIcon } from "./kit";
 import s from "./mc.module.css";
 import c from "./screens.module.css";
 
-/** Figma SearchBar (7.1–7.3): typing updates ?q= and the server renders the results. */
-export function SearchBar({ query, first }: { query: string; first: string | null }) {
+/**
+ * Figma SearchBar (7.1–7.3). Typing asks the server for results (`onQuery`) and
+ * only rewrites ?q= in place, so the field is never re-mounted and keeps focus.
+ */
+export function SearchBar({ query, first, onQuery }: { query: string; first: string | null; onQuery: (q: string) => void }) {
   const router = useRouter();
   const path = usePathname();
   const [value, setValue] = useState(query);
-  const [, start] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+
+  // Arriving from the top bar the keyboard is already up (focus was taken during the tap): keep it here.
+  useEffect(() => {
+    input.current?.focus({ preventScroll: true });
+  }, []);
 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
@@ -23,8 +31,9 @@ export function SearchBar({ query, first }: { query: string; first: string | nul
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       const q = next.trim();
-      start(() => router.replace(q ? `${path}?q=${encodeURIComponent(q)}` : path, { scroll: false }));
-    }, 180);
+      window.history.replaceState(window.history.state, "", q ? `${path}?q=${encodeURIComponent(q)}` : path);
+      onQuery(q);
+    }, 140);
   };
 
   return (
@@ -41,6 +50,7 @@ export function SearchBar({ query, first }: { query: string; first: string | nul
         Search
       </label>
       <input
+        ref={input}
         id="pf-search"
         className={c.searchInput}
         type="search"

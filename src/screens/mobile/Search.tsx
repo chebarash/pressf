@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useRef, useState, useTransition } from "react";
+import { searchLive } from "./actions";
 import type { SearchView } from "@/server/views";
 import { ArrowRightIcon, EmptyState, Face, FileIcon } from "./mc/kit";
 import { Chevron, cx, Screen } from "./mc/parts";
@@ -10,7 +14,18 @@ import c from "./mc/screens.module.css";
 type Hit = RecentHit & { key: string; face?: string | null };
 
 /** Mobile Search (Figma 7.1 before typing, 7.2 results, 7.3 nothing found). */
-export default function Search({ data, programHref = "/schools" }: { data: SearchView; programHref?: string }) {
+export default function Search({ data: initial, programHref = "/schools" }: { data: SearchView; programHref?: string }) {
+  const [data, setData] = useState(initial);
+  const [, start] = useTransition();
+  const latest = useRef(0);
+  const query = (q: string) => {
+    const n = ++latest.current;
+    start(async () => {
+      const next = await searchLive(q).catch(() => null);
+      // Answers can arrive out of order; only the newest query's results are shown.
+      if (next && n === latest.current) setData(next);
+    });
+  };
   const groups: Array<[string, Hit[]]> = (
     [
       ["Courses", data.courses.map((k) => ({ kind: "course", key: k.code, title: k.name, subtitle: [k.code, k.recommendPct !== null ? `${k.recommendPct}% recommend` : null].filter(Boolean).join(" · "), href: k.href }))],
@@ -27,7 +42,7 @@ export default function Search({ data, programHref = "/schools" }: { data: Searc
   ];
   return (
     <Screen className={s.noTopBar}>
-      <SearchBar query={data.q} first={first?.href ?? null} />
+      <SearchBar query={initial.q} first={first?.href ?? null} onQuery={query} />
       {data.nothing ? (
         <div className={c.results}>
           <EmptyState title={`Nothing for “${data.q}”`} text="Try a course code like PHYS101 or a teacher's surname." />
