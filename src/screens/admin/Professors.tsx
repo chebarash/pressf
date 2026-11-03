@@ -46,12 +46,12 @@ export function Professors({ data }: { data: ProfessorsData }) {
           <Link href="/admin/professors?tab=all" className={cx(s.chip, data.tab === "all" && s.chipInverse)}>All {data.total}</Link>
           <span className={s.chip}>No LMS link {data.orphans}</span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {data.tab === "duplicates" && data.duplicates.length === 0 && <p className={s.small}>No twins found. New spellings from the LMS show up here.</p>}
           {data.tab === "duplicates" &&
             data.duplicates.map((d) => (
               <Link key={d.key} href={`/admin/professors?pair=${d.key}`} className={cx(s.listCard, sel?.key === d.key && s.listCardActive)} onClick={() => setFlip(false)}>
-                <span className={s.listTitle}>{d.keep.name} ↔ {d.merge.name}</span>
+                <span className={s.listTitle}>{d.keep.name}{"\u00a0 ↔ \u00a0"}{d.merge.name}</span>
                 <span className={s.listMeta}>{d.why}</span>
               </Link>
             ))}
@@ -74,17 +74,17 @@ export function Professors({ data }: { data: ProfessorsData }) {
         </div>
       </section>
       {data.tab === "duplicates" && keep && merge && sel && (
-        <section className={s.detail} aria-label="Merge">
+        <section className={cx(s.detail, s.detailNarrow)} aria-label="Merge">
           <h2 className={s.h2}>Merge into one page</h2>
-          <div className={s.row2}>
-            <button type="button" className={cx(s.card, s.tintMoss)} style={{ flex: "1 0 0", textAlign: "left", cursor: "default" }}>
-              <span><Chip>KEEP</Chip></span>
-              <span className={s.h3} style={{ fontSize: 22 }}>{keep.name}</span>
+          <div className={s.row2} style={{ gap: 12 }}>
+            <button type="button" className={cx(s.card, s.tintMoss)} style={{ flex: "1 0 0", textAlign: "left", cursor: "default", gap: 6 }}>
+              <span><Chip tone="moss">KEEP</Chip></span>
+              <span className={s.cardName}>{keep.name}</span>
               <span className={s.small}>{stats(keep)}</span>
             </button>
-            <button type="button" className={s.cardSoft} style={{ flex: "1 0 0", textAlign: "left", cursor: "pointer", gap: 10 }} onClick={() => setFlip((f) => !f)} title="Keep this one instead">
+            <button type="button" className={s.cardSoft} style={{ flex: "1 0 0", textAlign: "left", cursor: "pointer" }} onClick={() => setFlip((f) => !f)} title="Keep this one instead">
               <span><Chip>MERGE IN</Chip></span>
-              <span className={s.h3} style={{ fontSize: 22 }}>{merge.name}</span>
+              <span className={s.cardName}>{merge.name}</span>
               <span className={s.small}>{stats(merge)}</span>
             </button>
           </div>
@@ -102,7 +102,7 @@ export function Professors({ data }: { data: ProfessorsData }) {
           </div>
         </section>
       )}
-      {data.tab === "all" && <section className={s.detail} />}
+      {data.tab === "all" && <section className={cx(s.detail, s.detailNarrow)} />}
     </>
   );
 }

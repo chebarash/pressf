@@ -127,7 +127,6 @@ export function Broadcasts({ data }: { data: BroadcastsData }) {
             {inQuietHours(when) ? `→ ${human(actual, now)} · quiet hours respected` : "· quiet hours respected"}
           </span>
         </div>
-        <p className={s.note} style={{ margin: 0 }}>Quiet hours 23:00–07:00. One broadcast per student per day.</p>
         {msg && <div className={msg.ok ? s.small : s.error}>{msg.text}</div>}
         <div className={s.spacer} />
         <div className={s.actions}>
@@ -135,7 +134,7 @@ export function Broadcasts({ data }: { data: BroadcastsData }) {
           <Btn onClick={test} disabled={!text.trim() || pending}>Send test to me</Btn>
         </div>
       </section>
-      <aside className={cx(s.detail, s.sunkenPanel)} style={{ padding: "28px 25.5px" }} aria-label="Preview">
+      <aside className={cx(s.detail, s.detailNarrow, s.sunkenPanel)} aria-label="Preview">
         <Label>PREVIEW · TELEGRAM</Label>
         <div className={s.tgBubble}>{text.trim() || "Your message shows here."}</div>
         {btn && <div className={s.tgButton}>{btn.label}</div>}

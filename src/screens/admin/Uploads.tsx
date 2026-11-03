@@ -94,7 +94,7 @@ export function Uploads({ data }: { data: UploadsData }) {
 
   return (
     <>
-      <section className={s.column} style={{ width: 340 }} aria-label="Queue">
+      <section className={s.column} style={{ width: 340, gap: items.length === 0 ? 12 : undefined }} aria-label="Queue">
         <h1 className={s.h1Col}>Uploads</h1>
         <div className={s.tabs}>
           {(Object.keys(TAB_LABEL) as Array<keyof typeof TAB_LABEL>).map((t) => (
@@ -119,7 +119,7 @@ export function Uploads({ data }: { data: UploadsData }) {
                 </span>
               </button>
             ))}
-            <div className={s.hstack} style={{ gap: 6, padding: "4px 0" }}>
+            <div className={s.hstack} style={{ gap: 6 }}>
               <kbd className={s.key}>J</kbd>
               <kbd className={s.key}>K</kbd>
               <span className={s.note}>next / previous</span>

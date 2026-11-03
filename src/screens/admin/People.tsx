@@ -49,7 +49,7 @@ export function People({ data, viewerId }: { data: PeopleData; viewerId: string 
   return (
     <>
       <section className={cx(s.main, s.mainFixed)} style={{ width: 560 }}>
-        <Head title="People" sub={`${data.total.toLocaleString("en-US")} signed in · ${data.trusted} trusted by hand`} />
+        <Head title="People" sub={`${data.total.toLocaleString("en-US")} signed in · ${data.trusted} trusted uploaders`} />
         <form className={s.search} action="/admin/people">
           <input ref={search} name="q" defaultValue={data.q} placeholder="Name, Telegram @, LMS id" aria-label="Search people" autoComplete="off" />
           <kbd className={s.key}>/</kbd>
@@ -71,10 +71,10 @@ export function People({ data, viewerId }: { data: PeopleData; viewerId: string 
         </div>
       </section>
       {d && (
-        <section className={s.detail} aria-label="Student">
+        <section className={cx(s.detail, s.detailNarrow)} aria-label="Student">
           <div className={s.hstack} style={{ gap: 12 }}>
             <span className={cx(s.avatar, s.avatarLg)}>{d.initials}</span>
-            <div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 0 0", minWidth: 0 }}>
               <h2 className={s.h2}>{d.name}</h2>
               <div className={s.note}>{d.line || "No LMS data yet"}</div>
             </div>
@@ -86,7 +86,7 @@ export function People({ data, viewerId }: { data: PeopleData; viewerId: string 
             <KV k="Ratings" wide>{d.ratings}</KV>
             <KV k="Anonymous" wide>Not visible to admins</KV>
           </div>
-          <h3 className={s.h3}>Upload trust</h3>
+          <h3 className={s.h5}>Upload trust</h3>
           {TRUST.map((t) => (
             <button key={t.id} type="button" className={cx(s.option, trust === t.id && s.optionActive)} aria-pressed={trust === t.id} onClick={() => pickTrust(t.id)} disabled={pending}>
               <Radio on={trust === t.id} />
@@ -116,7 +116,7 @@ export function People({ data, viewerId }: { data: PeopleData; viewerId: string 
               </Btn>
             )}
           </div>
-          <p className={s.note} style={{ margin: 0 }}>No passwords are shown or stored in readable form. Ratings and Anonymous posts stay unlinked from people.</p>
+          <p className={s.small} style={{ margin: 0 }}>No passwords are shown or stored in readable form. Ratings and Anonymous posts stay unlinked from people.</p>
         </section>
       )}
     </>

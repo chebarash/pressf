@@ -84,7 +84,7 @@ export function Reports({ data }: { data: ReportsData }) {
             ))}
           </div>
           <div className={cx(s.cardSoft, s.tintMustard)}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-on-warm)" }}>{sel.rule}</div>
+            <div className={s.warmText}>{sel.rule}</div>
           </div>
           {sel.kind === "post" && (
             <p className={s.note} style={{ margin: 0 }}>Author: hidden from admins too. Mute acts on the post&apos;s private author token — we never learn who it is.</p>
