@@ -40,6 +40,8 @@
 
 .content { display: flex; flex-direction: column; gap: var(--space-7); padding-top: var(--space-6); }
 .block { display: flex; flex-direction: column; gap: var(--space-4); }
+/* Figma: the Syllabus heading sits 12 px above its card. */
+.syllabusBlock { display: flex; flex-direction: column; gap: var(--space-3); }
 
 /* You in this course */
 .you {
@@ -210,7 +212,7 @@ a.book .foldTitle { color: var(--text-accent); }
 .termNote { padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--bg-accent-soft); color: var(--text-accent); font-size: 11px; font-weight: 600; }
 .termTeachers { color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: normal; }
 
-.skeleton { display: block; border-radius: var(--radius-md); background: var(--bg-sunken); }
+.skeleton { display: block; flex: none; border-radius: var(--radius-md); background: var(--bg-sunken); }
 .fewText { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: 1.4; }
 .trendLabel { color: var(--text-primary); font-family: var(--font-sans); font-size: 12px; font-weight: 500; line-height: normal; }
 .ghostItem { display: flex; flex: 1 1 0; flex-direction: column; gap: var(--space-2); }

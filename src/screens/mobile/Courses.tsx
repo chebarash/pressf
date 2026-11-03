@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CourseCard, cx, Face } from "@/ui/components";
+import { CourseCard, cx, EmptyState } from "@/ui/components";
 import { ChevronRightIcon } from "@/ui/icons";
 import b from "./parts/base.module.css";
 import s from "./parts/Courses.module.css";
@@ -15,11 +15,7 @@ export default function Courses({ data }: { data: MyCoursesView }) {
       <h1 className={b.title}>My courses</h1>
 
       {data.notInLmsYet ? (
-        <div className={b.empty}>
-          <Face kind="mascot" size={96} priority />
-          <h2 className={b.emptyTitle}>{data.term ?? "This semester"} isn&apos;t in LMS yet</h2>
-          <p className={b.emptyText}>Courses appear here as soon as the registrar publishes your plan. Earlier semesters are below.</p>
-        </div>
+        <EmptyState className={b.emptyOneLine} title={`${data.term ?? "This semester"} isn't in LMS yet`} text="Courses appear here as soon as the registrar publishes your plan. Earlier semesters are below." />
       ) : (
         <div className={s.cards}>
           {data.courses.map((c) => (

@@ -64,6 +64,12 @@ a.row:active { background: var(--bg-hover); }
 /* Full-width block inside the 16 px gutter (Figma EmptyState spans the 390 frame). */
 .bleed.bleed { max-width: none; margin-inline: calc(-1 * var(--space-4)); }
 
+/* Figma 4.13: the toast hugs its text at the left, 12 px above the MainButton bar. */
+.notice.notice { align-items: flex-start; bottom: calc(var(--toast-offset, 95px) + var(--space-3) + env(safe-area-inset-bottom)); }
+
+/* Figma EmptyState keeps its title on one line, past the 32 px side padding if it must (4.16). */
+.emptyOneLine.emptyOneLine > h2 { margin-inline: calc(-1 * var(--space-6)); white-space: nowrap; }
+
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Until the shell lands its reset: every Mobile B box sizes border-box. */

@@ -113,7 +113,7 @@ function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }
         ) : null}
 
         {data.syllabus || !data.signedIn ? (
-          <section className={s.block}>
+          <section className={s.syllabusBlock}>
             <h2 className={b.section}>Syllabus</h2>
             {data.syllabus ? (
               <Syllabus syl={data.syllabus} />

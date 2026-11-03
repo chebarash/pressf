@@ -171,7 +171,7 @@ export async function nextSemester(userId: string, now = new Date()): Promise<Ne
   const [student, all, lmsPhases] = await Promise.all([loadStudent(userId), plans(), semesterPhases(today)]);
   if (!student) return null;
   const plan = planFor(all, student);
-  const label = (a: string, b: string) => (a === b ? shortDate(a) : `${shortDate(a)} – ${shortDate(b)}`);
+  const label = dayRange;
   const fromLms = lmsPhases
     .filter((p) => p.kind !== "other" && !(p.kind === "studies" && p.startDay < today))
     .slice(0, 4)

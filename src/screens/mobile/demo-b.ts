@@ -142,7 +142,7 @@ export function nextDemo(): NextSemesterView {
   const summary = (hours: number, word: string) => ({ enough: true as const, count: 20, recommendPct: 80, hours, difficulty: 3, tags: [], trend: [], delta: null, hoursLabel: `≈ ${hours} h/wk`, difficultyLabel: word, since: null, until: null });
   return {
     term: "Spring 2027", ects: 30, missing: false,
-    phases: [{ title: "Course registration in LMS", starts: "", ends: "", label: "9 Feb – 13 Feb" }, { title: "Classes start", starts: "", ends: "", label: "16 Feb" }],
+    phases: [{ title: "Cohort selection", starts: "", ends: "", label: "9–13 Feb", kind: "cohort-selection" as const }, { title: "Classes start", starts: "", ends: "", label: "16 Feb" }, { title: "Add/drop", starts: "", ends: "", label: "16–27 Feb", kind: "add-drop" as const }],
     courses: [
       { courseId: "m2", code: "MATH211", name: "Calculus 2", ects: 6, ratings: summary(7, "Hard"), recommendPct: 78, cohorts: [cohort("t1", "Gonçalo Pinto", "Mon, Wed 10:00", "B-204", 88), cohort("t2", "Emily Carter", "Tue, Thu 15:00", "A-108", 80)], prerequisites: [{ text: "Calculus 1", code: "MATH111", status: "passed" }], href: "/c/MATH211" },
       { courseId: "ds", code: "CS200", name: "Data Structures", ects: 6, ratings: summary(8, "Hard"), recommendPct: 88, cohorts: [cohort("t3", "William Rodriguez", "Mon 15:00", "C-112", 90), cohort("t3", "William Rodriguez", "Wed 15:00", "C-112", 90), cohort("t2", "Emily Carter", "Fri 10:00", "C-110", 70)], prerequisites: [{ text: "CS 1", code: "CS100", status: "passed" }], href: "/c/CS200" },
