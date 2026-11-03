@@ -34,7 +34,9 @@ export default function Course({ data }: { data: CourseScreen }) {
   ];
   const action: { text: string; href?: string; disabled?: boolean } | null = !data.signedIn
     ? { text: "Sign in with LMS", href: `/sign-in?next=${encodeURIComponent(href(data.tab))}` }
-    : data.rate?.canRate
+    : data.tab === "files"
+      ? null // Figma 4.7: the Files tab has no MainButton.
+      : data.rate?.canRate
       ? { text: data.rate.rated || data.notice === "rating-sent" ? "Edit your rating" : "Rate this course", href: `${data.rate.href}?from=${encodeURIComponent(`/c/${data.code}`)}` }
       : data.rate?.opensIn
         ? { text: `Opens in week ${data.rate.opensIn}`, disabled: true }
