@@ -21,7 +21,7 @@ import { createHash } from "node:crypto";
 import { compact, editDistance, fold, phonetic } from "./search";
 
 /** Bump when the rules change: the next sync re-matches every stored post. */
-export const MATCHER_VERSION = 2;
+export const MATCHER_VERSION = 3;
 
 export type MentionKind = "course" | "teacher";
 export type MentionLink = { kind: MentionKind; target: string };
@@ -40,6 +40,8 @@ export type MatcherInput = {
   teachers: MentionTeacher[];
   /** Merged teachers: old id → the id kept. */
   aliases?: Record<string, string>;
+  /** Study programme names: a course named like a programme ("Software Engineering") means the programme as often as the course. */
+  programs?: string[];
 };
 export type Matcher = {
   /** Changes whenever the rules or the courses/teachers they use change. */
@@ -176,7 +178,12 @@ function usable(words: string[], fullName: string[]): boolean {
   return w.length >= 3 && !GENERIC.has(w) && !STOP_ACRONYMS.has(w);
 }
 
-function compileCourses(courses: MentionCourse[]) {
+/** "BSc in Software Engineering" → "software engineering". */
+export const programmeKey = (name: string) =>
+  tokens(name).join(" ").replace(/^(bachelor|master|bsc|ba|msc|ma|mba|bs|ms)( of)?( (science|arts|business administration))?( (in|of))? /, "");
+
+function compileCourses(courses: MentionCourse[], programs: string[] = []) {
+  const programmes = new Set(programs.map(programmeKey).filter(Boolean));
   const codes = new Map<string, string>();
   const byPhrase = new Map<string, { words: string[]; targets: Set<string>; loose: boolean }>();
   for (const c of courses) {
@@ -207,7 +214,7 @@ function compileCourses(courses: MentionCourse[]) {
   // A phrase that names two courses names neither; a loose one that starts another course's name too.
   const index = new Map<string, Phrase[]>();
   for (const [k, { words, targets, loose }] of byPhrase) {
-    if (targets.size !== 1) continue;
+    if (targets.size !== 1 || programmes.has(k)) continue;
     if (loose && [...(startOf.get(k) ?? [])].some((t) => !targets.has(t))) continue;
     const phrase = { words, target: [...targets][0], endings: !/^\d/.test(words[words.length - 1]) };
     const list = index.get(words[0]);
@@ -385,11 +392,13 @@ function findTeachers(text: string, t: ReturnType<typeof compileTeachers>, out: 
 /* ───────────── the matcher ───────────── */
 
 export function compileMatcher(input: MatcherInput): Matcher {
-  const courses = compileCourses(input.courses);
+  const courses = compileCourses(input.courses, input.programs);
   const teachers = compileTeachers(input.teachers, input.aliases ?? {});
   const fingerprint = createHash("sha1")
     .update(`v${MATCHER_VERSION}\n`)
     .update([...new Set(input.courses.map((c) => `${c.code}:${c.name}`))].sort().join("\n"))
+    .update("\n--\n")
+    .update([...new Set((input.programs ?? []).map(programmeKey))].sort().join("\n"))
     .update("\n--\n")
     .update(teachers.fingerprint)
     .digest("hex")
