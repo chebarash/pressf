@@ -9,7 +9,9 @@ import { linkedUser } from "./session";
 
 /**
  * Inline mode: "@pressfapp c_MATH111" (what the Mini App's Share buttons type
- * through switchInlineQuery), "f_<id>", "p_<id>", or any text, which searches
+ * through switchInlineQuery on clients older than Bot API 8.0; newer ones send
+ * the same card as a prepared message, see shareResult and
+ * /api/telegram/share), "f_<id>", "p_<id>", or any text, which searches
  * courses, professors and (for linked students) files. Each result is a card
  * with the share image; the sent message carries the page's link preview and a
  * button that opens the Mini App on that page. When someone sends a result,
@@ -64,14 +66,24 @@ async function cardFor(t: Target): Promise<ShareCard | null> {
 /** "c_MATH111", "p_123", "f_456": a share request from a Share button. */
 const SHARE_CODE = /^[cpf]_[A-Za-z0-9_-]+$/;
 
+/**
+ * The one card a Share button sends for a course, file or professor: both the
+ * inline answer to "c_MATH111" and the prepared message
+ * (savePreparedInlineMessage) are built here. Null when the entity doesn't exist.
+ */
+export async function shareResult(target: Target): Promise<InlineArticle | null> {
+  if (target.to !== "course" && target.to !== "file" && target.to !== "professor") return null;
+  const card = await cardFor(target);
+  return card ? article(target, card) : null;
+}
+
 export async function inlineResults(query: string, fromId: number): Promise<InlineArticle[]> {
   const q = query.trim();
   if (!q) return [article({ to: "today" }, appCard(), { title: "Press F", description: "Your NewUU timetable, files, grades — and what students say about every course." })];
 
   if (SHARE_CODE.test(q)) {
-    const target = parseStartParam(q);
-    const card = await cardFor(target);
-    if (card) return [article(target, card)];
+    const result = await shareResult(parseStartParam(q));
+    if (result) return [result];
   }
 
   // Free text: the same ranked search as the app (files only for students who linked Telegram).
@@ -101,7 +113,11 @@ export async function handleInlineQuery(q: TelegramInlineQuery) {
 /** search_events kind for a share: "share:course", "share:file", "share:professor", "share:app". */
 export const shareEventKind = (k: ShareKind) => `share:${k}`;
 
-/** Counts a sent inline result as one share of its entity (no user id is stored). */
+/**
+ * Counts a sent result as one share of its entity (no user id is stored): an
+ * inline result (chosen_inline_result), or a prepared message the Mini App
+ * reported as sent (Telegram sends no chosen_inline_result for those).
+ */
 export async function recordShare(chosen: Pick<TelegramChosenInlineResult, "result_id">) {
   const id = chosen.result_id;
   const target = parseStartParam(id);
