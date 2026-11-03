@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Icon } from "./icons";
+import { SearchLink } from "./SearchLink";
 
 /**
  * App/TopBar (Figma 4156:2809): search field that opens Search, and the avatar
@@ -8,10 +8,7 @@ import { Icon } from "./icons";
 export function TopBar({ signedIn }: { signedIn: boolean }) {
   return (
     <div className="sh-topbar">
-      <Link href="/search" className="sh-search" prefetch>
-        <Icon name="search" size={18} />
-        <span>Course, professor, file</span>
-      </Link>
+      <SearchLink />
       <Link href={signedIn ? "/me" : "/sign-in"} className="sh-avatar" aria-label={signedIn ? "Profile" : "Sign in"}>
         {/* Drawn face, never a photo. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
