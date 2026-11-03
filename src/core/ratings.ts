@@ -11,13 +11,24 @@ export const MIN_RATINGS = 5;
 export const RECOMMEND = ["yes", "unsure", "no"] as const;
 export type Recommend = (typeof RECOMMEND)[number];
 
-export const HOURS = ["0-2", "2-4", "4-6", "6-10", "10+"] as const;
+/** Hours a week outside class (Figma D5): "< 2", "2–5", "5–10", "10+", answered with keys 1–4. */
+export const HOURS = ["0-2", "2-5", "5-10", "10+"] as const;
 export type Hours = (typeof HOURS)[number];
-const HOURS_MID: Record<Hours, number> = { "0-2": 1, "2-4": 3, "4-6": 5, "6-10": 8, "10+": 12 };
+/** Bucket midpoints for the summary median ("≈ N h"). */
+export const HOURS_MID: Record<Hours, number> = { "0-2": 1, "2-5": 3.5, "5-10": 7.5, "10+": 12 };
+/** How each bucket is printed on the rate forms, mobile and desktop. */
+export const HOURS_LABEL: Record<Hours, string> = { "0-2": "< 2", "2-5": "2–5", "5-10": "5–10", "10+": "10+" };
+export const isHours = (v: unknown): v is Hours => typeof v === "string" && (HOURS as readonly string[]).includes(v);
+/** The earlier five-bucket answers ("2-4", "4-6", "6-10"), mapped onto today's buckets by their midpoint. */
+const LEGACY_HOURS: Record<string, Hours> = { "2-4": "2-5", "4-6": "2-5", "6-10": "5-10" };
+/** A stored hours value as a current bucket; anything unknown reads as unanswered. */
+export const toHours = (v: string | null | undefined): Hours | null => (v == null ? null : isHours(v) ? v : (LEGACY_HOURS[v] ?? null));
 
 export const COURSE_TAGS = ["Exam follows lectures", "Useful later", "Fair exams", "Heavy reading", "Lots of group work", "Strict attendance"] as const;
 export const TEACHER_TAGS = ["Explains clearly", "Answers questions", "Grades fairly", "Quick feedback", "Strict about attendance", "Reads from slides"] as const;
 export type CourseTag = (typeof COURSE_TAGS)[number];
+/** The order the rate forms show course stickers in (Figma 4.11 and D5). */
+export const COURSE_TAG_ORDER: readonly CourseTag[] = ["Exam follows lectures", "Useful later", "Heavy reading", "Lots of group work", "Strict attendance", "Fair exams"];
 export type TeacherTag = (typeof TEACHER_TAGS)[number];
 export const MAX_TAGS = 3;
 
@@ -33,12 +44,13 @@ export type RatingInput = {
   teachers: TeacherAnswer[];
 };
 
-export type RatingIssue = "recommend-required" | "too-many-tags" | "unknown-tag" | "bad-difficulty" | "duplicate-teacher";
+export type RatingIssue = "recommend-required" | "bad-hours" | "too-many-tags" | "unknown-tag" | "bad-difficulty" | "duplicate-teacher";
 
 /** Only "would you recommend it?" is required; everything else may be skipped. */
 export function validateRating(r: RatingInput): RatingIssue[] {
   const issues: RatingIssue[] = [];
   if (!r.recommend || !RECOMMEND.includes(r.recommend)) issues.push("recommend-required");
+  if (r.hours !== null && !isHours(r.hours)) issues.push("bad-hours");
   if (r.difficulty !== null && !(Number.isInteger(r.difficulty) && r.difficulty >= 1 && r.difficulty <= 5)) issues.push("bad-difficulty");
   const tagSets: Array<[readonly string[], readonly string[]]> = [[r.tags, COURSE_TAGS], ...r.teachers.map((t) => [t.tags, TEACHER_TAGS] as [readonly string[], readonly string[]])];
   for (const [tags, allowed] of tagSets) {
@@ -108,7 +120,10 @@ export function summarizeCourse(rows: StoredRating[]): CourseSummary {
   const valid = rows.filter((r) => r.recommend);
   const n = valid.length;
   if (n < MIN_RATINGS) return { enough: false, count: n };
-  const hours = median(valid.flatMap((r) => (r.hours ? [HOURS_MID[r.hours]] : [])));
+  const hours = median(valid.flatMap((r) => {
+    const h = toHours(r.hours);
+    return h ? [HOURS_MID[h]] : [];
+  }));
   const diffs = valid.flatMap((r) => (r.difficulty ? [r.difficulty] : []));
   const t = trend(valid.map((r) => ({ term: r.term, hit: r.recommend === "yes" })));
   return {

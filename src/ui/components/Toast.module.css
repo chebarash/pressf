@@ -1,0 +1,37 @@
+/* Figma 9.4 toasts (4198:7453, 4198:7473). */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-inverse);
+  color: var(--text-inverse);
+  animation: rise 180ms ease-out;
+}
+.error { background: var(--bg-danger); }
+.icon { display: inline-flex; flex: none; }
+.text {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: normal;
+}
+.viewport {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(var(--toast-offset, 95px) + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(100% - 2 * var(--space-4), 480px);
+  margin-inline: auto;
+  pointer-events: none;
+}
+.viewport > * { pointer-events: auto; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }

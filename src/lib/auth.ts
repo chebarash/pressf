@@ -5,33 +5,48 @@ import { cache } from "react";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { env, isAdminEmail, STUDENT_DOMAIN } from "@/lib/env";
-import { login } from "@/lib/lms/client";
-import { preloadUser } from "@/lib/lms/cache";
+import { login, LmsError } from "@/lib/lms/client";
 import { persistAccount } from "@/lib/lms/store";
 import { verifyInitData } from "@/lib/telegram/webapp";
+import { markRelinked, revokedAt, sessionRevoked, telegramLoginBlocked } from "@/server/decisions";
+import { redeemLink } from "@/server/link";
 
 const isStudent = (email?: string | null) => !!email && email.toLowerCase().endsWith(`@${STUDENT_DOMAIN}`);
+
+/** Why an LMS sign-in failed; the sign-in sheet shows a message for each. */
+export type SignInError = "wrong-password" | "lms-down" | "not-student";
+
+/** No answer, or a server error: the LMS is down, not the password wrong. */
+const lmsDown = (error: unknown) => !(error instanceof LmsError) || error.status === 0 || error.status >= 500;
+
+/** One Telegram account belongs to one Press F account. */
+async function linkTelegram(userId: string, telegramId: string) {
+  await db().update(users).set({ telegramId: null }).where(eq(users.telegramId, telegramId));
+  await db().update(users).set({ telegramId }).where(eq(users.id, userId));
+}
+
+const fail = (code: SignInError) => new Error(code);
 
 export const authOptions: NextAuthOptions = {
   providers: [
     // Press F signs in through the university LMS: the password is verified
     // against hero.study and sealed so the server can read the student's courses
-    // and keep background refresh working after the 72h token expires.
+    // and keep background refresh working after the 72h token expires. Failures
+    // throw a SignInError code; the password is never logged or returned.
     CredentialsProvider({
       id: "lms",
       name: "NewUU",
-      credentials: { email: {}, password: {} },
+      credentials: { email: {}, password: {}, initData: {} },
       async authorize(credentials) {
         const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password;
-        if (!email || !password || !isStudent(email)) return null;
-        // Any failure — wrong password or the LMS being down — just blocks
-        // sign-in; the form shows one message for both.
+        if (!email || !password) return null;
+        if (!isStudent(email)) throw fail("not-student");
         let session;
         try {
           session = await login(email, password);
-        } catch {
-          return null;
+        } catch (error) {
+          throw fail(lmsDown(error) ? "lms-down" : "wrong-password");
         }
         const [row] = await db()
           .insert(users)
@@ -39,8 +54,11 @@ export const authOptions: NextAuthOptions = {
           .onConflictDoUpdate({ target: users.email, set: { email } })
           .returning();
         await persistAccount(row.id, password, session);
-        // Warm the cache now so the first page loads instantly from it.
-        await preloadUser(row.id, row.email).catch(() => {});
+        // The password was proven again: the Mini App may sign in silently after a "Sign out everywhere".
+        await markRelinked(row.id);
+        // Signing in inside the Mini App links this Telegram to the account.
+        const telegramId = verifyInitData(credentials?.initData ?? "", 3600);
+        if (telegramId) await linkTelegram(row.id, telegramId);
         return { id: row.id, email: row.email };
       },
     }),
@@ -54,10 +72,44 @@ export const authOptions: NextAuthOptions = {
         const telegramId = verifyInitData(credentials?.initData ?? "");
         if (!telegramId) return null;
         const [row] = await db().select().from(users).where(eq(users.telegramId, telegramId));
-        return row ? { id: row.id, email: row.email } : null;
+        if (!row) return null;
+        // After "Sign out everywhere" the Mini App asks for the LMS password once more.
+        if (await telegramLoginBlocked(row.id)) return null;
+        return { id: row.id, email: row.email };
+      },
+    }),
+    // Desktop → Telegram hand-off: the Mini App redeems a one-time code issued on
+    // the signed-in desktop, becomes the same person and links its Telegram.
+    CredentialsProvider({
+      id: "link",
+      name: "Link",
+      credentials: { token: {}, initData: {} },
+      async authorize(credentials) {
+        const telegramId = verifyInitData(credentials?.initData ?? "");
+        if (!telegramId || !credentials?.token) return null;
+        const userId = await redeemLink(credentials.token);
+        if (!userId) return null;
+        const [row] = await db().select().from(users).where(eq(users.id, userId));
+        if (!row) return null;
+        await linkTelegram(row.id, telegramId);
+        await markRelinked(row.id);
+        return { id: row.id, email: row.email };
       },
     }),
   ],
+  callbacks: {
+    // `issued` is set once at sign-in (`iat` moves on every refresh). A session
+    // issued before an admin's "Sign out everywhere" is void: throwing here
+    // makes next-auth clear the cookie and getServerSession return null.
+    async jwt({ token, user }) {
+      if (user) {
+        token.issued = Date.now();
+        return token;
+      }
+      if (token.sub && sessionRevoked(token.issued as number | undefined, await revokedAt(token.sub))) throw new Error("Session revoked");
+      return token;
+    },
+  },
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/sign-in", error: "/sign-in" },
 };

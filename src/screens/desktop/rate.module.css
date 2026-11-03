@@ -1,0 +1,53 @@
+/* Figma D5 Dialog (4216:8983): 720 wide, 2px ink border, radius 24, 8px key shadow, no close button (Esc). */
+.dialog { width: min(720px, calc(100vw - 48px)); border: 2px solid var(--border-strong); border-radius: 24px; box-shadow: 0 8px 0 var(--shadow-key); }
+.dialog > div:first-child { padding: 28px 32px 24px; }
+.dialog > div:first-child > button[aria-label="Close"] { display: none; }
+.body { display: flex; flex-direction: column; gap: 16px; color: var(--text-primary); }
+.head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.esc { appearance: none; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 6px; }
+.esc:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; }
+.title { font: 400 40px/1.04 var(--font-serif); margin: 0; }
+.sub { font: 400 13px/normal var(--font-sans); color: var(--text-secondary); }
+.q { display: grid; grid-template-columns: 210px minmax(0, 1fr); align-items: center; gap: 16px; border-radius: 12px; }
+.qLabel { font: 600 15px/normal var(--font-sans); }
+.opts { display: flex; align-items: flex-start; gap: 8px; }
+.opt {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  background: var(--bg-surface);
+  border: 1.25px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: 0 3px 0 var(--shadow-key);
+  font: 600 13px/normal var(--font-sans);
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.optOn { background: var(--bg-accent); color: var(--text-on-accent); border-width: 2px; box-shadow: 0 1px 0 var(--shadow-key); }
+.optHard.optOn { background: var(--tint-rust); color: var(--text-primary); }
+.opt kbd { padding: 2px 6px; border: 1.25px solid var(--border-strong); border-radius: 6px; box-shadow: 0 1px 0 var(--shadow-key); font: 600 11px/14px var(--font-sans); background: var(--bg-page); color: var(--text-primary); }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 16px; border-bottom: 1.5px solid var(--border-subtle); }
+.tag { appearance: none; padding: 8px 12px; border: 1.5px dashed var(--border-subtle); border-radius: var(--radius-full); background: none; font: 600 13px/normal var(--font-sans); color: var(--text-secondary); cursor: pointer; }
+.tagOn { border: 1.5px solid var(--border-strong); background: var(--tint-teal); color: var(--text-primary); box-shadow: 0 2px 0 var(--shadow-key); transform: rotate(-2deg); }
+.tagOn:nth-child(2n) { background: var(--tint-mustard); transform: rotate(1.5deg); }
+.teachersTitle { font: 600 15px/normal var(--font-sans); }
+.teachers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.teacher { appearance: none; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 12px 12px; background: var(--bg-surface); border: 1.5px solid var(--border-strong); border-radius: 16px; font: inherit; color: var(--text-primary); cursor: pointer; }
+.teacherOn { background: var(--bg-accent-soft); }
+.teacher b { font: 600 14px/normal var(--font-sans); }
+.teacher > span { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); }
+/* Keycap S (Figma 4007:1110): 40px cap, 2px ink, radius 14, 5px key shadow; pressed sits 5px lower. */
+.fKey { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; margin: 0 0 5px; border: 2px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: 0 5px 0 var(--shadow-key); background: var(--bg-surface); font: 500 15px/1.3 var(--font-sans); }
+.teacherOn .fKey { background: var(--bg-accent); color: var(--text-on-accent); box-shadow: none; margin: 5px 0 0; }
+.teacher small { font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
+.teacherOn small { color: var(--text-accent); }
+.foot { display: flex; align-items: center; gap: 10px; }
+.foot p { flex: 1; font: 400 12px/normal var(--font-sans); color: var(--text-secondary); }
+.foot > span > button { margin-bottom: 0; }
+.done { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }

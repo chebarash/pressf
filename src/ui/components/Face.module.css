@@ -1,0 +1,18 @@
+/* Figma 02 Components → Face (4007:1296). */
+.face {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  border-radius: var(--radius-full);
+}
+.img { width: 100%; height: 100%; object-fit: contain; }
+
+/*
+ * Faces are line drawings with a white-filled head. In dark mode there is no
+ * disc behind them: a thin white outline follows the head's own shape so the
+ * silhouette reads on dark surfaces (four 1px drop-shadows, one per side).
+ */
+:root[data-theme="dark"] .img { filter: drop-shadow(1px 0 0 var(--native-white)) drop-shadow(-1px 0 0 var(--native-white)) drop-shadow(0 1px 0 var(--native-white)) drop-shadow(0 -1px 0 var(--native-white)); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .img { filter: drop-shadow(1px 0 0 var(--native-white)) drop-shadow(-1px 0 0 var(--native-white)) drop-shadow(0 1px 0 var(--native-white)) drop-shadow(0 -1px 0 var(--native-white)); }
+}

@@ -1,9 +1,12 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers, type LmsCurriculumData } from "@/lib/db/schema";
+import { plainText } from "@/core/notifications";
+import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers, type LmsCurriculumData, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
 import { departments, employee, individualPlan, programs, subject, type LmsSession } from "@/lib/lms/client";
+import { harvestSemesters, listOf, pick } from "@/lib/lms/semesters";
 import { activeAccountIds, harvestSession, sessionFor } from "@/lib/lms/store";
-import type { LmsEmployee, LmsIepRow, LmsSubject } from "@/lib/lms/types";
+import type { LmsEmployee, LmsEmployeeDetail, LmsIepRow, LmsSubject } from "@/lib/lms/types";
+import { invalidateHarvest } from "@/server/views/cache";
 
 /**
  * Harvests the whole university catalog from the LMS into our own tables, so
@@ -149,11 +152,74 @@ export async function harvestCatalog(session: LmsSession, opts: { maxId?: number
   return { ...meta, courses, scannedTo: id - 1, lastCourseId: lastHit };
 }
 
+type Obj = Record<string, unknown>;
+const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.isArray(v);
+const yearIn = (s: string | null) => s?.match(/\b(19|20)\d\d\b/)?.[0] ?? null;
+
+/** A list field that may come as an array, a `{ data: [] }` wrapper, or one HTML/plain string. */
+function entries(v: unknown): Array<Obj | string> {
+  if (Array.isArray(v)) return v.filter((x): x is Obj | string => isObj(x) || (typeof x === "string" && !!x.trim()));
+  if (isObj(v)) return listOf(v).length ? listOf(v) : [v];
+  if (typeof v === "string") return plainText(v).split(/\n+/).map((x) => x.replace(/^•\s*/, "").trim()).filter(Boolean);
+  return [];
+}
+
+function educationOf(v: unknown): LmsTeacherEducation[] {
+  return entries(v).map((e) => {
+    if (typeof e === "string") return { degree: null, field: null, institution: e, year: yearIn(e) };
+    const year = pick(e, ["end_year", "graduation_year", "year_end", "year", "date_end", "end_date", "finish_date", "finish_year"]);
+    return {
+      degree: pick(e, ["degree", "academic_degree", "degree_name", "academicDegree", "qualification", "education_level", "level", "educationType", "education_type"]),
+      field: pick(e, ["specialty", "speciality", "specialization", "direction", "faculty", "field"]),
+      institution: pick(e, ["university_name", "university", "institution", "educational_institution", "organization", "school", "place", "name"]),
+      year: yearIn(year) ?? year,
+    };
+  }).filter((e) => e.degree || e.field || e.institution);
+}
+
+function publicationsOf(v: unknown): LmsTeacherPublication[] {
+  return entries(v).map((p) => {
+    if (typeof p === "string") return { title: p, year: yearIn(p), venue: null, url: null };
+    const year = pick(p, ["year", "publish_year", "publication_year", "date", "published_at", "publish_date"]);
+    return {
+      title: pick(p, ["title", "name", "publication_name", "theme", "topic"]) ?? "",
+      year: yearIn(year) ?? year,
+      venue: pick(p, ["journal", "publisher", "source", "magazine", "conference", "edition", "publication"]),
+      url: pick(p, ["url", "link", "doi"]),
+    };
+  }).filter((p) => p.title);
+}
+
+/** The deepest named unit of `departmentTree` (school → department). */
+function departmentOf(v: unknown): string | null {
+  if (Array.isArray(v)) {
+    for (const x of [...v].reverse()) {
+      const d = departmentOf(x);
+      if (d) return d;
+    }
+    return null;
+  }
+  if (!isObj(v)) return typeof v === "string" && v.trim() ? v.trim() : null;
+  const child = departmentOf(v.children ?? v.child ?? v.department ?? v.sub ?? null);
+  return child ?? pick(v, ["name_en", "name", "title"]);
+}
+
+/** What Press F keeps from `/employee/get-by-id`. Never `imagesUrls`: no real photos. */
+export function teacherProfile(detail: LmsEmployeeDetail | null) {
+  return {
+    position: detail?.academicStatus?.name?.trim() || null,
+    department: departmentOf(detail?.departmentTree ?? null),
+    education: educationOf(detail?.education),
+    publications: publicationsOf(detail?.publications),
+    scienceDirection: (typeof detail?.science_direction === "string" && plainText(detail.science_direction)) || null,
+  };
+}
+
 /**
- * Enriches stored teachers with their LMS profile: the position/title from
- * `academicStatus.name`. Paced like the course walk; one failing teacher never
- * aborts the rest. (The LMS has no email, and the real photo is deliberately
- * ignored — Press F only shows Notion Faces.)
+ * Enriches stored teachers with their LMS profile: position (`academicStatus`),
+ * department, education, publications and research area. Paced like the course
+ * walk; one failing teacher never aborts the rest. (The LMS has no email, and
+ * the real photo is deliberately ignored — Press F only shows Notion Faces.)
  */
 export async function harvestTeacherDetails(session: LmsSession) {
   const rows = await db().select({ id: lmsTeachers.id }).from(lmsTeachers);
@@ -163,8 +229,7 @@ export async function harvestTeacherDetails(session: LmsSession) {
     await Promise.all(batch.map(async ({ id }) => {
       try {
         const detail = await employee(session, id);
-        const position = detail?.academicStatus?.name?.trim() || null;
-        await db().update(lmsTeachers).set({ position }).where(sql`${lmsTeachers.id} = ${id}`);
+        await db().update(lmsTeachers).set(teacherProfile(detail)).where(sql`${lmsTeachers.id} = ${id}`);
         updated++;
       } catch {
         // One teacher's failed fetch must not abort the rest.
@@ -191,5 +256,8 @@ export async function harvestAll(opts: { maxId?: number; stopGap?: number } = {}
     curricula += (await harvestCurriculum(s).catch(() => ({ curricula: 0 }))).curricula;
   }
   const { teacherDetails } = await harvestTeacherDetails(session).catch(() => ({ teacherDetails: 0 }));
-  return { ...catalog, curricula, teacherDetails };
+  const semesters = await harvestSemesters(session).catch(() => ({ semesters: 0, calendars: 0 }));
+  // Public pages (courses, professors, curricula) refresh on the next visit.
+  invalidateHarvest();
+  return { ...catalog, curricula, teacherDetails, ...semesters };
 }

@@ -1,7 +1,8 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { askLevel, summarizeCourse, summarizeTeacher, validateRating, type RatingInput, type StoredRating, type TeacherRole } from "@/core/ratings";
+import { askLevel, summarizeCourse, summarizeTeacher, toHours, validateRating, type RatingInput, type StoredRating, type TeacherRole } from "@/core/ratings";
 import { db } from "@/lib/db";
-import { courseRatings, ratingAsks, teacherRatings } from "@/lib/db/schema";
+import { courseRatings, lmsCourses, ratingAsks, teacherRatings } from "@/lib/db/schema";
+import { invalidateRating } from "./views/cache";
 import { pseudonym } from "./identity";
 
 export class RatingError extends Error {
@@ -15,7 +16,7 @@ export async function saveRating(userId: string, course: { id: string; code?: st
   const issues = validateRating(input);
   if (issues.length) throw new RatingError(issues);
   const rater = pseudonym(userId, "rater");
-  return db().transaction(async (tx) => {
+  const id = await db().transaction(async (tx) => {
     const values = { rater, courseId: course.id, courseCode: course.code ?? null, term, recommend: input.recommend!, hours: input.hours, difficulty: input.difficulty, tags: input.tags };
     const [row] = await tx
       .insert(courseRatings)
@@ -28,6 +29,10 @@ export async function saveRating(userId: string, course: { id: string; code?: st
     }
     return row.id;
   });
+  // Course and professor pages show the new numbers on the next visit.
+  const code = course.code ?? (await db().select({ code: lmsCourses.code }).from(lmsCourses).where(eq(lmsCourses.id, course.id)))[0]?.code ?? null;
+  invalidateRating(code, input.teachers.map((t) => t.teacherId));
+  return id;
 }
 
 type Row = typeof courseRatings.$inferSelect;
@@ -41,7 +46,7 @@ async function withTeachers(rows: Row[]): Promise<StoredRating[]> {
     courseId: r.courseId,
     term: r.term,
     recommend: r.recommend,
-    hours: (r.hours as StoredRating["hours"]) ?? null,
+    hours: toHours(r.hours),
     difficulty: (r.difficulty as StoredRating["difficulty"]) ?? null,
     tags: r.tags as StoredRating["tags"],
     teachers: (by.get(r.id) ?? []).map((a) => ({ teacherId: a.teacherId, role: a.role as TeacherRole, pressF: a.pressF, tags: a.tags as StoredRating["teachers"][number]["tags"] })),

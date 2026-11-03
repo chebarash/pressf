@@ -1,0 +1,78 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--scrim);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 140px var(--space-5) var(--space-5);
+  overflow-y: auto;
+  animation: fade 120ms ease-out;
+}
+.center { align-items: center; padding-top: var(--space-5); }
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { transform: translateY(8px); opacity: 0; } }
+
+/* D2 Command palette */
+.palette {
+  width: 640px;
+  max-width: 100%;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  animation: rise 140ms ease-out;
+}
+.input { display: flex; align-items: center; gap: 10px; padding: var(--space-4) var(--space-4) var(--space-4) 20px; border-bottom: 1.5px solid var(--border-subtle); }
+.input input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: 400 20px/normal var(--font-sans); color: var(--text-primary); caret-color: var(--bg-accent); padding: 0; }
+.input input::placeholder { color: var(--text-secondary); }
+.results { max-height: min(60vh, 520px); overflow-y: auto; display: flex; flex-direction: column; }
+.group { display: flex; flex-direction: column; gap: 2px; padding: 10px 10px 6px; }
+.groupLabel { padding: 0 0 4px 10px; font: 600 11px/normal var(--font-sans); color: var(--text-secondary); text-transform: uppercase; }
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: var(--space-2) 10px;
+  border: 1.25px solid transparent;
+  border-radius: 10px;
+  color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+.itemOn { background: var(--tint-teal); border-color: var(--border-strong); }
+.itemText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.itemTitle { font: 600 14px/normal var(--font-sans); }
+.itemMeta { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.none { padding: var(--space-4) 20px; font: 400 14px/1.4 var(--font-sans); color: var(--text-secondary); }
+.footer { display: flex; align-items: center; gap: 14px; padding: 10px 20px; background: var(--bg-sunken); margin-top: auto; }
+.footer span { display: inline-flex; align-items: center; gap: 6px; font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
+
+/* D11 Shortcuts sheet */
+.sheet {
+  width: 880px;
+  max-width: 100%;
+  background: var(--bg-page);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8px 0 color-mix(in srgb, var(--shadow-key) 60%, transparent);
+  padding: 30px 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--text-primary);
+  animation: rise 140ms ease-out;
+}
+.sheetHead { display: flex; align-items: center; justify-content: space-between; }
+.sheetTitle { font: 400 40px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+.column { display: flex; flex-direction: column; gap: 10px; }
+.column h3 { font: 600 11px/normal var(--font-sans); color: var(--text-secondary); text-transform: uppercase; margin: 0; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 6px; font: 500 14px/normal var(--font-sans); }
+.sheetNote { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); }
+.escBtn { appearance: none; background: none; border: 0; padding: 0; cursor: pointer; border-radius: 6px; }
+.escBtn:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; }

@@ -1,0 +1,124 @@
+import { HOLIDAYS, nextHoliday, WEEKS, type WeekKind } from "@/core/semester";
+import { addDays, clock, localDay, shortDate, weekdayName } from "@/core/time";
+import { classesBetween } from "./classes";
+import { deadlines, semesterPhases } from "./shared";
+import { loadStudent, type SyncState } from "./student";
+import type { Viewer } from "./courses";
+
+/** Calendar (Figma 6.1–6.3): classes, exams, deadlines, holidays and registration as layers. */
+
+export type CalendarLayer = "classes" | "exams" | "deadlines" | "holidays" | "registration";
+export const LAYERS: Array<{ id: CalendarLayer; label: string }> = [
+  { id: "classes", label: "Classes" },
+  { id: "exams", label: "Exams" },
+  { id: "deadlines", label: "Deadlines" },
+  { id: "holidays", label: "Holidays" },
+  { id: "registration", label: "Registration" },
+];
+
+export type CalendarEvent = {
+  key: string;
+  layer: CalendarLayer;
+  title: string;
+  /** "Exam · 10:00 · B-204", "Deadline · Physics 1 · 23:59", "Holiday · No classes". */
+  sub: string;
+  day: string;
+  endDay: string;
+  time: string | null;
+  href: string | null;
+};
+
+export type CalendarView = {
+  sync: SyncState | null;
+  layers: Array<{ id: CalendarLayer; label: string; on: boolean }>;
+  days: Array<{ day: string; label: string; today: boolean; events: CalendarEvent[] }>;
+  /** Nothing in the chosen layers (Figma 6.2). */
+  empty: { text: string } | null;
+  icsHref: string;
+};
+
+const LAYER_LABEL: Record<CalendarLayer, string> = { classes: "Class", exams: "Exam", deadlines: "Deadline", holidays: "Holiday", registration: "Registration" };
+const EXAM_KINDS: WeekKind[] = ["midterm", "final", "resit_exam"];
+const REG_KINDS: WeekKind[] = ["registration", "resit_registration"];
+const PHASE_TITLE: Partial<Record<WeekKind, string>> = { midterm: "Midterm exams", final: "Final exams", resit_exam: "Resit exams", registration: "Course registration", resit_registration: "Resit registration" };
+
+const rangeLabel = (a: string, b: string) =>
+  a === b ? `${weekdayName(a).slice(0, 3)} ${shortDate(a)}` : a.slice(0, 7) === b.slice(0, 7) ? `${Number(a.slice(8))}–${shortDate(b)}` : `${shortDate(a)} – ${shortDate(b)}`;
+
+/** Consecutive calendar weeks of the same kind, merged ("Final exams 11–15 Jan"). */
+function phases(kinds: WeekKind[], from: string, to: string) {
+  const out: Array<{ kind: WeekKind; starts: string; ends: string }> = [];
+  for (const w of WEEKS.filter((x) => kinds.includes(x.kind))) {
+    const last = out.at(-1);
+    if (last && last.kind === w.kind && w.starts <= addDays(last.ends, 3)) last.ends = w.ends;
+    else out.push({ kind: w.kind, starts: w.starts, ends: w.ends });
+  }
+  return out.filter((p) => p.ends >= from && p.starts <= to);
+}
+
+export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = new Date()): Promise<CalendarView> {
+  const on = new Set<CalendarLayer>(layers?.length ? layers : LAYERS.map((l) => l.id));
+  const today = localDay(now);
+  const to = addDays(today, 150);
+  const student = viewer ? await loadStudent(viewer.userId) : null;
+  const events: CalendarEvent[] = [];
+
+  if (student) {
+    const classes = await classesBetween(student, today, addDays(today, 13), now);
+    for (const c of classes) {
+      const day = localDay(new Date(c.start));
+      const exam = c.kind === "exam";
+      if (exam ? !on.has("exams") : !on.has("classes") || day > addDays(today, 6)) continue;
+      events.push({
+        key: `class:${c.key}`, layer: exam ? "exams" : "classes", title: exam ? `${c.name} exam` : c.name,
+        sub: [LAYER_LABEL[exam ? "exams" : "classes"], c.time, c.room].filter(Boolean).join(" · "), day, endDay: day, time: c.time, href: c.code ? `/c/${c.code}` : null,
+      });
+    }
+    if (on.has("deadlines")) {
+      for (const d of deadlines(student.sync.homework)) {
+        const day = localDay(d.due);
+        if (day < today || day > to || (d.status !== "todo" && d.status !== "in-progress")) continue;
+        events.push({ key: `deadline:${d.id}`, layer: "deadlines", title: d.title, sub: `Deadline · ${d.course} · ${clock(d.due)}`, day, endDay: day, time: clock(d.due), href: "/progress/assignments" });
+      }
+    }
+  }
+  if (on.has("exams")) {
+    for (const p of phases(EXAM_KINDS, today, to)) {
+      events.push({ key: `phase:${p.kind}:${p.starts}`, layer: "exams", title: PHASE_TITLE[p.kind] ?? "Exams", sub: "Exam · Your times appear when the LMS publishes them", day: p.starts, endDay: p.ends, time: null, href: null });
+    }
+  }
+  if (on.has("registration")) {
+    // The LMS semester calendar: cohort selection, schedule builder, add/drop.
+    for (const p of await semesterPhases(today)) {
+      if (p.kind === "studies" || p.kind === "other" || p.startDay > to) continue;
+      const where = p.semester ? ` · ${p.semester}` : "";
+      events.push({ key: `lms-phase:${p.semesterId}:${p.kind}:${p.startDay}`, layer: "registration", title: p.title, sub: `Registration${where} · Until ${shortDate(p.endDay)}`, day: p.startDay, endDay: p.endDay, time: null, href: "/next" });
+    }
+    for (const p of phases(REG_KINDS, today, to)) {
+      events.push({ key: `phase:${p.kind}:${p.starts}`, layer: "registration", title: PHASE_TITLE[p.kind] ?? "Registration", sub: `Registration · Until ${shortDate(p.ends)}`, day: p.starts, endDay: p.ends, time: null, href: "/next" });
+    }
+  }
+  if (on.has("holidays")) {
+    for (const h of HOLIDAYS.filter((x) => x.date >= today && x.date <= to)) {
+      events.push({ key: `holiday:${h.date}`, layer: "holidays", title: h.name, sub: "Holiday · No classes", day: h.date, endDay: h.date, time: null, href: null });
+    }
+  }
+
+  const groups = new Map<string, CalendarEvent[]>();
+  for (const e of events.sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? "").localeCompare(b.time ?? ""))) {
+    const key = `${e.day}|${e.endDay}`;
+    groups.set(key, [...(groups.get(key) ?? []), e]);
+  }
+  const days = [...groups.entries()].map(([key, list]) => {
+    const [day, end] = key.split("|");
+    return { day, label: `${rangeLabel(day, end)}${day === today ? " · today" : ""}`, today: day === today, events: list };
+  });
+
+  let empty: CalendarView["empty"] = null;
+  if (!days.length) {
+    const h = nextHoliday(now);
+    const only = on.size === 1 ? [...on][0] : null;
+    empty = { text: only === "holidays" && h ? `The next one is ${h.name}, ${shortDate(h.date)}.` : "Nothing coming up in these layers." };
+  }
+  return { sync: student?.state ?? null, layers: LAYERS.map((l) => ({ ...l, on: on.has(l.id) })), days, empty, icsHref: "/calendar.ics" };
+}

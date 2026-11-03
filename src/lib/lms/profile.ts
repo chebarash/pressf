@@ -1,4 +1,5 @@
 import { currentUser, gradebookData, gradebookSemesters, transcript } from "@/lib/lms/client";
+import { listOf, pick } from "@/lib/lms/semesters";
 import { sessionFor } from "@/lib/lms/store";
 
 /**
@@ -17,7 +18,29 @@ export type LmsProfile = {
   ectsTotal: number | null;
   honors: boolean;
   semesters: ProfileSemester[];
+  /**
+   * GPA per semester, keyed by the LMS semester id and by its name, when the
+   * transcript lists semesters with a GPA. The NewUU transcript header we have
+   * seen carries only the overall GPA, so this is usually empty.
+   */
+  semesterGpa?: Record<string, number>;
 };
+
+/** Per-semester GPAs from a transcript payload, if it lists any (`semesters[].gpa`). */
+export function semesterGpas(payload: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  const root = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  const inner = root.transcript && typeof root.transcript === "object" ? (root.transcript as Record<string, unknown>) : {};
+  for (const r of [...listOf(root, ["semesters", "semester_list", "semesterList"]), ...listOf(inner, ["semesters", "semester_list", "semesterList"])]) {
+    const gpa = Number(pick(r, ["gpa", "semester_gpa", "gpa_semester"]));
+    if (!Number.isFinite(gpa) || gpa <= 0) continue;
+    const id = pick(r, ["semester_id", "id"]);
+    const name = pick(r, ["semester_name", "name"]);
+    if (id) out[id] = gpa;
+    if (name) out[name] = gpa;
+  }
+  return out;
+}
 
 const num = (v?: string | null) => {
   const n = Number(v);
@@ -68,5 +91,6 @@ export async function lmsProfile(userId: string, email: string): Promise<LmsProf
     ectsTotal: num(head.ects_all),
     honors: head.diploma_with_honor === "1",
     semesters: built,
+    semesterGpa: semesterGpas(tr),
   };
 }

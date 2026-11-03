@@ -1,13 +1,12 @@
 import { deepLink } from "@/lib/telegram/links";
 import { startParam, startPath } from "@/lib/telegram/start";
 import { groupByCourse, shortTitle } from "@/lib/files";
-import { pageList } from "@/components/Pager";
 import { standardName } from "@/lib/telegram/store";
 import { describe, expect, it } from "vitest";
 import { isStale, normalizeCode, type Catalog } from "@/lib/catalog";
 import { isAdminEmail } from "@/lib/env";
 import { tierOf } from "@/lib/ratings";
-import { esc, reviewCaption } from "@/lib/telegram/bot";
+import { esc } from "@/lib/telegram/html";
 
 describe("tierOf", () => {
   it("draws the tier borders", () => {
@@ -46,12 +45,6 @@ describe("isAdminEmail", () => {
 
 describe("telegram text", () => {
   it("escapes HTML from file names", () => expect(esc("a<b>&c")).toBe("a&lt;b&gt;&amp;c"));
-  it("fits a Telegram caption", () => {
-    const caption = reviewCaption({ fileName: "<x>.pdf", courseCode: null, courseName: null, type: null, term: null, hasSolutions: false, author: null, caption: "y".repeat(5000) });
-    expect(caption.length).toBeLessThanOrEqual(1024);
-    expect(caption).toContain("&lt;x&gt;");
-    expect(caption).toContain("Course: ?");
-  });
 });
 
 describe("standardName", () => {
@@ -60,13 +53,6 @@ describe("standardName", () => {
   it("adds solutions and the author last", () => expect(standardName({ ...file, type: "mock", hasSolutions: true, author: "Meros" })).toBe("Calculus 1 Mock Fall 2024 Solutions by Meros.pdf"));
   it("leaves out what is unknown", () => expect(standardName({ ...file, term: null })).toBe("Calculus 1 Final.pdf"));
   it("keeps a book's title and the extension", () => expect(standardName({ ...file, type: "textbook", fileName: "Calculus_9th.docx" })).toBe("Calculus 1 Textbook Calculus 9th.docx"));
-});
-
-describe("pageList", () => {
-  it("shows all of a short list", () => expect(pageList(2, 4)).toEqual([1, 2, 3, 4]));
-  it("keeps both ends and the neighbours", () => expect(pageList(8, 20)).toEqual([1, "gap", 7, 8, 9, "gap", 20]));
-  it("fills a gap of one page instead of hiding it", () => expect(pageList(3, 20)).toEqual([1, 2, 3, 4, "gap", 20]));
-  it("works at the last page", () => expect(pageList(20, 20)).toEqual([1, "gap", 19, 20]));
 });
 
 describe("groupByCourse", () => {
@@ -106,13 +92,13 @@ describe("deep links", () => {
     expect(startPath(startParam(`/files/${id}`))).toBe(`/files?open=${id}`);
   });
   it("goes straight to the app when the bot has a Main Mini App", () => {
-    expect(deepLink("/courses/MATH111", true)).toBe("https://t.me/pupressfbot?startapp=course_MATH111");
+    expect(deepLink("/courses/MATH111", true)).toBe("https://t.me/pressfapp?startapp=course_MATH111");
   });
   it("goes through the bot when it does not", () => {
-    expect(deepLink("/courses/MATH111", false)).toBe("https://t.me/pupressfbot?start=course_MATH111");
+    expect(deepLink("/courses/MATH111", false)).toBe("https://t.me/pressfapp?start=course_MATH111");
   });
   it("opens the bare app for anything it cannot carry", () => {
-    expect(deepLink("/professors/gon%C3%A7alo", true)).toBe("https://t.me/pupressfbot?startapp");
-    expect(deepLink("", false)).toBe("https://t.me/pupressfbot");
+    expect(deepLink("/professors/gon%C3%A7alo", true)).toBe("https://t.me/pressfapp?startapp");
+    expect(deepLink("", false)).toBe("https://t.me/pressfapp");
   });
 });

@@ -5,7 +5,7 @@
  */
 
 export const SITE_URL = "https://pressf.chebarash.uz";
-export const BOT_USERNAME = "pupressfbot";
+export const BOT_USERNAME = "pressfapp";
 
 export type Target =
   | { to: "today" }

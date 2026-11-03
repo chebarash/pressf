@@ -1,0 +1,21 @@
+.main { padding: 36px 48px var(--space-6); display: flex; flex-direction: column; gap: 20px; max-width: 1180px; }
+.title { font: 400 64px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.stack { display: flex; flex-direction: column; gap: 20px; }
+/* Figma D13 cards: 50px head, then rows 10px apart, each with a hairline on top. */
+.box { display: flex; flex-direction: column; gap: 10px; background: var(--bg-surface); border: 1.5px solid var(--border-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-key-lg); overflow: hidden; }
+.boxTitle { font: 400 24px/1.08 var(--font-serif); letter-spacing: -0.01em; margin: 0; padding: 16px 20px 8px; }
+.row { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--border-subtle); color: var(--text-primary); }
+a.row:hover, button.row:hover { background: var(--bg-hover); }
+button.row { width: 100%; border: 0; background: none; text-align: left; font: inherit; cursor: pointer; }
+.text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.text b { font: 600 15px/normal var(--font-sans); }
+.text span { font: 400 12px/normal var(--font-sans); color: var(--text-secondary); }
+.row > :last-child:is(a, span) > a { margin-bottom: 0; }
+.alerts { display: contents; }
+/* Kit Switch rows laid out as the card rows above; the toggle is the 44×26 one from D13. */
+.alertRow { min-height: 0; padding: 12px 20px; gap: 10px; border-top: 1px solid var(--border-subtle); }
+.alertRow > span[aria-hidden] { width: 44px; height: 26px; }
+.alertRow > span[aria-hidden] > span { top: 2.5px; left: 2.5px; }
+.alertRow > input:checked + span[aria-hidden] > span { transform: translateX(18px); }
+.credit { font: 500 13px/normal var(--font-sans); color: var(--text-secondary); }

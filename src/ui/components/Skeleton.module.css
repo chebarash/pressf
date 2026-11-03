@@ -1,0 +1,29 @@
+/* Figma SkeletonCard (4018:1509). */
+.block {
+  display: block;
+  flex: none;
+  max-width: 100%;
+  background: var(--bg-sunken);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.sm { border-radius: var(--radius-sm); }
+.md { border-radius: var(--radius-md); }
+.lg { border-radius: var(--radius-lg); }
+.full { border-radius: var(--radius-full); }
+
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-5);
+  min-height: 248px;
+  padding: var(--space-5);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+.top { display: flex; flex-direction: column; gap: var(--space-3); }
+.bottom { display: flex; align-items: center; gap: var(--space-3); }
+
+@keyframes pulse { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .block { animation: none; } }

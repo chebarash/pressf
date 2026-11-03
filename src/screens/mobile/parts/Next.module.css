@@ -1,0 +1,31 @@
+/* Figma 4.14 Next semester, 4.15 Pick a cohort. */
+/* Figma 4.14: one column, 14 px apart; 40 px at the end. */
+.body { display: flex; flex-direction: column; gap: 14px; padding-top: var(--space-2); padding-bottom: 40px; }
+.eyebrow { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 11px; font-weight: 600; line-height: normal; text-transform: uppercase; }
+.title { margin: 0; font-family: var(--font-serif); font-size: 54px; font-weight: 400; line-height: 1.04; }
+.sub { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: normal; }
+.dates { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: var(--space-3) 14px; border: 1.5px solid var(--border-strong); border-radius: 16px; background: var(--tint-plum); box-shadow: 0 3px 0 var(--shadow-key); }
+.date { display: flex; align-items: center; gap: 10px; font-family: var(--font-sans); font-size: 13px; line-height: normal; }
+.date dt { flex: none; width: 76px; color: var(--text-secondary); font-weight: 600; }
+.date dd { flex: 1 1 0; min-width: 0; margin: 0; font-weight: 500; }
+/* The next step is in ink. */
+.dateNext dt, .dateNext dd { color: var(--text-primary); font-weight: 600; }
+.item { display: flex; flex-direction: column; gap: 10px; }
+.needs { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: normal; }
+.needsOpen { color: var(--rating-low); }
+.foot { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: 1.32; }
+
+/* Figma 4.15 sheet: 16 px at the bottom; 30 px title. */
+.sheet:global(.sh-sheet) { padding-bottom: calc(16px + var(--sh-sheet-bar, 0px)); }
+.sheetTitle.sheetTitle { font-size: 30px; letter-spacing: 0; }
+.hint { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 13px; line-height: 1.32; }
+.cohort { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 14px var(--space-3) var(--space-3); border: 1.25px solid var(--border-strong); border-radius: 16px; background: var(--bg-surface); box-shadow: 0 3px 0 var(--shadow-key); }
+/* The best pick is pressed in: teal, 2 px border, 1 px shadow. */
+.cohortFit { border-width: 2px; background: var(--tint-teal); box-shadow: 0 1px 0 var(--shadow-key); }
+.cohortBody { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; }
+.cohortTitle { font-family: var(--font-sans); font-size: 15px; font-weight: 600; line-height: normal; }
+.cohortSlots { color: var(--text-secondary); font-family: var(--font-sans); font-size: 12px; line-height: normal; }
+.fit { color: var(--text-accent); font-family: var(--font-sans); font-size: 12px; font-weight: 600; line-height: normal; }
+.clash { color: var(--rating-low); }
+.pct { display: flex; flex: none; flex-direction: column; align-items: flex-end; color: var(--text-accent); font-family: var(--font-serif); font-size: 22px; line-height: 1.08; }
+.pctLabel { color: var(--text-secondary); font-family: var(--font-sans); font-size: 11px; font-weight: 500; line-height: normal; }

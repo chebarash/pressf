@@ -40,7 +40,7 @@ async function main() {
 
   if (group) {
     await call("setChatTitle", { chat_id: group, title: "Press F · Review" });
-    await call("setChatDescription", { chat_id: group, description: "Students send files to @pupressfbot. We check them here before they go on the site." });
+    await call("setChatDescription", { chat_id: group, description: "Students send files to @pressfapp. We check them here before they go on the site." });
     await upload("setChatPhoto", { chat_id: group }, "photo", "public/bot/review.png");
     await call("setMyCommands", {
       scope: { type: "chat", chat_id: group },

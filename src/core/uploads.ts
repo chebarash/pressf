@@ -20,10 +20,11 @@ export const REJECT_REASONS = {
 } as const;
 export type RejectReason = keyof typeof REJECT_REASONS;
 
-/** The bot message a student gets when an upload is turned down. */
+/** The bot message a student gets when an upload is turned down (Figma 11.5). */
 export function rejectMessage(title: string, courseName: string, reason: RejectReason, note = "") {
   const why = REJECT_REASONS[reason].message(note).trim();
-  return `Not accepted: ${title} · ${courseName}.\n${why}\nThanks for sharing anyway!`;
+  void courseName; // the title already names the course in the chat; kept for callers
+  return `Not accepted: ${title}\nReason: ${why}`;
 }
 
 export const liveMessage = (title: string, courseName: string) =>

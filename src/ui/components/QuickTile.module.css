@@ -1,0 +1,37 @@
+/* Figma App/QuickTile v2 (4208:8113). */
+.tile {
+  composes: card from "./card.module.css";
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 112px;
+  padding: var(--space-3) 10px;
+  border-radius: 16px;
+  font-family: var(--font-sans);
+  line-height: normal;
+}
+.box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--bg-sunken);
+}
+.label, .info { width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.label { font-size: 14px; font-weight: 600; }
+.info { color: var(--text-secondary); font-size: 11.5px; font-weight: 500; }
+
+.accent { background: var(--bg-accent); color: var(--text-on-accent); }
+.accent .box { background: var(--bg-surface); color: var(--text-primary); }
+.accent .info { color: var(--text-on-accent); }
+.warning { background: var(--tint-rust); }
+.warning .box { background: var(--tint-rust); }
+.warning .info { color: var(--rating-low); }
+@media (hover: hover) {
+  a.accent:hover { background: var(--bg-accent); filter: brightness(1.06); }
+  a.warning:hover { background: var(--tint-rust); filter: brightness(1.03); }
+}

@@ -1,0 +1,17 @@
+/* Guest home content under the shell's hero (Figma 1.2). Tokens only. */
+
+/* Content under the hero: 16 top, 48 between sections and below; schools are their own band (32 / 16 / 32). */
+.content { display: flex; flex-direction: column; gap: var(--space-7); padding: var(--space-4) 0 var(--space-7); }
+.schools { padding: var(--space-6) 0; }
+
+/* SchoolCard: 148 tall, head at the top, programmes and arrow at the bottom. */
+.school { display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-3); min-height: 148px; padding: var(--space-4); border: 2px solid var(--border-strong); border-radius: var(--radius-lg); box-shadow: 0 5px 0 var(--shadow-key); color: var(--text-primary); }
+.school:active { transform: translateY(5px); box-shadow: none; }
+.schoolHead { display: flex; flex-direction: column; gap: var(--space-2); }
+.schoolName { font-family: var(--font-serif); }
+.schoolFoot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.teal { background: var(--school-computing-soft); }
+.rust { background: var(--school-engineering-soft); }
+.mustard { background: var(--school-management-soft); }
+.plum { background: var(--school-humanities-soft); }
+.moss { background: var(--school-medicine-soft); }

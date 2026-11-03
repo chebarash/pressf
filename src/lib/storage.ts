@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "@/lib/env";
 
@@ -35,3 +35,15 @@ export const signedUrl = (key: string, fileName?: string) =>
     }),
     { expiresIn: 60 * 60 }
   );
+
+/** True when the key exists in the bucket. */
+export async function objectExists(key: string) {
+  try {
+    await s3().send(new HeadObjectCommand({ Bucket: env().S3_BUCKET, Key: key }));
+    return true;
+  } catch (e) {
+    const status = (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode;
+    if (status === 404 || (e as Error).name === "NotFound") return false;
+    throw e;
+  }
+}

@@ -1,0 +1,101 @@
+/* D6 Progress (4245:17756, dark 4245:29582). */
+.main { padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 20px; max-width: 1240px; }
+.title { font: 400 64px/1.04 var(--font-serif); margin: 0; }
+.sub { font: 500 15px/normal var(--font-sans); color: var(--text-secondary); }
+
+/* KPIs: 1.5px cards, radius 18, Key/SM, 16 padding, 6 apart. */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+.tile { gap: 6px; padding: var(--space-4); border-radius: 18px; box-shadow: 0 3px 0 var(--shadow-key); }
+.tileLabel { font: 600 12px/normal var(--font-sans); text-transform: uppercase; color: var(--text-secondary); }
+.tileValue { display: flex; align-items: flex-end; gap: 12px; font: 400 44px/1.04 var(--font-serif); color: var(--text-primary); }
+.tileValueSm { font-size: 32px; }
+.tileNote { font: 500 12px/1.32 var(--font-sans); color: var(--text-secondary); }
+.tileNote b { color: var(--text-accent); font-weight: 500; }
+.tileLow { color: var(--rating-low); }
+.week { background: var(--tint-mustard); }
+.week .tileNote { color: var(--text-primary); }
+.spark { width: 120px; height: 30px; flex: none; }
+.track { height: 8px; border-radius: 4px; background: var(--border-subtle); overflow: hidden; }
+.fill { height: 100%; border-radius: 4px; background: var(--bg-accent); }
+
+/* Table: head 12/20, rows 14/20, columns 260 · 90 · 90 · 80 · 230 · rest, 20 apart, 10 between rows. */
+.table { padding: 0; gap: 10px; overflow: hidden; border-radius: 18px; }
+.cols { display: grid; grid-template-columns: minmax(0, 260fr) 90px 90px 80px minmax(0, 230fr) minmax(0, 205fr); align-items: center; gap: 20px; padding: 0 20px; }
+.headRow { composes: cols; padding-block: 12px; background: var(--bg-sunken); border-bottom: 1px solid var(--border-subtle); font: 600 11px/normal var(--font-sans); text-transform: uppercase; color: var(--text-secondary); }
+.row { composes: cols; width: 100%; padding-block: 14px; border: 0; border-bottom: 1px solid var(--border-subtle); background: none; text-align: left; font: inherit; color: var(--text-primary); cursor: pointer; }
+.row:hover { background: var(--bg-hover); }
+.rowOn, .rowOn:hover { background: var(--tint-teal); }
+.course { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.courseName { font: 600 15px/normal var(--font-sans); }
+.courseMeta { font: 500 11px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.num { font: 400 22px/1.08 var(--font-serif); }
+.dash { font: 400 22px/1.08 var(--font-serif); color: var(--text-primary); }
+.abs { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.absTop { display: flex; gap: 6px; font: 500 12px/normal var(--font-sans); color: var(--text-secondary); }
+.absTop > span { flex: 1; min-width: 0; }
+.absTop b { font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.absTrack { height: 6px; border-radius: 3px; background: var(--border-subtle); overflow: hidden; }
+.absFill { height: 100%; border-radius: 3px; }
+.next { font: 400 13px/normal var(--font-sans); }
+
+/* Expanded course */
+.detail { display: grid; grid-template-columns: auto minmax(0, 1.6fr) minmax(0, 1fr); gap: 28px; align-items: start; padding: 14px 20px 16px; background: var(--tint-teal); border-bottom: 1px solid var(--border-subtle); }
+.detail > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.detailLabel { font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
+.marks { display: flex; align-items: flex-end; gap: 10px; }
+.mark { display: flex; flex-direction: column; align-items: center; gap: 4px; font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
+.markVal { font: 600 11px/normal var(--font-sans); color: var(--text-secondary); }
+.markBar { width: 26px; border: 1.25px solid var(--border-strong); border-radius: 5px; background: var(--mustard-500); }
+.markHigh { background: var(--bg-accent); }
+.markLow { background: var(--bg-danger); }
+.markNone { background: var(--bg-surface); border-style: dashed; }
+.dots { display: flex; flex-wrap: wrap; gap: 4px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--border-strong); }
+.dotQr { background: var(--bg-accent); border-color: var(--bg-accent); }
+.dotAbsent { background: var(--bg-danger); border-color: var(--bg-danger); }
+.legend { display: flex; gap: 14px; font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
+.legend span { display: inline-flex; align-items: center; gap: 4px; }
+.legend i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.grading { display: flex; flex-direction: column; gap: 6px; }
+.gradingRow { display: flex; gap: 6px; justify-content: space-between; font: 500 13px/normal var(--font-sans); color: var(--text-primary); }
+.gradingRow span:last-child { font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+
+/* Bottom: earlier semesters (no key shadow) and the rating nudge, same height. */
+.bottom { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: var(--space-4); align-items: stretch; }
+.semesters { padding: var(--space-4) 20px; gap: 10px; border-radius: 18px; box-shadow: none; }
+.cardTitle { font: 400 26px/1.08 var(--font-serif); margin: 0; }
+.bars { display: flex; align-items: flex-end; justify-content: space-around; gap: 14px; padding-top: 8px; }
+.barCol { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
+.barVal { font: 600 11px/normal var(--font-sans); color: var(--text-secondary); }
+.barNow .barVal { color: var(--text-accent); }
+.bar { width: 36px; background: var(--tint-teal); border: 1.5px solid var(--border-strong); border-radius: 6px; }
+.barNow .bar { background: var(--bg-surface); border: 1.5px dashed var(--teal-500); }
+.semRow { display: flex; gap: 8px; justify-content: space-between; font: 600 14px/normal var(--font-sans); }
+.semRow span:last-child { font: 400 13px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; }
+.rate { display: flex; flex-direction: column; gap: 10px; padding: var(--space-4) 20px; background: var(--tint-mustard-strong); border: 2px solid var(--border-strong); border-radius: 18px; box-shadow: 0 4px 0 var(--shadow-key); color: var(--text-primary); }
+.rate:hover { background: color-mix(in srgb, var(--tint-mustard-strong) 88%, var(--text-primary)); }
+.rateTitle { font: 400 26px/1.08 var(--font-serif); margin: 0; }
+.rateLine { font: 500 13px/normal var(--font-sans); }
+.back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; font: 600 13px/normal var(--font-sans); color: var(--text-accent); }
+
+/* Earlier semester rows open that semester's results. */
+.semLink { color: var(--text-primary); border-radius: 8px; margin-inline: -8px; padding: 4px 8px; }
+.semLink:hover { background: var(--bg-hover); }
+.semLink span:last-child { display: inline-flex; align-items: center; gap: 4px; }
+
+/* An earlier semester (D6 layout, 5.6 content): Course · Final · Status · ECTS. */
+.termCols { grid-template-columns: minmax(0, 1fr) 90px 160px 80px; }
+.rowStatic { cursor: default; }
+.rowStatic:hover { background: none; }
+.final { font: 400 22px/1.08 var(--font-serif); }
+.finalHigh { color: var(--rating-high); }
+.finalMid { color: var(--text-primary); }
+.finalLow { color: var(--rating-low); }
+.finalNone { color: var(--text-secondary); }
+.status { font: 600 13px/normal var(--font-sans); color: var(--text-secondary); }
+.statusOk { color: var(--text-accent); }
+.statusLow { color: var(--rating-low); }
+.bottomOne { grid-template-columns: minmax(0, 1fr); }
+.curriculum { flex-direction: row; align-items: center; justify-content: space-between; color: var(--text-primary); }
+.curriculum:hover { background: var(--bg-hover); }
+.curriculumText { display: flex; flex-direction: column; gap: 6px; }

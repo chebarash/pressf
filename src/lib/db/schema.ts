@@ -101,9 +101,14 @@ export const lmsFiles = pgTable(
     storageKey: text("storage_key").notNull(),
     size: integer("size"),
     mimeType: text("mime_type"),
+    /** PDF page count, read when the file is downloaded; null for other formats. */
+    pages: integer("pages"),
+    /** The material's own dates in the LMS (upload and last change). */
+    lmsCreatedAt: timestamp("lms_created_at", { withTimezone: true }),
+    lmsUpdatedAt: timestamp("lms_updated_at", { withTimezone: true }),
     fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("lms_files_code").on(t.code)]
+  (t) => [index("lms_files_code").on(t.code), index("lms_files_course").on(t.courseId), index("lms_files_lesson").on(t.lessonId)]
 );
 
 export const lmsTeachers = pgTable("lms_teachers", {
@@ -114,7 +119,42 @@ export const lmsTeachers = pgTable("lms_teachers", {
   surName: text("sur_name"),
   /** Academic position/title from the LMS employee detail (academicStatus.name). */
   position: text("position"),
+  /** Department from the LMS employee profile (departmentTree), deepest unit. */
+  department: text("department"),
+  /** Degrees and publications from the LMS employee profile. Never the photo. */
+  education: jsonb("education").$type<LmsTeacherEducation[]>(),
+  publications: jsonb("publications").$type<LmsTeacherPublication[]>(),
+  /** Research area (science_direction). */
+  scienceDirection: text("science_direction"),
   fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type LmsTeacherEducation = { degree: string | null; field: string | null; institution: string | null; year: string | null };
+export type LmsTeacherPublication = { title: string; year: string | null; venue: string | null; url: string | null };
+
+/** A semester phase from `/semester/calendar` (cohort selection, schedule builder, studies, add/drop). */
+export type LmsSemesterPhase = {
+  kind: "cohort-selection" | "schedule-builder" | "studies" | "add-drop" | "other";
+  name: string;
+  /** ISO date-times. */
+  starts: string;
+  ends: string;
+};
+
+/**
+ * Semesters as the LMS names them, shared by everyone: the name ("Fall 2026"),
+ * study dates and the semester calendar phases (fetched once per semester).
+ */
+export const lmsSemesters = pgTable("lms_semesters", {
+  /** LMS semester id. */
+  id: text("id").primaryKey(),
+  name: text("name"),
+  /** Study start and end, YYYY-MM-DD. */
+  starts: text("starts"),
+  ends: text("ends"),
+  calendar: jsonb("calendar").$type<LmsSemesterPhase[]>(),
+  calendarFetchedAt: timestamp("calendar_fetched_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type LmsCurriculumData = {
@@ -400,7 +440,7 @@ export const courseRatings = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("course_ratings_once").on(t.rater, t.courseId, t.term), index("course_ratings_course").on(t.courseId)]
+  (t) => [uniqueIndex("course_ratings_once").on(t.rater, t.courseId, t.term), index("course_ratings_course").on(t.courseId), index("course_ratings_code").on(t.courseCode)]
 );
 
 /** Per-teacher answers inside a course rating (a course can have several teachers by role). */
@@ -463,6 +503,7 @@ export const uploads = pgTable(
   (t) => [
     index("uploads_queue").on(t.status, t.createdAt),
     index("uploads_course").on(t.courseId, t.status),
+    index("uploads_course_code").on(t.courseCode, t.status),
     index("uploads_uploader").on(t.uploaderId),
     uniqueIndex("uploads_sha").on(t.sha256, t.courseId),
   ]
@@ -501,6 +542,9 @@ export const feedItems = pgTable(
     at: timestamp("at", { withTimezone: true }).notNull(),
     read: boolean("read").notNull().default(false),
     needsAck: boolean("needs_ack").notNull().default(false),
+    /** LMS announcements: who posted it and for which course. */
+    author: text("author"),
+    courseName: text("course_name"),
     /** When the bot delivered it; null = not sent (settings or quiet hours). */
     sentAt: timestamp("sent_at", { withTimezone: true }),
   },
@@ -550,3 +594,60 @@ export const broadcasts = pgTable("broadcasts", {
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * The bot's open conversation per private chat: the file being shared and the
+ * answers so far. One row per chat; dropped when sent, cancelled or stale.
+ */
+export const botChats = pgTable(
+  "bot_chats",
+  {
+    chatId: text("chat_id").primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    draft: jsonb("draft").$type<Record<string, unknown>>().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("bot_chats_updated").on(t.updatedAt)]
+);
+
+/** Telegram's file_id for a file the bot sent once, so the next send needs no upload. */
+export const telegramFiles = pgTable("telegram_files", {
+  key: text("key").primaryKey(),
+  fileId: text("file_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Admin edits to harvested LMS files (rename, type, week, hide). A re-sync
+ * never overwrites them; views apply them on top of `lms_files`.
+ */
+export const fileOverrides = pgTable("file_overrides", {
+  fileId: text("file_id").primaryKey(),
+  title: text("title"),
+  type: text("type"),
+  week: integer("week"),
+  hidden: boolean("hidden").notNull().default(false),
+  updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Small moderation and system flags keyed by (kind, target):
+ * - `post-hidden` / `post-mute` on an Anonymous post id (a mute acts on the
+ *   post's private author token, never on a person),
+ * - `teachers-distinct` on a teacher pair that is not a duplicate,
+ * - `signout` on a user id (sessions issued before `at` are void),
+ * - `setting` on a key (`maintenance`, `sync-paused`).
+ */
+export const adminMarks = pgTable(
+  "admin_marks",
+  {
+    kind: text("kind").notNull(),
+    target: text("target").notNull(),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
+    until: timestamp("until", { withTimezone: true }),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.kind, t.target] })]
+);

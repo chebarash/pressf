@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { DEFAULT_ALERTS, type AlertSettings, type FeedItem } from "@/core/notifications";
 import { db } from "@/lib/db";
 import { feedItems, userState } from "@/lib/db/schema";
@@ -9,18 +9,25 @@ import { feedItems, userState } from "@/lib/db/schema";
  */
 export async function ingest(userId: string, items: FeedItem[]): Promise<FeedItem[]> {
   if (!items.length) return [];
+  // One row per id: an upsert may not touch the same row twice.
+  const unique = [...new Map(items.map((i) => [i.id, i])).values()];
   const rows = await db()
     .insert(feedItems)
-    .values(items.map((i) => ({ userId, id: i.id, kind: i.kind, title: i.title, body: i.body ?? null, courseId: i.courseId ?? null, href: i.href ?? null, at: i.at, read: i.read, needsAck: !!i.needsAck })))
-    .onConflictDoNothing({ target: [feedItems.userId, feedItems.id] })
-    .returning({ id: feedItems.id });
-  const fresh = new Set(rows.map((r) => r.id));
+    .values(unique.map((i) => ({ userId, id: i.id, kind: i.kind, title: i.title, body: i.body ?? null, courseId: i.courseId ?? null, href: i.href ?? null, at: i.at, read: i.read, needsAck: !!i.needsAck, author: i.author ?? null, courseName: i.courseName ?? null })))
+    // Existing items only gain an author / course they were stored without; nothing else changes.
+    .onConflictDoUpdate({
+      target: [feedItems.userId, feedItems.id],
+      set: { author: sql`coalesce(${feedItems.author}, excluded.author)`, courseName: sql`coalesce(${feedItems.courseName}, excluded.course_name)` },
+    })
+    // xmax = 0 only for rows this statement inserted.
+    .returning({ id: feedItems.id, inserted: sql<boolean>`(xmax = 0)` });
+  const fresh = new Set(rows.filter((r) => r.inserted).map((r) => r.id));
   return items.filter((i) => fresh.has(i.id));
 }
 
 export async function feed(userId: string, limit = 100): Promise<FeedItem[]> {
   const rows = await db().select().from(feedItems).where(eq(feedItems.userId, userId)).orderBy(desc(feedItems.at)).limit(limit);
-  return rows.map((r) => ({ id: r.id, kind: r.kind as FeedItem["kind"], title: r.title, body: r.body ?? undefined, courseId: r.courseId ?? undefined, href: r.href ?? undefined, at: r.at, read: r.read, needsAck: r.needsAck }));
+  return rows.map((r) => ({ id: r.id, kind: r.kind as FeedItem["kind"], title: r.title, body: r.body ?? undefined, courseId: r.courseId ?? undefined, courseName: r.courseName ?? undefined, author: r.author ?? undefined, href: r.href ?? undefined, at: r.at, read: r.read, needsAck: r.needsAck }));
 }
 
 export async function markRead(userId: string, ids: string[], acknowledge = false) {

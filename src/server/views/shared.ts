@@ -1,0 +1,371 @@
+import { and, count, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import type { ClassKind } from "@/core/agenda";
+import { deadline, type Deadline, type DeadlineStatus } from "@/core/deadlines";
+import { describeFile, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
+import type { FeedItem, FeedKind } from "@/core/notifications";
+import { displayName, roleOf } from "@/core/people";
+import { summarizeCourse, summarizeTeacher, toHours, type CourseSummary, type StoredRating, type TeacherRole, type TeacherSummary } from "@/core/ratings";
+import { weekOf as calendarWeekOf } from "@/core/semester";
+import { ago, clock, localDay, localWeekday, shortDate, toLocal, until } from "@/core/time";
+import { shownAs } from "@/core/uploads";
+import { db } from "@/lib/db";
+import { courseRatings, faces, lmsCourses, lmsFiles, lmsSemesters, lmsTeachers, mentionLinks, mentions, teacherRatings, uploads, type LmsSemesterPhase } from "@/lib/db/schema";
+import { termName } from "@/server/sync/types";
+import type { LmsHomework, LmsLesson, LmsSubject } from "@/lib/lms/types";
+import { DECISION_TAGS, fileOverridesMap, overlayAll, postVisible } from "@/server/decisions";
+import { publicCache, TAGS } from "./cache";
+
+/* ───────────── time ───────────── */
+
+export const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+/** LMS times come as unix seconds, milliseconds or "YYYY-MM-DD HH:mm:ss" in Tashkent. */
+export function lmsTime(v: unknown): Date | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  if (Number.isFinite(n)) return n > 0 ? new Date(n < 1e12 ? n * 1000 : n) : null;
+  const s = String(v).trim().replace(" ", "T");
+  const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : `${s}+05:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** "Thursday 23:59", "Today 23:59", "Tomorrow 09:00", "5 Nov 10:00". */
+export function whenLabel(at: Date, now: Date) {
+  const days = Math.round((Date.parse(localDay(at)) - Date.parse(localDay(now))) / 86_400_000);
+  const day = days === 0 ? "Today" : days === 1 ? "Tomorrow" : days > 1 && days < 7 ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][localWeekday(at)] : shortDate(at);
+  return `${day} ${clock(at)}`;
+}
+
+/* ───────────── courses and teachers ───────────── */
+
+export type CourseRef = { id: string; code: string; name: string; credits: number | null; semesterId: string | null; departmentId: string | null };
+
+const courseCols = { id: lmsCourses.id, code: lmsCourses.code, name: lmsCourses.name, credits: lmsCourses.credits, semesterId: lmsCourses.semesterId, departmentId: lmsCourses.departmentId };
+
+export async function coursesByIds(ids: string[]): Promise<Map<string, CourseRef>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (!unique.length) return new Map();
+  const rows = await db().select(courseCols).from(lmsCourses).where(inArray(lmsCourses.id, unique));
+  return new Map(rows.map((r) => [r.id, r]));
+}
+
+/** Every LMS subject id per code (a code has one id per semester it ran). */
+export async function coursesByCodes(codes: string[]): Promise<CourseRef[]> {
+  const unique = [...new Set(codes.filter(Boolean))];
+  if (!unique.length) return [];
+  return db().select(courseCols).from(lmsCourses).where(inArray(lmsCourses.code, unique));
+}
+
+export type TeacherRef = {
+  id: string;
+  name: string;
+  position: string | null;
+  department: string | null;
+  /** Drawn face URL (`/faces/<id>`), null when none is assigned. */
+  face: string | null;
+};
+
+export async function teachersByIds(ids: string[]): Promise<Map<string, TeacherRef>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (!unique.length) return new Map();
+  const rows = await db()
+    .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, position: lmsTeachers.position, department: lmsTeachers.department, face: faces.teacherId })
+    .from(lmsTeachers)
+    .leftJoin(faces, eq(faces.teacherId, lmsTeachers.id))
+    .where(inArray(lmsTeachers.id, unique));
+  return new Map(rows.map((t) => [t.id, { id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }), position: t.position, department: t.department, face: t.face ? faceUrl(t.id) : null }]));
+}
+
+/** The drawn face (never a photo), served by the faces route. */
+export const faceUrl = (teacherId: string) => `/faces/${encodeURIComponent(teacherId)}`;
+
+export const ROLE_LABEL: Record<TeacherRole, string> = { lecture: "Lectures", tutorial: "Tutorials", lab: "Labs", practice: "Practice", other: "Teaching" };
+
+export function kindOf(name: string | null | undefined): ClassKind {
+  const t = (name ?? "").toLowerCase();
+  if (/exam|midterm|final|quiz|control/.test(t)) return "exam";
+  if (t.startsWith("lect")) return "lecture";
+  if (t.startsWith("lab")) return "lab";
+  if (/prac|tut|sem/.test(t)) return "practice";
+  return "other";
+}
+
+export type Slot = { teacherId: string | null; role: TeacherRole; weekday: number; time: string; end: string | null; room: string | null; lessonId: string; lessonName: string; at: string };
+
+/** Weekly slots from a harvested course's lessons (`raw.lessons[].schedule[]`). */
+export function lessonSlots(raw: unknown): Slot[] {
+  const lessons = ((raw as LmsSubject | null)?.lessons ?? []) as LmsLesson[];
+  const out: Slot[] = [];
+  for (const l of lessons) {
+    for (const s of l.schedule ?? []) {
+      const start = lmsTime(s.begin_time);
+      if (!start) continue;
+      const end = lmsTime(s.end_time);
+      const slot: Slot = {
+        teacherId: s.employee?.employee_id ?? null,
+        role: roleOf(s.employee?.employee_type ?? l.lessonType?.name),
+        weekday: localWeekday(start), time: clock(start), end: end ? clock(end) : null,
+        room: s.auditorium || null, lessonId: l.id, lessonName: l.name, at: start.toISOString(),
+      };
+      out.push(slot);
+    }
+  }
+  return out;
+}
+
+/** "Mon, Wed 10:00" — distinct weekly times, weekdays grouped per start time. */
+export function slotsLabel(slots: Array<{ weekday: number; time: string }>): string | null {
+  const byTime = new Map<string, Set<number>>();
+  for (const s of slots) (byTime.get(s.time) ?? byTime.set(s.time, new Set()).get(s.time)!).add(s.weekday);
+  const order = (d: number) => (d + 6) % 7;
+  const parts = [...byTime.entries()]
+    .map(([time, days]) => ({ time, days: [...days].sort((a, b) => order(a) - order(b)) }))
+    .sort((a, b) => order(a.days[0]) - order(b.days[0]) || a.time.localeCompare(b.time))
+    .map((p) => `${p.days.map((d) => DAY_ABBR[d]).join(", ")} ${p.time}`);
+  return parts.length ? parts.slice(0, 2).join(" · ") : null;
+}
+
+/** Teaching week of a date, from the academic calendar (never date arithmetic). */
+export const teachingWeek = (at: Date) => calendarWeekOf(localDay(at))?.week ?? null;
+
+/* ───────────── semester calendar (LMS phases) ───────────── */
+
+export type SemesterPhaseView = {
+  semesterId: string;
+  /** "Spring 2027", when the LMS named the semester. */
+  semester: string | null;
+  kind: LmsSemesterPhase["kind"];
+  /** "Cohort selection", "Schedule builder", "Add/drop", "Classes start". */
+  title: string;
+  /** ISO date-times and Tashkent days (YYYY-MM-DD). */
+  starts: string;
+  ends: string;
+  startDay: string;
+  endDay: string;
+};
+
+export const PHASE_TITLE: Record<LmsSemesterPhase["kind"], string> = {
+  "cohort-selection": "Cohort selection", "schedule-builder": "Schedule builder", "add-drop": "Add/drop", studies: "Classes start", other: "",
+};
+
+/** Every stored semester-calendar phase that has not ended by `today`, soonest first. Postgres only. */
+export async function semesterPhases(today: string): Promise<SemesterPhaseView[]> {
+  const rows = await db().select({ id: lmsSemesters.id, name: lmsSemesters.name, calendar: lmsSemesters.calendar }).from(lmsSemesters).where(isNotNull(lmsSemesters.calendar));
+  return rows
+    .flatMap((r) => (r.calendar ?? []).map((p) => ({
+      semesterId: r.id, semester: r.name ? termName(r.name) || r.name : null, kind: p.kind, title: PHASE_TITLE[p.kind] || p.name,
+      starts: p.starts, ends: p.ends, startDay: localDay(new Date(p.starts)), endDay: localDay(new Date(p.ends)),
+    })))
+    .filter((p) => p.endDay >= today)
+    .sort((a, b) => a.starts.localeCompare(b.starts));
+}
+
+/* ───────────── ratings (public, cached) ───────────── */
+
+export type RatingSummaryView = CourseSummary & { hoursLabel: string | null; difficultyLabel: string | null; since: string | null; until: string | null };
+
+async function courseRatingRows(codes: string[]) {
+  if (!codes.length) return [];
+  const code = sql<string>`coalesce(${courseRatings.courseCode}, ${lmsCourses.code})`;
+  return db()
+    .select({ code, term: courseRatings.term, recommend: courseRatings.recommend, hours: courseRatings.hours, difficulty: courseRatings.difficulty, tags: courseRatings.tags })
+    .from(courseRatings)
+    .leftJoin(lmsCourses, eq(lmsCourses.id, courseRatings.courseId))
+    .where(or(inArray(courseRatings.courseCode, codes), inArray(lmsCourses.code, codes)));
+}
+
+const DIFFICULTY_WORDS = (d: number | null) => (d === null ? null : d < 2 ? "Easy" : d < 2.8 ? "Manageable" : d < 3.6 ? "Hard-ish" : d < 4.4 ? "Hard" : "Very hard");
+
+/** Rating summaries by course code; numbers only from 5 ratings (core MIN_RATINGS). */
+export const ratingsByCode = publicCache(
+  "ratings-by-code",
+  async (codes: string[]): Promise<Record<string, RatingSummaryView>> => {
+    const rows = await courseRatingRows(codes);
+    const out: Record<string, RatingSummaryView> = {};
+    for (const code of codes) {
+      const mine: StoredRating[] = rows
+        .filter((r) => r.code === code)
+        .map((r) => ({ courseId: code, term: r.term, recommend: r.recommend, hours: toHours(r.hours), difficulty: (r.difficulty as StoredRating["difficulty"]) ?? null, tags: r.tags as StoredRating["tags"], teachers: [] }));
+      const s = summarizeCourse(mine);
+      const terms = s.enough ? s.trend.map((t) => t.term) : [];
+      out[code] = {
+        ...s,
+        hoursLabel: s.enough && s.hours !== null ? `≈ ${Math.round(s.hours)} h/wk` : null,
+        difficultyLabel: s.enough ? DIFFICULTY_WORDS(s.difficulty) : null,
+        since: terms[0] ?? null,
+        until: terms.at(-1) ?? null,
+      };
+    }
+    return out;
+  },
+  (codes) => [TAGS.ratings, ...codes.map(TAGS.course)],
+);
+
+export const recommendOf = (s: RatingSummaryView | undefined) => (s?.enough ? s.recommendPct : null);
+
+/** Teacher summaries ("% pressed F"), by course code in `byCourse`. */
+export const teacherSummaries = publicCache(
+  "teacher-summaries",
+  async (ids: string[]): Promise<Record<string, TeacherSummary>> => {
+    if (!ids.length) return {};
+    const code = sql<string>`coalesce(${courseRatings.courseCode}, ${lmsCourses.code}, ${courseRatings.courseId})`;
+    const rows = await db()
+      .select({ teacherId: teacherRatings.teacherId, role: teacherRatings.role, pressF: teacherRatings.pressF, tags: teacherRatings.tags, term: courseRatings.term, code })
+      .from(teacherRatings)
+      .innerJoin(courseRatings, eq(courseRatings.id, teacherRatings.ratingId))
+      .leftJoin(lmsCourses, eq(lmsCourses.id, courseRatings.courseId))
+      .where(inArray(teacherRatings.teacherId, ids));
+    const out: Record<string, TeacherSummary> = {};
+    for (const id of ids) {
+      const stored: StoredRating[] = rows
+        .filter((r) => r.teacherId === id)
+        .map((r) => ({ courseId: r.code, term: r.term, recommend: "yes", hours: null, difficulty: null, tags: [], teachers: [{ teacherId: id, role: r.role as TeacherRole, pressF: r.pressF, tags: r.tags as StoredRating["teachers"][number]["tags"] }] }));
+      out[id] = summarizeTeacher(id, stored);
+    }
+    return out;
+  },
+  (ids) => [TAGS.ratings, ...ids.map(TAGS.teacher)],
+);
+
+/* ───────────── Anonymous mentions (public) ───────────── */
+
+export type MentionView = { id: number; url: string; text: string; date: string | null };
+export type MentionsView = { count: number; latest: MentionView[] };
+
+/** Posts hidden by a moderator or under a live mute are left out (count included). */
+export async function mentionsOf(kind: "course" | "teacher", target: string, limit = 3): Promise<MentionsView> {
+  const where = and(eq(mentionLinks.kind, kind), eq(mentionLinks.target, target), postVisible(mentionLinks.postId));
+  const [rows, [{ n }]] = await Promise.all([
+    db().select({ id: mentions.postId, url: mentions.url, text: mentions.text, date: mentions.date }).from(mentions).innerJoin(mentionLinks, eq(mentionLinks.postId, mentions.postId)).where(where).orderBy(desc(mentions.postId)).limit(limit),
+    db().select({ n: count() }).from(mentionLinks).where(where),
+  ]);
+  return { count: n, latest: rows.map((r) => ({ ...r, date: r.date?.toISOString() ?? null })) };
+}
+
+/* ───────────── files ───────────── */
+
+export type FileItem = {
+  id: string;
+  source: "lms" | "students";
+  title: string;
+  type: FileType;
+  typeLabel: string;
+  format: FileFormat;
+  formatCode: string;
+  week: number | null;
+  /** When it was posted: the LMS upload date for LMS files, the upload time for student files. ISO. */
+  date: string;
+  dateLabel: string;
+  /** "LMS" or "From students" (or the uploader's name when they chose to show it). */
+  from: string;
+  lessonId: string | null;
+  size: number | null;
+  /** PDF page count, when known (LMS files). Always set by the server; optional for fixtures. */
+  pages?: number | null;
+  href: string;
+};
+
+type LmsFileRow = typeof lmsFiles.$inferSelect;
+type UploadRow = typeof uploads.$inferSelect;
+
+/** The date an LMS file was posted: its LMS upload date, else its last LMS change, else when we pulled it. */
+export const lmsFileDate = (f: Pick<LmsFileRow, "lmsCreatedAt" | "lmsUpdatedAt" | "fetchedAt">) => f.lmsCreatedAt ?? f.lmsUpdatedAt ?? f.fetchedAt;
+
+export function lmsFileItem(f: LmsFileRow, course: { code: string; name: string }, lessonWeek: Map<string, number | null>): FileItem {
+  const meta = describeFile(f.name, { courseCode: course.code, courseName: course.name, extension: f.extension ?? undefined });
+  const date = lmsFileDate(f);
+  return {
+    id: f.id, source: "lms", title: meta.title, type: meta.type, typeLabel: TYPE_LABEL[meta.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
+    week: meta.week ?? (f.lessonId ? lessonWeek.get(f.lessonId) ?? null : null), date: date.toISOString(), dateLabel: shortDate(date),
+    from: "LMS", lessonId: f.lessonId, size: f.size, pages: f.pages, href: `/f/${f.id}`,
+  };
+}
+
+export function uploadItem(u: UploadRow): FileItem {
+  const type = (u.type as FileType) ?? "other";
+  const meta = describeFile(u.fileName);
+  return {
+    id: u.id, source: "students", title: u.title, type, typeLabel: TYPE_LABEL[type] ?? "File", format: meta.format, formatCode: FORMAT_CODE[meta.format],
+    week: u.week, date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), from: shownAs(u.showName, null), lessonId: null, size: u.size, pages: null, href: `/f/${u.id}`,
+  };
+}
+
+/** Lesson id → teaching week, from the lesson's first scheduled date. */
+export function lessonWeeks(raw: unknown): Map<string, number | null> {
+  const map = new Map<string, number | null>();
+  for (const s of lessonSlots(raw).sort((a, b) => a.at.localeCompare(b.at))) {
+    if (!map.has(s.lessonId)) map.set(s.lessonId, teachingWeek(new Date(s.at)));
+  }
+  return map;
+}
+
+/** All files of a course code: LMS files and live student uploads (signed-in only; cached per code). */
+export const courseFiles = publicCache(
+  "course-files",
+  async (code: string): Promise<FileItem[]> => {
+    const [courses, lms, live, overrides] = await Promise.all([
+      db().select({ id: lmsCourses.id, name: lmsCourses.name, raw: lmsCourses.raw }).from(lmsCourses).where(eq(lmsCourses.code, code)),
+      db().select().from(lmsFiles).where(eq(lmsFiles.code, code)),
+      db().select().from(uploads).where(and(eq(uploads.status, "live"), or(eq(uploads.courseCode, code), inArray(uploads.courseId, db().select({ id: lmsCourses.id }).from(lmsCourses).where(eq(lmsCourses.code, code)))))),
+      fileOverridesMap(),
+    ]);
+    const name = courses[0]?.name ?? code;
+    const weeks = new Map<string, number | null>();
+    for (const c of courses) for (const [k, v] of lessonWeeks(c.raw)) weeks.set(k, v);
+    // Admin edits (rename, type, week) apply on top; hidden LMS files drop out.
+    const items = [...overlayAll(lms.map((f) => lmsFileItem(f, { code, name }, weeks)), overrides), ...live.map(uploadItem)];
+    return items.sort((a, b) => (a.week ?? 99) - (b.week ?? 99) || a.date.localeCompare(b.date));
+  },
+  (code) => [TAGS.files(code), TAGS.course(code), DECISION_TAGS.overrides],
+);
+
+/* ───────────── feed ───────────── */
+
+export type FeedView = {
+  id: string;
+  kind: FeedKind;
+  title: string;
+  body: string | null;
+  courseId: string | null;
+  courseName: string | null;
+  /** Who posted it (LMS announcements), "Gonçalo Pinto". Always set by the server; optional for fixtures. */
+  author?: string | null;
+  /** The source line for LMS announcements: "LMS · Calculus 1 · Gonçalo Pinto" (null for other kinds). Always set by the server. */
+  byline?: string | null;
+  at: string;
+  ago: string;
+  read: boolean;
+  needsAck: boolean;
+  href: string | null;
+};
+
+export function feedView(i: FeedItem, now: Date, names: Map<string, CourseRef>): FeedView {
+  const courseName = (i.courseId ? names.get(i.courseId)?.name : null) ?? i.courseName ?? null;
+  const author = i.author ?? null;
+  return {
+    id: i.id, kind: i.kind, title: i.title, body: i.body ?? null, courseId: i.courseId ?? null, courseName, author,
+    byline: i.kind === "announcement" ? ["LMS", courseName, author].filter(Boolean).join(" · ") : null,
+    at: i.at.toISOString(), ago: ago(i.at, now), read: i.read, needsAck: !!i.needsAck, href: i.href ?? null,
+  };
+}
+
+/* ───────────── deadlines ───────────── */
+
+export const STATUS_LABEL: Record<DeadlineStatus, string> = {
+  todo: "Not submitted", "in-progress": "In progress", submitted: "Under review", checked: "Checked", missed: "Missed", archived: "Archived",
+};
+
+export type DeadlineView = { id: string; course: string; title: string; due: string; dueLabel: string; until: string; status: DeadlineStatus; statusLabel: string; grade: number | null };
+
+export const deadlineView = (d: Deadline, now: Date): DeadlineView => ({
+  id: d.id, course: d.course, title: d.title, due: d.due.toISOString(), dueLabel: whenLabel(d.due, now), until: until(d.due, now),
+  status: d.status, statusLabel: STATUS_LABEL[d.status], grade: d.grade,
+});
+
+export const deadlines = (list: LmsHomework[]) => list.map(deadline).filter((d): d is Deadline => !!d);
+
+/** Course name matching between the gradebook / homework (names) and the catalog. */
+export const sameCourse = (a: string | null | undefined, b: string | null | undefined) =>
+  !!a && !!b && a.trim().toLowerCase().replace(/\s+/g, " ") === b.trim().toLowerCase().replace(/\s+/g, " ");
+
+export { toLocal };

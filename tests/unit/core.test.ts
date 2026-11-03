@@ -9,9 +9,9 @@ import { miniAppUrl, parseStartParam, path, startParam, uploadLink, type Target 
 import { deliverNow, filterFeed, fromLms, mergeFeed, plainText, sections, unreadCount, type FeedItem } from "@/core/notifications";
 import { displayName, initials, roleOf, shortName } from "@/core/people";
 import { decodePayload, parseQr, qrOutcome, shouldRetry } from "@/core/qr";
-import { askLevel, canEdit, canSubmit, difficultyWord, rateQueue, summarizeCourse, summarizeTeacher, termKey, validateRating, type RatingInput, type StoredRating } from "@/core/ratings";
+import { askLevel, canEdit, canSubmit, difficultyWord, HOURS, HOURS_LABEL, hoursLabel, rateQueue, summarizeCourse, summarizeTeacher, termKey, toHours, validateRating, type RatingInput, type StoredRating } from "@/core/ratings";
 import { adminSections, can, isStaff } from "@/core/roles";
-import { dayInfo, nextPhase, weekLabel, weekOf as calWeek, type CalendarWeek } from "@/core/semester";
+import { dayInfo, nextPhase, termMatches, termSlug, weekLabel, weekOf as calWeek, type CalendarWeek } from "@/core/semester";
 import { ago, clock, localDay, until } from "@/core/time";
 import { canMove, rejectMessage, routeUpload, shownAs, trustOf } from "@/core/uploads";
 
@@ -35,6 +35,15 @@ describe("time", () => {
 });
 
 describe("semester", () => {
+  it("names past semesters in URLs", () => {
+    expect(termSlug("Fall 2025")).toBe("fall-2025");
+    expect(termSlug(" Spring 2026 ")).toBe("spring-2026");
+    expect(termMatches("Fall 2025", "fall-2025")).toBe(true);
+    expect(termMatches("Fall 2025", "Fall%202025")).toBe(true);
+    expect(termMatches("Fall 2025", "fall-2026")).toBe(false);
+    expect(termMatches("Fall 2025", "")).toBe(false);
+    expect(termMatches("Fall 2025", "%E0%A4%A")).toBe(false);
+  });
   const weeks: CalendarWeek[] = [
     { order: 1, label: "W1", starts: "2026-09-07", ends: "2026-09-11", term: "fall", week: 1, kind: "teaching" },
     { order: 2, label: "W2", starts: "2026-09-14", ends: "2026-09-18", term: "fall", week: 2, kind: "teaching" },
@@ -160,6 +169,8 @@ describe("files", () => {
   });
   it("classifies type, format and week", () => {
     expect(typeOf("Midterm 2024.pdf")).toBe("exam");
+    expect(typeOf("Midterm review slides.pdf")).toBe("lecture");
+    expect(typeOf("Final exam revision lecture.pptx")).toBe("lecture");
     expect(typeOf("Mock midterm with answers.pdf")).toBe("mock");
     expect(typeOf("Syllabus MATH111.pdf")).toBe("syllabus");
     expect(typeOf("Lab 5 report template.docx")).toBe("lab");
@@ -186,7 +197,7 @@ describe("files", () => {
 });
 
 describe("ratings", () => {
-  const base: RatingInput = { recommend: "yes", hours: "4-6", difficulty: 4, tags: ["Useful later"], teachers: [{ teacherId: "t1", role: "lecture", pressF: true, tags: ["Explains clearly"] }] };
+  const base: RatingInput = { recommend: "yes", hours: "5-10", difficulty: 4, tags: ["Useful later"], teachers: [{ teacherId: "t1", role: "lecture", pressF: true, tags: ["Explains clearly"] }] };
   it("needs only the recommend answer", () => {
     expect(canSubmit(base)).toBe(true);
     expect(canSubmit({ ...base, hours: null, difficulty: null, tags: [], teachers: [] })).toBe(true);
@@ -194,6 +205,26 @@ describe("ratings", () => {
     expect(validateRating({ ...base, tags: ["Useful later", "Fair exams", "Heavy reading", "Strict attendance"] })).toContain("too-many-tags");
     expect(validateRating({ ...base, tags: ["Made up" as never] })).toContain("unknown-tag");
     expect(validateRating({ ...base, teachers: [base.teachers[0], base.teachers[0]] })).toContain("duplicate-teacher");
+  });
+  it("asks hours in the four D5 buckets", () => {
+    expect(HOURS).toEqual(["0-2", "2-5", "5-10", "10+"]);
+    expect(HOURS.map((h) => HOURS_LABEL[h])).toEqual(["< 2", "2–5", "5–10", "10+"]);
+    for (const h of HOURS) expect(validateRating({ ...base, hours: h })).toEqual([]);
+    expect(validateRating({ ...base, hours: "4-6" as never })).toContain("bad-hours");
+    expect([null, "0-2", "2-4", "4-6", "6-10", "10+", "nonsense"].map(toHours)).toEqual([null, "0-2", "2-5", "2-5", "5-10", "10+", null]);
+  });
+  it("summarizes hours by bucket midpoints", () => {
+    const at = (hs: Array<RatingInput["hours"]>) => summarizeCourse(hs.map((hours) => ({ ...base, hours, term: "Fall 2025", courseId: "MATH111" })));
+    const mid = (hs: Array<RatingInput["hours"]>) => { const s = at(hs); return s.enough ? s.hours : undefined; };
+    expect(mid(["0-2", "0-2", "0-2", "0-2", "0-2"])).toBe(1);
+    expect(mid(["2-5", "2-5", "2-5", "0-2", "10+"])).toBe(3.5);
+    expect(mid(["5-10", "5-10", "5-10", "10+", "10+"])).toBe(7.5);
+    expect(mid(["10+", "10+", "10+", null, null])).toBe(12);
+    expect(mid([null, null, null, null, null])).toBeNull();
+    // Older stored answers still count, under today's buckets.
+    expect(mid(["6-10" as never, "6-10" as never, "6-10" as never, "6-10" as never, "6-10" as never])).toBe(7.5);
+    expect(hoursLabel(3.5)).toBe("4 h");
+    expect(hoursLabel(7.5)).toBe("8 h");
   });
   const rows = (n: number, term: string, yes: number, over: Partial<RatingInput> = {}): StoredRating[] =>
     Array.from({ length: n }, (_, i) => ({ ...base, ...over, recommend: i < yes ? "yes" : "no", term, courseId: "MATH111", teachers: [{ teacherId: "t1", role: "lecture", pressF: i < yes, tags: i % 2 ? ["Explains clearly"] : [] }] }));
@@ -207,7 +238,7 @@ describe("ratings", () => {
     if (!s.enough) throw new Error("expected enough");
     expect(s.count).toBe(18);
     expect(s.recommendPct).toBe(78);
-    expect(s.hours).toBe(5);
+    expect(s.hours).toBe(7.5);
     expect(s.difficulty).toBe(4);
     expect(s.trend.map((p) => [p.term, p.value])).toEqual([["Fall 2024", 60], ["Fall 2025", 80]]);
     expect(s.delta).toBe(20);
@@ -255,6 +286,7 @@ describe("notifications", () => {
   });
   it("keeps quiet hours except for absences", () => {
     expect(deliverNow("grade", 23 * 60)).toBe(false);
+    expect(deliverNow("grade", 22 * 60 + 30)).toBe(true);
     expect(deliverNow("absence", 23 * 60)).toBe(true);
     expect(deliverNow("grade", 9 * 60)).toBe(true);
   });
@@ -272,8 +304,8 @@ describe("links", () => {
   });
   it("builds paths and URLs", () => {
     expect(path({ to: "course", code: "MATH111", tab: "files", term: "Fall 2025" })).toBe("/c/MATH111/files?term=Fall%202025");
-    expect(miniAppUrl({ to: "course", code: "MATH111" })).toBe("https://t.me/pupressfbot?startapp=c_MATH111");
-    expect(uploadLink("MATH 111")).toBe("https://t.me/pupressfbot?start=upload_MATH111");
+    expect(miniAppUrl({ to: "course", code: "MATH111" })).toBe("https://t.me/pressfapp?startapp=c_MATH111");
+    expect(uploadLink("MATH 111")).toBe("https://t.me/pressfapp?start=upload_MATH111");
     expect(parseStartParam("garbage")).toEqual({ to: "today" });
     expect(parseStartParam(null)).toEqual({ to: "today" });
   });
@@ -298,7 +330,7 @@ describe("uploads, roles, people, grades, deadlines", () => {
     expect(routeUpload("paused", 0.5)).toBe("refuse");
     expect(canMove("waiting", "live")).toBe(true);
     expect(canMove("live", "waiting")).toBe(false);
-    expect(rejectMessage("Physics 1 notes", "Physics 1", "unreadable")).toMatch(/^Not accepted: Physics 1 notes · Physics 1\.\nWe couldn't open/);
+    expect(rejectMessage("Physics 1 notes", "Physics 1", "unreadable")).toMatch(/^Not accepted: Physics 1 notes\nReason: We couldn't open/);
     expect(shownAs(false, "Aziz T.")).toBe("From students");
     expect(shownAs(true, "Aziz T.")).toBe("From Aziz T.");
   });

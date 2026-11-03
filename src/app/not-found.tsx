@@ -1,13 +1,11 @@
-import { Palette } from "@/components/Palette";
+import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="wrap section" style={{ justifyItems: "center", textAlign: "center" }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="face" src="/pfp.png" alt="" width={200} height={200} />
-      <h1 className="d-lg">This page pressed F</h1>
-      <p className="soft">It may have moved, or it never existed. Try searching.</p>
-      <div style={{ width: "min(800px, 100%)", textAlign: "left" }}><Palette variant="bar" /></div>
-    </div>
+    <main className="sh-setup" style={{ maxWidth: 560, margin: "0 auto", paddingTop: "calc(var(--sh-top) + 48px)" }}>
+      <h1 className="t-mobile-title">Nothing here</h1>
+      <p className="sh-setup__text">That page moved or never existed.</p>
+      <Link className="sh-btn sh-btn--primary" href="/" style={{ justifySelf: "start" }}>Go to Today</Link>
+    </main>
   );
 }

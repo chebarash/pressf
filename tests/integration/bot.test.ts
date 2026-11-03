@@ -1,16 +1,16 @@
-import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/storage", () => ({ putObject: vi.fn(async (key: string) => key), signedUrl: vi.fn(async () => "https://files.test/x") }));
-vi.mock("@/lib/syllabus", async (original) => ({ ...(await original<typeof import("@/lib/syllabus")>()), extractSyllabus: vi.fn() }));
+const pending: Array<() => Promise<unknown>> = [];
+vi.mock("next/server", async (original) => ({ ...(await original<typeof import("next/server")>()), after: (task: () => Promise<unknown>) => { pending.push(task); } }));
 
 import { createHmac } from "node:crypto";
 import { POST as sendFile } from "@/app/api/telegram/send-file/route";
 import { POST } from "@/app/api/telegram/files/route";
 import { db } from "@/lib/db";
-import { materials, syllabi } from "@/lib/db/schema";
-import { extractSyllabus } from "@/lib/syllabus";
-import { syllabus } from "../fixtures/catalog";
+import { botChats, lmsCache, lmsCourses, lmsFiles, materials, telegramFiles, uploads, userRoles, users } from "@/lib/db/schema";
+import { notifyUploader } from "@/lib/telegram/notify";
+import { publish as publishUpload, reject as rejectUpload, submitUpload } from "@/server/uploads";
 import { resetDb, seedCatalog } from "../fixtures/db";
 
 type Sent = { method: string; body: Record<string, unknown> };
@@ -21,12 +21,13 @@ const methods = () => sent.map((item) => item.method);
 function stubTelegram() {
   sent = [];
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
-    if (url.includes("/file/bot")) return new Response("not a real pdf");
+    if (url.includes("/file/bot")) return new Response(`bytes of ${url}`);
     const method = url.split("/").pop()!;
     const body = init?.body instanceof FormData ? Object.fromEntries(init.body.entries()) : JSON.parse(String(init?.body ?? "{}"));
     sent.push({ method, body });
-    if (method === "getFile") return Response.json({ ok: true, result: { file_path: "a.pdf" } });
+    if (method === "getFile") return Response.json({ ok: true, result: { file_path: `${body.file_id}.pdf` } });
     if (method === "getMe") return Response.json({ ok: true, result: { has_main_web_app: mainApp } });
+    if (method === "sendDocument") return Response.json({ ok: true, result: { message_id: 500, chat: { id: 1, type: "private" }, document: { file_id: "tg-sent", file_unique_id: "s" } } });
     return Response.json({ ok: true, result: { message_id: 500, chat: { id: 1, type: "private" } } });
   }));
 }
@@ -36,14 +37,17 @@ const post = (update: object, secret = "hook-secret") => POST(new Request("https
 }));
 
 const doc = (extra: object = {}, chat = { id: 7, type: "private" }) => ({
-  message: { message_id: 1, chat, caption: "Calculus 1 midterm Fall 2023", document: { file_id: "f1", file_unique_id: "u1", file_name: "paper.pdf", mime_type: "application/pdf", file_size: 1000, ...extra } },
+  message: { message_id: 1, chat, from: { id: 7 }, caption: "from the group", document: { file_id: "f1", file_unique_id: "u1", file_name: "paper.pdf", mime_type: "application/pdf", file_size: 1000, ...extra } },
 });
-const press = (data: string, chat = -100) => ({ callback_query: { id: "cb", data, message: { message_id: 500, chat: { id: chat, type: "supergroup" } } } });
-const lastText = () => String([...sent].reverse().find((item) => item.body.text || item.body.caption)?.body.text ?? [...sent].reverse().find((item) => item.body.caption)?.body.caption);
-const only = async () => (await db().select().from(materials))[0];
+
+/** Runs the work the webhook left for after its answer. `roll` fixes the trusted spot-check dice. */
+const settle = async (roll?: number) => {
+  if (roll !== undefined) vi.spyOn(Math, "random").mockReturnValue(roll);
+  while (pending.length) await pending.shift()!();
+};
 
 beforeEach(async () => { await resetDb(); await seedCatalog(); stubTelegram(); });
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 
 describe("webhook", () => {
   it("rejects a wrong secret", async () => {
@@ -57,133 +61,203 @@ describe("webhook", () => {
   });
 });
 
-describe("students", () => {
-  it("greets with the branded picture and a link to the site", async () => {
-    await post({ message: { message_id: 1, chat: { id: 7, type: "private" }, text: "/start" } });
-    expect(sent[0].method).toBe("sendPhoto");
-    expect(sent[0].body.photo).toBe("https://pressf.test/bot/welcome.png");
+const linkUser = async (telegramId = "7") => {
+  const [user] = await db().insert(users).values({ email: "student@newuu.uz", telegramId }).returning();
+  await db().insert(lmsCourses).values([
+    { id: "11", code: "MATH111", name: "Calculus 1", raw: {} },
+    { id: "12", code: "PHYS101", name: "Physics 1", raw: {} },
+    { id: "13", code: "HIST100", name: "World History", raw: {} },
+  ]);
+  await db().insert(lmsCache).values({ userId: user.id, data: {
+    enrollment: { semesterName: "Fall 2026", codes: ["MATH111", "PHYS101"], courses: [{ code: "MATH111", subject: "Calculus 1" }, { code: "PHYS101", subject: "Physics 1" }] },
+    timetable: [], profile: { name: "Shamsiddin Abdurakhimov", email: "student@newuu.uz", gpa: null, ectsEarned: null, ectsTotal: null, honors: false, semesters: [] },
+  } });
+  return user;
+};
+const say = (text: string) => post({ message: { message_id: 2, chat: { id: 7, type: "private" }, from: { id: 7 }, text } });
+const tap = (data: string, messageId = 500) => post({ callback_query: { id: "cb", from: { id: 7 }, data, message: { message_id: messageId, chat: { id: 7, type: "private" } } } });
+const keyboard = () => {
+  const markup = [...sent].reverse().find((item) => item.method === "sendMessage" && item.body.reply_markup)!.body.reply_markup as { inline_keyboard: Array<Array<{ text: string; callback_data: string }>> };
+  return markup.inline_keyboard.flat();
+};
+const press = async (label: string) => {
+  const button = keyboard().find((b) => b.text === label || b.text === `✓ ${label}`);
+  if (!button) throw new Error(`No button ${label} in ${keyboard().map((b) => b.text).join(", ")}`);
+  await tap(button.callback_data);
+};
+const messages = () => sent.filter((item) => item.method === "sendMessage").map((item) => String(item.body.text));
+
+describe("first contact", () => {
+  it("welcomes with the Open Press F button (9.5)", async () => {
+    await say("/start");
+    expect(sent[0].method).toBe("sendMessage");
+    expect(String(sent[0].body.text)).toMatch(/^<b>Hi! I'm Press F\.<\/b>/);
+    expect(JSON.stringify(sent[0].body.reply_markup)).toContain('"text":"Open Press F"');
   });
-  it("takes a file, guesses it and sends a card to the review group", async () => {
+  it("asks people who are not signed in to open Press F first, even with a file", async () => {
     await post(doc());
-    expect(await only()).toMatchObject({ status: "pending", courseCode: "MATH111", type: "midterm", term: "Fall 2023", submitterChatId: "7", storageKey: null });
-    expect(methods()).toEqual(["sendDocument", "sendMessage"]);
-    expect(sent[0].body.chat_id).toBe("-100");
-    expect((await only()).reviewMessageId).toBe(500);
+    expect(messages()[0]).toContain("Hi! I'm Press F.");
+    expect(await db().select().from(botChats)).toEqual([]);
   });
-  it("refuses other file types and asks for files instead of photos", async () => {
-    await post(doc({ file_name: "marks.xlsx" }));
-    expect(lastText()).toMatch(/PDF, DOCX or PPTX/);
-    await post({ message: { message_id: 2, chat: { id: 7, type: "private" }, photo: [{}] } });
-    expect(lastText()).toMatch(/PDF, DOCX or PPTX/);
-    expect(await db().select().from(materials)).toEqual([]);
+  it("passes startapp codes through to the page", async () => {
+    await say("/start c_MATH111");
+    expect(JSON.parse(JSON.stringify(sent[0].body.reply_markup)).inline_keyboard[0][0].web_app.url).toBe("https://pressf.test/c/MATH111");
   });
-  it("refuses files over the Telegram limit", async () => {
+  it("still opens old course links", async () => {
+    await say("/start course_MATH111");
+    expect(JSON.parse(JSON.stringify(sent[0].body.reply_markup)).inline_keyboard[0][0].web_app.url).toMatch(/\/courses\/MATH111$/);
+  });
+});
+
+describe("sharing a file", () => {
+  beforeEach(async () => { await linkUser(); });
+
+  it("takes a deep-linked file through every step into an upload (11.1–11.5)", async () => {
+    await say("/start upload_MATH111");
+    expect(messages()).toEqual(["Send me the file and I'll ask where it goes."]);
+    await post(doc({ file_name: "calc1_midterm_2026.pdf" }));
+    expect(messages().at(-1)).toBe("<b>Got it. Which course is it for?</b>\nYou opened this from Calculus 1, so it's picked.");
+    expect(keyboard().map((b) => b.text)).toEqual(["✓ Calculus 1", "Physics 1", "Another course…"]);
+
+    await press("Calculus 1");
+    expect(sent.find((item) => item.method === "editMessageText")!.body.text).toContain("<b>Calculus 1 ✓</b>");
+    expect(messages().at(-1)).toBe("<b>What is it?</b>");
+    await press("Past exam");
+    expect(messages().at(-1)).toBe("<b>Which exam and semester?</b>");
+    await press("Midterm");
+    await press("Fall 2026");
+    expect(messages().at(-1)).toContain("Show your name on it?");
+    expect(keyboard().map((b) => b.text)).toEqual(["✓ Keep me anonymous", "Show 'Shamsiddin A.'"]);
+    await press("Keep me anonymous");
+    expect(messages().at(-1)).toContain("<b>Midterm exam, Fall 2026</b>\nCalculus 1 · past exam · from students");
+
+    await press("Send for review");
+    expect(methods()).not.toContain("getFile"); // the download waits until after the webhook answered
+    await settle();
+    const [row] = await db().select().from(uploads);
+    expect(row).toMatchObject({ courseId: "11", courseCode: "MATH111", title: "Midterm exam, Fall 2026", type: "exam", exam: "midterm", term: "Fall 2026", status: "waiting", showName: false, fileName: "calc1_midterm_2026.pdf", telegramFileId: "f1" });
+    expect(row.sha256).toHaveLength(64);
+    expect(row.storageKey).toMatch(/^uploads\//);
+    expect(methods()).toContain("getFile");
+    expect(messages().at(-1)).toBe("<b>Sent for review ✓</b>\nA moderator checks it, usually within a day.");
+    expect(await db().select().from(botChats)).toEqual([]);
+  });
+
+  it("finds another course by name and skips exam questions for notes", async () => {
+    await post(doc({ file_name: "summary.pdf" }));
+    await press("Another course…");
+    expect(messages().at(-1)).toContain("Which course?");
+    await say("history");
+    expect(keyboard().map((b) => b.text)).toEqual(["World History", "Another course…"]);
+    await press("World History");
+    await press("Notes");
+    await press("Show 'Shamsiddin A.'");
+    expect(messages().at(-1)).toContain("World History · notes · from Shamsiddin A.");
+    await press("Send for review");
+    await settle();
+    expect((await db().select().from(uploads))[0]).toMatchObject({ courseId: "13", type: "notes", title: "Summary", showName: true, exam: null });
+  });
+
+  it("goes live at once for trusted uploaders, with the course button", async () => {
+    const [user] = await db().select().from(users);
+    await db().insert(userRoles).values({ userId: user.id, manualTrust: "trusted" });
+    await post(doc({ file_name: "lecture 5.pdf" }));
+    await press("Calculus 1");
+    await press("Lecture");
+    await press("Keep me anonymous");
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    await press("Send for review");
+    await settle();
+    expect(messages().at(-1)).toMatch(/^<b>Your file is live 🎉<\/b>/);
+    expect(JSON.stringify(sent.at(-1)!.body.reply_markup)).toContain("Open in Calculus 1");
+  });
+
+  it("says when the same file is already there", async () => {
+    const share = async () => {
+      await post(doc({ file_name: "notes.pdf" }));
+      await press("Calculus 1");
+      await press("Notes");
+      await press("Keep me anonymous");
+      await press("Send for review");
+      await settle();
+    };
+    await share();
+    await share();
+    expect(messages().at(-1)).toContain("Already on Press F");
+    expect(await db().select().from(uploads)).toHaveLength(1);
+  });
+
+  it("refuses paused accounts before asking anything", async () => {
+    const [user] = await db().select().from(users);
+    await db().insert(userRoles).values({ userId: user.id, manualTrust: "paused" });
+    await post(doc());
+    expect(messages()).toEqual([expect.stringContaining("Sharing is paused")]);
+  });
+
+  it("takes photos too, and refuses files over the Telegram limit", async () => {
+    await post({ message: { message_id: 3, chat: { id: 7, type: "private" }, from: { id: 7 }, photo: [{ file_id: "p0", file_unique_id: "q0", width: 90, height: 90 }, { file_id: "p1", file_unique_id: "q1", width: 900, height: 900, file_size: 1000 }] } });
+    expect(messages().at(-1)).toContain("Which course is it for?");
+    expect(((await db().select().from(botChats))[0].draft as { file: { fileId: string } }).file.fileId).toBe("p1");
     await post(doc({ file_size: 21 * 1024 * 1024 }));
-    expect(lastText()).toMatch(/Over 20 MB/);
+    expect(messages().at(-1)).toContain("too big");
   });
-  it("spots a duplicate", async () => {
+
+  it("cancels, and turns away buttons of a dropped draft", async () => {
     await post(doc());
-    await post(doc());
-    expect(lastText()).toMatch(/already have/);
-    expect(await db().select().from(materials)).toHaveLength(1);
+    const stale = keyboard()[0].callback_data;
+    await say("/cancel");
+    expect(messages().at(-1)).toBe("Cancelled. Send a file any time.");
+    sent = [];
+    await tap(stale);
+    expect(sent[0]).toMatchObject({ method: "answerCallbackQuery", body: { text: "That one timed out. Send the file again." } });
   });
+
+  it("drops a draft after a day", async () => {
+    await post(doc());
+    const stale = keyboard()[0].callback_data;
+    await db().update(botChats).set({ updatedAt: new Date(Date.now() - 25 * 3600_000) });
+    sent = [];
+    await tap(stale);
+    expect(sent[0].body.text).toMatch(/timed out/);
+  });
+
   it("limits one sender to 20 files an hour", async () => {
-    for (let i = 0; i < 20; i++) await db().insert(materials).values({ fileName: "x.pdf", mimeType: "a", size: 1, telegramFileUniqueId: `u${i + 10}`, submitterChatId: "7" });
+    const [user] = await db().select().from(users);
+    await db().insert(uploads).values(Array.from({ length: 20 }, (_, i) => ({ uploaderId: user.id, courseId: "11", title: "x", type: "notes", fileName: "x.pdf", mimeType: "a", size: 1, sha256: `s${i}` })));
     await post(doc());
-    expect(lastText()).toMatch(/try again in an hour/);
+    expect(messages().at(-1)).toContain("a lot of files");
   });
-  it("ignores files posted in other groups", async () => {
+
+  it("ignores files posted in groups", async () => {
     await post(doc({}, { id: -5, type: "group" }));
     expect(sent).toEqual([]);
   });
 });
 
-describe("review", () => {
-  beforeEach(async () => { await post(doc()); sent = []; });
-
-  it("publishes, forgets the sender and sends them to the course", async () => {
-    const material = await only();
-    await post(press(`approve:${material.id}`));
-    const row = await only();
-    expect(row.status).toBe("approved");
-    expect(row.submitterChatId).toBeNull();
-    expect(row.sha256).toHaveLength(64);
-    expect(row.storageKey).toMatch(/^materials\//);
-    const photo = sent.find((item) => item.method === "sendPhoto");
-    expect(photo?.body.chat_id).toBe("7");
-    expect(String(photo?.body.caption)).toContain("Respects paid");
-    expect(JSON.stringify(photo?.body.reply_markup)).toContain("/courses/MATH111#files");
+describe("review outcome", () => {
+  it("tells the uploader with a button to the course", async () => {
+    const user = await linkUser();
+    const out = await submitUpload({ uploaderId: user.id, courseId: "11", courseCode: "MATH111", title: "Midterm exam, Fall 2026", type: "exam", fileName: "a.pdf", mimeType: "application/pdf", size: 1, sha256: "x" });
+    const { upload, message } = await publishUpload(out.duplicate ? "" : out.upload.id, user.id, {}, "Calculus 1");
+    expect(await notifyUploader(upload.id, message)).toBe(true);
+    expect(sent[0].body.chat_id).toBe("7");
+    expect(String(sent[0].body.text)).toMatch(/^<b>Your file is live 🎉<\/b>\nMidterm exam, Fall 2026 · Calculus 1/);
+    expect(JSON.parse(JSON.stringify(sent[0].body.reply_markup)).inline_keyboard[0][0]).toEqual({ text: "Open in Calculus 1", web_app: { url: "https://pressf.test/c/MATH111/files" } });
   });
-  it("rejects and tells the sender without keeping their chat", async () => {
-    const material = await only();
-    await post(press(`reject:${material.id}`));
-    expect(await only()).toMatchObject({ status: "rejected", submitterChatId: null });
-    expect(sent.some((item) => item.body.chat_id === "7" && String(item.body.text).includes("not added"))).toBe(true);
-  });
-  it("does not act on buttons outside the review group", async () => {
-    const material = await only();
-    await post(press(`approve:${material.id}`, -999));
-    expect((await only()).status).toBe("pending");
-    expect(sent[0].body.text).toBe("Not allowed.");
-  });
-  it("needs a course and a type before publishing", async () => {
-    const material = await only();
-    await db().update(materials).set({ courseCode: null }).where(eq(materials.id, material.id));
-    await post(press(`approve:${material.id}`));
-    expect((await only()).status).toBe("pending");
-  });
-  it("does not review twice", async () => {
-    const material = await only();
-    await post(press(`reject:${material.id}`));
+  it("says Got it under a rejection and clears the button when pressed", async () => {
+    const user = await linkUser();
+    const out = await submitUpload({ uploaderId: user.id, courseId: "12", courseCode: "PHYS101", title: "Notes", type: "notes", fileName: "a.pdf", mimeType: "application/pdf", size: 1, sha256: "y" });
+    const { upload, message } = await rejectUpload(out.duplicate ? "" : out.upload.id, user.id, "in-lms", "", "Physics 1");
+    await notifyUploader(upload.id, message);
+    expect(String(sent[0].body.text)).toMatch(/^<b>Not accepted: Notes<\/b>\nReason: /);
     sent = [];
-    await post(press(`approve:${material.id}`));
-    expect(sent[0].body.text).toBe("Already reviewed.");
+    await tap("ok");
+    expect(methods()).toEqual(["answerCallbackQuery", "editMessageReplyMarkup"]);
   });
-  it("catches the same bytes sent as another file", async () => {
-    const first = await only();
-    await post(press(`approve:${first.id}`));
-    await post(doc({ file_unique_id: "u2", file_id: "f2" }));
-    const second = (await db().select().from(materials).where(eq(materials.status, "pending")))[0];
-    sent = [];
-    await post(press(`approve:${second.id}`));
-    expect((await db().select().from(materials).where(eq(materials.id, second.id)))[0].status).toBe("rejected");
-  });
-  it("fixes a card from a reply, changing only what the reply names", async () => {
-    await post({ message: { message_id: 9, chat: { id: -100, type: "supergroup" }, text: "PHYS101 final", reply_to_message: { message_id: 500 } } });
-    expect(await only()).toMatchObject({ courseCode: "PHYS101", courseName: "Physics 1", type: "final", term: "Fall 2023" });
-    expect(sent[0].method).toBe("editMessageCaption");
-  });
-  it("reads a syllabus on publish and shows it only if it matches", async () => {
-    vi.mocked(extractSyllabus).mockResolvedValue({ is_syllabus: true, ...syllabus() });
-    const material = await only();
-    await db().update(materials).set({ type: "syllabus", fileName: "s.pdf" }).where(eq(materials.id, material.id));
-    await post(press(`approve:${material.id}`));
-    expect((await db().select().from(syllabi))[0]).toMatchObject({ courseCode: "MATH111", matched: true, flags: [] });
-  });
-  it("still publishes when reading the syllabus fails", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.mocked(extractSyllabus).mockRejectedValue(new Error("no credit"));
-    const material = await only();
-    await db().update(materials).set({ type: "syllabus", fileName: "s.pdf" }).where(eq(materials.id, material.id));
-    await post(press(`approve:${material.id}`));
-    expect((await only()).status).toBe("approved");
-  });
-});
-
-describe("moderator commands", () => {
-  const command = (text: string) => post({ message: { message_id: 3, chat: { id: -100, type: "supergroup" }, text } });
-  it("lists waiting files, also with the bot name attached", async () => {
-    await post(doc());
-    sent = [];
-    await command("/pending@pupressfbot");
-    expect(lastText()).toContain("paper.pdf");
-  });
-  it("says when nothing waits", async () => { await command("/pending"); expect(lastText()).toMatch(/Nothing is waiting/); });
-  it("reports counts and the guide", async () => {
-    await command("/stats");
-    expect(lastText()).toContain("Published: 0");
-    await command("/help");
-    expect(lastText()).toContain("review desk");
+  it("returns false when the uploader has no Telegram", async () => {
+    const [user] = await db().insert(users).values({ email: "x@newuu.uz" }).returning();
+    const out = await submitUpload({ uploaderId: user.id, courseId: "11", title: "t", type: "notes", fileName: "a.pdf", mimeType: "a", size: 1, sha256: "z" });
+    expect(await notifyUploader(out.duplicate ? "" : out.upload.id, "Your file is live")).toBe(false);
   });
 });
 
@@ -206,13 +280,13 @@ describe("inline search", () => {
     expect(course.input_message_content.message_text).toContain("<b>Calculus 1</b>");
     expect(course.input_message_content.link_preview_options).toMatchObject({ url: expect.stringMatching(/\/courses\/MATH111$/), prefer_large_media: true });
     expect(course.description).toContain("Course · MATH111");
-    expect(course.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pupressfbot?startapp=course_MATH111");
+    expect(course.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pressfapp?startapp=course_MATH111");
   });
   it("shares a professor with a face", async () => {
     await ask("pinto");
     const teacher = answer().results.find((r) => /Pinto/.test(r.title))!;
     expect(teacher.thumbnail_url).toMatch(/\/thumb\?face=g-pinto$/);
-    expect(teacher.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pupressfbot?startapp=professor_g-pinto");
+    expect(teacher.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pressfapp?startapp=professor_g-pinto");
   });
   it("sends a published PDF as a document under a lasting address", async () => {
     const [file] = await publish();
@@ -249,7 +323,7 @@ describe("inline search", () => {
     mainApp = false;
     await ask("calculus");
     mainApp = true;
-    expect(answer().results.find((r) => r.title === "Calculus 1")!.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pupressfbot?start=course_MATH111");
+    expect(answer().results.find((r) => r.title === "Calculus 1")!.reply_markup.inline_keyboard[0][0].url).toBe("https://t.me/pressfapp?start=course_MATH111");
   });
   it("answers such a link with a button to the page", async () => {
     await post({ message: { message_id: 1, chat: { id: 7, type: "private" }, text: "/start course_MATH111" } });
@@ -261,7 +335,7 @@ describe("inline search", () => {
     await ask("calculus");
     const links = answer().results.flatMap((r) => r.reply_markup.inline_keyboard.flat().map((b: { url?: string }) => b.url)).filter(Boolean);
     expect(links.length).toBeGreaterThan(0);
-    expect(links.every((url: string) => url.startsWith("https://t.me/pupressfbot?start"))).toBe(true);
+    expect(links.every((url: string) => url.startsWith("https://t.me/pressfapp?start"))).toBe(true);
   });
   it("says so when nothing matches", async () => {
     await ask("zzzzz");
@@ -330,10 +404,21 @@ describe("sending a file to the mini app user", () => {
     const file = await publish({ size: 60 * 1024 * 1024 });
     expect(await (await ask(file.id, signed(77))).json()).toEqual({ error: "too_big" });
   });
-  it("greets in text when the picture cannot be sent", async () => {
-    const real = fetch;
-    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => (String(url).endsWith("/sendPhoto") ? Response.json({ ok: false, description: "Bad Request: failed to get HTTP URL content" }) : real(url, init))));
-    await post({ message: { message_id: 1, chat: { id: 7, type: "private" }, text: "/start" } });
-    expect(methods()).toContain("sendMessage");
+
+  it("sends a live student upload once, then reuses Telegram's copy", async () => {
+    const [up] = await db().insert(uploads).values({ courseId: "11", courseCode: "MATH111", title: "Midterm exam, Fall 2026", type: "exam", status: "live", fileName: "a.pdf", mimeType: "application/pdf", size: 1000, sha256: "h", storageKey: "uploads/h-pressf.pdf" }).returning();
+    expect((await ask(up.id, signed(77))).status).toBe(200);
+    expect(sent[0].body.document).toBe("https://files.test/x");
+    expect((await db().select().from(telegramFiles))[0]).toMatchObject({ key: `upload:${up.id}`, fileId: "tg-sent" });
+    sent = [];
+    await ask(up.id, signed(78));
+    expect(sent[0].body.document).toBe("tg-sent");
+  });
+  it("sends LMS files only to signed-in students", async () => {
+    await db().insert(lmsFiles).values({ id: "m1", courseId: "11", code: "MATH111", name: "Week 3_L5.pdf", extension: "pdf", version: "1", storageKey: "lms/m1.pdf", size: 1000 });
+    expect(await (await ask("m1", signed(77))).json()).toEqual({ error: "sign_in" });
+    await db().insert(users).values({ email: "s@newuu.uz", telegramId: "77" });
+    expect((await ask("m1", signed(77))).status).toBe(200);
+    expect((await db().select().from(telegramFiles))[0].key).toBe("lms:m1:1");
   });
 });

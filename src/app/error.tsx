@@ -1,11 +1,11 @@
 "use client";
 
-export default function ErrorPage({ reset }: { reset: () => void }) {
+export default function Error({ reset }: { error: Error; reset: () => void }) {
   return (
-    <div className="wrap section" style={{ justifyItems: "center", textAlign: "center" }}>
-      <h1 className="d-lg">Something broke</h1>
-      <p className="soft">Try again in a moment.</p>
-      <button className="key btn" onClick={reset}>Try again</button>
-    </div>
+    <main className="sh-setup" style={{ maxWidth: 560, margin: "0 auto", paddingTop: "calc(var(--sh-top) + 48px)" }}>
+      <h1 className="t-mobile-title">Something broke</h1>
+      <p className="sh-setup__text">It&apos;s on our side. Try again; your data is safe.</p>
+      <button type="button" className="sh-btn sh-btn--primary" onClick={reset} style={{ justifySelf: "start" }}>Try again</button>
+    </main>
   );
 }

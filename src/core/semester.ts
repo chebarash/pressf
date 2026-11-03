@@ -91,5 +91,45 @@ export function nextPhase(now: Date, kinds: WeekKind[], weeks = WEEKS): Phase | 
   return { kind: hit.kind, title: KIND_LABEL[hit.kind] || hit.label, starts: hit.starts, ends, inDays: Math.max(0, daysBetween(day, hit.starts)) };
 }
 
+/** Teaching weeks before the end of a term when its courses can be rated (the last 3: weeks 14–16 of 16). */
+export const RATE_WEEKS = 3;
+
+/**
+ * Whether the running semester's courses can be rated yet: from the last
+ * RATE_WEEKS teaching weeks of the term onward (exam weeks, breaks and grading
+ * weeks after them included). Before that, `opensIn` is the teaching week it
+ * opens in ("Opens in week 14"). Outside the calendar it is always open.
+ */
+export function ratingWindow(now: Date, weeks = WEEKS): { open: boolean; opensIn: number | null } {
+  const current = weekOf(localDay(now), weeks);
+  if (!current) return { open: true, opensIn: null };
+  const total = teachingWeeks(current.term, weeks);
+  if (!total) return { open: true, opensIn: null };
+  const opensIn = Math.max(1, total - RATE_WEEKS + 1);
+  const first = weeks.find((w) => w.term === current.term && w.week === opensIn);
+  if (!first) return { open: true, opensIn: null };
+  return current.order >= first.order ? { open: true, opensIn: null } : { open: false, opensIn };
+}
+
 /** The next holiday from today, inclusive. */
 export const nextHoliday = (now: Date, holidays = HOLIDAYS) => holidays.find((h) => h.date >= localDay(now)) ?? null;
+
+/** "Fall 2025" → "fall-2025": a past semester's URL segment (/progress/term/fall-2025). */
+export const termSlug = (term: string) =>
+  term
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+/** Whether a semester name matches a URL segment ("Fall 2025" ↔ "fall-2025", also "Fall%202025"). */
+export function termMatches(term: string, segment: string) {
+  let raw = segment;
+  try {
+    raw = decodeURIComponent(segment);
+  } catch {
+    // keep the raw segment
+  }
+  const slug = termSlug(raw);
+  return slug !== "" && termSlug(term) === slug;
+}

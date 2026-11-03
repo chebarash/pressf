@@ -32,8 +32,10 @@
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.10.38",
     "pg": "^8.23.1",
+    "qrcode-generator": "1.4.4",
     "react": "^19.3.1",
     "tsx": "^4.23.15",
+    "uqr": "^0.1.3",
     "zod": "^4.6.7"
   },
   "devDependencies": {
