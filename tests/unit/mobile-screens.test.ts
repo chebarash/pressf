@@ -24,11 +24,6 @@ describe("rate form", () => {
     for (const h of HOURS) expect(toInput(item, { ...form, recommend: "yes", hours: h }).hours).toBe(h);
   });
 
-  it("reads an older five-bucket draft as today's bucket", () => {
-    const draft = { recommend: "yes" as const, hours: "6-10" as never, difficulty: null, tags: [], teachers: [] };
-    expect(initialForm(item, draft).hours).toBe("5-10");
-  });
-
   it("keeps at most three stickers", () => {
     let tags: string[] = [];
     for (const t of ["a", "b", "c", "d"]) tags = toggle(tags, t);

@@ -19,10 +19,8 @@ export const HOURS_MID: Record<Hours, number> = { "0-2": 1, "2-5": 3.5, "5-10": 
 /** How each bucket is printed on the rate forms, mobile and desktop. */
 export const HOURS_LABEL: Record<Hours, string> = { "0-2": "< 2", "2-5": "2–5", "5-10": "5–10", "10+": "10+" };
 export const isHours = (v: unknown): v is Hours => typeof v === "string" && (HOURS as readonly string[]).includes(v);
-/** The earlier five-bucket answers ("2-4", "4-6", "6-10"), mapped onto today's buckets by their midpoint. */
-const LEGACY_HOURS: Record<string, Hours> = { "2-4": "2-5", "4-6": "2-5", "6-10": "5-10" };
 /** A stored hours value as a current bucket; anything unknown reads as unanswered. */
-export const toHours = (v: string | null | undefined): Hours | null => (v == null ? null : isHours(v) ? v : (LEGACY_HOURS[v] ?? null));
+export const toHours = (v: string | null | undefined): Hours | null => (v == null ? null : isHours(v) ? v : null);
 
 export const COURSE_TAGS = ["Exam follows lectures", "Useful later", "Fair exams", "Heavy reading", "Lots of group work", "Strict attendance"] as const;
 export const TEACHER_TAGS = ["Explains clearly", "Answers questions", "Grades fairly", "Quick feedback", "Strict about attendance", "Reads from slides"] as const;

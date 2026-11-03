@@ -54,9 +54,6 @@ export async function uploadFace(form: FormData): Promise<Result> {
   return run((a) => faces.setFace(a, teacherId, bytes), [`/p/${teacherId}`]);
 }
 export const removeFace = async (teacherId: string) => run((a) => faces.removeFace(a, teacherId), [`/p/${teacherId}`]);
-export const assignOldFace = async (oldId: string, teacherId: string) => run((a) => faces.assignOldFace(a, oldId, teacherId), [`/p/${teacherId}`]);
-export const discardOldFace = async (oldId: string) => run((a) => faces.discardOldFace(a, oldId));
-export const transferFaces = async () => run((a) => faces.runFaceTransfer(a));
 
 export const setTrust = async (userId: string, trust: Trust) => run((a) => ops.setTrust(a, userId, trust));
 export const setPersonRole = async (userId: string, role: "student" | "moderator") => run((a) => ops.setPersonRole(a, userId, role));
