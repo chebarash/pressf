@@ -95,6 +95,13 @@ describe("course names", () => {
     expect(coursesIn("introduction to data science syllabus")).toEqual(["CS30"]);
     expect(coursesIn("data science fundamentals syllabus")).toEqual(["CS40"]);
   });
+  it("skips a course named like a study programme", () => {
+    const withProgrammes = compileMatcher({ courses: [...courses, { code: "CS2011", name: "Software Engineering" }], teachers: [], programs: ["BSc in Software Engineering"] });
+    const found = (text: string) => withProgrammes.match(text).map((l) => l.target);
+    expect(found("software engineering students, any internships?")).toEqual([]);
+    expect(found("CS2011 project groups")).toEqual(["CS2011"]);
+    expect(withProgrammes.fingerprint).not.toBe(compileMatcher({ courses: [...courses, { code: "CS2011", name: "Software Engineering" }], teachers: [] }).fingerprint);
+  });
   it("skips loose words, everyday acronyms and shared names", () => {
     expect(coursesIn("oops, wrong chat")).toEqual([]);
     expect(coursesIn("they posted the names of failed students")).toEqual([]);
