@@ -401,7 +401,7 @@ export function professor(v: V.ProfessorView): M.ProfessorData {
     mention: mention ? { date: postDate(mention.date), text: mention.text, tag: "Teacher", href: mention.url } : null,
     background: background(v),
     // D9 "Press F if they taught you": straight to the rating of the viewer's course with them.
-    rateHref: v.signedIn && (v.teachesYou || (v.rateHref && v.rateHref !== "/rate")) ? (v.rateHref ?? "/rate") : null,
+    rateHref: v.signedIn ? (v.rateHref ?? null) : null,
   };
 }
 
@@ -663,7 +663,8 @@ export function rate(v: V.RateQueueView, courseId?: string | null): M.RateData {
   const find = <T extends V.RateItem>(list: T[] | undefined) => list?.find((w) => w.courseId === courseId || w.code === courseId);
   // A course waiting, this semester's course once its window is open, or a rating being edited (prefilled, D5).
   const rated = courseId ? v.rated.find((r) => (r.courseId === courseId || r.code === courseId) && r.canEdit) : undefined;
-  const item = find(v.waiting) ?? find(v.current) ?? rated ?? v.waiting[0] ?? null;
+  // A specific course that can't be rated now shows nothing rather than another course from the queue.
+  const item = find(v.waiting) ?? find(v.current) ?? rated ?? (courseId ? null : v.waiting[0] ?? null);
   const answers = item && item === rated ? rated.answers : undefined;
   return {
     course: item ? { id: item.courseId, name: item.name, term: item.term, href: `/c/${item.code}` } : null,
