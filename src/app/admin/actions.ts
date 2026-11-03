@@ -6,7 +6,9 @@ import type { RejectReason, Trust } from "@/core/uploads";
 import { env } from "@/lib/env";
 import { authorize } from "@/server/admin/access";
 import type { SettingKey } from "@/server/admin/marks";
+import type { FaceSpec } from "@/core/face-parts";
 import { FACE_MAX_BYTES } from "@/core/faces";
+import { PHOTO_MAX_BYTES } from "@/lib/face-photo";
 import * as faces from "@/server/admin/faces";
 import * as ops from "@/server/admin/ops";
 import type { Audience } from "@/server/admin/rules";
@@ -54,6 +56,30 @@ export async function uploadFace(form: FormData): Promise<Result> {
   return run((a) => faces.setFace(a, teacherId, bytes), [`/p/${teacherId}`]);
 }
 export const removeFace = async (teacherId: string) => run((a) => faces.removeFace(a, teacherId), [`/p/${teacherId}`]);
+/** A face from the constructor: the server draws the SVG from the parts and saves it like an upload. */
+export const buildFace = async (teacherId: string, spec: unknown) => run((a) => faces.buildFace(a, teacherId, spec), [`/p/${teacherId}`]);
+
+export type PhotoResult = { ok: true; spec: Omit<FaceSpec, "tone">; note: string } | { ok: false; error: string };
+/**
+ * Picks constructor parts from a photo (`photo` in form data). The photo is
+ * read into memory for this request only: never stored, logged or cached.
+ */
+export async function faceFromPhoto(form: FormData): Promise<PhotoResult> {
+  const file = form.get("photo");
+  if (!(file instanceof File) || !file.size) return { ok: false, error: "Pick a photo" };
+  if (file.size > PHOTO_MAX_BYTES) return { ok: false, error: "Photos up to 8 MB" };
+  try {
+    const actor = await actorId();
+    const out = await faces.faceFromPhoto(actor, new Uint8Array(await file.arrayBuffer()));
+    return { ok: true, spec: out.spec, note: out.note };
+  } catch (e) {
+    if (e instanceof ops.Forbidden) return { ok: false, error: "You don't have access to this" };
+    if (e instanceof ops.AdminError) return { ok: false, error: e.message };
+    // No error details: they could carry the request.
+    console.error("face from photo failed");
+    return { ok: false, error: "Something went wrong. Build the face by hand." };
+  }
+}
 
 export const setTrust = async (userId: string, trust: Trust) => run((a) => ops.setTrust(a, userId, trust));
 export const setPersonRole = async (userId: string, role: "student" | "moderator") => run((a) => ops.setPersonRole(a, userId, role));

@@ -284,6 +284,8 @@ export const mentionLinks = pgTable(
 export const faces = pgTable("faces", {
   teacherId: text("teacher_id").primaryKey(),
   storageKey: text("storage_key").notNull(),
+  /** The constructor parts the face was built from (src/core/face-parts.ts); null for an uploaded drawing. */
+  spec: jsonb("spec").$type<Record<string, string>>(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
