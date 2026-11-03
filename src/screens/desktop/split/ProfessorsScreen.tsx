@@ -7,6 +7,11 @@ import x from "../lists.module.css";
 import type { ProfessorsData } from "../model";
 import { css, cx, Face, Hint, Icon, Tag } from "../parts";
 import { slugify } from "@/screens/mobile/mc/format";
+import type { SortColumns } from "@/core/sort";
+import { SortHeader, useSortedRows } from "@/ui/table/Sort";
+
+type Item = ProfessorsData["items"][number];
+const COLUMNS: SortColumns<Item, "name" | "dept" | "courses" | "pct"> = { name: (p) => p.name, dept: (p) => p.dept, courses: (p) => p.courses, pct: (p) => p.pct };
 
 const shortDept = (name: string) => name.replace(/^Department of /i, "");
 
@@ -17,7 +22,8 @@ export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
   const [dept, setDept] = useState<string | null>(() => data.departments.find((d) => slugify(d.name) === data.initial?.dept)?.name ?? null);
   const needle = q.trim().toLowerCase();
   const depts = data.departments.filter((d) => !school || d.school === school);
-  const rows = data.items.filter((p) => (!school || p.school === school) && (!dept || p.dept === dept) && (!needle || `${p.name} ${p.dept} ${p.courses}`.toLowerCase().includes(needle)));
+  const filtered = data.items.filter((p) => (!school || p.school === school) && (!dept || p.dept === dept) && (!needle || `${p.name} ${p.dept} ${p.courses}`.toLowerCase().includes(needle)));
+  const { rows, state } = useSortedRows(filtered, COLUMNS);
   const pickSchool = (s: string | null) => {
     setSchool(s);
     setDept(null);
@@ -49,12 +55,12 @@ export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
         </div>
       )}
       <section className={cx(css.card, x.table)} data-nav-list>
-        <div className={x.headRow}>
+        <div className={x.headRow} role="row">
           <span />
-          <span>Name</span>
-          <span>Department</span>
-          <span>Teaches</span>
-          <span style={{ textAlign: "right" }}>Pressed F</span>
+          <SortHeader state={state} k="name">Name</SortHeader>
+          <SortHeader state={state} k="dept">Department</SortHeader>
+          <SortHeader state={state} k="courses">Teaches</SortHeader>
+          <SortHeader state={state} k="pct" style={{ textAlign: "right" }}>Pressed F</SortHeader>
         </div>
         {rows.map((p) => (
           <Link key={p.id} href={p.href} className={x.row} data-nav-item>

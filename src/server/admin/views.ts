@@ -17,6 +17,8 @@ import {
 import { pseudonym } from "@/server/identity";
 import { openReports } from "@/server/reports";
 import { settings } from "./marks";
+import { orderBy, type AuditSort, type CourseSort, type PeopleSort, type UploadSort } from "./sorts";
+import type { Sort } from "@/core/sort";
 import { audienceLabel, checkFlag, checkLines, reasonLabel, reasonShort, ruleFor, twins, yearOf, type Audience } from "./rules";
 
 const HOUR = 3600_000;
@@ -292,7 +294,15 @@ async function firstReportAt(keys: string[]) {
 
 export type UploadTab = "waiting" | "live" | "rejected";
 
-export async function uploadsPage(tab: UploadTab, selectedId: string | undefined, now = new Date()) {
+export async function uploadsPage(tab: UploadTab, selectedId: string | undefined, now = new Date(), sort: Sort<UploadSort> = null) {
+  const byDefault = tab === "waiting" ? asc(uploads.createdAt) : desc(uploads.reviewedAt);
+  const columns = {
+    title: sql`lower(${uploads.title})`,
+    course: sql`lower(coalesce(${lmsCourses.name}, ${uploads.courseCode}))`,
+    type: sql`${uploads.type}`,
+    // Age ascending: the newest first.
+    age: { expr: sql`${uploads.createdAt}`, flip: true as const },
+  };
   const [list, counts] = await Promise.all([
     db()
       .select({
@@ -303,7 +313,7 @@ export async function uploadsPage(tab: UploadTab, selectedId: string | undefined
       .from(uploads)
       .leftJoin(lmsCourses, eq(lmsCourses.id, uploads.courseId))
       .where(eq(uploads.status, tab))
-      .orderBy(tab === "waiting" ? asc(uploads.createdAt) : desc(uploads.reviewedAt))
+      .orderBy(...(sort ? [orderBy(sort, columns), byDefault] : [byDefault]))
       .limit(100),
     db().select({ status: uploads.status, n: count() }).from(uploads).groupBy(uploads.status),
   ]);
@@ -360,7 +370,7 @@ export async function uploadsPage(tab: UploadTab, selectedId: string | undefined
     : [];
   for (const i of items) if (!courseOptions.some((c) => c.id === i.courseId)) courseOptions.push({ id: i.courseId, code: i.courseCode ?? "", name: i.courseName });
   const of = (s: UploadStatus) => n(counts.find((c) => c.status === s)?.n);
-  return { tab, items, selectedId: selected?.id ?? null, courseOptions, counts: { waiting: of("waiting"), live: of("live"), rejected: of("rejected") } };
+  return { tab, sort, items, selectedId: selected?.id ?? null, courseOptions, counts: { waiting: of("waiting"), live: of("live"), rejected: of("rejected") } };
 }
 
 /* ───────── A4 Reports ───────── */
@@ -415,6 +425,9 @@ export async function reportsPage(tab: "open" | "resolved", itemKey: string | un
       rule: ruleFor(r.reasons),
       outcome: r.outcome,
       fileStatus: file?.status ?? null,
+      /** For sorting: how many reports, and when the item was posted / first reported (ms). */
+      total: r.total,
+      at: at ? at.getTime() : null,
     };
   });
   const selected = items.find((i) => i.key === itemKey) ?? items[0] ?? null;
@@ -429,13 +442,26 @@ function ago(at: Date, now: Date) {
 
 /* ───────── A5 Courses & files ───────── */
 
-export async function coursesPage(q: string) {
+export async function coursesPage(q: string, sort: Sort<CourseSort> = null) {
   const term = q.trim();
-  const rows = await db()
+  const latest = db()
     .selectDistinctOn([lmsCourses.code], { code: lmsCourses.code, name: lmsCourses.name, credits: lmsCourses.credits })
     .from(lmsCourses)
     .where(term ? or(ilike(lmsCourses.code, `%${term}%`), ilike(lmsCourses.name, `%${term}%`)) : undefined)
     .orderBy(lmsCourses.code, desc(lmsCourses.fetchedAt))
+    .as("c");
+  // The counts below, as SQL, so a sort by them picks the right 80 courses.
+  const counted = {
+    code: sql`lower(${latest.code})`,
+    course: sql`lower(${latest.name})`,
+    lms: sql`(select count(*) from ${lmsFiles} where ${lmsFiles.code} = ${latest.code})`,
+    students: sql`(select count(*) from ${uploads} where ${uploads.courseCode} = ${latest.code} and ${uploads.status} in ('live', 'hidden'))`,
+    shares: sql`(select count(*) from ${searchEvents} where ${searchEvents.kind} = 'share:course' and ${searchEvents.targetId} = upper(${latest.code}))`,
+  };
+  const rows = await db()
+    .select({ code: latest.code, name: latest.name, credits: latest.credits })
+    .from(latest)
+    .orderBy(...(sort ? [orderBy(sort, counted), latest.code] : [latest.code]))
     .limit(80);
   const codes = rows.map((r) => r.code);
   const [lms, students, shared] = codes.length
@@ -448,6 +474,7 @@ export async function coursesPage(q: string) {
     : [[], [], []];
   return {
     q: term,
+    sort,
     courses: rows.map((r) => ({ ...r, lms: n(lms.find((x) => x.code === r.code)?.n), students: n(students.find((x) => x.code === r.code)?.n), shares: n(shared.find((x) => x.code === r.code.toUpperCase())?.n) })),
   };
 }
@@ -547,7 +574,10 @@ export async function professorsPage(tab: "duplicates" | "all", pair: string | u
 
 /* ───────── A7 People ───────── */
 
-export async function peoplePage(q: string, selectedId: string | undefined, now = new Date()) {
+export async function peoplePage(q: string, selectedId: string | undefined, now = new Date(), sort: Sort<PeopleSort> = null) {
+  const uploadsOf = (status: UploadStatus) => sql`(select count(*) from ${uploads} where ${uploads.uploaderId} = ${users.id} and ${uploads.status} = ${status})`;
+  // Same rule as trustOf(): manual trust wins, else 5 live and none rejected is trusted. Most trusted first.
+  const trustRank = sql`case coalesce(${userRoles.manualTrust}::text, case when ${uploadsOf("live")} >= 5 and ${uploadsOf("rejected")} = 0 then 'trusted' else 'normal' end) when 'trusted' then 0 when 'normal' then 1 else 2 end`;
   const term = q.trim();
   const like = `%${term}%`;
   const where = term
@@ -561,7 +591,7 @@ export async function peoplePage(q: string, selectedId: string | undefined, now 
       .leftJoin(lmsAccounts, eq(lmsAccounts.userId, users.id))
       .leftJoin(userRoles, eq(userRoles.userId, users.id))
       .where(where)
-      .orderBy(desc(users.createdAt))
+      .orderBy(...(sort ? [orderBy(sort, { student: personNameSql(), uploads: uploadsOf("live"), trust: trustRank }), desc(users.createdAt)] : [desc(users.createdAt)]))
       .limit(50),
     db().select({ n: count() }).from(users),
   ]);
@@ -613,7 +643,7 @@ export async function peoplePage(q: string, selectedId: string | undefined, now 
       canMessage: !!u.telegramId,
     };
   }
-  return { q: term, people, selectedId: sel?.id ?? null, detail, total: n(totals[0]?.n), trusted: n(trustedCount[0]?.n) };
+  return { q: term, sort, people, selectedId: sel?.id ?? null, detail, total: n(totals[0]?.n), trusted: n(trustedCount[0]?.n) };
 }
 
 /* ───────── A8 Broadcasts ───────── */
@@ -663,6 +693,7 @@ export async function broadcastsPage(now = new Date()) {
       when: b.sentAt ? `sent ${ago(b.sentAt, now)}` : `${b.sendAt > now ? "scheduled" : "due"} ${localDay(b.sendAt)}`,
       delivered: b.stats.delivered ?? b.stats.targeted ?? null,
       opened: b.stats.opened != null && b.stats.delivered ? `${Math.round((b.stats.opened / b.stats.delivered) * 100)}%` : "—",
+      openedPct: b.stats.opened != null && b.stats.delivered ? b.stats.opened / b.stats.delivered : null,
     })),
   };
 }
@@ -713,7 +744,11 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const REJECT_LABELS: Record<string, string> = { "in-lms": "Already in LMS", "live-exam": "Exam still running", "personal-data": "Has personal data", "wrong-course": "Wrong course", unreadable: "Can't read it", other: "Other" };
 const reasonLabelReject = (r: string) => REJECT_LABELS[r] ?? r;
 
-export async function auditPage(filter: { actor?: string; action?: string }, now = new Date(), limit = 200) {
+/** Lower-cased display name of a person (profile name, else the email's name part); null for no account. */
+const personNameSql = () => sql`lower(coalesce(${lmsCache.data}->'profile'->>'name', split_part(${users.email}, '@', 1)))`;
+
+export async function auditPage(filter: { actor?: string; action?: string }, now = new Date(), limit = 200, sort: Sort<AuditSort> = null) {
+  const actionLabel = sql`lower(case ${auditLog.action} ${sql.join(Object.entries(ACTION_LABEL).map(([k, v]) => sql`when ${k}::text then ${v}::text`), sql` `)} else ${auditLog.action} end)`;
   const where = and(filter.actor ? eq(auditLog.actorId, filter.actor) : undefined, filter.action ? eq(auditLog.action, filter.action) : undefined);
   const [rows, actors, actions] = await Promise.all([
     db()
@@ -723,7 +758,7 @@ export async function auditPage(filter: { actor?: string; action?: string }, now
       .leftJoin(lmsCache, eq(lmsCache.userId, auditLog.actorId))
       .leftJoin(userRoles, eq(userRoles.userId, auditLog.actorId))
       .where(where)
-      .orderBy(desc(auditLog.at))
+      .orderBy(...(sort ? [orderBy(sort, { when: sql`${auditLog.at}`, who: personNameSql(), action: actionLabel }), desc(auditLog.at)] : [desc(auditLog.at)]))
       .limit(limit),
     db().selectDistinct({ id: auditLog.actorId, email: users.email, data: lmsCache.data }).from(auditLog).leftJoin(users, eq(users.id, auditLog.actorId)).leftJoin(lmsCache, eq(lmsCache.userId, auditLog.actorId)),
     db().selectDistinct({ action: auditLog.action }).from(auditLog),
@@ -734,6 +769,7 @@ export async function auditPage(filter: { actor?: string; action?: string }, now
     email ? `${shortPerson(personLabel(email, data).name)}${role === "moderator" ? " (mod)" : ""}` : "System";
   return {
     filter,
+    sort,
     actors: actors.filter((a) => a.id).map((a) => ({ id: a.id!, name: who(a.email, a.data) })),
     actions: actions.map((a) => ({ id: a.action, label: ACTION_LABEL[a.action] ?? a.action })),
     rows: rows.map((r) => {

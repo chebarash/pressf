@@ -3,14 +3,30 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { cohortLabel, materialTotals, type CoverageCourse, type CoverageReport, type CoverageUnit } from "@/core/coverage";
+import { cohortLabel, materialTotals, type CoverageCourse, type CoverageFaculty, type CoverageReport, type CoverageUnit } from "@/core/coverage";
+import { sortRows, type SortColumns } from "@/core/sort";
 import { shortDate } from "@/core/time";
+import { SortHeader, useSortedRows, type SortState } from "@/ui/table/Sort";
 import { Chip, Head, Key, Label, cx, s } from "./ui";
 import { useKeys } from "./useKeys";
 
 type Filter = { faculty: string; program: string; year: string; show: "" | "none" | "lms" };
 
 const fmt = (n: number) => n.toLocaleString("en-US");
+
+type UnitKey = "name" | "running" | "covered" | "missing" | "pct" | "students";
+const UNIT_COLUMNS: SortColumns<CoverageUnit, UnitKey> = {
+  name: (u) => u.name, running: (u) => u.running, covered: (u) => u.covered, missing: (u) => u.running - u.covered, pct: (u) => u.pct, students: (u) => u.students,
+};
+type MatKey = "faculty" | "courses" | "lms" | "uploads" | "exams" | "syllabi" | "noFiles" | "lmsOnly";
+const TOTAL_COLUMNS: SortColumns<ReturnType<typeof materialTotals> & { name: string }, MatKey> = {
+  faculty: (x) => x.name, courses: (x) => x.courses, lms: (x) => x.lmsFiles, uploads: (x) => x.uploads, exams: (x) => x.exams, syllabi: (x) => x.syllabi, noFiles: (x) => x.noFiles, lmsOnly: (x) => x.lmsOnly,
+};
+type CourseKey = "code" | "course" | "cohort" | "lms" | "uploads" | "exams" | "syllabus" | "lastFile";
+const COURSE_COLUMNS: SortColumns<CoverageCourse, CourseKey> = {
+  code: (c) => c.code, course: (c) => c.name, cohort: (c) => (c.cohorts.length ? c.cohorts.map(cohortLabel).join(", ") : null),
+  lms: (c) => c.lmsFiles, uploads: (c) => c.uploads, exams: (c) => c.exams, syllabus: (c) => c.syllabus, lastFile: (c) => (c.lastFile ? new Date(c.lastFile) : null),
+};
 
 /**
  * Coverage: which courses running this semester have at least one active Press F
@@ -107,22 +123,7 @@ function ByFaculty({ data, byCode }: { data: CoverageReport; byCode: Map<string,
             <div className={s.small}>
               {f.covered} of {f.running} courses covered · {f.students} student{f.students === 1 ? "" : "s"} on Press F take{f.students === 1 ? "s" : ""} its courses
             </div>
-            <div className={s.table} style={{ padding: 0, gap: 0 }}>
-              <div className={cx(s.tr, s.trHead)}>
-                <span className={cx(s.td, s.tdGrow)}>SCHOOL · DEPARTMENT</span>
-                <span className={cx(s.td, s.tdNum)} style={{ width: 70 }}>RUNNING</span>
-                <span className={cx(s.td, s.tdNum)} style={{ width: 70 }}>COVERED</span>
-                <span className={cx(s.td, s.tdNum)} style={{ width: 70 }}>MISSING</span>
-                <span className={s.td} style={{ width: 170 }}>COVERAGE</span>
-                <span className={cx(s.td, s.tdNum)} style={{ width: 70 }}>STUDENTS</span>
-              </div>
-              {f.schools.map((sc) => (
-                <div key={sc.key}>
-                  <UnitRow u={sc} level={0} />
-                  {sc.departments.filter((d) => d.name !== sc.name || sc.departments.length > 1).map((d) => <UnitRow key={d.key} u={d} level={1} />)}
-                </div>
-              ))}
-            </div>
+            <Schools schools={f.schools} />
             {f.uncovered.length > 0 && (
               <details className={s.details}>
                 <summary>{f.uncovered.length} uncovered course{f.uncovered.length === 1 ? "" : "s"}</summary>
@@ -144,6 +145,29 @@ function ByFaculty({ data, byCode }: { data: CoverageReport; byCode: Map<string,
         ))}
       </div>
       <Recruit data={data} />
+    </div>
+  );
+}
+
+/** A faculty's schools with their departments under them: a sort orders the schools, and the departments within each. */
+function Schools({ schools }: { schools: CoverageFaculty["schools"] }) {
+  const { rows, state } = useSortedRows(schools, UNIT_COLUMNS);
+  return (
+    <div className={s.table} style={{ padding: 0, gap: 0 }}>
+      <div className={cx(s.tr, s.trHead)} role="row">
+        <SortHeader state={state} k="name" className={cx(s.td, s.tdGrow)}>SCHOOL · DEPARTMENT</SortHeader>
+        <SortHeader state={state} k="running" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>RUNNING</SortHeader>
+        <SortHeader state={state} k="covered" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>COVERED</SortHeader>
+        <SortHeader state={state} k="missing" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>MISSING</SortHeader>
+        <SortHeader state={state} k="pct" className={s.td} style={{ width: 170 }}>COVERAGE</SortHeader>
+        <SortHeader state={state} k="students" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>STUDENTS</SortHeader>
+      </div>
+      {rows.map((sc) => (
+        <div key={sc.key}>
+          <UnitRow u={sc} level={0} />
+          {sortRows(sc.departments.filter((d) => d.name !== sc.name || sc.departments.length > 1), state.sort, UNIT_COLUMNS).map((d) => <UnitRow key={d.key} u={d} level={1} />)}
+        </div>
+      ))}
     </div>
   );
 }
@@ -205,6 +229,8 @@ function Materials({ data, initial }: { data: CoverageReport; initial: Filter })
     .map((name) => ({ name, ...materialTotals(list.filter((c) => c.faculty === name)) }))
     .filter((x) => x.courses > 0);
   const all = materialTotals(list);
+  const sortedTotals = useSortedRows(totals, TOTAL_COLUMNS);
+  const sortedList = useSortedRows(list, COURSE_COLUMNS);
 
   return (
     <>
@@ -230,12 +256,12 @@ function Materials({ data, initial }: { data: CoverageReport; initial: Filter })
       </div>
       <section className={cx(s.card, s.table)} aria-label="Totals per faculty">
         <div className={cx(s.tr, s.trHead)}>
-          <span className={cx(s.td, s.tdGrow)}>FACULTY</span>
-          <MatHead />
-          <span className={cx(s.td, s.tdNum)} style={{ width: 80 }}>NO FILES</span>
-          <span className={cx(s.td, s.tdNum)} style={{ width: 80 }}>LMS ONLY</span>
+          <SortHeader state={sortedTotals.state} k="faculty" className={cx(s.td, s.tdGrow)}>FACULTY</SortHeader>
+          <MatHead state={sortedTotals.state} />
+          <SortHeader state={sortedTotals.state} k="noFiles" className={cx(s.td, s.tdNum)} style={{ width: 80 }}>NO FILES</SortHeader>
+          <SortHeader state={sortedTotals.state} k="lmsOnly" className={cx(s.td, s.tdNum)} style={{ width: 80 }}>LMS ONLY</SortHeader>
         </div>
-        {totals.map((x) => (
+        {sortedTotals.rows.map((x) => (
           <div key={x.name} className={s.tr}>
             <span className={cx(s.td, s.tdGrow, s.tdStrong)} title={x.name}>{x.name}</span>
             <MatCells m={x} />
@@ -254,18 +280,18 @@ function Materials({ data, initial }: { data: CoverageReport; initial: Filter })
       </section>
       <section className={cx(s.card, s.table)} aria-label="Materials per course">
         <div className={cx(s.tr, s.trHead)}>
-          <span className={s.td} style={{ width: 90 }}>CODE</span>
-          <span className={cx(s.td, s.tdGrow)}>COURSE</span>
-          <span className={s.td} style={{ width: 220 }}>COHORT</span>
-          <span className={cx(s.td, s.tdNum)} style={{ width: 70 }}>LMS</span>
-          <span className={cx(s.td, s.tdNum)} style={{ width: 80 }}>STUDENTS</span>
-          <span className={cx(s.td, s.tdNum)} style={{ width: 70 }}>EXAMS</span>
-          <span className={s.td} style={{ width: 70 }}>SYLLABUS</span>
-          <span className={s.td} style={{ width: 80 }}>LAST FILE</span>
+          <SortHeader state={sortedList.state} k="code" className={s.td} style={{ width: 90 }}>CODE</SortHeader>
+          <SortHeader state={sortedList.state} k="course" className={cx(s.td, s.tdGrow)}>COURSE</SortHeader>
+          <SortHeader state={sortedList.state} k="cohort" className={s.td} style={{ width: 220 }}>COHORT</SortHeader>
+          <SortHeader state={sortedList.state} k="lms" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>LMS</SortHeader>
+          <SortHeader state={sortedList.state} k="uploads" className={cx(s.td, s.tdNum)} style={{ width: 80 }}>STUDENTS</SortHeader>
+          <SortHeader state={sortedList.state} k="exams" className={cx(s.td, s.tdNum)} style={{ width: 70 }}>EXAMS</SortHeader>
+          <SortHeader state={sortedList.state} k="syllabus" className={s.td} style={{ width: 70 }}>SYLLABUS</SortHeader>
+          <SortHeader state={sortedList.state} k="lastFile" className={s.td} style={{ width: 80 }}>LAST FILE</SortHeader>
           <span className={s.td} style={{ width: 96 }} />
         </div>
         {list.length === 0 && <p className={s.small} style={{ padding: 12 }}>No course matches these filters.</p>}
-        {list.map((c) => {
+        {sortedList.rows.map((c) => {
           const none = !c.lmsFiles && !c.uploads;
           const lmsOnly = c.lmsFiles > 0 && !c.uploads;
           return (
@@ -290,14 +316,14 @@ function Materials({ data, initial }: { data: CoverageReport; initial: Filter })
   );
 }
 
-function MatHead() {
+function MatHead({ state }: { state: SortState<MatKey> }) {
   return (
     <>
-      <span className={cx(s.td, s.tdNum)} style={{ width: 80 }}>COURSES</span>
-      <span className={cx(s.td, s.tdNum)} style={{ width: 80 }}>LMS FILES</span>
-      <span className={cx(s.td, s.tdNum)} style={{ width: 110 }}>STUDENT FILES</span>
-      <span className={cx(s.td, s.tdNum)} style={{ width: 90 }}>PAST EXAMS</span>
-      <span className={cx(s.td, s.tdNum)} style={{ width: 80 }}>SYLLABI</span>
+      <SortHeader state={state} k="courses" className={cx(s.td, s.tdNum)} style={{ width: 80 }}>COURSES</SortHeader>
+      <SortHeader state={state} k="lms" className={cx(s.td, s.tdNum)} style={{ width: 80 }}>LMS FILES</SortHeader>
+      <SortHeader state={state} k="uploads" className={cx(s.td, s.tdNum)} style={{ width: 110 }}>STUDENT FILES</SortHeader>
+      <SortHeader state={state} k="exams" className={cx(s.td, s.tdNum)} style={{ width: 90 }}>PAST EXAMS</SortHeader>
+      <SortHeader state={state} k="syllabi" className={cx(s.td, s.tdNum)} style={{ width: 80 }}>SYLLABI</SortHeader>
     </>
   );
 }

@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Fragment } from "react";
 import type { ProgressView } from "@/server/views";
 import * as adapt from "./adapt";
 import type { ClassState, ProgressData, ProgressRow } from "./model";
 import { css, cx, Empty, Hint, Icon } from "./parts";
+import { SortableRows, type SortableColumn } from "@/ui/table/Sort";
 import g from "./progress.module.css";
 
 /** D6 Progress — tiles, one table for every course (J/K, Enter opens), GPA by semester, rating nudge. */
@@ -115,48 +115,62 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
   );
 }
 
-export function ProgressTable({ rows, open }: { rows: ProgressRow[]; open: string | null }) {
+const PROGRESS_COLUMNS: SortableColumn<"course" | "average" | "rating" | "final" | "absences" | "next">[] = [
+  { key: "course", label: "Course" },
+  { key: "average", label: "Average" },
+  { key: "rating", label: "Rating" },
+  { key: "final", label: "Final" },
+  { key: "absences", label: "Absences" },
+  { key: "next", label: "Next" },
+];
+
+export function ProgressTable({ rows, open, sortable = true }: { rows: ProgressRow[]; open: string | null; sortable?: boolean }) {
   return (
     <section className={cx(css.card, g.table)} data-nav-list>
-      <div className={g.headRow} role="row">
-        <span>Course</span>
-        <span>Average</span>
-        <span>Rating</span>
-        <span>Final</span>
-        <span>Absences</span>
-        <span>Next</span>
-      </div>
-      {rows.map((r, i) => (
-        <Fragment key={r.id}>
-          <Link href={r.href} className={cx(g.row, r.id === open && g.rowOn)} data-nav-item aria-current={r.id === open ? "page" : undefined}>
-            <span className={g.course}>
-              <span className={g.courseName}>{r.name}</span>
-              <span className={g.courseMeta}>{r.meta}</span>
-            </span>
-            {num(r.average)}
-            {num(r.rating)}
-            {num(r.final)}
-            {r.absences ? (
-              <span className={g.abs}>
-                <span className={g.absTop}>
-                  <span>
-                    {r.absences.used} of {r.absences.max}
-                  </span>
-                  <b>{r.absences.left} left</b>
-                </span>
-                <span className={g.absTrack}>
-                  <span className={g.absFill} style={{ display: "block", width: `${Math.min(100, (r.absences.used / Math.max(1, r.absences.max)) * 100)}%`, background: absColor(r.absences.left, r.absences.max) }} />
-                </span>
-              </span>
-            ) : (
-              <span className={g.dash}>—</span>
-            )}
-            <span className={g.next}>{r.next ?? "—"}</span>
-          </Link>
-          {r.detail && <CourseDetail detail={r.detail} />}
-        </Fragment>
-      ))}
+      <SortableRows
+        headClassName={g.headRow}
+        columns={PROGRESS_COLUMNS}
+        sortable={sortable && rows.length > 1}
+        rows={rows.map((r) => ({
+          id: r.id,
+          values: { course: r.name, average: r.average, rating: r.rating, final: r.final, absences: r.absences?.used, next: r.nextAt ? Date.parse(r.nextAt) : null },
+          node: <ProgressRowView r={r} open={open} />,
+        }))}
+      />
     </section>
+  );
+}
+
+function ProgressRowView({ r, open }: { r: ProgressRow; open: string | null }) {
+  return (
+    <>
+      <Link href={r.href} className={cx(g.row, r.id === open && g.rowOn)} data-nav-item aria-current={r.id === open ? "page" : undefined}>
+        <span className={g.course}>
+          <span className={g.courseName}>{r.name}</span>
+          <span className={g.courseMeta}>{r.meta}</span>
+        </span>
+        {num(r.average)}
+        {num(r.rating)}
+        {num(r.final)}
+        {r.absences ? (
+          <span className={g.abs}>
+            <span className={g.absTop}>
+              <span>
+                {r.absences.used} of {r.absences.max}
+              </span>
+              <b>{r.absences.left} left</b>
+            </span>
+            <span className={g.absTrack}>
+              <span className={g.absFill} style={{ display: "block", width: `${Math.min(100, (r.absences.used / Math.max(1, r.absences.max)) * 100)}%`, background: absColor(r.absences.left, r.absences.max) }} />
+            </span>
+          </span>
+        ) : (
+          <span className={g.dash}>—</span>
+        )}
+        <span className={g.next}>{r.next ?? "—"}</span>
+      </Link>
+      {r.detail && <CourseDetail detail={r.detail} />}
+    </>
   );
 }
 

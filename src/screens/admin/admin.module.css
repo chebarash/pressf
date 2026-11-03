@@ -218,6 +218,7 @@ select.chip { appearance: none; font-family: var(--font-sans); padding-right: va
 .tr { display: flex; gap: var(--space-3); align-items: center; padding: var(--space-3); border-bottom: 1px solid var(--border-subtle); font-size: 13px; min-width: 0; border-radius: 0; }
 .trPlain { padding: var(--space-3) 14px; }
 .trHead { padding: var(--space-2) var(--space-3); border-bottom: 0; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+.trHeadPlain { padding-inline: 14px; }
 .trSelected { background: var(--tint-teal); border: 1.5px solid var(--border-strong); border-radius: 10px; }
 .trLink { color: inherit; text-decoration: none; cursor: pointer; }
 .trLink:hover:not(.trSelected) { background: var(--bg-hover); }

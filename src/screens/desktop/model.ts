@@ -178,6 +178,8 @@ export type ProgressRow = {
   final: number | null;
   absences: { used: number; max: number; left: number } | null;
   next: string | null;
+  /** When `next` is due (ISO), for sorting the Next column. */
+  nextAt?: string | null;
   href: string;
   detail: null | {
     marks: Array<{ label: string; value: number | null; max: number; tier: Tier }>;
@@ -261,6 +263,9 @@ export type NextRow = {
   recommendPct: number | null;
   hours: string;
   difficulty: string;
+  /** The numbers behind `hours` and `difficulty`, for sorting. */
+  hoursValue?: number | null;
+  difficultyValue?: number | null;
   prereq: { name: string; status: string; ok: boolean } | null;
   href: string | null;
   detail: {

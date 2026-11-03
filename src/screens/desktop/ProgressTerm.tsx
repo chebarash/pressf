@@ -4,6 +4,7 @@ import * as adapt from "./adapt";
 import type { TermResultsData } from "./model";
 import { css, cx, Empty, Icon } from "./parts";
 import g from "./progress.module.css";
+import { SortableRows, type SortableColumn } from "@/ui/table/Sort";
 
 /** D6 for an earlier semester: the 5.6 results laid out like Progress (tiles, one table, bottom cards). */
 export default function DesktopProgressTerm({ data }: { data: TermResultsView }) {
@@ -12,6 +13,14 @@ export default function DesktopProgressTerm({ data }: { data: TermResultsView })
 
 const MARK: Record<string, string> = { High: g.finalHigh, Mid: g.finalMid, Low: g.finalLow, None: g.finalNone };
 const TONE: Record<string, string | undefined> = { ok: g.statusOk, low: g.statusLow, none: undefined };
+/** Status sorts passed, then not passed; no status last. */
+const STATUS_RANK: Record<string, number | null> = { ok: 0, low: 1, none: null };
+const TERM_COLUMNS: SortableColumn<"course" | "final" | "status" | "ects">[] = [
+  { key: "course", label: "Course" },
+  { key: "final", label: "Final" },
+  { key: "status", label: "Status" },
+  { key: "ects", label: "ECTS" },
+];
 
 export function ProgressTermScreen({ data }: { data: TermResultsData }) {
   return (
@@ -38,13 +47,10 @@ export function ProgressTermScreen({ data }: { data: TermResultsData }) {
         <Empty title="No courses here">The LMS has no courses recorded for this semester.</Empty>
       ) : (
         <section className={cx(css.card, g.table)} data-nav-list>
-          <div className={cx(g.headRow, g.termCols)} role="row">
-            <span>Course</span>
-            <span>Final</span>
-            <span>Status</span>
-            <span>ECTS</span>
-          </div>
-          {data.rows.map((r) => {
+          <SortableRows
+            headClassName={cx(g.headRow, g.termCols)}
+            columns={TERM_COLUMNS}
+            rows={data.rows.map((r) => {
             const cells = (
               <>
                 <span className={g.course}>
@@ -56,16 +62,16 @@ export function ProgressTermScreen({ data }: { data: TermResultsData }) {
                 {r.ects == null ? <span className={g.dash}>—</span> : <span className={g.num}>{r.ects}</span>}
               </>
             );
-            return r.href ? (
-              <Link key={r.id} href={r.href} className={cx(g.row, g.termCols)} data-nav-item>
+            const node = r.href ? (
+              <Link href={r.href} className={cx(g.row, g.termCols)} data-nav-item>
                 {cells}
               </Link>
             ) : (
-              <div key={r.id} className={cx(g.row, g.termCols, g.rowStatic)}>
-                {cells}
-              </div>
+              <div className={cx(g.row, g.termCols, g.rowStatic)}>{cells}</div>
             );
+            return { id: r.id, values: { course: r.name, final: r.final, status: STATUS_RANK[r.statusTone], ects: r.ects }, node };
           })}
+          />
         </section>
       )}
 

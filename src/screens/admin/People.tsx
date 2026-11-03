@@ -8,6 +8,8 @@ import { messageInBot, setPersonRole, setTrust, signOutEverywhere } from "@/app/
 import type { peoplePage } from "@/server/admin/views";
 import { Btn, Head, KV, Radio, cx, s } from "./ui";
 import { useKeys } from "./useKeys";
+import { sortEntries } from "@/core/sort";
+import { UrlSortHead } from "@/ui/table/Sort";
 
 export type PeopleData = Awaited<ReturnType<typeof peoplePage>>;
 
@@ -27,7 +29,7 @@ export function People({ data, viewerId }: { data: PeopleData; viewerId: string 
   const [text, setText] = useState("");
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const d = data.detail;
-  const q = (v: string) => `/admin/people?${new URLSearchParams({ ...(data.q ? { q: data.q } : {}), ...v && { id: v } })}`;
+  const q = (v: string) => `/admin/people?${new URLSearchParams({ ...(data.q ? { q: data.q } : {}), ...sortEntries(data.sort), ...v && { id: v } })}`;
 
   useKeys({ "/": () => search.current?.focus() });
 
@@ -52,14 +54,20 @@ export function People({ data, viewerId }: { data: PeopleData; viewerId: string 
         <Head title="People" sub={`${data.total.toLocaleString("en-US")} signed in · ${data.trusted} trusted uploaders`} />
         <form className={s.search} action="/admin/people">
           <input ref={search} name="q" defaultValue={data.q} placeholder="Name, Telegram @, LMS id" aria-label="Search people" autoComplete="off" />
+          {data.sort && <input type="hidden" name="sort" value={data.sort.key} />}
+          {data.sort && <input type="hidden" name="dir" value={data.sort.dir} />}
           <kbd className={s.key}>/ to filter</kbd>
         </form>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div className={cx(s.tr, s.trHead)}>
-            <span className={cx(s.td, s.tdGrow)}>STUDENT</span>
-            <span className={s.td} style={{ width: 110 }}>UPLOADS</span>
-            <span className={s.td} style={{ width: 90 }}>TRUST</span>
-          </div>
+          <UrlSortHead
+            className={cx(s.tr, s.trHead)}
+            sort={data.sort}
+            columns={[
+              { key: "student", label: "STUDENT", className: cx(s.td, s.tdGrow) },
+              { key: "uploads", label: "UPLOADS", className: s.td, style: { width: 110 } },
+              { key: "trust", label: "TRUST", className: s.td, style: { width: 90 } },
+            ]}
+          />
           {data.people.length === 0 && <p className={s.small}>Nobody matches “{data.q}”.</p>}
           {data.people.map((p) => (
             <Link key={p.id} href={q(p.id)} className={cx(s.tr, s.trLink, p.id === data.selectedId && s.trSelected)} prefetch={false} scroll={false}>

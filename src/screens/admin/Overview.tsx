@@ -1,8 +1,17 @@
 import Link from "next/link";
 import type { overview } from "@/server/admin/views";
 import { Chip, Head, Key, KV, Label, cx, s } from "./ui";
+import { SortableRows, type SortableColumn } from "@/ui/table/Sort";
 
 export type OverviewData = Awaited<ReturnType<typeof overview>>;
+
+// Header cells line up with the rows (14px side padding, same widths).
+const NEED_COLUMNS: SortableColumn<"kind" | "title" | "meta" | "age">[] = [
+  { key: "kind", label: "KIND", className: s.td, style: { width: 70, overflow: "visible" } },
+  { key: "title", label: "ITEM", className: s.td, style: { width: 230 } },
+  { key: "meta", label: "DETAILS", className: cx(s.td, s.tdGrow) },
+  { key: "age", label: "AGE", className: s.td, style: { width: 36, overflow: "visible" } },
+];
 
 /** A1 Overview: what needs a human now, then system health. Tiles link to their queues. */
 export function Overview({ data, canSystem }: { data: OverviewData; canSystem: boolean }) {
@@ -23,17 +32,30 @@ export function Overview({ data, canSystem }: { data: OverviewData; canSystem: b
             <Link href="/admin/uploads" className={s.link}>Open queue</Link>
             <Key>F U</Key>
           </div>
-          {data.rows.length === 0 && <p className={s.small}>Nothing waiting. Uploads and reports show up here.</p>}
-          {data.rows.map((r) => (
-            <Link key={r.href} href={r.href} className={cx(s.tr, s.trPlain, s.trLink)}>
-              <span className={cx(s.td, s.tdChip)} style={{ width: 70 }}>
-                <Chip tone={r.kind === "upload" ? "mustard" : "rust"}>{r.kind === "upload" ? "Upload" : "Report"}</Chip>
-              </span>
-              <span className={cx(s.td, s.tdStrong)} style={{ width: 230 }}>{r.title}</span>
-              <span className={cx(s.td, s.tdGrow)}>{r.meta}</span>
-              <span className={s.td} style={{ width: 36, overflow: "visible" }}>{r.age}</span>
-            </Link>
-          ))}
+          {data.rows.length === 0 ? (
+            <p className={s.small}>Nothing waiting. Uploads and reports show up here.</p>
+          ) : (
+            <SortableRows
+              headClassName={cx(s.tr, s.trHead, s.trHeadPlain)}
+              columns={NEED_COLUMNS}
+              sortable={data.rows.length > 1}
+              rows={data.rows.map((r) => ({
+                id: r.href,
+                // Age sorts youngest first, like the text it shows ("2h" before "3d").
+                values: { kind: r.kind === "upload" ? "Upload" : "Report", title: r.title, meta: r.meta, age: -r.at },
+                node: (
+                  <Link href={r.href} className={cx(s.tr, s.trPlain, s.trLink)}>
+                    <span className={cx(s.td, s.tdChip)} style={{ width: 70 }}>
+                      <Chip tone={r.kind === "upload" ? "mustard" : "rust"}>{r.kind === "upload" ? "Upload" : "Report"}</Chip>
+                    </span>
+                    <span className={cx(s.td, s.tdStrong)} style={{ width: 230 }}>{r.title}</span>
+                    <span className={cx(s.td, s.tdGrow)}>{r.meta}</span>
+                    <span className={s.td} style={{ width: 36, overflow: "visible" }}>{r.age}</span>
+                  </Link>
+                ),
+              }))}
+            />
+          )}
         </section>
         <section className={s.card} style={{ width: 380, flexShrink: 0 }} aria-label="Health">
           <h2 className={s.h3}>Health</h2>
