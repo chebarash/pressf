@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
-import { DEFAULT_FACE_SPEC, FACE_PART_ORDER, FACE_PARTS, parseFaceSpec, randomFaceSpec, renderFace, type FaceSpec } from "@/core/face-parts";
+import { DEFAULT_FACE_SPEC, FACE_OPTION_LABELS, FACE_PART_LABELS, FACE_PART_ORDER, FACE_PARTS, FaceSpecSchema, LEGACY_OPTIONS, migrateFaceSpec, parseFaceSpec, randomFaceSpec, renderFace, type FaceSpec } from "@/core/face-parts";
 import { checkFace } from "@/core/faces";
 import { describeFace, photoType, PhotoFaceError } from "@/lib/face-photo";
 
@@ -41,6 +41,41 @@ describe("face constructor", () => {
     for (const spec of one) expect(checkFace(bytes(renderFace(spec)))).toMatchObject({ ok: true });
   });
 
+  it("has the variety the constructor promises, every option labelled", () => {
+    const min: Partial<Record<keyof FaceSpec, number>> = { head: 6, hair: 20, eyes: 8, brows: 6, nose: 6, mouth: 10, facialHair: 9, glasses: 6, headwear: 9, details: 5 };
+    for (const [part, count] of Object.entries(min)) expect(FACE_PARTS[part as keyof FaceSpec].length, part).toBeGreaterThanOrEqual(count);
+    for (const hair of ["none", "receding", "buzz", "short", "curly", "wavy", "long", "ponytail", "bun", "afro", "sidePart", "hijab", "headscarf"]) expect(FACE_PARTS.hair).toContain(hair);
+    for (const wear of ["earrings", "doppi", "cap", "beanie", "grad", "headphones"]) expect(FACE_PARTS.headwear).toContain(wear);
+    for (const detail of ["freckles", "wrinkles", "mole", "blush"]) expect(FACE_PARTS.details).toContain(detail);
+    for (const part of FACE_PART_ORDER) {
+      expect(FACE_PART_LABELS[part]).toBeTruthy();
+      for (const value of FACE_PARTS[part]) expect((FACE_OPTION_LABELS[part] as Record<string, string>)[value], `${part}=${value}`).toBeTruthy();
+    }
+  });
+
+  it("draws every option over every face shape and hair colour", () => {
+    for (const head of FACE_PARTS.head)
+      for (const hairColor of FACE_PARTS.hairColor)
+        for (const part of FACE_PART_ORDER)
+          for (const value of FACE_PARTS[part]) {
+            const svg = renderFace({ ...DEFAULT_FACE_SPEC, head, hairColor, [part]: value } as FaceSpec);
+            expect(svg, `${head}/${hairColor}/${part}=${value}`).not.toMatch(/NaN|undefined|Infinity/);
+            expect(svg.length).toBeLessThan(120_000);
+          }
+  });
+
+  it("maps specs saved by the first constructor to the new parts", () => {
+    const legacy = { head: "square", ears: "big", tone: "light", hair: "side", facialHair: "beardShort", brows: "thick", eyes: "dots", glasses: "rect", nose: "hook", mouth: "grin", headwear: "doppi" };
+    const spec = parseFaceSpec(legacy)!;
+    expect(spec).toEqual({ ...legacy, hair: "sidePart", eyes: "dot", nose: "long", hairColor: "black", details: "none" });
+    expect(FaceSpecSchema.safeParse(migrateFaceSpec(legacy)).success).toBe(true);
+    expect(parseFaceSpec({ ...legacy, eyes: "almond" })!.eyes).toBe("open");
+    // Every mapping points at a real option.
+    for (const [part, map] of Object.entries(LEGACY_OPTIONS)) for (const to of Object.values(map)) expect(FACE_PARTS[part as keyof FaceSpec]).toContain(to);
+    // A stored old spec draws like its migrated form.
+    expect(renderFace(legacy as unknown as FaceSpec)).toBe(renderFace(spec));
+  });
+
   it("rejects unknown parts and reads stored specs leniently", () => {
     expect(() => renderFace({ ...DEFAULT_FACE_SPEC, hair: "mohawk" } as unknown as FaceSpec)).toThrow();
     expect(parseFaceSpec(null)).toBeNull();
@@ -61,7 +96,7 @@ describe("face from a photo", () => {
   const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4, 5, 6, 7, 8]);
 
   it("asks for parts only, with the photo inline and nothing else about the person", async () => {
-    const { tone: _tone, ...parts } = DEFAULT_FACE_SPEC;
+    const { tone: _tone, hairColor: _color, details: _details, ...parts } = DEFAULT_FACE_SPEC;
     const c = client(async () => ({ stop_reason: "end_turn", parsed_output: { spec: { ...parts, hair: "bun" }, note: "Clear photo." } }));
     const out = await describeFace(jpeg, "image/jpeg", c);
     expect(out.spec.hair).toBe("bun");

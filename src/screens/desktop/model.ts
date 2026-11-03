@@ -78,7 +78,7 @@ export type TimetableData = {
   nextHref: string;
   todayHref: string;
   /** `loaded`: the view sent this day's classes; other days link to themselves. */
-  days: Array<{ label: string; today: boolean; href: string; count: number; loaded: boolean }>;
+  days: Array<{ label: string; today: boolean; href: string; count: number; loaded: boolean; off?: string | null }>;
   startHour: number;
   endHour: number;
   now: { day: number; minutes: number } | null;
