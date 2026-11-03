@@ -67,7 +67,7 @@ export async function loadStudent(userId: string, opts: { refresh?: boolean } = 
   const cacheAt = iso(row.cacheAt);
   const syncedAt = newest(cacheAt, sync.at);
   // A weekly pattern cached before class types were kept merges lectures with labs: rebuild it now.
-  const untyped = !!(row.cache as UserCache | null)?.timetable?.some((l) => !l.kind);
+  const untyped = !!(row.cache as UserCache | null)?.timetable?.some((l) => !l.kind || l.kind === "practice");
   const stale = !syncedAt || Date.now() - Date.parse(syncedAt) > CACHE_TTL_MS || outdated(sync) || untyped;
   const state: SyncState = { syncedAt, stale, lmsDown: !!sync.error, signInAgain: account === "invalid" };
 

@@ -6,7 +6,26 @@ import { localDay } from "./time";
  * and which state the Today screen is in.
  */
 
-export type ClassKind = "lecture" | "practice" | "lab" | "exam" | "other";
+export type ClassKind = "lecture" | "tutorial" | "lab" | "independent" | "practice" | "exam" | "other";
+
+/**
+ * The LMS lesson types (`/schedule/lesson-types`), keyed by their numeric
+ * `type`, which every class carries as `subjectType.type`: 0 Lecture,
+ * 1 Tutorial, 2 Laboratory, 5 Independent work, 6 Independent work with faculty.
+ * (`event_type` is the event category, 4 for every class, not the lesson type.)
+ */
+const LESSON_TYPE: Record<string, ClassKind> = { "0": "lecture", "1": "tutorial", "2": "lab", "5": "independent", "6": "independent" };
+
+/** How each kind is printed (the LMS names). */
+export const CLASS_KIND_LABEL: Record<ClassKind, string> = {
+  lecture: "Lecture", tutorial: "Tutorial", lab: "Laboratory", independent: "Independent work", practice: "Practice", exam: "Exam", other: "Class",
+};
+
+/** A class's kind from its LMS lesson type number, else its name. */
+export function kindOfLessonType(type: number | string | null | undefined, name?: string | null): ClassKind {
+  const byNumber = type === null || type === undefined || type === "" ? undefined : LESSON_TYPE[String(type).trim()];
+  return byNumber ?? kindOf(name);
+}
 
 /** The LMS class type name ("Lecture", "Laboratory", "Tutorial", "Mid Term Exam") as our kind. */
 export function kindOf(name: string | null | undefined): ClassKind {
@@ -14,7 +33,9 @@ export function kindOf(name: string | null | undefined): ClassKind {
   if (/exam|midterm|final|quiz|control/.test(t)) return "exam";
   if (t.startsWith("lect")) return "lecture";
   if (t.startsWith("lab")) return "lab";
-  if (/prac|tut|sem/.test(t)) return "practice";
+  if (t.startsWith("tut") || t.startsWith("sem")) return "tutorial";
+  if (t.startsWith("independent")) return "independent";
+  if (t.startsWith("prac")) return "practice";
   return "other";
 }
 

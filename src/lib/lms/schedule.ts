@@ -4,7 +4,7 @@ import { lmsCourses, lmsTeachers } from "@/lib/db/schema";
 import { scheduleList } from "@/lib/lms/client";
 import { sessionFor } from "@/lib/lms/store";
 import type { Lesson } from "@/lib/catalog/types";
-import { kindOf } from "@/core/agenda";
+import { kindOfLessonType } from "@/core/agenda";
 
 /**
  * The signed-in student's own weekly timetable, read live from the LMS. The LMS
@@ -60,7 +60,8 @@ export async function studentTimetable(userId: string): Promise<Lesson[] | null>
     const start = at(Number(e.begin_time));
     const end = e.end_time ? at(Number(e.end_time)) : null;
     // The class type keeps a lecture and the lab after it apart, even with the same teacher.
-    const kind = kindOf((e as { subjectType?: { name?: string } | null }).subjectType?.name);
+    const st = (e as { subjectType?: { name?: string; type?: string | number } | null }).subjectType;
+    const kind = kindOfLessonType(st?.type, st?.name);
     const groupKey = `${start.day}|${c.code}|${e.employee_id ?? ""}|${kind}`;
     const piece: Piece = {
       day: start.day, code: c.code, subject: c.name, kind,
