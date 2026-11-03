@@ -1,38 +1,15 @@
 import { cache } from "react";
-import { shortName } from "./names";
 import { db } from "@/lib/db";
-import { catalogCache, lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers } from "@/lib/db/schema";
-import type { Catalog, Course, Curriculum, School, Semesters, Teacher } from "./types";
+import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers } from "@/lib/db/schema";
+import type { Catalog, Course, Curriculum, School, Teacher } from "./types";
 
 const slugify = (s: string) =>
   s.toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-").replace(/-+/g, "-") || "x";
 
 export * from "./types";
 
-const empty = (): Catalog => ({
-  teachers: [], courses: [], timetable: [], groups: [], schools: [], curricula: {},
-  semesters: { current: null, next: null }, updatedAt: null,
-});
-
-/** Everything the bot API still provides (timetable, groups, schools, curricula, semesters). */
-async function botCatalog(): Promise<Catalog> {
-  const catalog = empty();
-  for (const row of await db().select().from(catalogCache)) {
-    if (row.key.startsWith("curriculum:")) {
-      catalog.curricula[row.key.slice("curriculum:".length)] = row.data as Catalog["curricula"][string];
-    } else if (row.key === "semesters") {
-      catalog.semesters = row.data as Semesters;
-    } else if (row.key in catalog) {
-      Object.assign(catalog, { [row.key]: row.data });
-    }
-    const built = row.sourceUpdatedAt;
-    if (built && (!catalog.updatedAt || built < catalog.updatedAt)) catalog.updatedAt = built;
-  }
-  return catalog;
-}
-
-/** Courses, teachers, schools and curricula built from the harvested LMS catalog. */
-async function lmsCatalog() {
+/** The university catalog: courses, teachers, schools and curricula, built from the harvested LMS tables. */
+async function buildCatalog(): Promise<Catalog> {
   const [courses, teachers, links, departments, progs, curricula] = await Promise.all([
     db().select().from(lmsCourses),
     db().select().from(lmsTeachers),
@@ -41,8 +18,6 @@ async function lmsCatalog() {
     db().select().from(lmsPrograms),
     db().select().from(lmsCurricula),
   ]);
-  if (!courses.length) return null;
-
   const deptName = new Map(departments.map((d) => [d.id, d.name]));
   const teaches = new Map<string, Set<string>>();
   const courseTeachers = new Map<string, Set<string>>();
@@ -119,29 +94,6 @@ async function lmsCatalog() {
   return { courses: [...byCode.values()], teachers: builtTeachers, schools: [...schoolMap.values()], curricula: builtCurricula };
 }
 
-/**
- * The catalog. Courses and teachers come from the LMS once it has been
- * harvested; timetable, groups, schools and curricula still come from the bot
- * until those move too. Before the first LMS harvest, everything falls back to
- * the bot so the site is never empty.
- */
-async function buildCatalog(): Promise<Catalog> {
-  const [bot, lms] = await Promise.all([botCatalog(), lmsCatalog()]);
-  if (lms) {
-    bot.courses = lms.courses;
-    bot.teachers = lms.teachers;
-    // Schools and curricula come from the LMS too once programs are harvested;
-    // until then keep the bot's so school and curriculum pages still work.
-    if (lms.schools.length) bot.schools = lms.schools;
-    if (Object.keys(lms.curricula).length) bot.curricula = lms.curricula;
-  } else {
-    bot.teachers = bot.teachers.map((teacher) => ({ ...teacher, display_name: shortName(teacher) }));
-  }
-  const names = new Map(bot.teachers.map((teacher) => [teacher.id, teacher.display_name]));
-  bot.timetable = bot.timetable.map((lesson) => ({ ...lesson, teacher_name: names.get(lesson.teacher ?? "") ?? lesson.teacher_name }));
-  return bot;
-}
-
 // The catalog changes at most weekly (harvest), so it is built at most once per
 // TTL for the whole server instead of scanning the tables on every request.
 // `cache` still dedupes within a single request.
@@ -158,15 +110,3 @@ export const getCatalog = cache(async (): Promise<Catalog> => {
 });
 
 export const normalizeCode = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "");
-
-export const findCourse = (catalog: Catalog, code: string): Course | undefined =>
-  catalog.courses.find((course) => course.code === normalizeCode(code));
-
-export const findTeacher = (catalog: Catalog, id: string): Teacher | undefined =>
-  catalog.teachers.find((teacher) => teacher.id === id);
-
-const DAY = 24 * 60 * 60 * 1000;
-
-/** The bot builds daily, so two days old means something broke. */
-export const isStale = (catalog: Catalog) =>
-  !!catalog.updatedAt && Date.now() - catalog.updatedAt.getTime() > 2 * DAY;

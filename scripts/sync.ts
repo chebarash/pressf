@@ -2,8 +2,8 @@
 import "dotenv/config";
 
 async function main() {
-  const { syncCatalog } = await import("../src/lib/catalog/sync");
-  console.log(await syncCatalog());
+  const { nightlySync } = await import("../src/lib/mentions");
+  console.log(await nightlySync());
   process.exit(0);
 }
 

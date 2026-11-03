@@ -4,7 +4,7 @@ import type { TelegramUpdate } from "@/lib/telegram/api";
 import { handleUpdate } from "@/lib/telegram/bot";
 
 export async function POST(request: Request) {
-  const expected = Buffer.from(env().TELEGRAM_FILES_WEBHOOK_SECRET);
+  const expected = Buffer.from(env().TELEGRAM_WEBHOOK_SECRET);
   const received = Buffer.from(request.headers.get("x-telegram-bot-api-secret-token") ?? "");
   if (!expected.length || expected.length !== received.length || !timingSafeEqual(expected, received)) {
     return new Response(null, { status: 401 });

@@ -223,6 +223,7 @@ export const lmsAccounts = pgTable("lms_accounts", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Unused since the rebuild — pending owner-approved drop. Old 5-score ratings; the new app uses course_ratings and teacher_ratings. */
 export const ratings = pgTable(
   "ratings",
   {
@@ -245,6 +246,7 @@ export const ratings = pgTable(
   ]
 );
 
+/** Unused since the rebuild — pending owner-approved drop. Old "Press F to pay respects" counter. */
 export const respects = pgTable(
   "respects",
   {
@@ -254,6 +256,7 @@ export const respects = pgTable(
   (t) => [uniqueIndex("respects_user_teacher").on(t.userId, t.teacherId)]
 );
 
+/** Unused since the rebuild — pending owner-approved drop. Old review-flow files; student files are now `uploads`, LMS files `lms_files`. */
 export const materials = pgTable(
   "materials",
   {
@@ -364,7 +367,7 @@ export const mentionLinks = pgTable(
   (t) => [uniqueIndex("mention_links_unique").on(t.postId, t.kind, t.target), index("mention_links_target").on(t.kind, t.target)]
 );
 
-/** What actually ran, kept per term so a finished semester does not fall back to the plan. */
+/** Unused since the rebuild — pending owner-approved drop. What actually ran per term, from the old bot catalog sync. */
 export const termCourses = pgTable(
   "term_courses",
   {
