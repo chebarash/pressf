@@ -72,7 +72,8 @@
 
 /* Week by week */
 .weeks { display: flex; flex-direction: column; gap: var(--space-4); }
-.week { display: flex; flex-direction: column; gap: var(--space-2); }
+/* The 8px under a week row lives in its files, so it folds away with them. */
+.week { display: flex; flex-direction: column; }
 .weekRow {
   display: flex;
   align-items: flex-start;
@@ -91,10 +92,11 @@
 .weekNow .weekNum { color: var(--text-primary); }
 .weekTopic { flex: 1 1 0; min-width: 0; overflow: hidden; font-family: var(--font-sans); font-size: 16px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
 .weekPast .weekTopic { color: var(--text-secondary); }
-.weekRow > svg { flex: none; margin-top: 3px; color: var(--text-secondary); transition: transform 120ms; }
+.weekRow > svg { flex: none; margin-top: 3px; color: var(--text-secondary); transition: transform var(--motion-base) var(--ease-standard); }
+.weekOpen > svg { transform: rotate(180deg); }
 .weekOpen:not(.weekNow) { background: var(--bg-hover); }
-.weekFiles { display: flex; flex-direction: column; gap: var(--space-2); padding-left: 44px; }
-.weekEmpty { margin: 0; padding-left: 44px; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; }
+.weekFiles { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) 0 0 44px; }
+.weekEmpty { margin: 0; padding: var(--space-2) 0 0 44px; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; }
 .links { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-bottom: 5px; }
 .ghost {
   display: inline-flex;

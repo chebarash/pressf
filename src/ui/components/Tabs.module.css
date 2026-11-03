@@ -16,7 +16,7 @@
   text-decoration: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 120ms;
+  transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
 }
 .l { height: 44px; }
 @media (hover: hover) { .tab:not(.active):hover { background: var(--bg-sunken); } }

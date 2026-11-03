@@ -6,6 +6,7 @@ import { shellUser } from "./data";
 import { DesktopChrome } from "./DesktopChrome";
 import { DialogHost } from "./DialogHost";
 import { MobileExtras } from "./MobileExtras";
+import { PageTransition } from "./PageTransition";
 import { qrPath } from "./qr";
 import { SystemBanner } from "./SystemBanner";
 import { TopBar } from "./TopBar";
@@ -24,7 +25,9 @@ export async function Shell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={null}>
           <SystemBanner />
         </Suspense>
-        <main className="sh-main" id="main">{children}</main>
+        <PageTransition mobile>
+          <main className="sh-main" id="main">{children}</main>
+        </PageTransition>
         <MobileExtras signedIn={!!user} needsReauth={!!user?.needsReauth} email={user?.email} />
         <BottomBar />
         <DialogHost />
@@ -41,7 +44,9 @@ export async function Shell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={null}>
           <SystemBanner />
         </Suspense>
-        <main className="sh-main" id="main">{children}</main>
+        <PageTransition mobile={false}>
+          <main className="sh-main" id="main">{children}</main>
+        </PageTransition>
         <MobileExtras signedIn={!!user} needsReauth={!!user?.needsReauth} email={user?.email} desktop />
         <BottomBar />
       </div>

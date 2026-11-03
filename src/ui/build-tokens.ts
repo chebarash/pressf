@@ -15,6 +15,8 @@ export function tokensCss() {
   const space = Object.entries(tokens.space).map(([k, v]) => `  --space-${k}: ${v}px;`).join("\n");
   const radius = Object.entries(tokens.radius).map(([k, v]) => `  --radius-${k}: ${v}px;`).join("\n");
   const shadow = Object.entries(tokens.shadow).map(([k, v]) => `  --shadow-${k}: 0 ${v}px 0 var(--shadow-key);`).join("\n");
+  const duration = Object.entries(tokens.motion.duration).map(([k, v]) => `  --motion-${k}: ${v}ms;`).join("\n");
+  const easing = Object.entries(tokens.motion.easing).map(([k, v]) => `  --ease-${k}: ${v};`).join("\n");
   const type = Object.entries(tokens.type as unknown as Record<string, TypeToken>)
     .map(([k, [family, size, lh, tracking, weight]]) =>
       [
@@ -37,6 +39,15 @@ ${colors(0)}
 ${space}
 ${radius}
 ${shadow}
+${duration}
+${easing}
+}
+
+/* Reduced motion: every duration token is zero, so transitions and animations built on them end at once. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+${Object.keys(tokens.motion.duration).map((k) => `    --motion-${k}: 0ms;`).join("\n")}
+  }
 }
 
 @media (prefers-color-scheme: dark) {

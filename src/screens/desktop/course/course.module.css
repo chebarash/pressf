@@ -72,7 +72,7 @@ button.termPill { cursor: pointer; }
 button.termPill:hover { border-color: var(--border-strong); }
 button.termPill:focus-visible { outline: none; border-color: var(--border-accent); box-shadow: 0 0 0 1.5px var(--border-accent); }
 .termPill > svg:first-child { color: var(--text-secondary); }
-.termChev { transition: transform 120ms ease-out; }
+.termChev { transition: transform var(--motion-base) var(--ease-standard); }
 .termPill[aria-expanded="true"] .termChev { transform: rotate(180deg); }
 .termMenu { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; min-width: max(100%, 220px); display: flex; flex-direction: column; gap: 2px; padding: 6px; background: var(--bg-surface); border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-key-md); }
 .termItem { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 8px 10px; border-radius: var(--radius-sm); color: var(--text-primary); font: 500 14px/normal var(--font-sans); white-space: nowrap; text-decoration: none; outline: none; }
@@ -81,7 +81,7 @@ button.termPill:focus-visible { outline: none; border-color: var(--border-accent
 .termItem[aria-checked="true"] { font-weight: 600; }
 
 .tabs { display: flex; gap: var(--space-2); padding: var(--space-2) 0; }
-.tab { display: inline-flex; align-items: center; height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-full); font: 500 15px/1.3 var(--font-sans); color: var(--text-primary); }
+.tab { display: inline-flex; align-items: center; height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-full); font: 500 15px/1.3 var(--font-sans); color: var(--text-primary); transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); }
 .tab:hover { background: var(--bg-sunken); }
 .tabOn, .tabOn:hover { background: var(--bg-inverse); color: var(--text-inverse); }
 
@@ -93,8 +93,9 @@ button.termPill:focus-visible { outline: none; border-color: var(--border-accent
 .weekTitle { flex: 1; min-width: 0; font: 400 16px/1.4 var(--font-sans); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .weekNow .weekTitle { color: var(--text-primary); }
 .weekFiles { display: flex; flex-direction: column; gap: var(--space-2); padding-left: 44px; }
-.weekFold { display: flex; flex-direction: column; gap: var(--space-2); }
-.weekBody { min-width: 0; }
+.weekFold { display: flex; flex-direction: column; }
+/* The 8px under the week row lives in the body, so it folds away with it. */
+.weekBody { min-width: 0; padding-top: var(--space-2); }
 .weekEmpty { padding-left: 44px; }
 button.week:hover { background: var(--bg-sunken); }
 button.weekNow:hover { background: var(--bg-accent-soft); }
