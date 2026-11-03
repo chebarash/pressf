@@ -6,9 +6,9 @@ import { GO_TO, SHORTCUTS_EVENT } from "./bus";
 import o from "./overlay.module.css";
 import { keyName, modLabel } from "@/platform/keys";
 
-/** One shortcut per action. Section letters work on their own, no prefix. */
+/** One shortcut per action. Sections are F (for Press F) then a letter. */
 const columns = (mod: string): Array<{ title: string; rows: Array<[string, string[]]> }> => [
-  { title: "Go to", rows: GO_TO.map((g) => [g.label, [g.key.toUpperCase()]]) },
+  { title: "Go to", rows: GO_TO.map((g) => [g.label, ["F", g.key.toUpperCase()]]) },
   {
     title: "Anywhere",
     rows: [
@@ -24,7 +24,7 @@ const columns = (mod: string): Array<{ title: string; rows: Array<[string, strin
       ["Move in lists", ["J", "K"]],
       ["Open", ["↵"]],
       ["Rate this course", ["R"]],
-      ["Press F · course files", ["F"]],
+      ["Press F · course files", ["F", "F"]],
       ["Previous / next week", ["←", "→"]],
       ["Filter the list", ["/"]],
       ["Mark all read", ["⇧", "R"]],
@@ -76,8 +76,8 @@ export function ShortcutsSheet() {
                 <div key={label} className={o.row}>
                   <span>{label}</span>
                   <span className={s.keys}>
-                    {keys.map((k) => (
-                      <kbd key={k} className={s.key}>
+                    {keys.map((k, i) => (
+                      <kbd key={i} className={s.key}>
                         {k}
                       </kbd>
                     ))}
@@ -87,7 +87,7 @@ export function ShortcutsSheet() {
             </div>
           ))}
         </div>
-        <p className={o.sheetNote}>Letters work on their own, no prefix, and never fire while you type in a field. On the phone everything is a tap.</p>
+        <p className={o.sheetNote}>F then a letter opens a section. Shortcuts never fire while you type in a field. On the phone everything is a tap.</p>
       </div>
     </div>
   );

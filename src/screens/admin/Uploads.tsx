@@ -85,7 +85,7 @@ export function Uploads({ data }: { data: UploadsData }) {
       j: () => select(index + 1),
       k: () => select(index - 1),
       a: () => data.tab !== "live" && publish(),
-      x: () => data.tab === "waiting" && sel && setDialog(true),
+      r: () => data.tab === "waiting" && sel && setDialog(true),
     },
     !dialog
   );
@@ -197,7 +197,7 @@ export function Uploads({ data }: { data: UploadsData }) {
             ) : (
               <div className={s.actions}>
                 <Btn tone="accent" grow hint="A" onClick={publish} disabled={pending}>{data.tab === "rejected" ? "Publish anyway" : "Publish"}</Btn>
-                {data.tab === "waiting" && <Btn hint="X" onClick={() => setDialog(true)} disabled={pending}>Not accept</Btn>}
+                {data.tab === "waiting" && <Btn hint="R" onClick={() => setDialog(true)} disabled={pending}>Not accept</Btn>}
               </div>
             )}
             <p className={s.small} style={{ margin: 0 }}>

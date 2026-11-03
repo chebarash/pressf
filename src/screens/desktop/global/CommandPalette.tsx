@@ -14,7 +14,7 @@ type Item = { id: string; group: "Courses" | "Actions" | "People" | "Files"; ico
 const ICONS: Record<string, IconName> = { Today: "pin", Timetable: "clock", Courses: "book", Progress: "check", Calendar: "calendar", Notifications: "mail", Professors: "users", Curriculum: "file" };
 
 const ACTIONS: Item[] = [
-  ...GO_TO.map((g) => ({ id: `go-${g.key}`, group: "Actions" as const, icon: ICONS[g.label] ?? "chevron-right", title: `Go to ${g.label}`, keys: [g.key.toUpperCase()], href: g.href })),
+  ...GO_TO.map((g) => ({ id: `go-${g.key}`, group: "Actions" as const, icon: ICONS[g.label] ?? "chevron-right", title: `Go to ${g.label}`, keys: ["F", g.key.toUpperCase()], href: g.href })),
   { id: "search", group: "Actions", icon: "search", title: "Search everything", href: "/search" },
   { id: "rate", group: "Actions", icon: "check", title: "Rate last semester", href: "/rate" },
   { id: "next", group: "Actions", icon: "calendar", title: "Next semester", href: "/next" },

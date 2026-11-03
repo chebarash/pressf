@@ -17,7 +17,7 @@ export const cx = (...c: Array<string | false | null | undefined>) => c.filter(B
 
 /* ---------- Keys ---------- */
 
-/** Quiet key hint ("T", "⌘K"). */
+/** Quiet key hint ("F T", "⌘K"). */
 export const Hint = ({ children, className }: { children: ReactNode; className?: string }) => <kbd className={cx(s.hint, className)}>{children}</kbd>;
 
 /** Real keycaps in a row, for combinations ("⇧", "R"). */
@@ -33,7 +33,7 @@ export const Keys = ({ keys, className }: { keys: string[]; className?: string }
 
 /**
  * Gives a key to whatever control it wraps (the keyboard layer clicks the first
- * link or button inside). Two-key sequences are gone: an old "g f" binds plain "f".
+ * link or button inside). The old "g f" (course files) is the page's "f", pressed as F F.
  */
 export const KeyTo = ({ k, children }: { k: string; children: ReactNode }) => (
   <span data-key={k.replace(/^g (?=\S)/, "")} className={s.contents}>

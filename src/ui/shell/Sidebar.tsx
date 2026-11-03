@@ -59,7 +59,7 @@ export function Sidebar({ user, unread = 0, nextLabel = "Feb", inviteQr, onSearc
         <span>{n.label}</span>
         {n.badge === "new" && nextLabel && <span className="sh-pill-new">{nextLabel}</span>}
         {n.badge === "count" && unread > 0 && <span className="sh-badge">{unread}</span>}
-        {n.badge !== "new" && <kbd className="sh-kbd" aria-label={`Shortcut ${n.key.toUpperCase()}`}>{n.key.toUpperCase()}</kbd>}
+        {n.badge !== "new" && <kbd className="sh-kbd" aria-label={`Shortcut F then ${n.key.toUpperCase()}`}>F {n.key.toUpperCase()}</kbd>}
       </Link>
     );
   };

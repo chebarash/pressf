@@ -8,7 +8,7 @@ import { css, cx, Empty, Pct, Tag } from "./parts";
 
 const STATUS: Record<string, { label: string; tone: "accent" | "neutral" | "dark" }> = { passed: { label: "Passed", tone: "neutral" }, failed: { label: "Retake", tone: "dark" }, now: { label: "Now", tone: "accent" }, planned: { label: "Next", tone: "neutral" } };
 
-/** Curriculum (U) — the programme year by year, each semester as a card. */
+/** Curriculum (F U) — the programme year by year, each semester as a card. */
 export default function DesktopCurriculum({ data }: { data: CurriculumView }) {
   return <CurriculumScreen data={adapt.curriculum(data)} />;
 }

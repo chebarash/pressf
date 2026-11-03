@@ -2,10 +2,12 @@ import { path } from "@/core/links";
 import type { IconName } from "./icons";
 
 /**
- * Desktop sidebar items, their one-key shortcuts and paths. A key fires on its
- * own (no prefix, no modifier) when focus is not in a text field; none of them
- * is used by a page for something else (tests/unit/shortcuts.test.ts checks).
+ * Desktop sidebar items, their shortcuts and paths. Every section is F (for
+ * Press F) then its letter: F T Timetable, F C Courses. Never while typing in a
+ * field or with a modifier held; read from the physical key on any layout.
  */
+export const NAV_PREFIX = "f";
+
 export type NavItem = { label: string; href: string; icon: IconName; key: string; group: "main" | "browse"; badge?: "new" | "count" };
 
 export const NAV: NavItem[] = [
@@ -13,10 +15,10 @@ export const NAV: NavItem[] = [
   { label: "Timetable", href: path({ to: "timetable" }), icon: "clock", key: "t", group: "main" },
   { label: "Courses", href: path({ to: "courses" }), icon: "book", key: "c", group: "main" },
   { label: "Next semester", href: path({ to: "next" }), icon: "calendar", key: "s", group: "main", badge: "new" },
-  { label: "Progress", href: path({ to: "progress" }), icon: "check", key: "g", group: "main" },
-  { label: "Calendar", href: path({ to: "calendar" }), icon: "calendar", key: "a", group: "main" },
+  { label: "Progress", href: path({ to: "progress" }), icon: "check", key: "p", group: "main" },
+  { label: "Calendar", href: path({ to: "calendar" }), icon: "calendar", key: "k", group: "main" },
   { label: "Notifications", href: path({ to: "notifications" }), icon: "mail", key: "n", group: "main", badge: "count" },
-  { label: "Professors", href: "/professors", icon: "users", key: "p", group: "browse" },
+  { label: "Professors", href: "/professors", icon: "users", key: "r", group: "browse" },
   { label: "Curriculum", href: "/programs", icon: "file", key: "u", group: "browse" },
 ];
 

@@ -46,7 +46,7 @@ export function ProfessorScreen({ data }: { data: ProfessorData }) {
             <Link href={data.rateHref} className={p.press}>
               <span className={p.pressKey}>F</span>
               Press F if they taught you
-              <Hint>F</Hint>
+              <Hint>F F</Hint>
             </Link>
           </KeyTo>
         )}
