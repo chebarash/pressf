@@ -122,8 +122,13 @@ export const getUser = cache(async (): Promise<CurrentUser | null> => {
   const dev = process.env.NODE_ENV !== "production" ? env().DEV_LOGIN_EMAIL : undefined;
   const email = dev ?? (await getServerSession(authOptions))?.user?.email;
   if (!email || (!dev && !isStudent(email))) return null;
-  const [row] = await db().insert(users).values({ email: email.toLowerCase() })
-    .onConflictDoUpdate({ target: users.email, set: { email: email.toLowerCase() } }).returning();
+  // Users are created only by signing in with the LMS (or the local dev login). A
+  // session for someone with no account row (an old-version login) counts as signed out.
+  const [row] = dev
+    ? await db().insert(users).values({ email: email.toLowerCase() })
+        .onConflictDoUpdate({ target: users.email, set: { email: email.toLowerCase() } }).returning()
+    : await db().select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+  if (!row) return null;
   return { id: row.id, email: row.email, isAdmin: isAdminEmail(row.email) };
 });
 
