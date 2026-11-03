@@ -64,7 +64,7 @@ function CourseDetail({ data, tab }: { data: CourseData; tab: CourseTab }) {
           {data.tabs.overview}
         </Link>
         {!data.locked && (
-          <KeyTo k="g f">
+          <KeyTo k="f">
             <Link href={keep(data.tabs.filesHref)} prefetch scroll={false} className={cx(c.tab, tab === "files" && c.tabOn)} aria-current={tab === "files" ? "page" : undefined}>
               Files {data.tabs.files || ""}
             </Link>
