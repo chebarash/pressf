@@ -82,7 +82,9 @@ export async function profileDetail(teacherId: string) {
 
 /** Unmatched tab: site people without a professor, their candidates by name, and the last import. */
 export async function unmatchedPage(q: string, selectedSiteId: number | undefined) {
-  const [people, last, teachers] = await Promise.all([unmatchedPeople(), lastImport(), currentTeachers()]);
+  const [rows, last, teachers] = await Promise.all([unmatchedPeople(), lastImport(), currentTeachers()]);
+  // People with a likely professor first: one click links them.
+  const people = [...rows].sort((a, b) => Number(b.candidates.length > 0) - Number(a.candidates.length > 0) || a.name.localeCompare(b.name));
   const byId = new Map(teachers.map((t) => [t.id, t]));
   const card = (id: string) => {
     const t = byId.get(id);
