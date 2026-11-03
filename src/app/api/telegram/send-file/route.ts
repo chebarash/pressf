@@ -3,12 +3,12 @@ import { downloadName, formatOf } from "@/core/files";
 import { path } from "@/core/links";
 import { db } from "@/lib/db";
 import { lmsCourses, lmsFiles, telegramFiles, uploads, users } from "@/lib/db/schema";
-import { signedUrl } from "@/lib/storage";
 import { fileOverride } from "@/server/decisions";
 import { sendDocument, type InlineKeyboard } from "@/lib/telegram/api";
 import { esc } from "@/lib/telegram/html";
 import { appButton } from "@/lib/telegram/links";
 import { verifyInitData } from "@/lib/telegram/webapp";
+import { deliverUrl, fileSource } from "@/server/covers/source";
 
 // Telegram fetches up to 20 MB by URL and accepts up to 50 MB when a bot uploads.
 const BY_URL = 20 * 1024 * 1024;
@@ -17,7 +17,8 @@ const BY_UPLOAD = 49 * 1024 * 1024;
 const isBlocked = (error: unknown) => /forbidden|chat not found/i.test(String(error));
 
 type Sendable = {
-  storageKey: string;
+  /** Signed URL of the copy to send: branded once (src/server/covers), else the original. */
+  url: () => Promise<string>;
   fileName: string;
   size: number;
   caption: string;
@@ -43,10 +44,10 @@ async function upload(id: string): Promise<Sendable | null> {
     .where(and(eq(uploads.id, id), eq(uploads.status, "live")));
   if (!row?.u.storageKey) return null;
   const courseName = row.courseName ?? row.u.courseCode ?? "";
-  const ext = row.u.storageKey.endsWith("-pressf.pdf") ? "pdf" : row.u.fileName.match(/\.([A-Za-z0-9]{1,5})$/)?.[1] ?? "";
+  const ext = row.u.fileName.match(/\.([A-Za-z0-9]{1,5})$/)?.[1] ?? "";
   const key = `upload:${row.u.id}`;
   return {
-    storageKey: row.u.storageKey,
+    url: async () => { const src = await fileSource(id, null); if (!src) throw new Error("missing"); return deliverUrl(src); },
     fileName: downloadName(row.u.title, courseName, formatOf(row.u.fileName), ext),
     size: row.u.size,
     caption: `<b>${esc(row.u.title)}</b>\n${esc(courseName)}`,
@@ -65,7 +66,7 @@ async function lmsFile(id: string): Promise<Sendable | null> {
   if (!row || edit?.hidden) return null;
   const key = `lms:${row.f.id}:${row.f.version ?? ""}`;
   return {
-    storageKey: row.f.storageKey,
+    url: async () => { const src = await fileSource(id, null); if (!src) throw new Error("missing"); return deliverUrl(src); },
     fileName: row.f.extension && !row.f.name.toLowerCase().endsWith(`.${row.f.extension.toLowerCase()}`) ? `${row.f.name}.${row.f.extension}` : row.f.name,
     size: row.f.size ?? 0,
     caption: `<b>${esc(edit?.title?.trim() || row.f.name.replace(/\.[a-z0-9]+$/i, ""))}</b>${row.courseName ? `\n${esc(row.courseName)}` : ""}`,
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
   const found = file;
   const send = (document: Parameters<typeof sendDocument>[1]) => sendDocument(chat, document, found.caption, found.buttons);
   const uploadIt = async () => {
-    const response = await fetch(await signedUrl(found.storageKey, found.fileName));
+    const response = await fetch(await found.url());
     return send({ blob: await response.blob(), fileName: found.fileName });
   };
 
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
     let message;
     if (found.fileId) message = await send(found.fileId);
     else if (found.size > BY_URL) message = await uploadIt();
-    else message = await send(await signedUrl(found.storageKey, found.fileName)).catch((error) => { if (isBlocked(error)) throw error; return uploadIt(); });
+    else message = await send(await found.url()).catch((error) => { if (isBlocked(error)) throw error; return uploadIt(); });
     if (!found.fileId && message.document) await found.remember(message.document.file_id);
     return Response.json({ ok: true });
   } catch (error) {
