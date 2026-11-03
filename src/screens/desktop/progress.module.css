@@ -52,16 +52,16 @@
 .dots { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .dot { flex: none; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--border-strong); }
 /* Attendance states (D6 legend + late and not marked). */
-/* The present ring is ink in light and cream in dark (the dark border token would vanish on teal). */
-.dotTeacher { background: transparent; border-color: var(--text-primary); }
-.dotQr { background: var(--bg-accent); border-color: var(--bg-accent); }
+/* Attended (QR or teacher) is one moss green: the moss stroke token (light #3f6f32, dark #a6cf8e). */
+.dotAttended { background: var(--school-medicine); border-color: var(--school-medicine); }
+.dotExcused { background: var(--bg-sunken); border-color: var(--text-secondary); }
 .dotLate { background: var(--mustard-500); border-color: var(--mustard-500); }
 .dotAbsent { background: var(--bg-danger); border-color: var(--bg-danger); }
 .dotUnmarked { border: 1.5px dashed var(--text-secondary); background: transparent; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
 .legend span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .legendDot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.legendDot.dotTeacher { border: 1.25px solid var(--text-primary); }
+.legendDot.dotExcused { border: 1.25px solid var(--text-secondary); }
 .legendDot.dotUnmarked { border: 1.25px dashed var(--text-secondary); }
 .detailEmpty { font: 500 13px/1.32 var(--font-sans); color: var(--text-secondary); }
 .barEmpty .bar { background: var(--bg-surface); border-style: dashed; border-color: var(--border-subtle); }
@@ -80,7 +80,7 @@
 .classState .dot { width: 10px; height: 10px; }
 .classScore { text-align: right; font: 400 18px/1 var(--font-serif); }
 .stateAbsent { color: var(--rating-low); }
-.stateQr { color: var(--text-accent); }
+.stateAttended { color: var(--school-medicine); }
 .stateUnmarked { color: var(--text-secondary); }
 .grading { display: flex; flex-direction: column; gap: 6px; }
 .gradingRow { display: flex; gap: 6px; justify-content: space-between; font: 500 13px/normal var(--font-sans); color: var(--text-primary); }

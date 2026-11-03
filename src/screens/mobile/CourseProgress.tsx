@@ -1,14 +1,14 @@
 import type { Mark } from "@/core/attendance";
 import type { CourseProgressView, ProgressView } from "@/server/views";
-import { QrIcon } from "./mc/kit";
 import { MainButton, Sheet } from "./mc/client";
 import { Absences, cx } from "./mc/parts";
 import s from "./mc/mc.module.css";
 import c from "./mc/screens.module.css";
 import Progress from "./Progress";
 
+/** One green "Attended" whether the class was checked in by QR or by the teacher. */
 const MARK: Record<Mark, { label: string; cls: string }> = {
-  present: { label: "Attended", cls: s.pillOk },
+  present: { label: "Attended", cls: s.pillGood },
   late: { label: "Late", cls: s.pillWarn },
   absent: { label: "Absent", cls: s.pillBad },
   excused: { label: "Excused", cls: s.pillMuted },
@@ -59,7 +59,6 @@ export default function CourseProgress({ data, behind }: { data: CourseProgressV
                     {e.dateLabel ? <p className={cx(s.t12, s.soft)}>{e.dateLabel}</p> : null}
                   </div>
                   {e.score !== null ? <p className={s.t15sb}>{e.score}</p> : null}
-                  {e.viaQr ? <QrIcon size={16} aria-label="Checked in by QR" className={s.soft} /> : null}
                   <span className={cx(s.pill, MARK[e.mark].cls)}>{MARK[e.mark].label}</span>
                 </li>
               ))}

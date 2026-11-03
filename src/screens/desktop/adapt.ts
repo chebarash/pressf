@@ -485,8 +485,8 @@ export function courseProgress(v: V.CourseProgressView): M.CourseProgressData {
     ...(c.exam != null ? [{ label: "Exam", value: c.exam, max: 100, tier: tier(c.exam) }] : []),
     { label: "Final", value: c.final, max: 100, tier: tier(c.final) },
   ];
-  const classes: M.ClassLine[] = v.events.map((e, i) => ({ key: `${e.lesson}|${e.at ?? i}`, lesson: e.lesson, kind: KIND_LABEL[e.kind] ?? e.kind, date: e.dateLabel, state: classState(e), viaQr: e.viaQr, score: e.score }));
-  const counts: Record<M.ClassState, number> = { qr: 0, teacher: 0, late: 0, absent: 0, unmarked: 0 };
+  const classes: M.ClassLine[] = v.events.map((e, i) => ({ key: `${e.lesson}|${e.at ?? i}`, lesson: e.lesson, kind: KIND_LABEL[e.kind] ?? e.kind, date: e.dateLabel, state: classState(e), score: e.score }));
+  const counts: Record<M.ClassState, number> = { attended: 0, late: 0, absent: 0, excused: 0, unmarked: 0 };
   for (const x of classes) counts[x.state]++;
   const marked = classes.length - counts.unmarked;
   const dots = [...classes].reverse().map((x) => ({ state: x.state, title: join(x.date, x.lesson, CLASS_STATE_LABEL[x.state]) }));
@@ -498,16 +498,12 @@ export function courseProgress(v: V.CourseProgressView): M.CourseProgressData {
   };
 }
 
-/** QR check-in and "present" from the teacher are both attended; late and not-marked stay their own states. */
-export function classState(e: Pick<V.ClassMark, "mark" | "viaQr">): M.ClassState {
-  // An excused absence (LMS status 4) is still a missed class.
-  if (e.mark === "absent" || e.mark === "excused") return "absent";
-  if (e.mark === "late") return "late";
-  if (e.mark === "unmarked") return "unmarked";
-  return e.viaQr ? "qr" : "teacher";
+/** QR check-in and "present" from the teacher are one state: attended. Late, absent, excused and not-marked stay their own. */
+export function classState(e: Pick<V.ClassMark, "mark">): M.ClassState {
+  return e.mark === "present" ? "attended" : e.mark;
 }
 
-export const CLASS_STATE_LABEL: Record<M.ClassState, string> = { qr: "Checked in by QR", teacher: "Marked present by teacher", late: "Late", absent: "Absent", unmarked: "Not marked yet" };
+export const CLASS_STATE_LABEL: Record<M.ClassState, string> = { attended: "Attended", late: "Late", absent: "Absent", excused: "Excused", unmarked: "Not marked yet" };
 
 /* ---------- Notifications ---------- */
 

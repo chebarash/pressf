@@ -198,12 +198,12 @@ export type TermResultsData = {
   curriculum: { title: string; line: string; href: string };
 };
 /**
- * One class's attendance: checked in by QR, marked present by the teacher, late,
- * absent, or not marked yet (the LMS has the class but no mark).
+ * One class's attendance: attended (QR check-in or the teacher, one state), late,
+ * absent, excused, or not marked yet (the LMS has the class but no mark).
  */
-export type ClassState = "qr" | "teacher" | "late" | "absent" | "unmarked";
+export type ClassState = "attended" | "late" | "absent" | "excused" | "unmarked";
 export type ClassDot = { state: ClassState; title: string };
-export type ClassLine = { key: string; lesson: string; kind: string; date: string | null; state: ClassState; viaQr: boolean; score: number | null };
+export type ClassLine = { key: string; lesson: string; kind: string; date: string | null; state: ClassState; score: number | null };
 export type CourseProgressData = {
   course: { name: string; code: string; href: string; term: string | null; teacher: string | null };
   row: ProgressRow;

@@ -162,19 +162,19 @@ export function ProgressTable({ rows, open }: { rows: ProgressRow[]; open: strin
 
 const MARK: Record<string, string> = { High: g.markHigh, Low: g.markLow, None: g.markNone };
 
-/** Figma D6 dots: present is an ink ring, via QR teal, absent rust; late is mustard and not-marked a dashed ring. */
-export const DOT: Record<ClassState, string> = { teacher: g.dotTeacher, qr: g.dotQr, late: g.dotLate, absent: g.dotAbsent, unmarked: g.dotUnmarked };
+/** Figma D6 dots: attended (QR or teacher) moss green, late mustard, absent rust, excused a soft ring, not marked a dashed ring. */
+export const DOT: Record<ClassState, string> = { attended: g.dotAttended, late: g.dotLate, absent: g.dotAbsent, excused: g.dotExcused, unmarked: g.dotUnmarked };
 const LEGEND: Array<[ClassState, string]> = [
-  ["teacher", "present (teacher)"],
-  ["qr", "via QR"],
+  ["attended", "attended"],
   ["late", "late"],
   ["absent", "absent"],
+  ["excused", "excused"],
   ["unmarked", "not marked"],
 ];
 
-/** Legend for the states that occur (present, via QR and absent always, as in Figma). */
+/** Legend for the states that occur (attended and absent always, as in Figma). */
 export function ClassLegend({ states, counts }: { states: ClassState[]; counts?: Record<ClassState, number> }) {
-  const show = LEGEND.filter(([s]) => s === "teacher" || s === "qr" || s === "absent" || states.includes(s));
+  const show = LEGEND.filter(([s]) => s === "attended" || s === "absent" || states.includes(s));
   return (
     <p className={g.legend}>
       {show.map(([s, label]) => (
