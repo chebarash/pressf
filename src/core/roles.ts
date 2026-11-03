@@ -15,6 +15,7 @@ export type Action =
   | "report"
   | "moderate:uploads"
   | "moderate:reports"
+  | "admin:coverage" // course coverage and materials report (counts only)
   | "admin:catalog"
   | "admin:people"
   | "admin:broadcast"
@@ -24,8 +25,8 @@ export type Action =
 const GRANTS: Record<Role, Action[]> = {
   guest: ["read:public"],
   student: ["read:public", "read:files", "read:own", "rate", "upload", "report"],
-  moderator: ["read:public", "read:files", "read:own", "rate", "upload", "report", "moderate:uploads", "moderate:reports", "admin:audit"],
-  admin: ["read:public", "read:files", "read:own", "rate", "upload", "report", "moderate:uploads", "moderate:reports", "admin:catalog", "admin:people", "admin:broadcast", "admin:system", "admin:audit"],
+  moderator: ["read:public", "read:files", "read:own", "rate", "upload", "report", "moderate:uploads", "moderate:reports", "admin:coverage", "admin:audit"],
+  admin: ["read:public", "read:files", "read:own", "rate", "upload", "report", "moderate:uploads", "moderate:reports", "admin:coverage", "admin:catalog", "admin:people", "admin:broadcast", "admin:system", "admin:audit"],
 };
 
 export const can = (role: Role, action: Action) => GRANTS[role].includes(action);
@@ -38,6 +39,7 @@ export const ADMIN_SECTIONS: Array<{ id: string; label: string; needs: Action }>
   { id: "uploads", label: "Uploads", needs: "moderate:uploads" },
   { id: "reports", label: "Reports", needs: "moderate:reports" },
   { id: "courses", label: "Courses & files", needs: "admin:catalog" },
+  { id: "coverage", label: "Coverage", needs: "admin:coverage" },
   { id: "professors", label: "Professors", needs: "admin:catalog" },
   { id: "people", label: "People", needs: "admin:people" },
   { id: "broadcasts", label: "Broadcasts", needs: "admin:broadcast" },
