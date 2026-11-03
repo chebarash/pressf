@@ -31,8 +31,8 @@ describe("lmsProfile", () => {
       { id: 1, semester_id: 10, semester_name: "Fall 2023", year_of_study: 1, is_open: 0 },
       { id: 2, semester_id: 13, semester_name: "Fall 2024", year_of_study: 2, is_open: 1 },
     ]);
-    lms.gradebookData.mockImplementation(async (_s, semesterId: number) =>
-      semesterId === 13
+    lms.gradebookData.mockImplementation(async (_s, semesterId: number | string) =>
+      String(semesterId) === "13"
         ? { resultSubjects: { "272": { subject: { name: "Intro to CS" }, final_grade: { mark: 40, positive_status: false } } } }
         : { resultSubjects: { "15": { subject: { name: "Calculus" }, final_grade: { mark: 88, positive_status: true } } } }
     );

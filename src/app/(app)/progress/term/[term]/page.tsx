@@ -12,8 +12,8 @@ export const metadata: Metadata = { title: "Progress" };
 export default async function ProgressTermPage({ params, searchParams }: { params: Promise<{ term: string }>; searchParams: SearchParams }) {
   const [{ term }, sp, user, isMobile] = await Promise.all([params, searchParams, getUser(), mobile()]);
   if (!user) redirect(`/sign-in?next=/progress/term/${term}`);
+  await retry(user.id, sp);
   const data = await termResults(user.id, term);
   if (!data) notFound();
-  retry(user.id, sp);
   return isMobile ? <ProgressTerm data={data} /> : <DesktopProgressTerm data={data} />;
 }

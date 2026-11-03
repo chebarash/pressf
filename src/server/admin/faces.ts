@@ -103,7 +103,7 @@ export type FacesShow = "missing" | "with" | "old";
 export async function facesPage(show: FacesShow, q: string, selectedId: string | undefined) {
   const [teachers, courseCounts, orphans, names] = await Promise.all([
     db()
-      .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, position: lmsTeachers.position, faceAt: faces.updatedAt, key: faces.storageKey })
+      .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, surName: lmsTeachers.surName, position: lmsTeachers.position, faceAt: faces.updatedAt, key: faces.storageKey })
       .from(lmsTeachers)
       .leftJoin(faces, eq(faces.teacherId, lmsTeachers.id))
       .where(notInArray(lmsTeachers.id, db().select({ id: teacherAliases.oldId }).from(teacherAliases))),
@@ -119,7 +119,7 @@ export async function facesPage(show: FacesShow, q: string, selectedId: string |
   const all = teachers
     .map((t) => ({
       id: t.id,
-      name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }),
+      name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName, sur_name_en: t.surName }),
       position: t.position,
       courses: courses.get(t.id) ?? 0,
       face: t.faceAt ? faceUrl(t.id, t.faceAt) : null,

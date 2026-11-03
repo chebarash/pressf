@@ -124,7 +124,8 @@ export function today(v: V.TodayView): M.TodayData {
       ? {
           text: b.kind === "lms-down" && at ? `hero.study isn't answering. You're seeing what we had at ${at} — grades and files may be a bit behind.` : b.text,
           tone: b.kind === "lms-down" || b.kind === "sign-in" ? "warning" : "info",
-          action: b.action ? { label: b.action.label, href: b.action.href ?? "/" } : null,
+          // "Retry" has no link of its own: /?retry=1 syncs before Today renders again.
+          action: b.action ? { label: b.action.label, href: b.action.href ?? (b.kind === "lms-down" ? "/?retry=1" : "/") } : null,
         }
       : null,
     greeting: (hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening") + (v.firstName ? `, ${v.firstName}` : ""),
@@ -478,6 +479,9 @@ export function courseProgress(v: V.CourseProgressView): M.CourseProgressData {
   const marks: NonNullable<M.ProgressRow["detail"]>["marks"] = [
     { label: "Average", value: c.average, max: 100, tier: tier(c.average) },
     { label: "Rating", value: c.rating, max: 100, tier: tier(c.rating) },
+    ...(c.midterm != null ? [{ label: "Midterm", value: c.midterm, max: 100, tier: tier(c.midterm) }] : []),
+    ...(c.admission != null ? [{ label: "Admission", value: c.admission, max: 100, tier: tier(c.admission) }] : []),
+    ...(c.exam != null ? [{ label: "Exam", value: c.exam, max: 100, tier: tier(c.exam) }] : []),
     { label: "Final", value: c.final, max: 100, tier: tier(c.final) },
   ];
   const classes: M.ClassLine[] = v.events.map((e, i) => ({ key: `${e.lesson}|${e.at ?? i}`, lesson: e.lesson, kind: KIND_LABEL[e.kind] ?? e.kind, date: e.dateLabel, state: classState(e), viaQr: e.viaQr, score: e.score }));
@@ -495,7 +499,8 @@ export function courseProgress(v: V.CourseProgressView): M.CourseProgressData {
 
 /** QR check-in and "present" from the teacher are both attended; late and not-marked stay their own states. */
 export function classState(e: Pick<V.ClassMark, "mark" | "viaQr">): M.ClassState {
-  if (e.mark === "absent") return "absent";
+  // An excused absence (LMS status 4) is still a missed class.
+  if (e.mark === "absent" || e.mark === "excused") return "absent";
   if (e.mark === "late") return "late";
   if (e.mark === "unmarked") return "unmarked";
   return e.viaQr ? "qr" : "teacher";

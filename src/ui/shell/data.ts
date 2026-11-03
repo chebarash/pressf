@@ -4,6 +4,7 @@ import { getUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { lmsAccounts, lmsCache, users } from "@/lib/db/schema";
 import type { UserCache } from "@/lib/lms/cache";
+import { termName } from "@/server/sync/types";
 
 export type ShellUser = {
   name: string;
@@ -39,7 +40,8 @@ export const shellUser = cache(async (): Promise<ShellUser | null> => {
   const profile = data?.profile ?? null;
   return {
     name: profile?.name ? short(profile.name) : user.email.split("@")[0],
-    subtitle: data?.enrollment?.semesterName ?? user.email,
+    // Caches written before `lang=en` hold the Russian name ("Осенний (2026-2027)").
+    subtitle: (data?.enrollment?.semesterName ? termName(data.enrollment.semesterName) : null) ?? user.email,
     telegramLinked: !!row?.telegramId,
     needsReauth: row?.status === "invalid",
     syncedAt: row?.syncedAt ? row.syncedAt.toISOString() : null,

@@ -11,6 +11,7 @@ const MARK: Record<Mark, { label: string; cls: string }> = {
   present: { label: "Attended", cls: s.pillOk },
   late: { label: "Late", cls: s.pillWarn },
   absent: { label: "Absent", cls: s.pillBad },
+  excused: { label: "Excused", cls: s.pillMuted },
   unmarked: { label: "Not marked", cls: s.pillMuted },
 };
 

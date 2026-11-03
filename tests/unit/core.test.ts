@@ -342,7 +342,10 @@ describe("uploads, roles, people, grades, deadlines", () => {
     expect(adminSections("moderator").map((s) => s.id)).toEqual(["overview", "uploads", "reports", "audit"]);
   });
   it("names people", () => {
-    expect(displayName({ first_name_en: "GONÇALO", last_name_en: "pinto", sur_name_en: "X" })).toBe("Gonçalo Pinto");
+    // hero.study: first_name given, sur_name family, last_name patronymic.
+    expect(displayName({ first_name_en: "GONÇALO", last_name_en: "", sur_name_en: "pinto" })).toBe("Gonçalo Pinto");
+    expect(displayName({ first_name_en: "Vohid", last_name_en: "Akmalovich", sur_name_en: "Kholov" })).toBe("Vohid Kholov");
+    expect(displayName({ first_name_en: "Ann", last_name_en: "Lee", sur_name_en: "" })).toBe("Ann Lee");
     expect(shortName("Shamsiddin Abdurakhimov")).toBe("Shamsiddin A.");
     expect(initials("Aziz Tursunov")).toBe("AT");
     expect(roleOf("Laboratory")).toBe("lab");

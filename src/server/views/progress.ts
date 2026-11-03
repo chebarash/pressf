@@ -27,10 +27,20 @@ export type ProgressCourse = {
   final: number | null;
   passed: boolean | null;
   fx: boolean;
+  /** Midterm exam, admission rating and final-exam mark, when the LMS has them. */
+  midterm?: number | null;
+  admission?: number | null;
+  exam?: number | null;
+  /** Admitted to the final exam ("Permit"); null when the LMS has not said. */
+  admitted?: boolean | null;
   absences: AbsencesView | null;
   next: DeadlineView | null;
   href: string;
 };
+
+/** The headline number: the final once in, else the running rating, else the average. */
+const headline = (c: SyncedCourse) => c.final ?? c.rating ?? c.average;
+const extras = (c: SyncedCourse) => ({ midterm: c.midterm ?? null, admission: c.admission ?? null, exam: c.exam ?? null, admitted: c.admitted ?? null });
 
 export type ProgressView = {
   state: SyncState;
@@ -66,10 +76,10 @@ export async function progressCourses(student: Student, now: Date): Promise<Prog
     const ref = refs.get(c.subjectId);
     const name = ref?.name ?? c.name;
     const next = work.filter((d) => sameCourse(d.course, name) || sameCourse(d.course, c.name)).sort((a, b) => a.due.getTime() - b.due.getTime())[0];
-    const mark = c.final ?? c.average;
+    const mark = headline(c);
     return {
       courseId: c.subjectId, code: ref?.code ?? "", name, mark, tier: tier(mark), average: c.average, rating: c.rating, final: c.final,
-      passed: c.passed, fx: c.fx, absences: absencesOf(c), next: next ? deadlineView(next, now) : null, href: `/progress/${c.subjectId}`,
+      passed: c.passed, fx: c.fx, ...extras(c), absences: absencesOf(c), next: next ? deadlineView(next, now) : null, href: `/progress/${c.subjectId}`,
     };
   });
   if (rows.length || !student.cache?.enrollment) return rows;
@@ -87,7 +97,10 @@ export async function progress(userId: string, now = new Date()): Promise<Progre
   const open = student.sync.semesters.find((s) => s.open) ?? null;
   const { gpaOf, past } = semestersOf(student);
   const earlier = past.length
-    ? past.map((s) => ({ term: s.term, courses: student.sync.courses.filter((c) => c.semesterId === s.id).length, ects: null, gpa: gpaOf(s.id, s.term), href: termHref(s.term) }))
+    ? past
+        .map((s) => ({ term: s.term, courses: student.sync.courses.filter((c) => c.semesterId === s.id).length, ects: null, gpa: gpaOf(s.id, s.term), href: termHref(s.term) }))
+        // A semester with nothing in the gradebook (an empty summer term) is not a semester studied.
+        .filter((s) => s.courses > 0)
     : (profile?.semesters ?? []).filter((s) => !s.open).map((s) => ({ term: s.name, courses: s.courses.length, ects: null, gpa: gpaOf(null, s.name), href: termHref(s.name) }));
   const allFinal = courses.length > 0 && courses.every((c) => c.final !== null);
   return {
@@ -95,14 +108,21 @@ export async function progress(userId: string, now = new Date()): Promise<Progre
     gpa: profile?.gpa ?? null,
     ectsEarned: profile?.ectsEarned ?? null,
     ectsTotal: profile?.ectsTotal ?? null,
-    semesterNumber: student.sync.semesters.length || profile?.semesters.length || null,
+    semesterNumber: semesterNumber(student) || profile?.semesters.length || null,
     currentTerm: queue.currentTerm,
     courses,
     earlier,
-    rate: { term: queue.ask.term, waiting: queue.waiting.length, rated: queue.rated.length },
+    // The card names one semester, so its numbers are that semester's (older ones follow after it).
+    rate: { term: queue.ask.term, waiting: queue.waiting.filter((w) => w.term === queue.ask.term).length, rated: queue.rated.filter((r) => r.term === queue.ask.term).length },
     empty: courses.every((c) => c.mark === null) && !profile?.gpa,
     results: allFinal && open ? { term: open.term, gpa: gpaOf(open.id, open.term), courses: courses.map((c) => ({ courseId: c.courseId, name: c.name, mark: c.final, passed: c.passed, fx: c.fx })) } : null,
   };
+}
+
+/** Semesters studied so far, this one included: those with courses in the gradebook (empty summers do not count). */
+function semesterNumber(student: Student) {
+  const withCourses = new Set(student.sync.courses.map((c) => c.semesterId));
+  return student.sync.semesters.filter((s) => s.open || withCourses.has(s.id)).length;
 }
 
 /** A past semester's results page (Figma 5.6 layout, reached from "Earlier semesters"). */
@@ -170,7 +190,7 @@ export async function termResults(userId: string, segment: string, now = new Dat
         .filter((c) => c.semesterId === synced.id)
         .map((c) => {
           const ref = refs.get(c.subjectId);
-          return { courseId: c.subjectId, code: ref?.code ?? "", name: ref?.name ?? c.name, mark: c.final ?? c.average, passed: c.passed, fx: c.fx, ects: ref?.credits ?? null, href: `/progress/${c.subjectId}` };
+          return { courseId: c.subjectId, code: ref?.code ?? "", name: ref?.name ?? c.name, mark: headline(c), passed: c.passed, fx: c.fx, ects: ref?.credits ?? null, href: `/progress/${c.subjectId}` };
         })
     : fromTranscript!.courses.map((c) => ({ courseId: null, code: "", name: c.name, mark: c.mark, passed: c.passed, fx: false, ects: null, href: null }));
   courses.sort((a, b) => (b.mark ?? -1) - (a.mark ?? -1) || a.name.localeCompare(b.name));
@@ -190,6 +210,7 @@ export async function termResults(userId: string, segment: string, now = new Dat
   };
 }
 
+/** `mark`: present, late, absent, excused or unmarked; `viaQr`: checked in by scanning the class QR. */
 export type ClassMark = { lesson: string; kind: "lecture" | "lab" | "practice"; at: string | null; dateLabel: string | null; mark: Mark; viaQr: boolean; score: number | null };
 
 export type CourseProgressView = {
@@ -215,8 +236,8 @@ export async function courseProgress(userId: string, courseId: string, now = new
   const refs = rows.find((r) => r.courseId === courseId) ? null : await coursesByIds([courseId]);
   const ref = refs?.get(courseId);
   const course = rows.find((r) => r.courseId === courseId) ?? {
-    courseId, code: ref?.code ?? "", name: ref?.name ?? synced.name, mark: synced.final ?? synced.average, tier: tier(synced.final ?? synced.average),
-    average: synced.average, rating: synced.rating, final: synced.final, passed: synced.passed, fx: synced.fx, absences: absencesOf(synced), next: null, href: `/progress/${courseId}`,
+    courseId, code: ref?.code ?? "", name: ref?.name ?? synced.name, mark: headline(synced), tier: tier(headline(synced)),
+    average: synced.average, rating: synced.rating, final: synced.final, passed: synced.passed, fx: synced.fx, ...extras(synced), absences: absencesOf(synced), next: null, href: `/progress/${courseId}`,
   };
   const marks = attendanceEvents(synced.events);
   const events: ClassMark[] = marks
@@ -233,7 +254,7 @@ export async function courseProgress(userId: string, courseId: string, now = new
     state: student.state,
     course,
     term: student.sync.semesters.find((s) => s.id === synced.semesterId)?.term ?? null,
-    teacher: lead ? people.get(lead.teacherId)?.name ?? null : null,
+    teacher: (lead ? people.get(lead.teacherId)?.name : null) ?? synced.teachers?.[0] ?? null,
     events,
   };
 }

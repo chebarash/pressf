@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useOptimistic, useSyncExternalStore, useTransition } from "react";
+import { useOptimistic, useState, useSyncExternalStore, useTransition } from "react";
 import { setTheme } from "@/platform/PlatformProvider";
 import { signOutWithConfirm } from "@/ui/shell/signOut";
 import { Button, Switch } from "@/ui/components";
@@ -13,8 +13,8 @@ import x from "../settings.module.css";
 export type SettingsActions = {
   /** Server action: save one alert switch. */
   setAlert?: (id: string, on: boolean) => Promise<void>;
-  /** Server action: refresh from the LMS now. */
-  syncNow?: () => Promise<void>;
+  /** Server action: refresh from the LMS now; resolves with a line to show. */
+  syncNow?: () => Promise<{ message: string } | void>;
 };
 
 const THEMES = ["System", "Light", "Dark"] as const;
@@ -37,6 +37,15 @@ function subscribeTheme(onChange: () => void) {
 /** D13 Settings — account, appearance and actions on the left, Telegram alerts on the right. */
 export function SettingsScreen({ data, actions }: { data: SettingsData; actions?: SettingsActions }) {
   const [, start] = useTransition();
+  const [syncing, startSync] = useTransition();
+  const [syncNote, setSyncNote] = useState<string | null>(null);
+  const runSync = () =>
+    startSync(async () => {
+      setSyncNote(null);
+      const result = await actions!.syncNow!().catch(() => ({ message: "Sync failed. Try again in a minute" }));
+      setSyncNote(result?.message ?? "Synced");
+      router.refresh();
+    });
   const [alerts, setAlerts] = useOptimistic(data.alerts, (state, change: { id: string; on: boolean }) => state.map((a) => (a.id === change.id ? { ...a, on: change.on } : a)));
   const router = useRouter();
   const theme = useSyncExternalStore(subscribeTheme, readTheme, () => "System" as const);
@@ -64,9 +73,9 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
             <div className={x.row}>
               <span className={x.text}>
                 <b>LMS sync</b>
-                <span>{data.lms.line}</span>
+                <span aria-live="polite">{syncing ? "Syncing with the LMS…" : syncNote ?? data.lms.line}</span>
               </span>
-              {actions?.syncNow && <Button label="Sync now" variant="secondary" size="s" onClick={() => start(() => actions.syncNow!())} />}
+              {actions?.syncNow && <Button label={syncing ? "Syncing…" : "Sync now"} variant="secondary" size="s" disabled={syncing} onClick={runSync} />}
             </div>
             <div className={x.row}>
               <span className={x.text}>

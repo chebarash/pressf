@@ -458,7 +458,7 @@ const shortPerson = (full: string) => {
 
 export async function professorsPage(tab: "duplicates" | "all", pair: string | undefined) {
   const [teachers, aliases, distinct, orphan] = await Promise.all([
-    db().select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName }).from(lmsTeachers),
+    db().select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, surName: lmsTeachers.surName }).from(lmsTeachers),
     db().select({ oldId: teacherAliases.oldId }).from(teacherAliases),
     db().select({ target: adminMarks.target }).from(adminMarks).where(eq(adminMarks.kind, "teachers-distinct")),
     db().select({ n: sql<number>`count(distinct ${teacherRatings.teacherId})` }).from(teacherRatings).where(notInArray(teacherRatings.teacherId, db().select({ id: lmsTeachers.id }).from(lmsTeachers))),
@@ -475,7 +475,7 @@ export async function professorsPage(tab: "duplicates" | "all", pair: string | u
       ])
     : [[], [], []];
   const stat = (id: string) => ({ courses: n(courses.find((c) => c.id === id)?.n), ratings: n(ratings.find((c) => c.id === id)?.n), posts: n(posts.find((c) => c.id === id)?.n) });
-  const card = (t: { id: string; firstName: string | null; lastName: string | null }) => ({ id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }), ...stat(t.id) });
+  const card = (t: { id: string; firstName: string | null; lastName: string | null; surName: string | null }) => ({ id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName, sur_name_en: t.surName }), ...stat(t.id) });
   const dupes = pairs.map(([a, b]) => {
     const [keep, merge] = stat(a.id).ratings >= stat(b.id).ratings ? [card(a), card(b)] : [card(b), card(a)];
     return { key: `${keep.id}|${merge.id}`, keep, merge, why: keep.name === merge.name ? "Same name · 2 Press F pages" : "Same surname and initial · different spelling" };

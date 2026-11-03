@@ -63,7 +63,7 @@ export const courseOg = cache(async (code: string): Promise<CourseOg | null> => 
   const [summary, teachers, lms, students] = await Promise.all([
     courseSummary(course.id),
     db()
-      .selectDistinct({ id: lmsTeachers.id, first: lmsTeachers.firstName, last: lmsTeachers.lastName })
+      .selectDistinct({ id: lmsTeachers.id, first: lmsTeachers.firstName, last: lmsTeachers.lastName, sur: lmsTeachers.surName })
       .from(lmsCourseTeachers)
       .innerJoin(lmsTeachers, eq(lmsTeachers.id, lmsCourseTeachers.teacherId))
       .where(inArray(lmsCourseTeachers.courseId, ids))
@@ -79,7 +79,7 @@ export const courseOg = cache(async (code: string): Promise<CourseOg | null> => 
     credits: course.credits ? `${course.credits} ECTS` : null,
     stats: summary.enough && enough ? { recommendPct: summary.recommendPct, hours: hoursLabel(summary.hours), difficulty: summary.difficulty == null ? "—" : `${Math.round(summary.difficulty)}/5` } : null,
     ratings: summary.count,
-    teachers: teachers.map((t) => displayName({ first_name_en: t.first, last_name_en: t.last })),
+    teachers: teachers.map((t) => displayName({ first_name_en: t.first, last_name_en: t.last, sur_name_en: t.sur })),
     files: (lms[0]?.n ?? 0) + (students[0]?.n ?? 0),
   };
 });
@@ -111,7 +111,7 @@ export const professorOg = cache(async (id: string): Promise<ProfessorOg | null>
   const line = [dept, names.join(", ") || null].filter(Boolean).join(" · ") || null;
   return {
     id,
-    name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }),
+    name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName, sur_name_en: t.surName }),
     line,
     pressFPct: summary.enough ? summary.pressFPct : null,
     tags: summary.enough ? summary.tags.slice(0, 2).map((x) => x.tag) : [],
@@ -203,7 +203,7 @@ export const nextOg = cache(async (code: string): Promise<NextOg | null> => {
   const course = rows[0];
   if (!course) return null;
   const teachers = await db()
-    .selectDistinct({ id: lmsTeachers.id, first: lmsTeachers.firstName, last: lmsTeachers.lastName, role: lmsCourseTeachers.role })
+    .selectDistinct({ id: lmsTeachers.id, first: lmsTeachers.firstName, last: lmsTeachers.lastName, sur: lmsTeachers.surName, role: lmsCourseTeachers.role })
     .from(lmsCourseTeachers)
     .innerJoin(lmsTeachers, eq(lmsTeachers.id, lmsCourseTeachers.teacherId))
     .where(inArray(lmsCourseTeachers.courseId, rows.map((r) => r.id)))
@@ -217,7 +217,7 @@ export const nextOg = cache(async (code: string): Promise<NextOg | null> => {
     chip: nextChip(),
     cohorts: unique.map((t, i) => {
       const s = scores[i];
-      return { label: displayName({ first_name_en: t.first, last_name_en: t.last }), detail: t.role ?? null, score: s.enough ? `${s.pressFPct}% F` : null };
+      return { label: displayName({ first_name_en: t.first, last_name_en: t.last, sur_name_en: t.sur }), detail: t.role ?? null, score: s.enough ? `${s.pressFPct}% F` : null };
     }),
   };
 });

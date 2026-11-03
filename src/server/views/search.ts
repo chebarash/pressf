@@ -48,7 +48,7 @@ async function buildCatalog(): Promise<Catalog> {
       .from(lmsCourses)
       .orderBy(lmsCourses.code, sql`${lmsCourses.semesterId} desc nulls last`),
     db()
-      .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, position: lmsTeachers.position, faceAt: faces.updatedAt })
+      .select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, surName: lmsTeachers.surName, position: lmsTeachers.position, faceAt: faces.updatedAt })
       .from(lmsTeachers)
       .leftJoin(faces, eq(faces.teacherId, lmsTeachers.id))
       // A professor merged into another keeps only the surviving page.
@@ -63,7 +63,7 @@ async function buildCatalog(): Promise<Catalog> {
     courses: createIndex(courses.map((c) => ({ item: c, text: c.name, code: c.code }))),
     people: createIndex(
       people.map((t) => {
-        const name = displayName({ first_name_en: t.firstName, last_name_en: t.lastName });
+        const name = displayName({ first_name_en: t.firstName, last_name_en: t.lastName, sur_name_en: t.surName });
         return { item: { id: t.id, name, position: t.position, face: t.faceAt ? faceUrl(t.id, t.faceAt) : null }, text: name };
       }),
       { names: true },

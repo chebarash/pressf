@@ -11,8 +11,8 @@ export const metadata: Metadata = { title: "Assignments" };
 export default async function AssignmentsPage({ searchParams }: { searchParams: SearchParams }) {
   const [sp, user] = await Promise.all([searchParams, getUser()]);
   if (!user) redirect("/sign-in?next=/progress/assignments");
+  await retry(user.id, sp);
   const data = await assignments(user.id);
   if (!data) notFound();
-  retry(user.id, sp);
   return <Assignments data={data} />;
 }

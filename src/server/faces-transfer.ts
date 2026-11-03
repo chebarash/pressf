@@ -66,7 +66,7 @@ export type TransferReport = { old: number; moved: number; viaMerge: number; wai
 
 export async function transferOldFaces(log: (line: string) => void = () => {}): Promise<TransferReport> {
   const [teachers, orphans, aliases, names] = await Promise.all([
-    db().select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName }).from(lmsTeachers),
+    db().select({ id: lmsTeachers.id, firstName: lmsTeachers.firstName, lastName: lmsTeachers.lastName, surName: lmsTeachers.surName }).from(lmsTeachers),
     db().select().from(faces).where(notInArray(faces.teacherId, db().select({ id: lmsTeachers.id }).from(lmsTeachers))),
     db().select().from(teacherAliases),
     oldTeacherNames(),
@@ -80,7 +80,7 @@ export async function transferOldFaces(log: (line: string) => void = () => {}): 
   const merged = new Set(aliases.map((a) => a.oldId));
   const aliasOf = new Map(aliases.map((a) => [a.oldId, a.teacherId]));
   const withFace = new Set((await db().select({ id: faces.teacherId }).from(faces)).map((f) => f.id));
-  const people = teachers.filter((t) => !merged.has(t.id)).map((t) => ({ id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName }) }));
+  const people = teachers.filter((t) => !merged.has(t.id)).map((t) => ({ id: t.id, name: displayName({ first_name_en: t.firstName, last_name_en: t.lastName, sur_name_en: t.surName }) }));
 
   // Plan first, so two old faces wanting the same professor both wait for a person to decide.
   const plan = new Map<string, { oldId: string; key: string; how: "merge" | "name"; score: number }[]>();

@@ -8,7 +8,7 @@ import { activateQr, LmsError } from "@/lib/lms/client";
 import { sessionFor } from "@/lib/lms/store";
 import { dismissAsk } from "@/server/ratings";
 import { acknowledge, markAllRead, readNotification } from "@/server/sync/actions";
-import { syncStudent } from "@/server/sync/student";
+import { syncNowFor } from "@/server/sync/manual";
 import { courseAttendance } from "@/server/views/progress";
 
 /**
@@ -65,9 +65,9 @@ export async function dismissRating(term: string) {
 /** "Retry" on the LMS-not-answering banner: one fresh sync, then the page re-renders. */
 export async function retrySync(): Promise<{ ok: boolean }> {
   const user = await student();
-  const result = await syncStudent(user.id).catch(() => null);
-  revalidatePath("/");
-  return { ok: !!result?.ok };
+  const result = await syncNowFor(user.id).catch(() => null);
+  revalidatePath("/", "layout");
+  return { ok: result?.status === "synced" || result?.status === "recent" };
 }
 
 /** `absencesLeft` on a mark: "N absences left in this course" (Figma 10.3), from the stored snapshot. */

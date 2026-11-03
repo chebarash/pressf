@@ -125,7 +125,8 @@ describe("progress, notifications, calendar, profile", () => {
   it("shows progress per course and class by class", async () => {
     const p = (await views.progress(userId, NOW))!;
     expect(p).toMatchObject({ gpa: 3.62, ectsEarned: 168, currentTerm: "Fall 2026", empty: false });
-    expect(p.courses.map((c) => [c.name, c.mark, c.absences?.left])).toEqual([["Calculus 1", 74, 6], ["Physics 1", 86, 2]]);
+    // The headline is the running rating (the LMS "Rating" column) until the final is in.
+    expect(p.courses.map((c) => [c.name, c.mark, c.absences?.left])).toEqual([["Calculus 1", 51, 6], ["Physics 1", 80, 2]]);
     expect(p.courses[1].next?.title).toBe("Lab 6 report");
     const one = (await views.courseProgress(userId, "101", NOW))!;
     expect(one.teacher).toBe("Gonçalo Pinto");

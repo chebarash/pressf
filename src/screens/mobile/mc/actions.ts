@@ -5,7 +5,7 @@ import { DEFAULT_ALERTS, type AlertSettings } from "@/core/notifications";
 import { getUser } from "@/lib/auth";
 import { deleteAccount } from "@/server/account";
 import { setAlerts } from "@/server/feed";
-import { refreshOnce } from "@/server/sync/refresh";
+import { syncNowFor, type ManualSync } from "@/server/sync/manual";
 import { invalidateRating } from "@/server/views";
 
 const KEYS = new Set(Object.keys(DEFAULT_ALERTS));
@@ -24,12 +24,13 @@ export async function saveAlert(key: string, on: boolean): Promise<void> {
   await setAlert(key, on);
 }
 
-/** "Sync now": refresh the student's LMS copy, then show it. */
-export async function syncNow(): Promise<void> {
+/** "Sync now": one sync for the student (rate limited), then every page re-reads. Returns what to tell them. */
+export async function syncNow(): Promise<ManualSync> {
   const user = await getUser();
-  if (!user) return;
-  await refreshOnce(user.id);
+  if (!user) return { status: "no-user", message: "Sign in to sync", at: null };
+  const result = await syncNowFor(user.id);
   revalidatePath("/", "layout");
+  return result;
 }
 
 /**

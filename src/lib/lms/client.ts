@@ -39,13 +39,24 @@ export type LmsSession = { token: string };
 
 const TIMEOUT_MS = 20_000;
 
+/**
+ * The LMS answers in the language the request asks for: without `lang=en` it
+ * sends Russian semester names ("Осенний (2023-2024)"), course names and
+ * statuses. English is asked for on every call; where the LMS has no English
+ * text it still falls back to Russian, so readers keep their own fallbacks.
+ */
+export function withLang(path: string) {
+  if (/[?&]lang=/.test(path)) return path;
+  return `${path}${path.includes("?") ? "&" : "?"}lang=en`;
+}
+
 async function request<T>(path: string, init: RequestInit & { token?: string } = {}): Promise<T> {
   const { token, headers, ...rest } = init;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetch(`${LMS_API_URL()}/v1${path}`, {
+    res = await fetch(`${LMS_API_URL()}/v1${!rest.method || rest.method === "GET" ? withLang(path) : path}`, {
       ...rest,
       signal: controller.signal,
       headers: {

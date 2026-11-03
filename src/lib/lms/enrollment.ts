@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { lmsCourses } from "@/lib/db/schema";
 import { myList } from "@/lib/lms/client";
 import { sessionFor } from "@/lib/lms/store";
+import { termName } from "@/server/sync/types";
 
 /**
  * The signed-in student's current semester, read live from the LMS: the courses
@@ -37,5 +38,5 @@ export async function studentSemester(userId: string): Promise<Enrollment | null
     .filter((r): r is NonNullable<typeof r> => !!r)
     .map((r) => ({ code: r.code, subject: r.name }));
 
-  return { semesterName: current.name ?? null, codes: courses.map((c) => c.code), courses };
+  return { semesterName: current.name ? termName(current.name) || current.name : null, codes: courses.map((c) => c.code), courses };
 }
