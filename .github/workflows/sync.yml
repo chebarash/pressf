@@ -1,6 +1,6 @@
 name: Nightly sync
 
-# Copies Anonymous channel posts (while MENTIONS_SYNC=on). The bot rebuilds its data at 02:00 UTC for about 7 minutes.
+# Copies Anonymous channel posts and matches them to courses and professors (while MENTIONS_SYNC=on). The bot rebuilds its data at 02:00 UTC for about 7 minutes.
 on:
   schedule:
     - cron: "30 2 * * *"

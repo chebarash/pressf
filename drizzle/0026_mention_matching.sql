@@ -1,0 +1,1 @@
+ALTER TABLE "mentions" ADD COLUMN "matched_with" text;

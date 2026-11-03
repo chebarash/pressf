@@ -7,7 +7,7 @@ import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { REJECT_REASONS, UPLOAD_TYPES, type RejectReason, type Trust } from "@/core/uploads";
 import { db } from "@/lib/db";
-import { broadcasts, courseRatings, fileOverrides, lmsCourses, lmsCourseTeachers, lmsFiles, teacherAliases, teacherRatings, uploads, userRoles } from "@/lib/db/schema";
+import { broadcasts, courseRatings, fileOverrides, lmsCourses, lmsCourseTeachers, lmsFiles, mentionLinks, mentions, teacherAliases, teacherRatings, uploads, userRoles } from "@/lib/db/schema";
 import { audit } from "@/server/audit";
 import { setRole } from "@/server/identity";
 import { resolve, type ReportTarget } from "@/server/reports";
@@ -17,6 +17,9 @@ import { clearMark, pairKey, setMark, type SettingKey } from "./marks";
 import { notifyUploader } from "@/lib/telegram/notify";
 import { DECISION_TAGS, decisionsChanged } from "@/server/decisions";
 import { messageUserHook } from "./notify";
+import { linkKey } from "@/core/mentions";
+import { dropLink, rematchPosts } from "@/lib/mentions";
+import { invalidate, TAGS } from "@/server/views/cache";
 import { dayClash, MUTE_DAYS, nextSendable, type Audience } from "./rules";
 
 export { Forbidden };
@@ -104,6 +107,41 @@ export async function resolveReport(actorId: string, target: ReportTarget, outco
     await audit(actorId, "post.mute", `post:${t.id}`, { days: MUTE_DAYS });
   }
 }
+
+/* ───────── Anonymous links ───────── */
+
+const linkRef = z.object({ postId: z.number().int().positive(), kind: z.enum(["course", "teacher"]), target: z.string().trim().min(1).max(80) });
+export type LinkRef = z.input<typeof linkRef>;
+
+/**
+ * Takes a wrong course or professor off an Anonymous post. The choice is kept
+ * (an admin mark), so no later re-match brings the link back.
+ */
+export async function hideMentionLink(actorId: string, ref: LinkRef) {
+  await authorize(actorId, "moderate:reports");
+  const { postId, kind, target } = linkRef.parse(ref);
+  const [post] = await db().select({ postId: mentions.postId }).from(mentions).where(eq(mentions.postId, postId));
+  if (!post) throw new AdminError("That post is gone");
+  await setMark("mention-link-hidden", linkKey(postId, kind, target), actorId, { data: { postId, kind, target } });
+  await dropLink(postId, kind, target);
+  linkPagesChanged(kind, target);
+  await audit(actorId, "mention.link.hide", `post:${postId}`, { kind, target });
+}
+
+/** Undoes a hidden link: the post is matched again at once. */
+export async function restoreMentionLink(actorId: string, ref: LinkRef) {
+  await authorize(actorId, "moderate:reports");
+  const { postId, kind, target } = linkRef.parse(ref);
+  await clearMark("mention-link-hidden", linkKey(postId, kind, target));
+  await rematchPosts([postId]);
+  linkPagesChanged(kind, target);
+  await audit(actorId, "mention.link.restore", `post:${postId}`, { kind, target });
+}
+
+const linkPagesChanged = (kind: "course" | "teacher", target: string) => {
+  decisionsChanged(DECISION_TAGS.moderation);
+  invalidate(kind === "course" ? TAGS.course(target) : TAGS.teacher(target));
+};
 
 /* ───────── Courses & files ───────── */
 
@@ -198,6 +236,12 @@ export async function mergeTeachers(actorId: string, keepId: string, mergeId: st
       select course_id, ${keepId}, role from ${lmsCourseTeachers} where teacher_id = ${mergeId}
       on conflict do nothing`);
     await tx.delete(lmsCourseTeachers).where(eq(lmsCourseTeachers.teacherId, mergeId));
+    // Anonymous posts about the old page now count for the kept one.
+    await tx.execute(sql`
+      insert into ${mentionLinks} (post_id, kind, target)
+      select post_id, 'teacher', ${keepId} from ${mentionLinks} where kind = 'teacher' and target = ${mergeId}
+      on conflict do nothing`);
+    await tx.delete(mentionLinks).where(and(eq(mentionLinks.kind, "teacher"), eq(mentionLinks.target, mergeId)));
     await tx.update(teacherAliases).set({ teacherId: keepId }).where(eq(teacherAliases.teacherId, mergeId));
     await tx.insert(teacherAliases).values({ oldId: mergeId, teacherId: keepId }).onConflictDoUpdate({ target: teacherAliases.oldId, set: { teacherId: keepId } });
     return both.rows.length;
