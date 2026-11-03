@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { notificationsFixture, TODAY_STATES } from "@/screens/mobile/fixtures";
 import { applyChange, orderedFilters, readable, unreadNow } from "@/screens/mobile/notifications/model";
-import { caughtUp, checkInClass, hero, nextExamCard, ratingAsk, ratingBody, showClasses, subtitle, tiles } from "@/screens/mobile/today/model";
+import { caughtUp, checkInClass, feedHasMore, hero, nextExamCard, ratingAsk, ratingBody, showClasses, subtitle, tiles, todayFeed } from "@/screens/mobile/today/model";
+
+describe("Today notifications block (Figma 2.1, 2.5, 2.12)", () => {
+  it("keeps read items after the unread ones, without the dot", () => {
+    const v = TODAY_STATES["2.1-morning"]();
+    const items = [{ ...v.notifications.items[0], read: true }, ...v.notifications.items.slice(1)];
+    const feed = todayFeed({ ...v, notifications: { unread: 3, items } });
+    expect(feed.map((i) => i.read)).toEqual([false, false, false, true]);
+  });
+
+  it("shows All with a full list, not for a single item", () => {
+    expect(feedHasMore(TODAY_STATES["2.1-morning"]())).toBe(true);
+    expect(feedHasMore(TODAY_STATES["2.12-caught-up"]())).toBe(true);
+    expect(feedHasMore(TODAY_STATES["2.5-break"]())).toBe(false);
+  });
+});
 
 describe("Today screen words (Figma 2.x)", () => {
   it("morning: classes listed, next one marked, no hero", () => {

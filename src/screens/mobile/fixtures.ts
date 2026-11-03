@@ -147,7 +147,7 @@ export const TODAY_STATES = {
   "2.3-over": () => student(at(MON, "17:30")),
   "2.4-weekend": () => student(at("2026-10-31", "11:00")),
   "2.5-break": () => {
-    const v = student(at("2026-12-23", "11:00"), { dueSoon: [], courses: COURSES.slice(0, 1), nextExams: [], examsThisWeek: [] }, { classes: false });
+    const v = student(at("2026-12-23", "11:00"), { dueSoon: [], nextExams: [], examsThisWeek: [] }, { classes: false });
     return { ...v, notifications: { unread: 1, items: v.notifications.items.filter((i) => i.kind === "anonymous") } };
   },
   "2.6-exams": () => student(at("2026-11-03", "08:00"), { rating: NO_RATING }),
@@ -188,7 +188,7 @@ export const GUEST: GuestHomeData = {
   ],
   freshFiles: [
     { id: "f1", title: "Midterm exam", type: "exam", course: "Physics 1", date: "Fall 2024", source: { label: "Channel", kind: "channel" }, href: "/f/f1" },
-    { id: "f2", title: "Mock final with answers", type: "mock", course: "Discrete Mathematics", date: "Spring 2025", source: { label: "Students", kind: "channel" }, href: "/f/f2" },
+    { id: "f2", title: "Mock final with answers", type: "mock", course: "Discrete Mathematics", date: "Spring 2025", source: { label: "Student", kind: "student" }, href: "/f/f2" },
   ],
   schools: [
     { id: "computing", name: "School of Computing", programs: [{ id: "se", name: "Software Engineering" }, { id: "cs", name: "Cyber Security" }, { id: "ai", name: "AI & Robotics" }] },

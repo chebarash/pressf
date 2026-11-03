@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { FileType } from "@/core/files";
 import { FILE_FLAG } from "./file-flag";
-import { BookIcon, ChevronRightIcon, SendIcon } from "../icons";
+import { BookIcon, ChevronRightIcon, SendIcon, UsersIcon } from "../icons";
 import { cx } from "./cx";
 import s from "./FileRow.module.css";
 
@@ -17,7 +17,7 @@ export type FileRowProps = {
   /** "Fall 2023" or "2 Nov". */
   date?: string;
   /** Where it came from: LMS (book icon) or the students' channel (send icon). */
-  source?: { label: string; kind: "lms" | "channel" };
+  source?: { label: string; kind: "lms" | "channel" | "student" };
   href?: string;
   className?: string;
 };
@@ -35,7 +35,7 @@ export function FileRow({ title, type, course, week, date, source, href, classNa
           {date ? <span>{date}</span> : null}
           {source ? (
             <span className={s.source}>
-              {source.kind === "lms" ? <BookIcon size={14} /> : <SendIcon size={14} />}
+              {source.kind === "lms" ? <BookIcon size={14} /> : source.kind === "student" ? <UsersIcon size={14} /> : <SendIcon size={14} />}
               <span>{source.label}</span>
             </span>
           ) : null}

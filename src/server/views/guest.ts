@@ -30,7 +30,7 @@ export type GuestFile = {
   course: string;
   /** "2 Nov". */
   date: string | null;
-  source: { label: string; kind: "lms" | "channel" };
+  source: { label: string; kind: "lms" | "channel" | "student" };
   href: string;
 };
 
@@ -99,7 +99,7 @@ async function freshFiles(): Promise<GuestFile[]> {
       const meta = overlay({ title: d.title, type: d.type, week: null }, f.edit ? { ...f.edit, hidden: false } : null)!;
       return { at: new Date(f.at), item: { id: f.id, title: meta.title, type: meta.type, course, source: { label: "LMS", kind: "lms" as const }, href: `/f/${f.id}` } };
     }),
-    ...live.map((u) => ({ at: u.at, item: { id: u.id, title: u.title, type: (u.type as FileType) ?? "other", course: u.courseName ?? u.code ?? "Course", source: { label: "Students", kind: "channel" as const }, href: `/f/${u.id}` } })),
+    ...live.map((u) => ({ at: u.at, item: { id: u.id, title: u.title, type: (u.type as FileType) ?? "other", course: u.courseName ?? u.code ?? "Course", source: { label: "Student", kind: "student" as const }, href: `/f/${u.id}` } })),
   ];
   return items
     .sort((a, b) => b.at.getTime() - a.at.getTime())

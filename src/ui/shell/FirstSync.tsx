@@ -18,17 +18,17 @@ const STEPS: { step: SyncStep; label: string }[] = [
 
 type State = "waiting" | "running" | "done" | "failed";
 
-/** 1.7 First sync, then 1.8 (alerts in Telegram) inside the Mini App. */
-export function FirstSync({ next }: { next: string }) {
+/** 1.7 First sync, then 1.8 (alerts in Telegram) inside the Mini App. `preview` (dev only) shows fixed states without syncing. */
+export function FirstSync({ next, preview }: { next: string; preview?: { states: Record<SyncStep, State>; askAlerts?: boolean } }) {
   const router = useRouter();
   const { telegram } = usePlatform();
-  const [states, setStates] = useState<Record<SyncStep, State>>({ profile: "running", courses: "running", timetable: "running", grades: "waiting", files: "waiting" });
-  const [askAlerts, setAskAlerts] = useState(false);
+  const [states, setStates] = useState<Record<SyncStep, State>>(preview?.states ?? { profile: "running", courses: "running", timetable: "running", grades: "waiting", files: "waiting" });
+  const [askAlerts, setAskAlerts] = useState(preview?.askAlerts ?? false);
   const [asking, setAsking] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
-    if (started.current) return;
+    if (started.current || preview) return;
     started.current = true;
     const finish = () => (telegram ? setAskAlerts(true) : router.replace(next));
     (async () => {
@@ -59,7 +59,7 @@ export function FirstSync({ next }: { next: string }) {
       }
       setTimeout(finish, 400);
     })();
-  }, [next, router, telegram]);
+  }, [next, router, telegram, preview]);
 
   const allow = async () => {
     setAsking(true);
