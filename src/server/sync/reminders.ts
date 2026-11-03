@@ -1,13 +1,13 @@
 import { attendanceEvents } from "@/core/attendance";
 import { nextPhase, dayInfo } from "@/core/semester";
-import { addDays, clock, localDay, localMinutes, localWeekday, shortDate, weekdayName } from "@/core/time";
+import { addDays, clock, daysBetween, localDay, localMinutes, localWeekday, shortDate, weekdayName } from "@/core/time";
 import { db } from "@/lib/db";
 import { lmsFiles } from "@/lib/db/schema";
 import { inArray } from "drizzle-orm";
 import { describeFile } from "@/core/files";
 import { classesBetween, type ClassView } from "@/server/views/classes";
 import { rateQueueFor } from "@/server/views/rate";
-import { deadlines } from "@/server/views/shared";
+import { deadlines, semesterPhases } from "@/server/views/shared";
 import { loadStudent, type Student } from "@/server/views/student";
 import { deadlineAlerts } from "./convert";
 import { deliver, remind, saveSent, sentKeys, type Recipient } from "./deliver";
@@ -102,6 +102,23 @@ export async function runReminders(userId: string, now = new Date()): Promise<Re
       const finals = nextPhase(now, ["final"]);
       const next = [after ? `${after.kind === "teaching" ? "Classes" : after.title} start ${shortDate(after.starts)}` : null, finals ? `finals ${shortDate(finals.starts)}–${shortDate(finals.ends)}` : null].filter(Boolean).join(", ");
       await go(`break:${br.starts}`, "system", msg.breakStarts({ name: Number(br.starts.slice(5, 7)) >= 11 || Number(br.starts.slice(5, 7)) <= 2 ? "Winter break" : "Break", until: shortDate(addDays(br.ends, 1)), note: next || null }));
+    }
+  }
+
+  // Semester calendar from the LMS: cohort selection 3 days ahead, add/drop the day before it closes.
+  if (minutes >= 10 * 60 && minutes < 20 * 60) {
+    for (const p of await semesterPhases(day)) {
+      if (p.kind === "cohort-selection") {
+        const inDays = daysBetween(day, p.startDay);
+        if (inDays < 1 || inDays > 3) continue;
+        const when = inDays === 1 ? "tomorrow" : `on ${weekdayName(p.startDay)} ${shortDate(p.startDay)}`;
+        await go(`cohort:${p.semesterId}:${p.startDay}`, "system", msg.cohortSelection({ when, target: { to: "next" } }));
+      }
+      if (p.kind === "add-drop" && p.endDay === addDays(day, 1)) {
+        const end = new Date(p.ends);
+        const time = clock(end);
+        await go(`adddrop:${p.semesterId}:${p.endDay}`, "system", msg.addDropCloses({ when: time === "00:00" ? "tomorrow" : `tomorrow ${time}`, term: p.semester ?? "next semester" }));
+      }
     }
   }
 

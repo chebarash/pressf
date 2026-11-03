@@ -2,7 +2,8 @@ import { eq, inArray } from "drizzle-orm";
 import { roleOf } from "@/core/people";
 import type { TeacherRole, TeacherSummary } from "@/core/ratings";
 import { db } from "@/lib/db";
-import { lmsCourseTeachers, lmsCourses, lmsDepartments } from "@/lib/db/schema";
+import { lmsCourseTeachers, lmsCourses, lmsDepartments, lmsSemesters, lmsTeachers, type LmsTeacherEducation, type LmsTeacherPublication } from "@/lib/db/schema";
+import { termName } from "@/server/sync/types";
 import { publicCache, TAGS } from "./cache";
 import { DAY_ABBR, lessonSlots, mentionsOf, ROLE_LABEL, teacherSummaries, teachersByIds, type MentionsView } from "./shared";
 import type { Viewer } from "./courses";
@@ -15,15 +16,23 @@ export type ProfessorView = {
   name: string;
   /** "Senior lecturer", from the LMS staff profile. */
   position: string | null;
+  /** Drawn face URL, null when none is assigned. Always set by the server. */
+  face?: string | null;
   department: string | null;
   school: string | null;
   summary: TeacherSummary;
   courses: Array<{ code: string; name: string; role: TeacherRole; roleLabel: string; pressFPct: number | null; href: string }>;
   when: Array<{ day: string; weekday: number; time: string; course: string; code: string; room: string | null }>;
-  /** Not harvested from the LMS yet (education, publications, years here). */
-  education: null;
-  publications: null;
-  years: null;
+  /** Degrees from the LMS staff profile; null when the LMS has none. */
+  education: LmsTeacherEducation[] | null;
+  /** Publications from the LMS staff profile; null when the LMS has none. */
+  publications: LmsTeacherPublication[] | null;
+  /** Research area from the LMS staff profile. Always set by the server. */
+  research?: string | null;
+  /** Whole years at NewUU (at least 1), counted from the first semester they taught. */
+  years: number | null;
+  /** That first semester, "Fall 2023". Always set by the server. */
+  since?: string | null;
   anonymous: MentionsView;
   signedIn: boolean;
   /** The viewer is taught by this teacher now. */
@@ -42,10 +51,26 @@ const rootOf = (id: string | null, all: Map<string, Dept>) => {
   return d ?? null;
 };
 
+/** Start day of a semester: its stored study start, else from its name ("Fall 2023" → 2023-09-01). */
+function semesterStart(s: { name: string | null; starts: string | null }): string | null {
+  if (s.starts) return s.starts;
+  const term = termName(s.name);
+  const m = term.match(/^(Fall|Spring|Summer) (\d{4})$/);
+  return m ? `${m[2]}-${m[1] === "Fall" ? "09" : m[1] === "Spring" ? "02" : "06"}-01` : null;
+}
+
+/** Whole years since `startDay`, at least 1. */
+export const yearsSince = (startDay: string, now: Date) => Math.max(1, Math.floor((now.getTime() - Date.parse(`${startDay}T00:00:00+05:00`)) / (365.25 * 86_400_000)));
+
+type ProfessorPublic = Omit<ProfessorView, "signedIn" | "teachesYou" | "years"> & { sinceDay: string | null };
+
 const professorPublic = publicCache(
   "professor-public",
-  async (id: string): Promise<Omit<ProfessorView, "signedIn" | "teachesYou"> | null> => {
-    const people = await teachersByIds([id]);
+  async (id: string): Promise<ProfessorPublic | null> => {
+    const [people, [profile]] = await Promise.all([
+      teachersByIds([id]),
+      db().select({ department: lmsTeachers.department, education: lmsTeachers.education, publications: lmsTeachers.publications, research: lmsTeachers.scienceDirection }).from(lmsTeachers).where(eq(lmsTeachers.id, id)),
+    ]);
     const person = people.get(id);
     if (!person) return null;
     const links = await db().select().from(lmsCourseTeachers).where(eq(lmsCourseTeachers.teacherId, id));
@@ -60,7 +85,13 @@ const professorPublic = publicCache(
     const deptMap = new Map(depts.map((d) => [d.id, d]));
     const newest = [...rows].sort((a, b) => Number(b.semesterId ?? 0) - Number(a.semesterId ?? 0));
     const dept = newest.find((r) => r.departmentId && deptMap.has(r.departmentId));
-    const department = dept ? deptMap.get(dept.departmentId!)?.name ?? null : null;
+    // The LMS staff profile names the department; the courses' department is the fallback.
+    const department = profile?.department ?? (dept ? deptMap.get(dept.departmentId!)?.name ?? null : null);
+
+    // Years at NewUU: from the earliest semester they taught in that we can date.
+    const semesterIds = [...new Set(rows.map((r) => r.semesterId).filter((s): s is string => !!s))];
+    const sems = semesterIds.length ? await db().select().from(lmsSemesters).where(inArray(lmsSemesters.id, semesterIds)) : [];
+    const first = sems.map((s) => ({ name: s.name, day: semesterStart(s) })).filter((s) => s.day).sort((a, b) => a.day!.localeCompare(b.day!))[0];
     const school = dept ? rootOf(dept.departmentId, deptMap)?.name ?? null : null;
 
     const courses = new Map<string, ProfessorView["courses"][number]>();
@@ -84,19 +115,25 @@ const professorPublic = publicCache(
       }
     }
     return {
-      id, name: person.name, position: person.position, department, school, summary,
+      id, name: person.name, position: person.position, face: person.face, department, school, summary,
       courses: [...courses.values()],
       when: [...when.values()].sort((a, b) => (a.weekday + 6) % 7 - (b.weekday + 6) % 7 || a.time.localeCompare(b.time)),
-      education: null, publications: null, years: null, anonymous,
+      education: profile?.education?.length ? profile.education : null,
+      publications: profile?.publications?.length ? profile.publications : null,
+      research: profile?.research ?? null,
+      since: first ? (first.name ? termName(first.name) || first.name : null) : null,
+      sinceDay: first?.day ?? null,
+      anonymous,
     };
   },
   (id) => [TAGS.teacher(id), TAGS.ratings, TAGS.catalog],
 );
 
-export async function professor(id: string, viewer: Viewer): Promise<ProfessorView | null> {
+export async function professor(id: string, viewer: Viewer, now = new Date()): Promise<ProfessorView | null> {
   const [pub, student] = await Promise.all([professorPublic(id), viewer ? loadStudent(viewer.userId, { refresh: false }) : Promise.resolve(null)]);
   if (!pub) return null;
-  return { ...pub, signedIn: !!student, teachesYou: !!student?.cache?.timetable.some((l) => l.teacher === id) };
+  const { sinceDay, ...rest } = pub;
+  return { ...rest, years: sinceDay ? yearsSince(sinceDay, now) : null, signedIn: !!student, teachesYou: !!student?.cache?.timetable.some((l) => l.teacher === id) };
 }
 
 export type ProfessorsView = {
@@ -105,7 +142,11 @@ export type ProfessorsView = {
   yours: Array<ProfessorRow>;
   all: Array<ProfessorRow>;
 };
-export type ProfessorRow = { id: string; name: string; department: string | null; school: string | null; course: string | null; pressFPct: number | null; href: string };
+export type ProfessorRow = {
+  id: string; name: string; department: string | null; school: string | null; course: string | null; pressFPct: number | null; href: string;
+  /** Drawn face URL, null when none is assigned. Always set by the server. */
+  face?: string | null;
+};
 
 const professorsPublic = publicCache(
   "professors",
@@ -125,8 +166,8 @@ const professorsPublic = publicCache(
       const deptId = taught.find((c) => c.departmentId)?.departmentId ?? null;
       const s = summaries[id];
       return {
-        id, name: people.get(id)?.name ?? "Teacher", department: deptId ? deptMap.get(deptId)?.name ?? null : null, school: rootOf(deptId, deptMap)?.name ?? null,
-        course: taught[0]?.name ?? null, pressFPct: s?.enough ? s.pressFPct : null, href: `/p/${id}`,
+        id, name: people.get(id)?.name ?? "Teacher", department: people.get(id)?.department ?? (deptId ? deptMap.get(deptId)?.name ?? null : null), school: rootOf(deptId, deptMap)?.name ?? null,
+        course: taught[0]?.name ?? null, pressFPct: s?.enough ? s.pressFPct : null, href: `/p/${id}`, face: people.get(id)?.face ?? null,
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
     return { count: all.length, schools: [...new Set(all.map((p) => p.school).filter((s): s is string => !!s))].sort(), all };

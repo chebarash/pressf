@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, type LmsCurriculumData } from "@/lib/db/schema";
 import { publicCache, TAGS } from "./cache";
 import type { Viewer } from "./courses";
-import { lessonSlots, ratingsByCode, recommendOf, slotsLabel, teacherSummaries, teachersByIds, type RatingSummaryView } from "./shared";
+import { lessonSlots, ratingsByCode, recommendOf, semesterPhases, slotsLabel, teacherSummaries, teachersByIds, type RatingSummaryView, type SemesterPhaseView } from "./shared";
 import { loadStudent, type Student } from "./student";
 
 /** Curriculum (7.6), Schools and programs (7.8), Next semester and cohorts (4.14, 4.15). */
@@ -133,21 +133,33 @@ export type NextSemesterView = {
   term: string | null;
   ects: number;
   courses: NextCourse[];
-  /** Registration milestones ahead, from the academic calendar. */
-  phases: Array<{ title: string; starts: string; ends: string; label: string }>;
+  /**
+   * Registration milestones ahead: the LMS semester calendar (cohort selection,
+   * schedule builder, add/drop, classes start) when synced, else the published academic calendar.
+   */
+  phases: Array<{ title: string; starts: string; ends: string; label: string; kind?: SemesterPhaseView["kind"] | "registration" | "induction"; semester?: string | null }>;
   /** No study plan found for the student yet. */
   missing: boolean;
 };
 
 /** Figma 4.14 and 4.15: the next semester from the student's cohort plan, with cohorts per course. */
 export async function nextSemester(userId: string, now = new Date()): Promise<NextSemesterView | null> {
-  const [student, all] = await Promise.all([loadStudent(userId), plans()]);
+  const today = localDay(now);
+  const [student, all, lmsPhases] = await Promise.all([loadStudent(userId), plans(), semesterPhases(today)]);
   if (!student) return null;
   const plan = planFor(all, student);
-  const today = localDay(now);
-  const phases = WEEKS.filter((w) => (w.kind === "registration" || w.kind === "induction") && w.ends >= today)
-    .slice(0, 3)
-    .map((w) => ({ title: w.kind === "registration" ? "Course registration in LMS" : "Classes start", starts: w.starts, ends: w.ends, label: w.starts === w.ends ? shortDate(w.starts) : `${shortDate(w.starts)} – ${shortDate(w.ends)}` }));
+  const label = (a: string, b: string) => (a === b ? shortDate(a) : `${shortDate(a)} – ${shortDate(b)}`);
+  const fromLms = lmsPhases
+    .filter((p) => p.kind !== "other" && !(p.kind === "studies" && p.startDay < today))
+    .slice(0, 4)
+    // Classes start is a day, not a range.
+    .map((p) => (p.kind === "studies" ? { ...p, endDay: p.startDay } : p))
+    .map((p) => ({ title: p.title, starts: p.startDay, ends: p.endDay, label: label(p.startDay, p.endDay), kind: p.kind, semester: p.semester }));
+  const phases: NextSemesterView["phases"] = fromLms.length
+    ? fromLms
+    : WEEKS.filter((w) => (w.kind === "registration" || w.kind === "induction") && w.ends >= today)
+        .slice(0, 3)
+        .map((w) => ({ title: w.kind === "registration" ? "Course registration in LMS" : "Classes start", starts: w.starts, ends: w.ends, label: label(w.starts, w.ends), kind: w.kind === "registration" ? "registration" as const : "induction" as const, semester: null }));
   if (!plan) return { term: null, ects: 0, courses: [], phases, missing: true };
 
   const current = new Set([...student.sync.courses.filter((c) => student.sync.semesters.find((s) => s.id === c.semesterId)?.open).map((c) => c.subjectId), ...(student.cache?.enrollment?.codes ?? [])]);

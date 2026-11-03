@@ -114,7 +114,7 @@ export function lmsNotifications(payload: LmsNotificationsPayload | null | undef
 export function announcementAlerts(list: LmsNotification[]): Alert[] {
   return list.map((n) => {
     const item = { ...fromLms(n), href: path({ to: "notifications", id: `lms:${n.id}` }) };
-    return { item, setting: "announcement" as const, message: msg.announcement({ id: item.id, title: item.title, course: "", teacher: n.author ?? null, needsAck: !!item.needsAck }) };
+    return { item, setting: "announcement" as const, message: msg.announcement({ id: item.id, title: item.title, course: item.courseName ?? "", teacher: item.author ?? null, needsAck: !!item.needsAck }) };
   });
 }
 

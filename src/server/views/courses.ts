@@ -1,11 +1,12 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { roleOf } from "@/core/people";
-import type { TagShare, TeacherRole, TeacherTag } from "@/core/ratings";
+import type { RatingInput, TagShare, TeacherRole, TeacherTag } from "@/core/ratings";
 import { dayInfo } from "@/core/semester";
 import { getCatalog } from "@/lib/catalog";
 import { courseDetails, resolveRequirement, unlocks } from "@/lib/content";
 import { db } from "@/lib/db";
-import { lmsCourseTeachers, lmsCourses, lmsFiles, uploads, userState } from "@/lib/db/schema";
+import { lmsCourseTeachers, lmsCourses, lmsFiles, lmsSemesters, uploads, userState } from "@/lib/db/schema";
+import { termName } from "@/server/sync/types";
 import { describeFile, downloadName, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
 import { shownAs } from "@/core/uploads";
 import { signedUrl } from "@/lib/storage";
@@ -14,7 +15,7 @@ import { publicCache, TAGS } from "./cache";
 import { progressCourses, type AbsencesView, type ProgressCourse } from "./progress";
 import { myRatingFor, rateQueueFor } from "./rate";
 import {
-  courseFiles, lessonSlots, mentionsOf, ratingsByCode, recommendOf, ROLE_LABEL, slotsLabel, teacherSummaries, teachersByIds,
+  courseFiles, lessonSlots, lmsFileDate, mentionsOf, ratingsByCode, recommendOf, ROLE_LABEL, slotsLabel, teacherSummaries, teachersByIds,
   type FileItem, type MentionsView, type RatingSummaryView, type DeadlineView,
 } from "./shared";
 import { loadStudent, type Student, type SyncState } from "./student";
@@ -46,7 +47,7 @@ export async function courseCards(student: Student, courses: ProgressCourse[]): 
     const slots = slotsLabel(lessons.map((l) => ({ weekday: (l.day + 1) % 7, time: l.starts })));
     const room = lessons.find((l) => l.room)?.room;
     return {
-      courseId: c.courseId, code: c.code, name: c.name, recommendPct: recommendOf(ratings[c.code]), teacher: t ? { id: t.id, name: t.name } : null,
+      courseId: c.courseId, code: c.code, name: c.name, recommendPct: recommendOf(ratings[c.code]), teacher: t ? { id: t.id, name: t.name, face: t.face } : null,
       when: slots ? `${slots}${room ? ` · ${room}` : ""}` : null, mark: c.mark, href: c.code ? `/c/${c.code}` : c.href,
     };
   });
@@ -89,6 +90,8 @@ export type TeacherCard = {
   ratings: number;
   when: string | null;
   topTag: TeacherTag | null;
+  /** Drawn face URL, null when none is assigned. Always set by the server. */
+  face?: string | null;
   href: string;
 };
 
@@ -131,17 +134,26 @@ export type CourseView = {
   files: { all: number; byType: Partial<Record<FileType, number>>; items: FileItem[] } | null;
   syllabus: SyllabusFold | null;
   you: YouInCourse | null;
-  rate: { canRate: boolean; rated: boolean; term: string | null; href: string } | null;
+  /** `answers`: the student's saved rating for this course, to prefill "Edit your rating" (null when not rated). */
+  rate: { canRate: boolean; rated: boolean; term: string | null; href: string; answers?: RatingInput | null } | null;
+  /** The viewer's current courses (same cards as myCourses()), for the desktop list pane (D4). Null for guests. */
+  myCourses?: CourseCard[] | null;
 };
 
 /** LMS semester id → "Fall 2026", learned from students' gradebooks as they sync. */
 export const semesterNames = publicCache(
   "semester-names",
   async (): Promise<Record<string, string>> => {
-    const rows = await db().execute<{ id: string; term: string }>(
-      sql`select distinct s->>'id' as id, s->>'term' as term from ${userState}, jsonb_array_elements(coalesce(${userState.snapshot}->'lms'->'semesters', '[]'::jsonb)) as s`,
-    );
-    return Object.fromEntries(rows.rows.filter((r) => r.id && r.term).map((r) => [r.id, r.term]));
+    const [rows, named] = await Promise.all([
+      db().execute<{ id: string; term: string }>(
+        sql`select distinct s->>'id' as id, s->>'term' as term from ${userState}, jsonb_array_elements(coalesce(${userState.snapshot}->'lms'->'semesters', '[]'::jsonb)) as s`,
+      ),
+      db().select({ id: lmsSemesters.id, name: lmsSemesters.name }).from(lmsSemesters),
+    ]);
+    // The harvested semester list wins; students' gradebook names fill any gap.
+    const fromStudents = rows.rows.filter((r) => r.id && r.term && !/^Semester \d+$/.test(r.term)).map((r) => [r.id, r.term] as const);
+    const fromLms = named.filter((r) => r.name).map((r) => [r.id, termName(r.name) || r.name!] as const);
+    return Object.fromEntries([...fromStudents, ...fromLms]);
   },
   () => [TAGS.catalog],
 );
@@ -185,6 +197,7 @@ const coursePublic = publicCache(
           id: l.teacherId, name: people.get(l.teacherId)?.name ?? "Teacher", role, roleLabel: ROLE_LABEL[role],
           pressFPct: forCourse?.pct ?? (s?.enough ? s.pressFPct : null), ratings: s?.count ?? 0,
           when: slotsLabel(slots.filter((x) => x.teacherId === l.teacherId)), topTag: (s?.enough ? (s.tags[0] as TagShare<TeacherTag> | undefined)?.tag : null) ?? null,
+          face: people.get(l.teacherId)?.face ?? null,
           href: `/p/${l.teacherId}`,
         });
       }
@@ -250,7 +263,7 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
 
   const [files, progressRows, queue, rated] = await Promise.all([
     signedIn ? courseFiles(clean) : Promise.resolve(null),
-    student && taken ? progressCourses(student, now) : Promise.resolve([]),
+    student ? progressCourses(student, now) : Promise.resolve([]),
     student && taken ? rateQueueFor(student, now) : Promise.resolve(null),
     viewer && taken ? myRatingFor(viewer.userId, pub.rows.map((r) => r.id)) : Promise.resolve(null),
   ]);
@@ -281,7 +294,9 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
   for (const f of files ?? []) byType[f.type] = (byType[f.type] ?? 0) + 1;
 
   const waitingHere = queue?.waiting.find((w) => pub.rows.some((r) => r.id === w.courseId));
+  const list = student ? await courseCards(student, progressRows) : null;
   return {
+    myCourses: list,
     code: pub.code,
     name: pub.name,
     courseId,
@@ -298,7 +313,7 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
     syllabus: signedIn ? pub.syllabus : null,
     you,
     rate: taken && you?.status === "took"
-      ? { canRate: !!waitingHere || !!rated, rated: !!rated, term: waitingHere?.term ?? rated?.term ?? you.term, href: `/rate/${taken.subjectId}` }
+      ? { canRate: !!waitingHere || !!rated, rated: !!rated, term: waitingHere?.term ?? rated?.term ?? you.term, href: `/rate/${taken.subjectId}`, answers: rated?.answers ?? null }
       : null,
   };
 }
@@ -322,6 +337,12 @@ export type FileView =
       date: string;
       dateLabel: string;
       size: number | null;
+      /** PDF page count (LMS files), null when unknown. */
+      pages?: number | null;
+      /** The course's lecturer, for the course detail next to the file (D12). Always set by the server. */
+      teacher?: { id: string; name: string; face: string | null } | null;
+      /** Other files of the same course and week (D12). Always set by the server. */
+      sameWeek?: FileItem[];
       mimeType: string | null;
       downloadName: string;
       /** Signed bucket URL (1 h), null when storage is not configured. */
@@ -339,6 +360,20 @@ async function sign(key: string | null, name: string) {
   }
 }
 
+/** D12 beside a file: the course's lecturer and the other files of the same week (signed-in only). */
+async function fileContext(code: string, courseId: string, week: number | null, id: string) {
+  const [links, files] = await Promise.all([
+    db().select().from(lmsCourseTeachers).where(eq(lmsCourseTeachers.courseId, courseId)),
+    code ? courseFiles(code) : Promise.resolve([] as FileItem[]),
+  ]);
+  const lead = links.find((l) => roleOf(l.role) === "lecture") ?? links[0];
+  const t = lead ? (await teachersByIds([lead.teacherId])).get(lead.teacherId) : undefined;
+  return {
+    teacher: t ? { id: t.id, name: t.name, face: t.face } : null,
+    sameWeek: week === null ? [] : files.filter((x) => x.week === week && x.id !== id),
+  };
+}
+
 /** Figma 4.9. Files are for signed-in students only; guests get `locked`. */
 export async function file(id: string, viewer: Viewer): Promise<FileView | null> {
   if (UUID.test(id)) {
@@ -351,9 +386,11 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
     const type = (u.type as FileType) ?? "other";
     const ext = meta.format === "other" ? "" : u.fileName.match(/\.([A-Za-z0-9]{1,5})$/)?.[1] ?? "";
     const name = downloadName(u.title, course.name, meta.format, ext);
+    const [url, ctx] = await Promise.all([sign(u.storageKey, name), fileContext(course.code, u.courseId, u.week, id)]);
     return {
+      ...ctx,
       locked: false, id, source: "students", title: u.title, course, week: u.week, type, typeLabel: TYPE_LABEL[type] ?? "File", format: meta.format, formatCode: FORMAT_CODE[meta.format],
-      from: shownAs(u.showName, null), date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), size: u.size, mimeType: u.mimeType, downloadName: name, url: await sign(u.storageKey, name),
+      from: shownAs(u.showName, null), date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), size: u.size, pages: null, mimeType: u.mimeType, downloadName: name, url,
     };
   }
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
@@ -365,9 +402,12 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
   const meta = describeFile(f.name, { courseCode: f.code, courseName: course.name, extension: f.extension ?? undefined });
   const lessonWeek = f.lessonId && c ? lessonSlots(c.raw).filter((s) => s.lessonId === f.lessonId).map((s) => dayInfo(new Date(s.at)).week?.week ?? null)[0] ?? null : null;
   const name = downloadName(meta.title, course.name, meta.format, f.extension ?? "");
+  const week = meta.week ?? lessonWeek;
+  const [url, ctx] = await Promise.all([sign(f.storageKey, name), fileContext(f.code, f.courseId, week, id)]);
   return {
-    locked: false, id, source: "lms", title: meta.title, course, week: meta.week ?? lessonWeek, type: meta.type, typeLabel: TYPE_LABEL[meta.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
-    from: "LMS", date: f.fetchedAt.toISOString(), dateLabel: shortDate(f.fetchedAt), size: f.size, mimeType: f.mimeType, downloadName: name, url: await sign(f.storageKey, name),
+    ...ctx,
+    locked: false, id, source: "lms", title: meta.title, course, week, type: meta.type, typeLabel: TYPE_LABEL[meta.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
+    from: "LMS", date: lmsFileDate(f).toISOString(), dateLabel: shortDate(lmsFileDate(f)), size: f.size, pages: f.pages, mimeType: f.mimeType, downloadName: name, url,
   };
 }
 

@@ -1,8 +1,9 @@
 import { and, asc, count, eq } from "drizzle-orm";
 import { canMove, rejectMessage, liveMessage, routeUpload, trustOf, type RejectReason, type Trust, type UploadStatus } from "@/core/uploads";
 import { db } from "@/lib/db";
-import { uploads, userRoles } from "@/lib/db/schema";
+import { lmsCourses, uploads, userRoles } from "@/lib/db/schema";
 import { audit } from "./audit";
+import { invalidateUpload } from "./views/cache";
 
 export type NewUpload = Omit<typeof uploads.$inferInsert, "id" | "status" | "createdAt" | "reviewedAt" | "reviewedBy" | "opens">;
 
@@ -29,7 +30,18 @@ export async function submitUpload(input: NewUpload, roll = Math.random()) {
     .onConflictDoNothing({ target: [uploads.sha256, uploads.courseId] })
     .returning();
   if (!row) return { duplicate: true as const };
+  if (row.status === "live") await refreshPages(row);
   return { duplicate: false as const, upload: row, status: route };
+}
+
+/** Course pages list live student files: refresh them when one appears, changes or goes. */
+async function refreshPages(row: { courseId: string; courseCode: string | null }, before?: { courseId: string; courseCode: string | null }) {
+  const codes = new Set<string | null>();
+  for (const r of [row, before]) {
+    if (!r) continue;
+    codes.add(r.courseCode ?? (await db().select({ code: lmsCourses.code }).from(lmsCourses).where(eq(lmsCourses.id, r.courseId)))[0]?.code ?? null);
+  }
+  for (const code of codes) invalidateUpload(code);
 }
 
 export const queue = (status: UploadStatus = "waiting", limit = 100) =>
@@ -45,6 +57,8 @@ async function move(id: string, to: UploadStatus, actorId: string, extra: Partia
     .where(and(eq(uploads.id, id), eq(uploads.status, row.status)))
     .returning();
   if (!updated) throw new Error("Upload changed while reviewing; reload");
+  // Only a file that is or was live shows on public pages.
+  if (row.status === "live" || to === "live") await refreshPages(updated, row);
   return updated;
 }
 

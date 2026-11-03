@@ -1,7 +1,7 @@
 import { attendance, attendanceEvents, attendanceLine, type AttendanceStatus, type Mark } from "@/core/attendance";
 import { tier } from "@/core/grades";
 import { DAY_MS, shortDate, weekdayName } from "@/core/time";
-import type { SyncedCourse } from "@/server/sync/types";
+import { termName, type SyncedCourse } from "@/server/sync/types";
 import { rateQueueFor } from "./rate";
 import { coursesByIds, deadlines, deadlineView, sameCourse, teachersByIds, type DeadlineView } from "./shared";
 import { loadStudent, type Student, type SyncState } from "./student";
@@ -45,7 +45,8 @@ export type ProgressView = {
   /** No marks yet anywhere (Figma 5.3). */
   empty: boolean;
   /** All final marks of the current semester are in (Figma 5.6). */
-  results: { term: string; courses: Array<{ courseId: string; name: string; mark: number | null; passed: boolean | null; fx: boolean }> } | null;
+  /** `gpa`: the semester GPA when the LMS transcript lists one, else null. */
+  results: { term: string; gpa?: number | null; courses: Array<{ courseId: string; name: string; mark: number | null; passed: boolean | null; fx: boolean }> } | null;
 };
 
 const absencesOf = (c: SyncedCourse): AbsencesView | null => {
@@ -83,9 +84,13 @@ export async function progress(userId: string, now = new Date()): Promise<Progre
   const profile = student.cache?.profile ?? null;
   const open = student.sync.semesters.find((s) => s.open) ?? null;
   const past = student.sync.semesters.filter((s) => !s.open).sort((a, b) => Number(b.id) - Number(a.id));
+  // Per-semester GPA only when the LMS transcript lists one; NewUU's usually does not (then null).
+  const gpas = profile?.semesterGpa ?? {};
+  const byName = new Map(Object.entries(gpas).map(([k, v]) => [termName(k) || k, v]));
+  const gpaOf = (id: string | null, term: string) => (id ? gpas[id] : undefined) ?? gpas[term] ?? byName.get(termName(term) || term) ?? null;
   const earlier = past.length
-    ? past.map((s) => ({ term: s.term, courses: student.sync.courses.filter((c) => c.semesterId === s.id).length, ects: null, gpa: null }))
-    : (profile?.semesters ?? []).filter((s) => !s.open).map((s) => ({ term: s.name, courses: s.courses.length, ects: null, gpa: null }));
+    ? past.map((s) => ({ term: s.term, courses: student.sync.courses.filter((c) => c.semesterId === s.id).length, ects: null, gpa: gpaOf(s.id, s.term) }))
+    : (profile?.semesters ?? []).filter((s) => !s.open).map((s) => ({ term: s.name, courses: s.courses.length, ects: null, gpa: gpaOf(null, s.name) }));
   const allFinal = courses.length > 0 && courses.every((c) => c.final !== null);
   return {
     state: student.state,
@@ -98,7 +103,7 @@ export async function progress(userId: string, now = new Date()): Promise<Progre
     earlier,
     rate: { term: queue.ask.term, waiting: queue.waiting.length, rated: queue.rated.length },
     empty: courses.every((c) => c.mark === null) && !profile?.gpa,
-    results: allFinal && open ? { term: open.term, courses: courses.map((c) => ({ courseId: c.courseId, name: c.name, mark: c.final, passed: c.passed, fx: c.fx })) } : null,
+    results: allFinal && open ? { term: open.term, gpa: gpaOf(open.id, open.term), courses: courses.map((c) => ({ courseId: c.courseId, name: c.name, mark: c.final, passed: c.passed, fx: c.fx })) } : null,
   };
 }
 
@@ -148,6 +153,28 @@ export async function courseProgress(userId: string, courseId: string, now = new
     teacher: lead ? people.get(lead.teacherId)?.name ?? null : null,
     events,
   };
+}
+
+export type CourseAttendance = { courseId: string; code: string; name: string; absences: AbsencesView | null };
+
+/**
+ * Attendance for one current course from the stored snapshot (no LMS call), for
+ * "N absences left in this course" after a QR check-in. `course` may be the LMS
+ * subject id, the course code or the course name (the QR answer carries a name).
+ */
+export async function courseAttendance(userId: string, course: string): Promise<CourseAttendance | null> {
+  const student = await loadStudent(userId, { refresh: false });
+  if (!student) return null;
+  const open = new Set(student.sync.semesters.filter((s) => s.open).map((s) => s.id));
+  const current = student.sync.courses.filter((c) => open.has(c.semesterId));
+  const refs = await coursesByIds(current.map((c) => c.subjectId));
+  const want = course.trim();
+  const hit = current.find((c) => c.subjectId === want)
+    ?? current.find((c) => (refs.get(c.subjectId)?.code ?? "").toUpperCase() === want.toUpperCase())
+    ?? current.find((c) => sameCourse(c.name, want) || sameCourse(refs.get(c.subjectId)?.name, want));
+  if (!hit) return null;
+  const ref = refs.get(hit.subjectId);
+  return { courseId: hit.subjectId, code: ref?.code ?? "", name: ref?.name ?? hit.name, absences: absencesOf(hit) };
 }
 
 export type AssignmentsView = {

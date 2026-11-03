@@ -21,6 +21,13 @@ export type LmsEmployeeDetail = {
   sur_name_en?: string;
   /** Position/title lives in `academicStatus.name` (the object, not a string). */
   academicStatus?: { name?: string } | null;
+  /** School → department chain (object or list), read for the department name. */
+  departmentTree?: unknown;
+  /** Degrees and publications; shapes vary, parsed leniently in the harvest. */
+  education?: unknown;
+  publications?: unknown;
+  science_direction?: string | null;
+  // `imagesUrls` (the real photo) is deliberately not typed: Press F never stores or shows it.
 };
 
 export type LmsSubjectSummary = {

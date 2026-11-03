@@ -26,6 +26,8 @@ export type TimetableView = {
   /** Monday–Friday of the selected day's week. */
   week: Array<{ day: string; label: string; date: string; selected: boolean; today: boolean; classes: number }>;
   classes: TimetableClass[];
+  /** Every class of the selected day's week (Monday–Sunday), for the desktop week grid (D3). Always set by the server. */
+  weekClasses?: ClassView[];
   holiday: Holiday | null;
   /** No classes that day: the next class, for "Next: Monday 10:00, Calculus 1 in B-204." */
   nextClass: { label: string; class: ClassView } | null;
@@ -66,6 +68,7 @@ export async function timetable(userId: string, day?: string, now = new Date()):
       materials: files.filter((f) => c.lessonIds.includes(f.lessonId ?? "")).map((f) => lmsFileItem(f, { code: c.code, name: c.name }, new Map())),
       absences: courses.find((p) => p.courseId === c.courseId)?.absences ?? null,
     })),
+    weekClasses: classes.filter((c) => { const d = localDay(new Date(c.start)); return d >= monday && d <= addDays(monday, 6); }),
     holiday: info.holiday,
     nextClass: onDay.length || !after ? null : { label: `${weekdayName(new Date(after.start))} ${after.time}`, class: after },
   };

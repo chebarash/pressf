@@ -160,6 +160,10 @@ export const homework = (s: LmsSession, page = 1, limit = 50) =>
 export const semesterCalendar = (s: LmsSession, semesterId: string | number) =>
   request<unknown>(`/semester/calendar?semester_id=${semesterId}`, { token: s.token });
 
+/** Every semester the LMS knows, with its name ("Fall 2023"). */
+export const semesterList = (s: LmsSession) =>
+  request<unknown>("/semester/semester-list", { token: s.token });
+
 /**
  * Activate a classroom QR code for the signed-in student. Returns the HTTP
  * status with the body, because 404 (unknown code) is an answer, not a failure.

@@ -1,4 +1,6 @@
 import { eq } from "drizzle-orm";
+import { PDFDocument } from "pdf-lib";
+import { lmsDate } from "@/lib/lms/semesters";
 import { db } from "@/lib/db";
 import { lmsCourses, lmsFiles, syllabi } from "@/lib/db/schema";
 import { downloadFile, lesson, type LmsSession } from "@/lib/lms/client";
@@ -24,16 +26,35 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const mimeOf = (ext: string | undefined, fallback: string) =>
   ext === "pdf" ? "application/pdf" : ext && /^[a-z0-9]+$/i.test(ext) ? `application/${ext}` : fallback;
 
+/** Page count of a PDF, or null when it is not one or cannot be read. */
+export async function pdfPages(bytes: Uint8Array, extension?: string | null, mimeType?: string | null): Promise<number | null> {
+  const isPdf = extension?.toLowerCase() === "pdf" || mimeType === "application/pdf" || Buffer.from(bytes.subarray(0, 5)).toString("latin1") === "%PDF-";
+  if (!isPdf) return null;
+  try {
+    const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false, throwOnInvalidObject: false });
+    return doc.getPageCount();
+  } catch {
+    return null;
+  }
+}
+
 async function pullMaterial(session: LmsSession, courseId: string, code: string, lessonId: string, m: LmsMaterial) {
   if (!m.fileFullUrl || !m.id) return null;
-  const [existing] = await db().select({ version: lmsFiles.version }).from(lmsFiles).where(eq(lmsFiles.id, m.id));
-  if (existing && existing.version === (m.file_version ?? null)) return m; // already have this version
+  const dates = { lmsCreatedAt: lmsDate(m.created_at), lmsUpdatedAt: lmsDate(m.updated_at) };
+  const [existing] = await db().select({ version: lmsFiles.version, created: lmsFiles.lmsCreatedAt }).from(lmsFiles).where(eq(lmsFiles.id, m.id));
+  if (existing && existing.version === (m.file_version ?? null)) {
+    // Already have this version; fill in the LMS dates of files pulled before we kept them.
+    if (!existing.created && (dates.lmsCreatedAt || dates.lmsUpdatedAt)) await db().update(lmsFiles).set(dates).where(eq(lmsFiles.id, m.id));
+    return m;
+  }
   const { bytes, contentType } = await downloadFile(session, m.fileFullUrl);
   const key = `lms/${courseId}/${m.id}${m.file_extension ? `.${m.file_extension}` : ""}`;
-  await putObject(key, bytes, mimeOf(m.file_extension, contentType));
+  const mimeType = mimeOf(m.file_extension, contentType);
+  await putObject(key, bytes, mimeType);
   const row = {
     id: m.id, courseId, code, lessonId, name: m.name, extension: m.file_extension ?? null,
-    version: m.file_version ?? null, storageKey: key, size: bytes.length, mimeType: mimeOf(m.file_extension, contentType), fetchedAt: new Date(),
+    version: m.file_version ?? null, storageKey: key, size: bytes.length, mimeType, fetchedAt: new Date(),
+    pages: await pdfPages(bytes, m.file_extension, mimeType), ...dates,
   };
   await db().insert(lmsFiles).values(row).onConflictDoUpdate({ target: lmsFiles.id, set: row });
   return m;
