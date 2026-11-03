@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
     // course list): switching back to a section within these windows is instant,
     // with no loading screen. Mutations still refresh through server actions.
     staleTimes: { dynamic: 60, static: 300 },
+    // Admin "face from a photo" takes photos up to 8 MB (read in memory, never stored).
+    serverActions: { bodySizeLimit: "9mb" },
   },
   serverExternalPackages: ["pdf-lib", "@pdf-lib/fontkit", "pdfjs-dist", "pg"],
   outputFileTracingIncludes: {

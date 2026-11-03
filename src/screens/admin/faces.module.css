@@ -1,0 +1,23 @@
+/* A6 Professors · Faces · Build a face. Tokens only. */
+
+/* The drawing at the sizes the app uses, on the light page and on a dark one. */
+.stage {
+  flex: 1 0 0;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--face-backing);
+}
+.stageDark { background: var(--native-camera); }
+.face { flex-shrink: 0; object-fit: contain; }
+/* Same rule as the app's Face in dark mode: a thin white outline follows the head. */
+.stageDark .face { filter: drop-shadow(1px 0 0 var(--native-white)) drop-shadow(-1px 0 0 var(--native-white)) drop-shadow(0 1px 0 var(--native-white)) drop-shadow(0 -1px 0 var(--native-white)); }
+
+.parts { display: flex; flex-direction: column; gap: 10px; }
+.part { display: flex; gap: var(--space-2); align-items: flex-start; }
+.partLabel { width: 110px; flex-shrink: 0; padding-top: 3px; font-size: 13px; color: var(--text-secondary); }

@@ -1,7 +1,8 @@
 /**
  * Professor faces are drawings (Notion-Faces style line art), never photos.
- * Admins upload a PNG with a transparent background or an SVG; these checks run
- * on the server before anything reaches the bucket.
+ * Admins build one in the face constructor (src/core/face-parts.ts) or upload a
+ * PNG with a transparent background or an SVG; these checks run on the server
+ * before anything reaches the bucket.
  */
 
 export const FACE_MAX_BYTES = 512 * 1024;
