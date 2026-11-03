@@ -1,4 +1,5 @@
-import { currentUser, gradebookData, gradebookSemesters, myList, transcript } from "@/lib/lms/client";
+import { currentUser, gradebookData, gradebookSemesters, individualPlan, myList, transcript } from "@/lib/lms/client";
+import type { LmsIepRow } from "@/lib/lms/types";
 import { gradebookCourses, studiedSemesters } from "@/server/sync/convert";
 import { listOf, pick } from "@/lib/lms/semesters";
 import { sessionFor } from "@/lib/lms/store";
@@ -25,7 +26,28 @@ export type LmsProfile = {
    * seen carries only the overall GPA, so this is usually empty.
    */
   semesterGpa?: Record<string, number>;
+  /**
+   * The student's plan per LMS subject id: ECTS and whether the course is
+   * pass/fail, from the individual education plan. Used to compute semester GPAs.
+   */
+  plan?: Record<string, PlanCourse>;
 };
+
+export type PlanCourse = { ects: number | null; passFail: boolean };
+
+/** ECTS and pass/fail per subject id from `/individual-education-plan/my` (`rating_passed` "3" = pass/fail). */
+export function planCourses(rows: LmsIepRow[] | null | undefined): Record<string, PlanCourse> {
+  const out: Record<string, PlanCourse> = {};
+  for (const row of Array.isArray(rows) ? rows : []) {
+    for (const s of row.subjects ?? []) {
+      const id = String(s.subject_id ?? s.id ?? "").trim();
+      if (!id) continue;
+      const ects = Number(s.ects);
+      out[id] = { ects: s.ects != null && s.ects !== "" && Number.isFinite(ects) && ects > 0 ? ects : null, passFail: String(s.rating_passed ?? "").trim() === "3" };
+    }
+  }
+  return out;
+}
 
 /** Per-semester GPAs from a transcript payload, if it lists any (`semesters[].gpa`). */
 export function semesterGpas(payload: unknown): Record<string, number> {
@@ -52,11 +74,12 @@ export async function lmsProfile(userId: string, email: string): Promise<LmsProf
   const session = await sessionFor(userId);
   if (!session) return null;
 
-  const [me, tr, semesters, list] = await Promise.all([
+  const [me, tr, semesters, list, iep] = await Promise.all([
     currentUser(session).catch(() => null),
     transcript(session).catch(() => null),
     gradebookSemesters(session).catch(() => [] as Awaited<ReturnType<typeof gradebookSemesters>>),
     Promise.resolve().then(() => myList(session)).catch(() => null),
+    Promise.resolve().then(() => individualPlan(session)).catch(() => null),
   ]);
   const head = tr?.transcript ?? tr ?? {};
 
@@ -86,5 +109,6 @@ export async function lmsProfile(userId: string, email: string): Promise<LmsProf
     honors: head.diploma_with_honor === "1",
     semesters: built,
     semesterGpa: semesterGpas(tr),
+    plan: planCourses(iep),
   };
 }

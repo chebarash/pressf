@@ -1,13 +1,13 @@
 import { attendance, attendanceEvents, attendanceLine, type AttendanceStatus, type Mark } from "@/core/attendance";
-import { tier } from "@/core/grades";
+import { semesterGpa, tier } from "@/core/grades";
 import { DAY_MS, shortDate, weekdayName } from "@/core/time";
 import { termName, type SyncedCourse } from "@/server/sync/types";
 import { rateQueueFor } from "./rate";
 import { coursesByIds, deadlines, deadlineView, sameCourse, teachersByIds, type CourseRef, type DeadlineView } from "./shared";
 import { loadStudent, type Student, type SyncState } from "./student";
 import { db } from "@/lib/db";
-import { lmsCourseTeachers } from "@/lib/db/schema";
-import { inArray } from "drizzle-orm";
+import { lmsCourses, lmsCourseTeachers } from "@/lib/db/schema";
+import { inArray, sql } from "drizzle-orm";
 import { roleOf } from "@/core/people";
 import { termMatches, termSlug } from "@/core/semester";
 
@@ -50,14 +50,16 @@ export type ProgressView = {
   /** How many semesters the student has been enrolled, counting this one. */
   semesterNumber: number | null;
   currentTerm: string | null;
+  /** The current semester's own GPA, once all its finals are in; null before. Always set by the server. */
+  currentGpa?: number | null;
   courses: ProgressCourse[];
-  /** `href`: that semester's results (/progress/term/fall-2025). Always set by the server. */
+  /** `gpa`: the semester GPA (transcript, else computed from the finals); `ects`: its ECTS. `href`: that semester's results (/progress/term/fall-2025). Always set by the server. */
   earlier: Array<{ term: string; courses: number; ects: number | null; gpa: number | null; href?: string }>;
   rate: { term: string | null; waiting: number; rated: number };
   /** No marks yet anywhere (Figma 5.3). */
   empty: boolean;
   /** All final marks of the current semester are in (Figma 5.6). */
-  /** `gpa`: the semester GPA when the LMS transcript lists one, else null. */
+  /** `gpa`: the semester GPA (transcript, else computed from the finals), else null. */
   results: { term: string; gpa?: number | null; courses: Array<{ courseId: string; name: string; mark: number | null; passed: boolean | null; fx: boolean }> } | null;
 };
 
@@ -94,17 +96,18 @@ export async function progressCourses(student: Student, now: Date): Promise<Prog
 export async function progress(userId: string, now = new Date()): Promise<ProgressView | null> {
   const student = await loadStudent(userId);
   if (!student) return null;
-  const [courses, queue] = await Promise.all([progressCourses(student, now), rateQueueFor(student, now)]);
+  const [courses, queue, { gpaOf, ectsOf, past }] = await Promise.all([progressCourses(student, now), rateQueueFor(student, now), semestersOf(student)]);
   const profile = student.cache?.profile ?? null;
   const open = student.sync.semesters.find((s) => s.open) ?? null;
-  const { gpaOf, past } = semestersOf(student);
   const earlier = past.length
     ? past
-        .map((s) => ({ term: s.term, courses: student.sync.courses.filter((c) => c.semesterId === s.id).length, ects: null, gpa: gpaOf(s.id, s.term), href: termHref(s.term) }))
+        .map((s) => ({ term: s.term, courses: student.sync.courses.filter((c) => c.semesterId === s.id).length, ects: ectsOf(s.id), gpa: gpaOf(s.id, s.term), href: termHref(s.term) }))
         // A semester with nothing in the gradebook (an empty summer term) is not a semester studied.
         .filter((s) => s.courses > 0)
     : (profile?.semesters ?? []).filter((s) => !s.open).map((s) => ({ term: s.name, courses: s.courses.length, ects: null, gpa: gpaOf(null, s.name), href: termHref(s.name) }));
   const allFinal = courses.length > 0 && courses.every((c) => c.final !== null);
+  // This semester's own GPA only once its finals are in; never the cumulative one.
+  const currentGpa = allFinal && open ? gpaOf(open.id, open.term) : null;
   return {
     state: student.state,
     gpa: profile?.gpa ?? null,
@@ -112,12 +115,13 @@ export async function progress(userId: string, now = new Date()): Promise<Progre
     ectsTotal: profile?.ectsTotal ?? null,
     semesterNumber: semesterNumber(student) || profile?.semesters.length || null,
     currentTerm: queue.currentTerm,
+    currentGpa,
     courses,
     earlier,
     // The card names one semester, so its numbers are that semester's (older ones follow after it).
     rate: { term: queue.ask.term, waiting: queue.waiting.filter((w) => w.term === queue.ask.term).length, rated: queue.rated.filter((r) => r.term === queue.ask.term).length },
     empty: courses.every((c) => c.mark === null) && !profile?.gpa,
-    results: allFinal && open ? { term: open.term, gpa: gpaOf(open.id, open.term), courses: courses.map((c) => ({ courseId: c.courseId, name: c.name, mark: c.final, passed: c.passed, fx: c.fx })) } : null,
+    results: allFinal && open ? { term: open.term, gpa: currentGpa, courses: courses.map((c) => ({ courseId: c.courseId, name: c.name, mark: c.final, passed: c.passed, fx: c.fx })) } : null,
   };
 }
 
@@ -130,13 +134,42 @@ function semesterNumber(student: Student) {
 /** A past semester's results page (Figma 5.6 layout, reached from "Earlier semesters"). */
 export const termHref = (term: string) => `/progress/term/${termSlug(term)}`;
 
-/** Closed semesters, newest first, and the per-semester GPA lookup (null when the transcript has none). */
-function semestersOf(student: Student) {
+/**
+ * ECTS of each course the student took: the individual education plan first,
+ * else the catalog's `ects` (the LMS `credit_count` is contact credits, not ECTS).
+ */
+async function ectsByCourse(student: Student): Promise<Map<string, number | null>> {
+  const plan = student.cache?.profile?.plan ?? {};
+  const ids = [...new Set(student.sync.courses.map((c) => c.subjectId))];
+  const missing = ids.filter((id) => !plan[id]?.ects);
+  const rows = missing.length
+    ? await db().select({ id: lmsCourses.id, ects: sql<string | null>`${lmsCourses.raw}->>'ects'`, credits: lmsCourses.credits }).from(lmsCourses).where(inArray(lmsCourses.id, missing))
+    : [];
+  const catalog = new Map(rows.map((r) => [r.id, Number(r.ects) > 0 ? Number(r.ects) : r.credits]));
+  return new Map(ids.map((id) => [id, plan[id]?.ects ?? catalog.get(id) ?? null]));
+}
+
+/**
+ * Closed semesters, newest first, and the per-semester GPA lookup: the
+ * transcript's own figure when it lists one, else computed from the gradebook
+ * finals (`semesterGpa`). `ectsOf` is the semester's ECTS when every course has one.
+ */
+async function semestersOf(student: Student) {
   const gpas = student.cache?.profile?.semesterGpa ?? {};
+  const plan = student.cache?.profile?.plan ?? {};
   const byName = new Map(Object.entries(gpas).map(([k, v]) => [termName(k) || k, v]));
-  const gpaOf = (id: string | null, term: string): number | null => (id ? gpas[id] : undefined) ?? gpas[term] ?? byName.get(termName(term) || term) ?? null;
+  const ects = await ectsByCourse(student);
+  const coursesIn = (id: string) => student.sync.courses.filter((c) => c.semesterId === id);
+  const computed = (id: string) =>
+    semesterGpa(coursesIn(id).map((c) => ({ final: c.final, fx: c.fx, ects: ects.get(c.subjectId) ?? null, passFail: plan[c.subjectId]?.passFail ?? false })));
+  const gpaOf = (id: string | null, term: string): number | null =>
+    (id ? gpas[id] : undefined) ?? gpas[term] ?? byName.get(termName(term) || term) ?? (id ? computed(id) : null);
+  const ectsOf = (id: string): number | null => {
+    const list = coursesIn(id).map((c) => ects.get(c.subjectId) ?? null);
+    return list.length && list.every((e) => e !== null) ? list.reduce((n, e) => n + (e ?? 0), 0) : null;
+  };
   const past = student.sync.semesters.filter((s) => !s.open).sort((a, b) => Number(b.id) - Number(a.id));
-  return { gpaOf, past };
+  return { gpaOf, ectsOf, ects, past };
 }
 
 export type TermResultCourse = {
@@ -157,7 +190,7 @@ export type TermResultsView = {
   state: SyncState;
   /** "Fall 2025". */
   term: string;
-  /** Semester GPA when the LMS transcript lists one. */
+  /** Semester GPA: the transcript's, else computed from the finals. */
   gpa: number | null;
   /** Overall GPA and credits, as on Progress. */
   overallGpa: number | null;
@@ -176,7 +209,7 @@ export type TermResultsView = {
 export async function termResults(userId: string, segment: string, now = new Date()): Promise<TermResultsView | null> {
   const student = await loadStudent(userId);
   if (!student) return null;
-  const { gpaOf, past } = semestersOf(student);
+  const { gpaOf, ects, past } = await semestersOf(student);
   const profile = student.cache?.profile ?? null;
   const synced = past.find((s) => termMatches(s.term, segment));
   const fromTranscript = synced ? null : (profile?.semesters ?? []).find((s) => !s.open && termMatches(termName(s.name) || s.name, segment));
@@ -192,7 +225,7 @@ export async function termResults(userId: string, segment: string, now = new Dat
         .filter((c) => c.semesterId === synced.id)
         .map((c) => {
           const ref = refs.get(c.subjectId);
-          return { courseId: c.subjectId, code: ref?.code ?? "", name: ref?.name ?? c.name, mark: headline(c), passed: c.passed, fx: c.fx, ects: ref?.credits ?? null, href: `/progress/${c.subjectId}` };
+          return { courseId: c.subjectId, code: ref?.code ?? "", name: ref?.name ?? c.name, mark: headline(c), passed: c.passed, fx: c.fx, ects: ects.get(c.subjectId) ?? null, href: `/progress/${c.subjectId}` };
         })
     : fromTranscript!.courses.map((c) => ({ courseId: null, code: "", name: c.name, mark: c.mark, passed: c.passed, fx: false, ects: null, href: null }));
   courses.sort((a, b) => (b.mark ?? -1) - (a.mark ?? -1) || a.name.localeCompare(b.name));
