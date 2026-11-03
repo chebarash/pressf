@@ -32,13 +32,6 @@ export default function Courses({ data }: { data: MyCoursesView }) {
         </div>
       )}
 
-      <Link href="/next" className={b.nextStrip} prefetch>
-        <span className={b.rowBody}>
-          <span className={b.rowTitle}>{next?.term ? `Next: ${next.term}` : "Next semester"}</span>
-          <span className={b.rowSub}>{nextLine || "Your study plan, cohorts and what students say"}</span>
-        </span>
-        <ChevronRightIcon size={18} />
-      </Link>
 
       {data.earlier.length ? (
         <section className={s.earlier}>

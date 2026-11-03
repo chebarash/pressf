@@ -14,7 +14,6 @@ export const NAV: NavItem[] = [
   { label: "Today", href: path({ to: "today" }), icon: "pin", key: "h", group: "main" },
   { label: "Timetable", href: path({ to: "timetable" }), icon: "clock", key: "t", group: "main" },
   { label: "Courses", href: path({ to: "courses" }), icon: "book", key: "c", group: "main" },
-  { label: "Next semester", href: path({ to: "next" }), icon: "calendar", key: "s", group: "main", badge: "new" },
   { label: "Progress", href: path({ to: "progress" }), icon: "check", key: "p", group: "main" },
   { label: "Calendar", href: path({ to: "calendar" }), icon: "calendar", key: "k", group: "main" },
   { label: "Notifications", href: path({ to: "notifications" }), icon: "mail", key: "n", group: "main", badge: "count" },
