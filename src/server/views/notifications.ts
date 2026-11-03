@@ -1,6 +1,6 @@
 import { filterFeed, FILTERS, sections, unreadCount, type FeedKind } from "@/core/notifications";
 import { feed } from "@/server/feed";
-import { coursesByIds, feedView, type FeedView } from "./shared";
+import { coursesByIds, feedViews, type FeedView } from "./shared";
 import { loadStudent, type SyncState } from "./student";
 
 /** Notifications (Figma 2.9, 2.10): the unified feed with filters and sections. */
@@ -32,12 +32,15 @@ export async function notifications(userId: string, opts: { filter?: string; ope
   const filter = (ALL_FILTERS.find((f) => f.id === opts.filter)?.id ?? "all") as FeedFilter;
   const shown = filter === "deadline" ? items.filter((i) => i.kind === "deadline") : filterFeed(items, filter);
   const opened = opts.open ? items.find((i) => i.id === opts.open) : undefined;
+  const parts = sections(shown, now);
+  const views = await feedViews([...parts.flatMap((s) => s.items), ...(opened ? [opened] : [])], now, names);
+  const byId = new Map(views.map((v) => [v.id, v]));
   return {
     sync: student.state,
     unread: unreadCount(items),
     filter,
     filters: ALL_FILTERS.map((f) => ({ id: f.id, label: f.label, count: f.kinds.length ? items.filter((i) => f.kinds.includes(i.kind)).length : items.length })),
-    sections: sections(shown, now).map((s) => ({ title: s.title, items: s.items.map((i) => feedView(i, now, names)) })),
-    open: opened ? feedView(opened, now, names) : null,
+    sections: parts.map((s) => ({ title: s.title, items: s.items.map((i) => byId.get(i.id)!) })),
+    open: opened ? byId.get(opened.id)! : null,
   };
 }

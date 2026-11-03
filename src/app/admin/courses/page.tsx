@@ -19,6 +19,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
           <span className={cx(s.td, s.tdGrow)}>COURSE</span>
           <span className={s.td} style={{ width: 110 }}>FROM LMS</span>
           <span className={s.td} style={{ width: 130 }}>FROM STUDENTS</span>
+          <span className={s.td} style={{ width: 90 }}>SHARES</span>
         </div>
         {data.courses.length === 0 && <p className={s.small} style={{ padding: 12 }}>No course matches “{data.q}”.</p>}
         {data.courses.map((c) => (
@@ -27,6 +28,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
             <span className={cx(s.td, s.tdGrow, s.tdStrong)}>{c.name}</span>
             <span className={s.td} style={{ width: 110 }}>{c.lms}</span>
             <span className={s.td} style={{ width: 130 }}>{c.students}</span>
+            <span className={s.td} style={{ width: 90 }} title="Sent from the bot's inline mode">{c.shares}</span>
           </Link>
         ))}
       </div>

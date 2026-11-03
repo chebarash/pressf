@@ -113,7 +113,8 @@
 
 /* Status pills (Attended / Absent / Excused). */
 .pill { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: var(--radius-full); font-size: 12px; font-weight: 600; line-height: normal; white-space: nowrap; flex: none; }
-.pillOk { background: var(--bg-accent-soft); color: var(--text-accent); }
+/* Attended: the moss tint with the moss stroke (light #3f6f32, dark #a6cf8e). */
+.pillGood { background: var(--tint-moss); color: var(--school-medicine); }
 .pillBad { background: var(--tint-rust); color: var(--rating-low); }
 .pillMuted { background: var(--bg-sunken); color: var(--text-secondary); }
 .pillWarn { background: var(--tint-mustard); color: var(--text-primary); }

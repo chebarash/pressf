@@ -73,7 +73,20 @@ export function feedItems(now: Date): FeedView[] {
     item("grade:1", "grade", "New grade: 86 for the midterm", "Physics 1", 120),
     item("lms:2", "announcement", "Theory of Computation review sessions", "Alisher Ikramov", 180),
     item("abs:1", "absence", "Marked absent · 2 left", "Physics 1 · Practice 14", 60 * 24 * 4, { read: true }),
-    item("file:1", "file", "2 new files: Midterm review slides, Mock midterm", "Calculus 1 · Week 8", 60 * 24 * 2, { read: true }),
+    item("files:dl:f1,f2,f3,f4,f5", "file", "5 new files in Deep Learning", "Deep Learning", 90, {
+      body: "Week 8",
+      href: "/c/CS412",
+      files: {
+        count: 5,
+        shown: [
+          { id: "f1", title: "Lecture 15 — Backpropagation through time", type: "lecture", typeLabel: "Lecture", href: "/f/f1" },
+          { id: "f2", title: "Lab 7 — PyTorch RNNs", type: "lab", typeLabel: "Lab", href: "/f/f2" },
+          { id: "f3", title: "Mock midterm with answers", type: "mock", typeLabel: "Mock", href: "/f/f3" },
+        ],
+        more: 2,
+        courseHref: "/c/CS412/files",
+      },
+    }),
     item("due:1", "deadline", "Assignment 3 is due in 2 days", "Software Project Management · Thursday 23:59", 60 * 24 * 1.2, { read: true }),
     item("sys:1", "system", "Room changed to A-108", "Physics 1 · Thursday 13:00", 60 * 24 * 1.5, { read: true }),
   ];

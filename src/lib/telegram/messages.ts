@@ -1,4 +1,4 @@
-import { fileList } from "@/core/files";
+import { TYPE_LABEL, type FileType } from "@/core/files";
 import { path, type Target } from "@/core/links";
 import type { BotMessage, InlineButton, InlineKeyboard } from "./api";
 import { card, esc } from "./html";
@@ -117,13 +117,21 @@ export const newGrade = (a: { grade: number | string; course: string; courseId?:
   keyboard: open("See progress", { to: "progress", courseId: a.courseId }),
 });
 
-/** When files appear (bundled per course, at most once an hour). */
-export const newFiles = (a: { course: string; courseCode: string; files: string[]; week?: number | null }): BotMessage => {
+/**
+ * When files appear (bundled per course, at most once an hour): the count and
+ * course, the week, then the files as a short list (at most three, each once,
+ * with its type when known) and "and N more".
+ */
+export const newFiles = (a: { course: string; courseCode: string; files: Array<string | { title: string; type?: FileType | null }>; week?: number | null }): BotMessage => {
   const n = a.files.length;
-  // At most three titles named, each once ("A, B, C and 7 more").
-  const list = fileList(a.files);
+  const seen = new Set<string>();
+  const unique = a.files
+    .map((f) => (typeof f === "string" ? { title: f.trim(), type: null } : { title: f.title.trim(), type: f.type ?? null }))
+    .filter((f) => f.title && !seen.has(f.title) && seen.add(f.title));
+  const shown = unique.slice(0, 3).map((f) => `• ${f.title}${f.type && f.type !== "other" ? ` · ${TYPE_LABEL[f.type]}` : ""}`);
+  const more = unique.length - Math.min(unique.length, 3);
   return {
-    text: card(`${n} new ${n === 1 ? "file" : "files"} in ${a.course}`, a.week ? `Week ${a.week}: ${list}` : list),
+    text: card(`${n} new ${n === 1 ? "file" : "files"} in ${a.course}`, a.week ? `Week ${a.week}` : null, ...shown, more > 0 && `and ${more} more`),
     keyboard: open("Open course", { to: "course", code: a.courseCode, tab: "files" }),
   };
 };

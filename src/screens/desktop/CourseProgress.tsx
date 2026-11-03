@@ -11,7 +11,7 @@ export default function DesktopCourseProgress({ data }: { data: CourseProgressVi
   return <CourseProgressScreen data={adapt.courseProgress(data)} />;
 }
 
-const STATE_TONE: Partial<Record<ClassState, string>> = { qr: g.stateQr, absent: g.stateAbsent, unmarked: g.stateUnmarked };
+const STATE_TONE: Partial<Record<ClassState, string>> = { attended: g.stateAttended, absent: g.stateAbsent, excused: g.stateUnmarked, unmarked: g.stateUnmarked };
 
 export function CourseProgressScreen({ data }: { data: CourseProgressData }) {
   const states = (Object.keys(data.counts) as ClassState[]).filter((s) => data.counts[s] > 0);
@@ -41,7 +41,6 @@ export function CourseProgressScreen({ data }: { data: CourseProgressData }) {
                 <span className={cx(g.classState, STATE_TONE[c.state])}>
                   <span className={cx(g.dot, DOT[c.state])} aria-hidden />
                   {adapt.CLASS_STATE_LABEL[c.state]}
-                  {c.state === "late" && c.viaQr ? " · QR" : ""}
                 </span>
                 <span className={g.classScore}>{c.score ?? ""}</span>
               </li>

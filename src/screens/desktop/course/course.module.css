@@ -49,25 +49,36 @@
 /* Detail */
 .detail { padding: 28px var(--space-6) var(--space-7); display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .head { display: flex; flex-direction: column; gap: 12px; padding-top: var(--space-2); }
-.tags { display: flex; gap: var(--space-2); }
+.tags { display: flex; align-self: stretch; align-items: center; gap: var(--space-2); }
+.shareLink { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; padding: 6px 12px; border-radius: var(--radius-full); color: var(--text-secondary); font: 500 14px/normal var(--font-sans); text-decoration: none; }
+.shareLink:hover { background: var(--bg-sunken); color: var(--text-primary); }
+.shareLink:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 1px; }
 .name { font: 400 64px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
 .termSwitch { position: relative; align-self: flex-start; }
-.termSwitch summary {
-  list-style: none;
+.termPill {
+  appearance: none;
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   background: var(--bg-surface);
   border: 2px solid var(--border-subtle);
   border-radius: var(--radius-full);
+  color: var(--text-primary);
   font: 500 15px/1.3 var(--font-sans);
-  cursor: pointer;
 }
-.termSwitch summary::-webkit-details-marker { display: none; }
-.termMenu { position: absolute; z-index: 5; top: calc(100% + 6px); left: 0; min-width: 100%; display: flex; flex-direction: column; padding: 6px; background: var(--bg-surface); border: 1.5px solid var(--border-strong); border-radius: 12px; box-shadow: 0 3px 0 var(--shadow-key); }
-.termMenu a { padding: 6px 10px; border-radius: 8px; font: 500 14px/normal var(--font-sans); white-space: nowrap; }
-.termMenu a:hover { background: var(--bg-hover); }
+button.termPill { cursor: pointer; }
+button.termPill:hover { border-color: var(--border-strong); }
+button.termPill:focus-visible { outline: none; border-color: var(--border-accent); box-shadow: 0 0 0 1.5px var(--border-accent); }
+.termPill > svg:first-child { color: var(--text-secondary); }
+.termChev { transition: transform 120ms ease-out; }
+.termPill[aria-expanded="true"] .termChev { transform: rotate(180deg); }
+.termMenu { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; min-width: max(100%, 220px); display: flex; flex-direction: column; gap: 2px; padding: 6px; background: var(--bg-surface); border: 1.5px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--shadow-key-md); }
+.termItem { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 8px 10px; border-radius: var(--radius-sm); color: var(--text-primary); font: 500 14px/normal var(--font-sans); white-space: nowrap; text-decoration: none; outline: none; }
+.termItem:hover, .termItem:focus-visible { background: var(--bg-hover); }
+.termItem:focus-visible { box-shadow: inset 0 0 0 1.5px var(--border-accent); }
+.termItem[aria-checked="true"] { font-weight: 600; }
 
 .tabs { display: flex; gap: var(--space-2); padding: var(--space-2) 0; }
 .tab { display: inline-flex; align-items: center; height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-full); font: 500 15px/1.3 var(--font-sans); color: var(--text-primary); }
@@ -81,7 +92,13 @@
 .weekN { width: 24px; flex: none; font: 500 15px/1.3 var(--font-sans); }
 .weekTitle { flex: 1; min-width: 0; font: 400 16px/1.4 var(--font-sans); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .weekNow .weekTitle { color: var(--text-primary); }
-.weekFiles { display: flex; flex-direction: column; gap: var(--space-2); padding-left: 44px;  margin-top: -8px; }
+.weekFiles { display: flex; flex-direction: column; gap: var(--space-2); padding-left: 44px; }
+.weekFold { display: flex; flex-direction: column; gap: var(--space-2); }
+.weekBody { min-width: 0; }
+.weekEmpty { padding-left: 44px; }
+button.week:hover { background: var(--bg-sunken); }
+button.weekNow:hover { background: var(--bg-accent-soft); }
+.week > svg { margin-top: 3px; }
 /* Figma D4: a collapsed week row is the 358px WeekRow, its chevron right after the title. */
 .week:not(.weekNow) { width: 358px; max-width: 100%; }
 /* Files tab (4.7) and Anonymous tab on desktop. */

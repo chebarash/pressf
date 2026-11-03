@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import type { FileType } from "@/core/files";
-import { Button as KitButton, CourseCard as KitCourseCard, EmptyState, Face as KitFace, FeedItem, FileRow as KitFileRow, RatingRing, RatingStrip as KitRatingStrip, Score as KitScore, Tag as KitTag, type FeedType, type ScoreTier } from "@/ui/components";
+import { SITE_URL } from "@/core/links";
+import { Button as KitButton, CourseCard as KitCourseCard, EmptyState, Face as KitFace, FeedFiles, FeedItem, FileRow as KitFileRow, RatingRing, RatingStrip as KitRatingStrip, Score as KitScore, Tag as KitTag, type FeedType, type ScoreTier } from "@/ui/components";
 import { Icon, type IconName } from "./Icon";
 import { Prefetch } from "./Prefetch";
 import s from "./parts.module.css";
@@ -56,6 +57,10 @@ export function ButtonLink({ children, href, keyName, variant, size, icon }: Loo
 export const AnchorButton = ({ variant = "primary", className, ...rest }: { variant?: "primary" | "secondary" } & ComponentProps<"a">) => (
   <a className={cx(s.btn, variant === "primary" && s.primary, className)} {...rest} />
 );
+
+/** Desktop share: Telegram's share link to the page (the page's preview is the share card). */
+export const shareHref = (pagePath: string, text?: string) =>
+  `https://t.me/share/url?url=${encodeURIComponent(`${SITE_URL}${pagePath}`)}${text ? `&text=${encodeURIComponent(text)}` : ""}`;
 
 /* ---------- Tags and stickers ---------- */
 
@@ -167,22 +172,29 @@ const FEED_LOOK: Record<FeedKind, { icon: IconName; bg: string }> = {
   deadline: { icon: "clock", bg: "var(--tint-mustard)" },
 };
 
-/** Kit App/FeedItem as a link (Today's feed card). */
-export const FeedLink = ({ kind, title, meta, unread, href }: { kind: FeedKind; title: string; meta: string; unread: boolean; href: string }) => (
-  <FeedItem type={FEED_TYPE[kind] ?? "announcement"} title={title} meta={meta} unread={unread} href={href} />
+/** A new-files item's files: at most three (each opens the file) and "and N more" to the course's files. */
+export type FeedFilesVM = { shown: Array<{ id: string; title: string; type: FileType; typeLabel: string; href: string }>; more: number; moreHref: string | null };
+
+/** Kit App/FeedItem as a link (Today's feed card); new files list their files under the title, each a link. */
+export const FeedLink = ({ kind, title, meta, unread, href, files }: { kind: FeedKind; title: string; meta: string; unread: boolean; href: string; files?: FeedFilesVM | null }) => (
+  <FeedItem type={FEED_TYPE[kind] ?? "announcement"} title={title} meta={meta} unread={unread} href={href}>
+    {files ? <FeedFiles files={files.shown} more={files.more} moreHref={files.moreHref} /> : null}
+  </FeedItem>
 );
 
 /** Selectable feed row for the split view (the kit item has no selected state or button form). Same measurements. */
-export function FeedRow({ kind, title, meta, unread, selected, ...rest }: { kind: FeedKind; title: string; meta: string; unread: boolean; selected?: boolean } & Omit<ComponentProps<"button">, "title">) {
+export function FeedRow({ kind, title, meta, unread, selected, files, ...rest }: { kind: FeedKind; title: string; meta: string; unread: boolean; selected?: boolean; files?: FeedFilesVM | null } & Omit<ComponentProps<"button">, "title">) {
   const look = FEED_LOOK[kind] ?? FEED_LOOK.system;
   return (
-    <button type="button" className={cx(s.feed, selected && s.feedSelected)} data-nav-item aria-current={selected || undefined} {...rest}>
+    <button type="button" className={cx(s.feed, selected && s.feedSelected, files && s.feedTop)} data-nav-item aria-current={selected || undefined} {...rest}>
       <span className={s.badge} style={{ background: look.bg }}>
         <Icon name={look.icon} size={20} />
       </span>
       <span className={s.feedText}>
         <span className={s.feedTitle}>{title}</span>
         <span className={s.feedMeta}>{meta}</span>
+        {/* The row is a button: the files show here, and open from the pane. */}
+        {files ? <FeedFiles files={files.shown} more={files.more} links={false} className={s.feedFiles} /> : null}
       </span>
       {unread && <span className={s.unread} aria-label="Unread" />}
     </button>

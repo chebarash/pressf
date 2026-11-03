@@ -4,10 +4,11 @@
  * reads like the Figma frame and the mapping lives in one place.
  */
 import type { TeacherRole } from "@/core/ratings";
+import type { SyllabusFold } from "@/server/views";
 import type { RatingSummaryProps } from "@/ui/components";
-import type { FeedKind, FileRowData, Strip, Tier } from "./parts";
+import type { FeedFilesVM, FeedKind, FileRowData, Strip, Tier } from "./parts";
 
-export type { FeedKind, FileRowData, Strip, Tier };
+export type { FeedFilesVM, FeedKind, FileRowData, Strip, Tier };
 
 export type Teacher = { id: string; name: string; face: string | null; href: string };
 
@@ -28,7 +29,10 @@ export type FeedItemVM = {
   acknowledged?: boolean;
   /** Where "Open …" goes from the detail pane. */
   open?: { label: string; href: string } | null;
+  /** New-files items: the files (at most three, each opens the file) and "and N more" to the course's files. */
+  files?: FeedFilesVM | null;
 };
+
 
 export type TodayData = {
   /** Status line under the header (Figma D15: LMS not answering). */
@@ -94,7 +98,7 @@ export type CourseData = {
   code: string;
   name: string;
   kind: string | null;
-  term: { label: string; options: Array<{ label: string; href: string }> };
+  term: { label: string; options: Array<{ label: string; href: string; selected?: boolean }> };
   strip: Strip;
   tabs: { overview: string; files: number; anonymous: number; filesHref: string; anonymousHref: string };
   /** Overview: only weeks with a topic or files, up to three around this week. */
@@ -113,6 +117,8 @@ export type CourseData = {
   teachers: Array<Teacher & { line: string; pressFPct: number | null }>;
   grading: Array<{ pct: number; title: string; note: string }>;
   syllabus: Array<{ title: string; meta: string; href?: string }>;
+  /** The syllabus as folds (grading open, the rest one click away), same as mobile 4.2. */
+  syllabusFold?: SyllabusFold | null;
   me: null | { average: number | null; tier: Tier; line: string; next: string | null; href: string };
   summary: RatingSummaryProps | null;
   mention: Mention | null;
@@ -198,12 +204,12 @@ export type TermResultsData = {
   curriculum: { title: string; line: string; href: string };
 };
 /**
- * One class's attendance: checked in by QR, marked present by the teacher, late,
- * absent, or not marked yet (the LMS has the class but no mark).
+ * One class's attendance: attended (QR check-in or the teacher, one state), late,
+ * absent, excused, or not marked yet (the LMS has the class but no mark).
  */
-export type ClassState = "qr" | "teacher" | "late" | "absent" | "unmarked";
+export type ClassState = "attended" | "late" | "absent" | "excused" | "unmarked";
 export type ClassDot = { state: ClassState; title: string };
-export type ClassLine = { key: string; lesson: string; kind: string; date: string | null; state: ClassState; viaQr: boolean; score: number | null };
+export type ClassLine = { key: string; lesson: string; kind: string; date: string | null; state: ClassState; score: number | null };
 export type CourseProgressData = {
   course: { name: string; code: string; href: string; term: string | null; teacher: string | null };
   row: ProgressRow;

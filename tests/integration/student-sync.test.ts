@@ -145,7 +145,7 @@ describe("syncStudent", () => {
     ]);
     await setAlerts(userId, { file: true });
     await syncStudent(userId, new Date(DAY.getTime() + 30 * 60_000));
-    expect(texts()).toEqual(["<b>2 new files in Calculus 1</b>\nWeek 8: Midterm review slides, Mock midterm with answers"]);
+    expect(texts()).toEqual(["<b>2 new files in Calculus 1</b>\nWeek 8\n• Midterm review slides\n• Mock midterm with answers"]);
   });
 });
 

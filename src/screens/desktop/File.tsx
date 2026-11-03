@@ -5,7 +5,7 @@ import * as adapt from "./adapt";
 import c from "./course/course.module.css";
 import { CourseLayout } from "./course/CourseView";
 import type { FileData } from "./model";
-import { AnchorButton, css, cx, Empty, Hint, Icon, KeyTo } from "./parts";
+import { AnchorButton, css, cx, Empty, Hint, Icon, KeyTo, shareHref } from "./parts";
 
 /** Same flag colours as File/Row v2 (Figma 4153:2357), by the shared FILE_FLAG families. */
 const FAMILY_COLOR = { exam: "var(--bg-danger)", mock: "var(--mustard-500)", lecture: "var(--bg-accent)", notes: "var(--plum-500)", syllabus: "var(--moss-500)", other: "var(--border-subtle)" } as const;
@@ -70,6 +70,9 @@ function FilePreview({ file, back, crumb }: { file: NonNullable<FileData["file"]
           Open in new tab
         </AnchorButton>
         <Hint>⌘↵</Hint>
+        <AnchorButton href={shareHref(`/f/${encodeURIComponent(file.id)}`, file.title)} variant="secondary" target="_blank" rel="noopener">
+          Share
+        </AnchorButton>
       </div>
     </aside>
   );

@@ -32,14 +32,14 @@ describe("alerts use the shared bot wording (Figma 9.2, 9.3)", () => {
 
   it("new files bundled per course", () => {
     const a = fileAlert({ id: "101", code: "MATH111", name: "Calculus 1" }, [{ id: "1", title: "Midterm review slides", week: 8 }, { id: "2", title: "Mock midterm with answers", week: 8 }], NOW);
-    expect(a.message.text).toBe("<b>2 new files in Calculus 1</b>\nWeek 8: Midterm review slides, Mock midterm with answers");
+    expect(a.message.text).toBe("<b>2 new files in Calculus 1</b>\nWeek 8\n• Midterm review slides\n• Mock midterm with answers");
     // The feed title names the course; the files are listed (three at most) below it.
     expect(a.item.title).toBe("2 new files in Calculus 1");
     expect(a.item.body).toBe("Week 8 · Midterm review slides, Mock midterm with answers");
     const many = fileAlert({ id: "101", code: "CS412", name: "Deep Learning" }, Array.from({ length: 10 }, (_, i) => ({ id: String(i), title: i === 1 ? "Lecture 1" : `Lecture ${i + 1}`, week: null })), NOW);
     expect(many.item.title).toBe("10 new files in Deep Learning");
     expect(many.item.body).toBe("Lecture 1, Lecture 3, Lecture 4 and 6 more");
-    expect(many.message.text).toBe("<b>10 new files in Deep Learning</b>\nLecture 1, Lecture 3, Lecture 4 and 6 more");
+    expect(many.message.text).toBe("<b>10 new files in Deep Learning</b>\n• Lecture 1\n• Lecture 3\n• Lecture 4\nand 6 more");
   });
 
   it("LMS announcement keeps its own id for the Read button", () => {

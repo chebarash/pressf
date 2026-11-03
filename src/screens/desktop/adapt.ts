@@ -27,7 +27,8 @@ function feedItem(f: V.FeedView, section?: string): M.FeedItemVM {
     kind: f.kind,
     title: f.title,
     // D7 / D1: "LMS · Calculus 1 · 1 h ago · needs your OK"; the author shows when no course is named.
-    meta: join(SOURCE[f.kind], f.courseName ?? f.author, f.ago, f.needsAck && !f.read && "needs your OK"),
+    // New files name the course in the title ("3 new files in Deep Learning"): "Week 8 · 1 h ago".
+    meta: f.files ? join(f.body, f.ago) : join(SOURCE[f.kind], f.courseName ?? f.author, f.ago, f.needsAck && !f.read && "needs your OK"),
     unread: !f.read,
     href: `/notifications?open=${encodeURIComponent(f.id)}`,
     section,
@@ -37,6 +38,7 @@ function feedItem(f: V.FeedView, section?: string): M.FeedItemVM {
     needsAck: f.needsAck,
     acknowledged: !!f.acknowledged,
     open: openAction(f),
+    files: f.files ? { shown: f.files.shown, more: f.files.more, moreHref: f.files.courseHref } : null,
   };
 }
 
@@ -280,7 +282,8 @@ export function course(v: V.CourseView): M.CourseData {
     code: v.code,
     name: v.name,
     kind: null,
-    term: { label: v.term ? `${v.term.term}${status}` : "All semesters", options: v.terms.map((t) => ({ label: t.current ? `${t.term} · Now` : t.term, href: `/c/${v.code}?term=${encodeURIComponent(t.term)}` })) },
+    // The current semester is the plain course link; earlier ones carry ?term=.
+    term: { label: v.term ? `${v.term.term}${status}` : "All semesters", options: v.terms.map((t) => ({ label: t.current ? `${t.term} · Now` : t.term, href: t.current ? `/c/${v.code}` : `/c/${v.code}?term=${encodeURIComponent(t.term)}`, selected: t.courseId === v.courseId })) },
     strip: strip(v.ratings),
     tabs: { overview: "Overview", files: v.files?.all ?? 0, anonymous: v.anonymous.count, filesHref: `/c/${v.code}/files`, anonymousHref: `/c/${v.code}/anonymous` },
     weeks: shown.map((w) => ({ n: w.week ?? 0, title: w.topic?.trim() || plural(w.files.length, "file"), current: w.current, files: w.files.map((f) => fileRow(f)) })),
@@ -293,6 +296,7 @@ export function course(v: V.CourseView): M.CourseData {
     teachers: v.teachers.map((t) => ({ id: t.id, name: t.name, face: t.face ?? null, href: t.href, line: join(t.roleLabel, t.when), pressFPct: t.pressFPct })),
     grading: (s?.grading ?? []).filter((g) => g.weight != null).map((g) => ({ pct: g.weight!, title: g.name, note: g.timing ?? "" })),
     syllabus,
+    syllabusFold: s ?? null,
     me:
       you?.status === "now"
         ? {
@@ -485,8 +489,8 @@ export function courseProgress(v: V.CourseProgressView): M.CourseProgressData {
     ...(c.exam != null ? [{ label: "Exam", value: c.exam, max: 100, tier: tier(c.exam) }] : []),
     { label: "Final", value: c.final, max: 100, tier: tier(c.final) },
   ];
-  const classes: M.ClassLine[] = v.events.map((e, i) => ({ key: `${e.lesson}|${e.at ?? i}`, lesson: e.lesson, kind: KIND_LABEL[e.kind] ?? e.kind, date: e.dateLabel, state: classState(e), viaQr: e.viaQr, score: e.score }));
-  const counts: Record<M.ClassState, number> = { qr: 0, teacher: 0, late: 0, absent: 0, unmarked: 0 };
+  const classes: M.ClassLine[] = v.events.map((e, i) => ({ key: `${e.lesson}|${e.at ?? i}`, lesson: e.lesson, kind: KIND_LABEL[e.kind] ?? e.kind, date: e.dateLabel, state: classState(e), score: e.score }));
+  const counts: Record<M.ClassState, number> = { attended: 0, late: 0, absent: 0, excused: 0, unmarked: 0 };
   for (const x of classes) counts[x.state]++;
   const marked = classes.length - counts.unmarked;
   const dots = [...classes].reverse().map((x) => ({ state: x.state, title: join(x.date, x.lesson, CLASS_STATE_LABEL[x.state]) }));
@@ -498,16 +502,12 @@ export function courseProgress(v: V.CourseProgressView): M.CourseProgressData {
   };
 }
 
-/** QR check-in and "present" from the teacher are both attended; late and not-marked stay their own states. */
-export function classState(e: Pick<V.ClassMark, "mark" | "viaQr">): M.ClassState {
-  // An excused absence (LMS status 4) is still a missed class.
-  if (e.mark === "absent" || e.mark === "excused") return "absent";
-  if (e.mark === "late") return "late";
-  if (e.mark === "unmarked") return "unmarked";
-  return e.viaQr ? "qr" : "teacher";
+/** QR check-in and "present" from the teacher are one state: attended. Late, absent, excused and not-marked stay their own. */
+export function classState(e: Pick<V.ClassMark, "mark">): M.ClassState {
+  return e.mark === "present" ? "attended" : e.mark;
 }
 
-export const CLASS_STATE_LABEL: Record<M.ClassState, string> = { qr: "Checked in by QR", teacher: "Marked present by teacher", late: "Late", absent: "Absent", unmarked: "Not marked yet" };
+export const CLASS_STATE_LABEL: Record<M.ClassState, string> = { attended: "Attended", late: "Late", absent: "Absent", excused: "Excused", unmarked: "Not marked yet" };
 
 /* ---------- Notifications ---------- */
 

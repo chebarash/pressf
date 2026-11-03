@@ -12,7 +12,7 @@ import { classesBetween, toBlocks, type ClassView } from "./classes";
 import { progressCourses, type ProgressCourse } from "./progress";
 import { rateQueueFor, type RateAsk } from "./rate";
 import { courseCards } from "./courses";
-import { coursesByIds, DAY_ABBR, deadlineView, feedView, lmsFileItem, type DeadlineView, type FeedView, type FileItem } from "./shared";
+import { coursesByIds, DAY_ABBR, deadlineView, feedViews, lmsFileItem, type DeadlineView, type FeedView, type FileItem } from "./shared";
 import { loadStudent, type Student, type SyncState } from "./student";
 
 /** Today (Figma 2.1–2.13, 10.1): the student's day in one read. */
@@ -171,6 +171,8 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
     lessonIds.length ? fileOverridesMap() : Promise.resolve({}),
   ]);
 
+  const feedRows = await feedViews(items.slice(0, 4), now, feedCourses);
+
   const tight = courses.filter((c) => c.absences).sort((x, y) => x.absences!.left - y.absences!.left)[0];
   const firstExam = exams[0];
   const phase = info.week?.kind === "break" ? nextPhase(now, ["break"]) : null;
@@ -199,7 +201,7 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
     examsThisWeek,
     nextExams: exams.slice(0, 3),
     rating: queue.ask,
-    notifications: { unread: unreadCount(items), items: items.slice(0, 4).map((i) => feedView(i, now, feedCourses)) },
+    notifications: { unread: unreadCount(items), items: feedRows },
     dueSoon: dueSoon(student.sync.homework, now, 7).slice(0, 3).map((d) => deadlineView(d, now)),
     courses: cards,
   };

@@ -131,6 +131,25 @@ export function openTelegramLink(url: string) {
   window.open(url, "_blank", "noopener");
 }
 
+/**
+ * Share a Press F page. In the Mini App: Telegram's chat picker with the bot's
+ * inline query typed in ("c_MATH111"), so the message is the bot's rich card and
+ * the send is counted. Elsewhere (or an old Telegram): a t.me/share link to the page.
+ */
+export function shareInline(query: string, pageUrl: string, text?: string) {
+  const app = webApp();
+  if (app?.switchInlineQuery && app.isVersionAtLeast("6.7")) {
+    try {
+      return app.switchInlineQuery(query, ["users", "groups", "channels"]);
+    } catch {
+      // Inline mode off for the bot: fall through to the plain share link.
+    }
+  }
+  const share = `https://t.me/share/url?url=${encodeURIComponent(pageUrl)}${text ? `&text=${encodeURIComponent(text)}` : ""}`;
+  if (app) return app.openTelegramLink(share);
+  window.open(share, "_blank", "noopener");
+}
+
 /** External sites leave through Telegram's browser; a new tab elsewhere. */
 export function openLink(url: string) {
   const app = webApp();

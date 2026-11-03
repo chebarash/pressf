@@ -161,7 +161,9 @@ describe("message builders", () => {
     expect(m.markedAbsent({ course: "Physics 1", lesson: "Practice 14", left: 2 }).text).toBe("<b>Marked absent: Physics 1</b>\nPractice 14 · 2 absences left in this course");
     expect(m.newGrade({ grade: 86, course: "Physics 1", item: "midterm", average: 86 }).text).toBe("<b>New grade: 86</b>\nPhysics 1 · midterm · average now 86");
     expect(m.newFiles({ course: "Calculus 1", courseCode: "MATH111", week: 8, files: ["Midterm review slides", "Mock midterm with answers"] }).text)
-      .toBe("<b>2 new files in Calculus 1</b>\nWeek 8: Midterm review slides, Mock midterm with answers");
+      .toBe("<b>2 new files in Calculus 1</b>\nWeek 8\n• Midterm review slides\n• Mock midterm with answers");
+    expect(m.newFiles({ course: "Deep Learning", courseCode: "CS401", files: [{ title: "Backpropagation", type: "lecture" }, "Lab 3", "Lab 3", "Syllabus", "Quiz 1", "Quiz 2"] }).text)
+      .toBe("<b>6 new files in Deep Learning</b>\n• Backpropagation · Lecture\n• Lab 3\n• Syllabus\nand 2 more");
     expect(m.announcement({ title: "Quiz 6 opens tomorrow at 09:00", course: "Calculus 1", teacher: "Gonçalo Pinto", needsAck: true }).text)
       .toBe("<b>LMS · Quiz 6 opens tomorrow at 09:00</b>\nCalculus 1 · Gonçalo Pinto asks to confirm you've read it");
     expect(m.deadline({ title: "Assignment 3", course: "Software Project Management", due: "23:59", hoursLeft: 3, submitted: false }).text)

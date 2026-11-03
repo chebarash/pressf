@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GUEST, notificationsFixture, qrFixture, TODAY_STATES } from "@/screens/mobile/fixtures";
 import MobileNotifications from "@/screens/mobile/Notifications";
+import DesktopNotifications from "@/screens/desktop/Notifications";
 import MobileQr from "@/screens/mobile/Qr";
 import type { QrResult } from "@/screens/mobile/parts/QrFlow";
 import MobileToday from "@/screens/mobile/Today";
@@ -55,9 +56,11 @@ export default async function Preview({ searchParams }: Props) {
   if (state === "1.2-guest") return framed(<MobileToday data={GUEST} />);
   if (state === "2.9-notifications") return framed(<MobileNotifications data={notificationsFixture()} />);
   if (state === "2.10-notification-open") return framed(<MobileNotifications data={notificationsFixture("lms:1")} />);
+  if (state === "2.10-files-open") return framed(<MobileNotifications data={notificationsFixture("files:dl:f1,f2,f3,f4,f5")} />);
+  if (state === "D7-files-open") return <>{themeScript}<Shell><DesktopNotifications data={notificationsFixture("files:dl:f1,f2,f3,f4,f5")} /></Shell></>;
   if (state && state in QR) return framed(<MobileQr data={qrFixture()} preview={QR[state]} />);
 
-  const all = [...Object.keys(TODAY_STATES), "1.1-loading", "1.2-guest", "1.7-first-sync", "1.8-alerts", "1.9-home-screen", "2.9-notifications", "2.10-notification-open", ...Object.keys(QR)];
+  const all = [...Object.keys(TODAY_STATES), "1.1-loading", "1.2-guest", "1.7-first-sync", "1.8-alerts", "1.9-home-screen", "2.9-notifications", "2.10-notification-open", "2.10-files-open", "D7-files-open", ...Object.keys(QR)];
   return (
     <ul style={{ padding: 24, display: "grid", gap: 8 }}>
       {all.map((s) => (

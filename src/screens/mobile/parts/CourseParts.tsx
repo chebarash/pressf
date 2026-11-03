@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MIN_RATINGS } from "@/core/ratings";
-import { cx, Face, pctTier, RatingStrip, RatingSummary, Score, Tag } from "@/ui/components";
-import { ChevronDownIcon, ChevronRightIcon, ClockIcon, ExternalIcon, SendIcon } from "@/ui/icons";
+import { cx, Disclosure, Face, pctTier, RatingStrip, RatingSummary, Score, Tag } from "@/ui/components";
+import { ChevronRightIcon, ClockIcon, ExternalIcon, SendIcon } from "@/ui/icons";
 import s from "./Course.module.css";
 import type { MentionView, RatingSummaryView, SyllabusFold, TeacherCard as TeacherCardView, YouInCourse } from "../views";
 
@@ -125,16 +125,21 @@ export function TeacherCard({ t }: { t: TeacherCardView }) {
 
 function Fold({ title, sub, open, down, children }: { title: string; sub: string | null; open?: boolean; down?: boolean; children: React.ReactNode }) {
   return (
-    <details className={s.fold} open={open}>
-      <summary className={s.foldHead}>
+    <Disclosure
+      className={s.fold}
+      headClassName={s.foldHead}
+      bodyClassName={s.foldBody}
+      defaultOpen={open}
+      chevron={down ? "down" : "right"}
+      summary={
         <span className={s.foldText}>
           <span className={s.foldTitle}>{title}</span>
           {sub ? <span className={s.foldSub}>{sub}</span> : null}
         </span>
-        {down ? <ChevronDownIcon size={18} className={s.down} /> : <ChevronRightIcon size={18} className={s.right} />}
-      </summary>
-      <div className={s.foldBody}>{children}</div>
-    </details>
+      }
+    >
+      {children}
+    </Disclosure>
   );
 }
 

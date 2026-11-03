@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { byWeek } from "@/core/files";
 import { openTelegramLink } from "@/platform/client";
 import { Chip, cx, Tag } from "@/ui/components";
@@ -17,15 +18,17 @@ export type TermLink = { term: string; note: string | null; teachers: string; hr
 /** "Fall 2026 · Now" pill that opens the semester sheet (4.3); the semester drives the whole page. */
 export function SemesterSwitch({ label, terms }: { label: string; terms: TermLink[] }) {
   const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
   return (
     <>
-      <button type="button" className={s.switch} onClick={() => setOpen(true)} aria-haspopup="dialog">
+      <button type="button" className={s.switch} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open}>
         <CalendarIcon size={16} />
         {label}
         <ChevronDownIcon size={16} />
       </button>
-      {open ? (
-      <Sheet label="Semester" onClose={() => setOpen(false)} className={s.termSheet}>
+      {/* The sheet goes to <body>: inside the header it would sit under the page's own layers. */}
+      {open ? createPortal(
+      <Sheet label="Semester" onClose={close} className={s.termSheet}>
         <h2 className="sh-sheet__title">Semester</h2>
         {terms.map((t) => (
           <Link key={t.term} href={t.href} className={cx(s.term, t.selected && s.termOn)} onClick={() => setOpen(false)} replace scroll={false} aria-current={t.selected ? "true" : undefined}>
@@ -39,7 +42,7 @@ export function SemesterSwitch({ label, terms }: { label: string; terms: TermLin
             {t.selected ? <CheckIcon size={20} /> : null}
           </Link>
         ))}
-      </Sheet>
+      </Sheet>, document.body
       ) : null}
     </>
   );
