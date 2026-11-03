@@ -108,9 +108,9 @@ export async function personalFeed(token: string, now = new Date()): Promise<str
       const kind = CLASS_KIND_LABEL[c.kind];
       events.push({
         uid: uid(`class:${c.key}`),
-        summary: exam ? `${c.name} exam` : `${c.name} · ${kind}`,
+        summary: exam ? `${c.name} ${c.exam?.kind ?? "exam"}` : `${c.name} · ${kind}`,
         location: c.room,
-        description: [[c.code, kind].filter(Boolean).join(" · "), c.room ? `Room ${c.room}` : null, c.teacher ? c.teacher.name : null].filter(Boolean).join("\n"),
+        description: [[c.code, kind].filter(Boolean).join(" · "), c.room ? `Room ${c.room}` : null, c.teacher ? c.teacher.name : null, c.exam?.note ?? null].filter(Boolean).join("\n"),
         url: c.code ? `${SITE_URL}/c/${c.code}` : null,
         start: new Date(c.start), end: new Date(c.end),
       });
