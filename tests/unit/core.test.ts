@@ -160,6 +160,8 @@ describe("files", () => {
   });
   it("classifies type, format and week", () => {
     expect(typeOf("Midterm 2024.pdf")).toBe("exam");
+    expect(typeOf("Midterm review slides.pdf")).toBe("lecture");
+    expect(typeOf("Final exam revision lecture.pptx")).toBe("lecture");
     expect(typeOf("Mock midterm with answers.pdf")).toBe("mock");
     expect(typeOf("Syllabus MATH111.pdf")).toBe("syllabus");
     expect(typeOf("Lab 5 report template.docx")).toBe("lab");
