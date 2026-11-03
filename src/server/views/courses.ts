@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { roleOf } from "@/core/people";
 import type { RatingInput, TagShare, TeacherRole, TeacherTag } from "@/core/ratings";
-import { dayInfo } from "@/core/semester";
+import { dayInfo, termMatches } from "@/core/semester";
 import { getCatalog } from "@/lib/catalog";
 import { courseDetails, resolveRequirement, unlocks } from "@/lib/content";
 import { db } from "@/lib/db";
@@ -268,7 +268,7 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
 
   const mine = student ? student.sync.courses.filter((c) => pub.rows.some((r) => r.id === c.subjectId)) : [];
   const picked =
-    pub.terms.find((t) => t.term === term || t.semesterId === term || t.courseId === term) ??
+    (term ? pub.terms.find((t) => t.term === term || t.semesterId === term || t.courseId === term || termMatches(t.term, term)) : undefined) ??
     pub.terms.find((t) => mine.some((m) => m.subjectId === t.courseId)) ??
     pub.terms[0];
   const courseId = picked.courseId;
@@ -277,12 +277,16 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
   const taken = mine.find((m) => m.subjectId === courseId) ?? mine[0];
   const termStatus: CourseView["termStatus"] = taken && taken.subjectId === courseId ? (openIds.has(taken.semesterId) ? "now" : "took") : picked.current ? "now" : null;
 
-  const [files, progressRows, queue, rated] = await Promise.all([
+  const [allFiles, progressRows, queue, rated] = await Promise.all([
     signedIn ? courseFiles(clean) : Promise.resolve(null),
     student ? progressCourses(student, now) : Promise.resolve([]),
     student && taken ? rateQueueFor(student, now) : Promise.resolve(null),
     viewer && taken ? myRatingFor(viewer.userId, pub.rows.map((r) => r.id)) : Promise.resolve(null),
   ]);
+
+  // The picked term's files only: an earlier semester never shows this one's
+  // weeks. Files with no known course (some student uploads) belong to the current run.
+  const files = allFiles ? (pub.terms.length > 1 ? allFiles.filter((f) => (f.courseId ? f.courseId === courseId : picked.current)) : allFiles) : null;
 
   let you: YouInCourse | null = null;
   if (student && taken) {

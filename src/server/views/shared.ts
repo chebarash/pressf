@@ -268,6 +268,8 @@ export type FileItem = {
   size: number | null;
   /** PDF page count, when known (LMS files). Always set by the server; optional for fixtures. */
   pages?: number | null;
+  /** The LMS course id (one per semester the code ran) the file belongs to, when known: a term's page shows its own files. */
+  courseId?: string | null;
   href: string;
 };
 
@@ -283,7 +285,7 @@ export function lmsFileItem(f: LmsFileRow, course: { code: string; name: string 
   return {
     id: f.id, source: "lms", title: meta.title, type: meta.type, typeLabel: TYPE_LABEL[meta.type], format: meta.format, formatCode: FORMAT_CODE[meta.format],
     week: meta.week ?? (f.lessonId ? lessonWeek.get(f.lessonId) ?? null : null), date: date.toISOString(), dateLabel: shortDate(date),
-    from: "LMS", lessonId: f.lessonId, size: f.size, pages: f.pages, href: `/f/${f.id}`,
+    from: "LMS", lessonId: f.lessonId, size: f.size, pages: f.pages, courseId: f.courseId ?? null, href: `/f/${f.id}`,
   };
 }
 
@@ -292,7 +294,7 @@ export function uploadItem(u: UploadRow): FileItem {
   const meta = describeFile(u.fileName);
   return {
     id: u.id, source: "students", title: u.title, type, typeLabel: TYPE_LABEL[type] ?? "File", format: meta.format, formatCode: FORMAT_CODE[meta.format],
-    week: u.week, date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), from: shownAs(u.showName, null), lessonId: null, size: u.size, pages: null, href: `/f/${u.id}`,
+    week: u.week, date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), from: shownAs(u.showName, null), lessonId: null, size: u.size, pages: null, courseId: u.courseId ?? null, href: `/f/${u.id}`,
   };
 }
 
