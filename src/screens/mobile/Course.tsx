@@ -2,7 +2,7 @@ import { BOT_USERNAME, path, uploadLink } from "@/core/links";
 import { cx, EmptyState, Tabs, Tag } from "@/ui/components";
 import b from "./parts/base.module.css";
 import s from "./parts/Course.module.css";
-import { FilesBrowser, SemesterSwitch, TelegramLink, WeekList, type TermLink } from "./parts/CourseClient";
+import { FilesBrowser, SemesterSwitch, UploadViaBot, WeekList, type TermLink } from "./parts/CourseClient";
 import { ChevronDownIcon, ChevronRightIcon } from "@/ui/icons";
 import { CourseRatingStrip, CourseRatingSummary, FewRatings, GateNotice, GhostWeeks, MentionCard, Syllabus, TeacherCard, YouCard } from "./parts/CourseParts";
 import { ShareButton } from "./parts/FileActions";
@@ -39,9 +39,7 @@ export default function Course({ data }: { data: CourseScreen }) {
       ? null // Figma 4.7: the Files tab has no MainButton.
       : data.rate?.canRate
       ? { text: data.rate.rated || data.notice === "rating-sent" ? "Edit your rating" : "Rate this course", href: `${data.rate.href}?from=${encodeURIComponent(`/c/${data.code}`)}` }
-      : data.rate?.opensIn
-        ? { text: `Opens in week ${data.rate.opensIn}`, disabled: true }
-        : null;
+      : null; // Before the window opens there is no button; the course card says when.
 
   return (
     <div className={cx(b.screen, !action && b.noButton)}>
@@ -69,7 +67,7 @@ function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }
   const summaryFirst = !data.you;
   // Figma 11.1: students taking the course this semester get the bot shortcut (not in 4.4 took, 4.5 not yours).
   const share = data.you?.status === "now" ? (
-    <TelegramLink href={uploadLink(data.code)} className={s.share}>
+    <UploadViaBot code={data.code} href={uploadLink(data.code)} className={s.share}>
       <span className={s.shareIcon} aria-hidden>
         +
       </span>
@@ -79,7 +77,7 @@ function Overview({ data, filesHref }: { data: CourseScreen; filesHref: string }
           Opens @{BOT_USERNAME} with {data.name} picked — just send the file
         </span>
       </span>
-    </TelegramLink>
+    </UploadViaBot>
   ) : null;
   const hasFiles = !!data.files?.all;
   // Figma 4.18: under 5 ratings the "Not enough ratings yet" card takes the summary's place.

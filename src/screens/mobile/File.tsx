@@ -4,6 +4,7 @@ import b from "./parts/base.module.css";
 import { FileActions, ShareButton } from "./parts/FileActions";
 import s from "./parts/File.module.css";
 import { MainButton } from "./parts/MainButton";
+import { PdfPages } from "./parts/PdfPages";
 import type { FileView } from "./views";
 
 const size = (n: number | null) => (n === null ? null : n < 1_000_000 ? `${Math.max(1, Math.round(n / 1000))} KB` : `${(n / 1_000_000).toFixed(1)} MB`);
@@ -34,15 +35,29 @@ export default function File({ data }: { data: FileView }) {
         <ShareButton target={{ to: "file", id: data.id }} title={data.title} text={`${data.title} — ${data.course.name}`} />
       </header>
       {data.url && data.format === "pdf" ? (
-        <iframe className={s.preview} src={`${data.url}#toolbar=0&navpanes=0`} title={`Preview of ${data.title}`} />
+        <PdfPages
+          src={data.url.replace("/download", "/raw")}
+          openUrl={data.url}
+          title={data.title}
+          pages={data.pages ?? null}
+          fallback={<NoPreview code={data.formatCode} title="No preview here" text="Download it to open it on your phone." />}
+        />
+      ) : data.url ? (
+        <NoPreview code={data.formatCode} title="No preview for this format" text="Download it to open it on your phone." />
       ) : (
-        <div className={s.noPreview}>
-          <span className={s.format}>{data.formatCode}</span>
-          <p className={s.noPreviewTitle}>{data.url ? "No preview for this format" : "This file isn't ready yet"}</p>
-          <p className={b.sub}>{data.url ? "Download it to open it on your phone." : "We're still copying it from LMS. Try again in a few minutes."}</p>
-        </div>
+        <NoPreview code={data.formatCode} title="This file isn't ready yet" text="We're still copying it from LMS. Try again in a few minutes." />
       )}
       {data.url ? <FileActions url={data.downloadUrl ?? `/f/${data.id}/download`} name={data.downloadName} /> : null}
+    </div>
+  );
+}
+
+function NoPreview({ code, title, text }: { code: string; title: string; text: string }) {
+  return (
+    <div className={s.noPreview}>
+      <span className={s.format}>{code}</span>
+      <p className={s.noPreviewTitle}>{title}</p>
+      <p className={b.sub}>{text}</p>
     </div>
   );
 }

@@ -57,6 +57,8 @@ export type WebApp = {
   openTelegramLink(url: string): void;
   /** Bot API 6.7+: opens the chat picker with "@bot query" typed in (needs inline mode on in BotFather). */
   switchInlineQuery?(query: string, chooseChatTypes?: Array<"users" | "bots" | "groups" | "channels">): void;
+  /** Bot API 8.0+: Telegram's share sheet for a message the bot prepared (savePreparedInlineMessage); the callback says whether it was sent. */
+  shareMessage?(msgId: string, callback?: (sent: boolean) => void): void;
   showPopup?(params: PopupParams, callback?: (id: string) => void): void;
   showConfirm?(message: string, callback?: (ok: boolean) => void): void;
   showScanQrPopup?(params: { text?: string }, callback?: (text: string) => boolean | void): void;
