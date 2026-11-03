@@ -15,8 +15,8 @@ const MAX_BYTES = 512 * 1024;
 
 /** A drawn face on the page background, at a fixed size. Plain <img>: faces are tiny and cached per version. */
 function FaceImg({ src, size, alt = "" }: { src: string | null; size: number; alt?: string }) {
-  // Only our own paths or a local preview blob; never a URL from elsewhere.
-  const safe = src && /^(\/faces\/|blob:)/.test(src) ? src : DEFAULT_FACE;
+  // Only faces the server stored and linked (/faces/<id>?v=…); nothing from the browser.
+  const safe = src && src.startsWith("/faces/") ? src : DEFAULT_FACE;
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={safe} alt={alt} width={size} height={size} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, opacity: safe === DEFAULT_FACE ? 0.35 : 1 }} />;
 }
@@ -100,19 +100,16 @@ export function ProfessorFaces({ data }: { data: FacesData }) {
 
 function Detail({ sel, pending, run, note }: { sel: NonNullable<FacesData["selected"]>; pending: boolean; run: (fn: () => Promise<Result>) => void; note: { ok: boolean; text: string } | null }) {
   const file = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<File | null>(null);
 
   const pick = (f: File | undefined) => {
     setError(null);
     setPicked(null);
-    setPreview(null);
     if (!f) return;
     if (!/\.(png|svg)$/i.test(f.name) && !/^image\/(png|svg\+xml)$/.test(f.type)) return setError("Upload a PNG or an SVG drawing");
     if (f.size > MAX_BYTES) return setError("Faces are line drawings: keep the file under 512 KB");
     setPicked(f);
-    setPreview(URL.createObjectURL(f));
   };
   const save = () => {
     if (!picked) return;
@@ -123,13 +120,13 @@ function Detail({ sel, pending, run, note }: { sel: NonNullable<FacesData["selec
       const r = await uploadFace(form);
       if (r.ok) {
         setPicked(null);
-        setPreview(null);
         if (file.current) file.current.value = "";
       }
       return r;
     });
   };
-  const shown = preview ?? sel.face;
+  // The page shows the stored face only: after a save the server links the new version.
+  const shown = sel.face;
 
   return (
     <section className={cx(s.detail, s.detailNarrow)} aria-label="Face">
@@ -143,7 +140,7 @@ function Detail({ sel, pending, run, note }: { sel: NonNullable<FacesData["selec
           <FaceImg src={shown} size={120} alt="" />
         </div>
       </div>
-      {preview && <Chip tone="mustard">PREVIEW — NOT SAVED</Chip>}
+      {picked && <Chip tone="mustard">{`${picked.name} — NOT SAVED YET`}</Chip>}
       <div className={s.cardSoft}>
         <KV k="Position" wide>{sel.position ?? "—"}</KV>
         <KV k="Courses" wide>{sel.courses}</KV>
