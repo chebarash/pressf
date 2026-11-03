@@ -61,7 +61,7 @@ describe("admin shortcuts: one per action", () => {
   const sections = Object.keys(JSON.parse(`{${sidebar.match(/SECTION_KEYS[^=]*= \{([^}]+)\}/)![1].replace(/(\w+):/g, '"$1":')}}`));
 
   it("goes to each section with F then a letter, like the app", () => {
-    expect(sections.length).toBe(9);
+    expect(sections.length).toBe(10);
     expect(sections).not.toContain("f");
     expect(sidebar).toContain('k === "f"');
     expect(sidebar).not.toMatch(/k === "g"/);

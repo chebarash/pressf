@@ -8,7 +8,7 @@ const tashkent = (iso: string) => new Date(`${iso}+05:00`);
 
 describe("admin access", () => {
   it("gives moderators overview, uploads, reports and audit only", () => {
-    expect(adminSections("moderator").map((s) => s.id)).toEqual(["overview", "uploads", "reports", "audit"]);
+    expect(adminSections("moderator").map((s) => s.id)).toEqual(["overview", "uploads", "reports", "coverage", "audit"]);
     expect(canOpen("moderator", "people")).toBe(false);
     expect(canOpen("moderator", "uploads")).toBe(true);
     expect(canOpen("admin", "system")).toBe(true);

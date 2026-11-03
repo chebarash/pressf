@@ -284,3 +284,18 @@ select.chip { appearance: none; font-family: var(--font-sans); padding-right: va
 /* Telegram preview */
 .tgBubble { width: 380px; padding: var(--space-3) 14px; border-radius: 16px 16px 16px 4px; background: var(--tg-bubble-in); color: var(--tg-text); font-size: 14px; line-height: 1.4; white-space: pre-line; }
 .tgButton { width: 380px; height: 36px; flex-shrink: 0; padding: var(--space-2); border-radius: 10px; background: var(--tg-button); color: var(--native-white); font-size: 13px; font-weight: 500; text-align: center; }
+
+/* Coverage */
+.meter { position: relative; height: 8px; border-radius: var(--radius-full); background: var(--bg-sunken); border: 1px solid var(--border-subtle); overflow: hidden; flex-shrink: 0; }
+.meterFill { position: absolute; inset: 0 auto 0 0; background: var(--rating-high); }
+.meterMid { background: var(--rating-mid); }
+.meterLow { background: var(--rating-low); }
+.tdNum { text-align: right; font-variant-numeric: tabular-nums; }
+.trSub { padding-left: 28px; }
+.trWarn { background: var(--tint-rust); border-radius: 10px; }
+.details > summary { cursor: pointer; list-style: none; display: flex; gap: var(--space-2); align-items: center; font-size: 13px; font-weight: 600; color: var(--text-accent); padding: var(--space-2) var(--space-3); }
+.details > summary::-webkit-details-marker { display: none; }
+.details > summary::before { content: "▸"; color: var(--text-secondary); }
+.details[open] > summary::before { content: "▾"; }
+.rank { width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 14px; border: 1.25px solid var(--border-strong); background: var(--tint-mustard); font-size: 12px; font-weight: 600; }
+.codes { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
