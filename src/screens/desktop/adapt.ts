@@ -110,7 +110,7 @@ const ROLE_ONE: Record<string, string> = { lecture: "Lecture", tutorial: "Tutori
 export function today(v: V.TodayView): M.TodayData {
   const now = new Date(v.now);
   const hour = toLocal(now).getUTCHours();
-  const dateLine = join(new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "long", day: "numeric", month: "long" }).format(now).replace(",", ""), v.weekLabel);
+  const dateLine = join(new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "long", day: "numeric", month: "long" }).format(now).replace(",", ""), v.weekLabel, v.examWeek);
   const cls = v.current ?? v.next ?? v.upcoming?.class ?? null;
   let label = "";
   if (v.current) label = `Now · until ${v.current.endTime}`;
@@ -188,13 +188,13 @@ export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData
       day: index.get(localDay(start)) ?? 0,
       start: localMinutes(start),
       end: localMinutes(new Date(c.end)),
-      title: c.kind === "exam" ? `${c.name} · ${exam}` : c.name,
+      title: c.kind === "exam" ? `${c.name} · ${c.exam ? c.exam.kind.toUpperCase() : exam}` : c.name,
       meta: c.kind === "exam" ? join(`${c.time}–${c.endTime}`, c.room) : join(c.time, c.room, c.changedFrom ? "moved" : KIND_LABEL[c.kind]),
       tone: COURSE_TONES[order.indexOf(courseKey(c)) % COURSE_TONES.length],
       tags: [c.code, c.lesson ?? KIND_LABEL[c.kind]].filter(Boolean) as string[],
       when: `${new Intl.DateTimeFormat("en-GB", { timeZone: TZ, weekday: "short", day: "numeric", month: "short" }).format(start)} · ${c.time}–${c.endTime}`,
       room: c.room ? join(c.room, c.changedFrom && `moved from ${c.changedFrom}`) : null,
-      teacher: c.teacher ? join(c.teacher.name, KIND_LABEL[c.kind]?.toLowerCase()) : null,
+      teacher: c.teacher ? join(c.teacher.name, KIND_LABEL[c.kind]?.toLowerCase()) : c.exam?.note ?? null,
       files: (c.materials ?? []).map((f) => fileRow(f)),
       absences: c.absences ? { line: `Absences in this course: ${c.absences.missed} of ${c.absences.limit}`, left: `${c.absences.left} left` } : null,
       href: `/c/${c.code}`,
@@ -209,7 +209,7 @@ export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData
   const todayIdx = v.week.findIndex((d) => d.today);
   const monday = v.week[0]?.day ?? v.day;
   return {
-    weekLabel: join(v.weekLabel, v.week.length ? `${v.week[0].date} – ${v.week[v.week.length - 1].date}` : null),
+    weekLabel: join(v.weekLabel, v.week.length ? `${v.week[0].date} – ${v.week[v.week.length - 1].date}` : null, v.examWeek),
     prevHref: `/timetable?day=${addDays(monday, -7)}`,
     nextHref: `/timetable?day=${addDays(monday, 7)}`,
     todayHref: "/timetable",
@@ -223,7 +223,7 @@ export function timetable(v: V.TimetableView, now = new Date()): M.TimetableData
       const pool = onDay.length ? onDay : classes;
       return (v.day === localDay(now) ? pool.find((c) => c.end >= localMinutes(now)) : undefined)?.id ?? pool[0]?.id ?? null;
     })(),
-    empty: v.holiday ? `${v.holiday.name} · no classes` : !classes.length && v.nextClass ? `No classes. Next: ${v.nextClass.label}, ${v.nextClass.class.name}${v.nextClass.class.room ? ` in ${v.nextClass.class.room}` : ""}.` : null,
+    empty: v.examWeek && !classes.length ? `${v.examWeek}. No exams for you this week.` : v.holiday ? `${v.holiday.name} · no classes` : !classes.length && v.nextClass ? `No classes. Next: ${v.nextClass.label}, ${v.nextClass.class.name}${v.nextClass.class.room ? ` in ${v.nextClass.class.room}` : ""}.` : null,
   };
 }
 

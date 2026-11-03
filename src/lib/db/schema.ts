@@ -659,3 +659,93 @@ export const teacherOverrides = pgTable("teacher_overrides", {
   updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Exam windows set by an admin: a custom window (a source's dates when the
+ * calendar has none) or an override of a calendar phase (same key,
+ * "midterm:2026-11-02"): its dates, and whether regular classes are hidden.
+ */
+export const examWindows = pgTable("exam_windows", {
+  key: text("key").primaryKey(),
+  kind: text("kind").$type<"midterm" | "final" | "exam">().notNull(),
+  name: text("name").notNull(),
+  starts: text("starts").notNull(),
+  ends: text("ends").notNull(),
+  /** "hide": no regular classes in the window (the default for exam weeks); "show": classes as usual. */
+  classes: text("classes").$type<"hide" | "show">().notNull().default("hide"),
+  updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Where an exam schedule comes from: a Google Sheets link (re-read on a
+ * schedule), an uploaded file, or JSON posted by the operator. `mapping` is the
+ * cached layout (tab, header rows, columns), never a student's row; uploaded
+ * files and sheet contents are not stored.
+ */
+export const examSources = pgTable("exam_sources", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** The link, or "import:<label>" for posted JSON: re-importing the same key replaces that source. */
+  key: text("key").notNull().unique(),
+  label: text("label").notNull(),
+  url: text("url"),
+  origin: text("origin").$type<"sheet" | "upload" | "import">().notNull(),
+  windowKey: text("window_key").notNull(),
+  windowName: text("window_name").notNull(),
+  kind: text("kind").$type<"midterm" | "final" | "exam">().notNull(),
+  starts: text("starts").notNull(),
+  ends: text("ends").notNull(),
+  mapping: jsonb("mapping"),
+  status: text("status").$type<"new" | "ok" | "error">().notNull().default("new"),
+  error: text("error"),
+  /** Lines the reader couldn't place ("TimeTable row 9: CS412 has no time"), no personal data. */
+  problems: jsonb("problems").$type<string[]>().notNull().default([]),
+  stats: jsonb("stats").$type<Record<string, unknown>>().notNull().default({}),
+  contentHash: text("content_hash"),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }),
+  importedAt: timestamp("imported_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One exam of a course at one time with all its rooms: what a student of the course sees without a seat. */
+export const examSlots = pgTable(
+  "exam_slots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sourceId: uuid("source_id").notNull().references(() => examSources.id, { onDelete: "cascade" }),
+    /** "CS412", or the course name when the sheet gives no code. */
+    code: text("code").notNull(),
+    courseId: text("course_id"),
+    name: text("name"),
+    day: text("day").notNull(),
+    start: text("start").notNull(),
+    minutes: integer("minutes").notNull(),
+    rooms: jsonb("rooms").$type<string[]>().notNull().default([]),
+    seats: integer("seats"),
+  },
+  (t) => [index("exam_slots_day_idx").on(t.day), index("exam_slots_code_idx").on(t.code), index("exam_slots_source_idx").on(t.sourceId)]
+);
+
+/**
+ * A Press F student's own seat, matched by university student ID. Rows of
+ * students who don't use Press F are dropped before anything is stored.
+ * `was` keeps the previous time/room after a change, for "moved from".
+ */
+export const examSeats = pgTable(
+  "exam_seats",
+  {
+    sourceId: uuid("source_id").notNull().references(() => examSources.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    courseId: text("course_id"),
+    name: text("name"),
+    day: text("day").notNull(),
+    start: text("start").notNull(),
+    minutes: integer("minutes").notNull(),
+    room: text("room"),
+    was: text("was"),
+  },
+  (t) => [primaryKey({ columns: [t.sourceId, t.userId, t.code, t.day, t.start] }), index("exam_seats_user_idx").on(t.userId)]
+);

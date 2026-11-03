@@ -237,6 +237,18 @@ export const examTomorrow = (a: { course: string; courseCode: string; exam: stri
   };
 };
 
+/** An hour before an exam. */
+export const examSoon = (a: { course: string; exam: string; time: string; room?: string | null }): BotMessage => ({
+  text: card(`${a.course} ${a.exam} at ${a.time}`, [a.room, "Good luck"].filter(Boolean).join(" · ")),
+  keyboard: open("See timetable", { to: "timetable" }),
+});
+
+/** The university sheet moved a student's exam: "Room changed: CS412 Deep Learning". */
+export const examChanged = (a: { title: string; now: string; was: string }): BotMessage => ({
+  text: card(a.title, `${a.now} (was ${a.was})`),
+  keyboard: open("See timetable", { to: "timetable" }),
+});
+
 /** When the final exam timetable is published. */
 export const finalTimesOut = (a: { exams: number; dates: string }): BotMessage => ({
   text: card("Final exam times are out", `${a.exams} ${a.exams === 1 ? "exam" : "exams"}, ${a.dates} · added to your calendar`),

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { lmsCourses, lmsFiles } from "@/lib/db/schema";
 import type { LmsLesson, LmsSubject } from "@/lib/lms/types";
 import { fileOverridesMap, overlayAll } from "@/server/decisions";
+import { examWeekNote, examWindowList } from "@/server/exams";
 import { classesBetween, type ClassView } from "./classes";
 import { progressCourses, type AbsencesView } from "./progress";
 import { DAY_ABBR, lmsFileItem, teacherNamesByCode, type FileItem } from "./shared";
@@ -31,6 +32,8 @@ export type TimetableView = {
   /** Every class of the selected day's week (Monday–Sunday), for the desktop week grid (D3). Always set by the server. */
   weekClasses?: ClassView[];
   holiday: Holiday | null;
+  /** "No regular classes during midterm week" while an exam window hides classes. */
+  examWeek?: string | null;
   /** No classes that day: the next class, for "Next: Monday 10:00, Calculus 1 in B-204." */
   nextClass: { label: string; class: ClassView } | null;
 };
@@ -43,7 +46,7 @@ export async function timetable(userId: string, day?: string, now = new Date()):
   const friday = addDays(monday, 4);
   const horizon = addDays(friday > selected ? friday : selected, 14);
 
-  const [classes, courses] = await Promise.all([classesBetween(student, monday, horizon, now), progressCourses(student, now)]);
+  const [classes, courses, windows] = await Promise.all([classesBetween(student, monday, horizon, now), progressCourses(student, now), examWindowList().catch(() => [])]);
   // Mon–Fri, plus Saturday when there are classes on it (Entrepreneurship on Saturdays) or it is the day picked.
   const saturday = addDays(monday, 5);
   const saturdayClasses = classes.some((c) => localDay(new Date(c.start)) === saturday);
@@ -73,12 +76,13 @@ export async function timetable(userId: string, day?: string, now = new Date()):
     })),
     classes: onDay.map((c) => ({
       ...c,
-      lesson: c.lessonIds.map((id) => lessonName.get(id)).find(Boolean) ?? null,
+      lesson: c.exam ? (c.exam.kind === "midterm" ? "Midterm" : c.exam.kind === "final" ? "Final exam" : "Exam") : c.lessonIds.map((id) => lessonName.get(id)).find(Boolean) ?? null,
       materials: overlayAll(files.filter((f) => c.lessonIds.includes(f.lessonId ?? "")).map((f) => lmsFileItem(f, { code: c.code, name: c.name, teachers: people[c.code] }, new Map())), overrides),
       absences: courses.find((p) => p.courseId === c.courseId)?.absences ?? null,
     })),
     weekClasses: classes.filter((c) => { const d = localDay(new Date(c.start)); return d >= monday && d <= addDays(monday, 6); }),
     holiday: info.holiday,
+    examWeek: examWeekNote(windows, selected),
     nextClass: onDay.length || !after ? null : { label: `${weekdayName(new Date(after.start))} ${after.time}`, class: after },
   };
 }

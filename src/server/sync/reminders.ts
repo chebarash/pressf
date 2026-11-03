@@ -1,4 +1,5 @@
 import { attendanceEvents } from "@/core/attendance";
+import { isQuiet } from "@/core/notifications";
 import { nextPhase, dayInfo } from "@/core/semester";
 import { addDays, clock, daysBetween, localDay, localMinutes, localWeekday, shortDate, weekdayName } from "@/core/time";
 import { db } from "@/lib/db";
@@ -88,8 +89,16 @@ export async function runReminders(userId: string, now = new Date()): Promise<Re
   }
   if (minutes >= 18 * 60 && minutes < 21 * 60) {
     for (const c of classes.filter((x) => x.kind === "exam" && localDay(new Date(x.start)) === addDays(day, 1))) {
-      const kind = /final/i.test(c.name) || phase?.kind === "final" ? "final" : /mid/i.test(c.name) || phase?.kind === "midterm" ? "midterm" : "exam";
+      const kind = c.exam?.kind ?? (/final/i.test(c.name) || phase?.kind === "final" ? "final" : /mid/i.test(c.name) || phase?.kind === "midterm" ? "midterm" : "exam");
       await go(`exam:${c.key}`, "exams", msg.examTomorrow({ course: c.name, courseCode: c.code, exam: kind, time: c.time, room: c.room }));
+    }
+  }
+
+  // An hour before each exam (never in quiet hours).
+  if (!isQuiet(minutes)) {
+    for (const c of todays.filter((x) => x.kind === "exam" && Date.parse(x.start) > now.getTime() && Date.parse(x.start) - now.getTime() <= 60 * MIN)) {
+      const kind = c.exam?.kind ?? "exam";
+      await go(`examsoon:${c.key}`, "exams", msg.examSoon({ course: c.name, exam: kind === "exam" ? "exam" : kind, time: c.time, room: c.room }));
     }
   }
 

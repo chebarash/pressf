@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { lmsFiles } from "@/lib/db/schema";
 import { fileOverridesMap, overlayAll } from "@/server/decisions";
 import { feed } from "@/server/feed";
+import { examWeekNote, examWindowList } from "@/server/exams";
 import { classesBetween, toBlocks, type ClassView } from "./classes";
 import { progressCourses, type ProgressCourse } from "./progress";
 import { rateQueueFor, type RateAsk } from "./rate";
@@ -69,6 +70,8 @@ export type TodayView = {
   upcoming: { label: string; class: ClassView } | null;
   /** Materials of the running or next class, from LMS lesson files. */
   materials: FileItem[];
+  /** "No regular classes during midterm week" while an exam window hides classes. */
+  examWeek?: string | null;
   /** Break or exams period, for Figma 2.5. */
   phase: PhaseView | null;
   examsThisWeek: ExamView[];
@@ -83,7 +86,7 @@ const examKind = (name: string, phase: Phase | null): ExamView["kind"] =>
   /final/i.test(name) || phase?.kind === "final" ? "final" : /mid/i.test(name) || phase?.kind === "midterm" ? "midterm" : "exam";
 
 function examView(c: ClassView, now: Date, phase: Phase | null): ExamView {
-  const kind = examKind(c.name, phase);
+  const kind = c.exam?.kind ?? examKind(c.name, phase);
   const start = new Date(c.start);
   const days = Math.round((Date.parse(localDay(start)) - Date.parse(localDay(now))) / 86_400_000);
   return {
@@ -137,11 +140,12 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
   const day = localDay(now);
   const info = dayInfo(now);
 
-  const [classes, courses, queue, items] = await Promise.all([
+  const [classes, courses, queue, items, windows] = await Promise.all([
     classesBetween(student, day, addDays(day, 13), now),
     progressCourses(student, now),
     rateQueueFor(student, now),
     feed(userId, 30),
+    examWindowList().catch(() => []),
   ]);
 
   const blocks = toBlocks(classes);
@@ -199,6 +203,7 @@ export async function today(userId: string, now = new Date()): Promise<TodayView
     upcoming,
     materials: focus ? overlayAll(materialRows.map((f) => lmsFileItem(f, { code: focus.code, name: focus.name, teachers: people[focus.code] }, new Map())), overrides) : [],
     phase: phase ? { kind: phase.kind, title: phase.title, starts: phase.starts, ends: phase.ends, inDays: phase.inDays, rangeLabel: `Until ${shortDate(addDays(phase.ends, 1))}` } : examPhase && examPhase.inDays <= 21 ? { kind: examPhase.kind, title: examPhase.title, starts: examPhase.starts, ends: examPhase.ends, inDays: examPhase.inDays, rangeLabel: range(examPhase.starts, examPhase.ends) } : null,
+    examWeek: examWeekNote(windows, day),
     examsThisWeek,
     nextExams: exams.slice(0, 3),
     rating: queue.ask,

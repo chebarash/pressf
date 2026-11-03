@@ -11,6 +11,7 @@ import { COVERAGE_TAG, moveCourse as moveCourseOp } from "@/server/admin/coverag
 import * as faces from "@/server/admin/faces";
 import * as ops from "@/server/admin/ops";
 import * as profiles from "@/server/admin/profiles";
+import * as exams from "@/server/exams";
 import type { ProfileFields } from "@/core/faculty";
 import type { Audience } from "@/server/admin/rules";
 import { actorId } from "@/server/admin/viewer";
@@ -28,7 +29,7 @@ async function run(fn: (actor: string) => Promise<unknown>, paths: string[] = []
     return { ok: true, message: typeof out === "object" && out && "message" in out ? String((out as { message: unknown }).message) : undefined };
   } catch (e) {
     if (e instanceof ops.Forbidden) return { ok: false, error: "You don't have access to this" };
-    if (e instanceof ops.AdminError) return { ok: false, error: e.message };
+    if (e instanceof ops.AdminError || e instanceof exams.ExamError) return { ok: false, error: e.message };
     if (e instanceof Error && /changed while reviewing|Cannot move/.test(e.message)) return { ok: false, error: "Someone else already reviewed this — reload" };
     console.error("admin action failed", e);
     return { ok: false, error: "Something went wrong. Try again." };
@@ -102,3 +103,41 @@ export const runJob = async (job: ops.Job) =>
       after(() => fetch(`${base}/api/cron/${j}`, { method: "POST", headers: { authorization: `Bearer ${env().CRON_SECRET ?? ""}` } }).catch(() => {}));
     })
   );
+
+/* Exams: exam schedule sources and windows (admin:catalog). */
+
+const examSummary = (r: { stats: exams.ImportStats; unchanged?: boolean }) =>
+  r.unchanged ? "No changes since the last read" : `${r.stats.exams} exams, ${r.stats.coursesMatched}/${r.stats.courses} courses matched, ${r.stats.usersMatched} students by ID`;
+
+const examWindow = (form: FormData) => ({ name: String(form.get("window") ?? ""), starts: String(form.get("starts") ?? ""), ends: String(form.get("ends") ?? "") });
+
+export const addExamSheet = async (form: FormData) =>
+  run(async (a) => {
+    await authorize(a, "admin:catalog");
+    return { message: examSummary(await exams.addSheet(String(form.get("url") ?? ""), String(form.get("label") ?? ""), examWindow(form), a)) };
+  }, ["/admin/exams"]);
+
+export const uploadExamFile = async (form: FormData) =>
+  run(async (a) => {
+    await authorize(a, "admin:catalog");
+    const files = await Promise.all(form.getAll("file").filter((f): f is File => typeof f !== "string").map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })));
+    return { message: examSummary(await exams.addUpload(files, String(form.get("label") ?? ""), examWindow(form), a, String(form.get("url") ?? "") || null)) };
+  }, ["/admin/exams"]);
+
+export const refreshExamSource = async (id: string) =>
+  run(async (a) => {
+    await authorize(a, "admin:catalog");
+    return { message: examSummary(await exams.refreshSource(id, { force: true, actor: a })) };
+  }, ["/admin/exams"]);
+
+export const deleteExamSource = async (id: string) =>
+  run(async (a) => {
+    await authorize(a, "admin:catalog");
+    await exams.deleteSource(id);
+  }, ["/admin/exams"]);
+
+export const setExamWindow = async (key: string, patch: { classes?: "hide" | "show"; starts?: string; ends?: string }) =>
+  run(async (a) => {
+    await authorize(a, "admin:catalog");
+    await exams.setWindow(key, patch, a);
+  }, ["/admin/exams"]);

@@ -88,6 +88,7 @@ function ClassSheet({ c, weekday }: { c: TimetableClass; weekday: string }) {
           {c.teacher.name}
         </p>
       ) : null}
+      {c.exam ? <p className={s.fact}>{c.exam.note}</p> : null}
       {c.materials.length ? (
         <>
           <p className={b.label}>Materials for this class</p>
