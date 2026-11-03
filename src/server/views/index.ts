@@ -17,6 +17,6 @@ export { curriculum, schools, nextSemester, cohorts, type CurriculumView, type S
 export { profile, myUploads, type ProfileView, type MyUploadView } from "./profile";
 export { rateQueue, type RateQueueView, type RateItem, type RatedItem, type RateAsk, type RateTeacher } from "./rate";
 export type { ClassView } from "./classes";
-export type { FileItem, FeedView, DeadlineView, MentionsView, MentionView, RatingSummaryView } from "./shared";
+export type { FileItem, FeedView, FeedFile, FeedFiles, DeadlineView, MentionsView, MentionView, RatingSummaryView } from "./shared";
 export type { SyncState } from "./student";
 export { TAGS, invalidate, invalidateRating, invalidateUpload, invalidateHarvest } from "./cache";

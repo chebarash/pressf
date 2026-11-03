@@ -5,9 +5,9 @@
  */
 import type { TeacherRole } from "@/core/ratings";
 import type { RatingSummaryProps } from "@/ui/components";
-import type { FeedKind, FileRowData, Strip, Tier } from "./parts";
+import type { FeedFilesVM, FeedKind, FileRowData, Strip, Tier } from "./parts";
 
-export type { FeedKind, FileRowData, Strip, Tier };
+export type { FeedFilesVM, FeedKind, FileRowData, Strip, Tier };
 
 export type Teacher = { id: string; name: string; face: string | null; href: string };
 
@@ -28,7 +28,10 @@ export type FeedItemVM = {
   acknowledged?: boolean;
   /** Where "Open …" goes from the detail pane. */
   open?: { label: string; href: string } | null;
+  /** New-files items: the files (at most three, each opens the file) and "and N more" to the course's files. */
+  files?: FeedFilesVM | null;
 };
+
 
 export type TodayData = {
   /** Status line under the header (Figma D15: LMS not answering). */

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useOptimistic, useState, useTransition } from "react";
 import type { FeedKind } from "@/core/notifications";
 import type { FeedView, NotificationsView } from "@/server/views";
-import { Chip, EmptyState } from "@/ui/components";
+import { Chip, EmptyState, FeedFiles } from "@/ui/components";
 import { markAllFeedRead, markFeedRead } from "./actions";
 import s from "./mobile.module.css";
 import { allItems, applyChange, orderedFilters, readable, unreadNow } from "./notifications/model";
@@ -98,11 +98,18 @@ export default function Notifications({ data }: { data: NotificationsView }) {
           title={open.title}
           onClose={close}
           className={s.noteSheet}
-          main={open.href ? { text: "Open", onClick: () => router.push(open.href!) } : { text: "Close", onClick: close }}
+          main={
+            open.files?.courseHref
+              ? { text: "Open course", onClick: () => router.push(open.files!.courseHref!) }
+              : open.href
+                ? { text: "Open", onClick: () => router.push(open.href!) }
+                : { text: "Close", onClick: close }
+          }
         >
           <p className={s.sheetEyebrow}>{[KIND_LABEL[open.kind], open.courseName, open.author, open.ago].filter(Boolean).join(" · ")}</p>
           <h2 className={s.noteTitle}>{open.title}</h2>
           {open.body && <p className={s.sheetBody}>{open.body}</p>}
+          {open.files && <FeedFiles files={open.files.shown} more={open.files.more} moreHref={open.files.courseHref} />}
           {open.acknowledged && <p className={s.noteFine}>Acknowledged in LMS</p>}
         </ActionSheet>
       )}

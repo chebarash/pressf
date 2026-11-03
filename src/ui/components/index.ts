@@ -4,6 +4,7 @@ export { Chip, type ChipProps } from "./Chip";
 export { CourseCard, type CourseCardProps } from "./CourseCard";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { Face, type FaceProps } from "./Face";
+export { FeedFiles, type FeedFilesProps } from "./FeedFiles";
 export { FeedItem, type FeedItemProps, type FeedType } from "./FeedItem";
 export { FileRow, FILE_FLAG, type FileRowProps } from "./FileRow";
 export { FileThumbnail, type FileThumbnailProps } from "./FileThumbnail";

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import type { FeedItemVM, NotificationsData } from "../model";
 import n from "../notifications.module.css";
+import { FileRow } from "@/ui/components";
 import { Button, ButtonLink, css, cx, Empty, FeedRow, Hint, type FeedKind } from "../parts";
 
 const FILTERS: Array<{ id: "all" | FeedKind; label: string; kinds: FeedKind[] }> = [
@@ -92,6 +94,7 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
                     title={i.title}
                     meta={i.meta}
                     unread={i.unread}
+                    files={i.files}
                     selected={i.id === openId}
                     onClick={() => {
                       setOpenId(i.id);
@@ -117,6 +120,21 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
                 {open.body.map((p, i) => (
                   <p key={i}>{p}</p>
                 ))}
+              </div>
+            )}
+            {open.files && (
+              <div className={n.files}>
+                {open.files.shown.map((f) => (
+                  <FileRow key={f.id} title={f.title} type={f.type} week={f.typeLabel} href={f.href} />
+                ))}
+                {open.files.more > 0 &&
+                  (open.files.moreHref ? (
+                    <Link href={open.files.moreHref} className={n.more}>
+                      and {open.files.more} more
+                    </Link>
+                  ) : (
+                    <p className={n.more}>and {open.files.more} more</p>
+                  ))}
               </div>
             )}
             <div className={n.actions}>

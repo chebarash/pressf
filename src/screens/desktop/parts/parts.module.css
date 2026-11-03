@@ -163,6 +163,8 @@
 }
 .feed:hover { background: var(--bg-hover); }
 .feedSelected, .feedSelected:hover { background: var(--bg-accent-soft); }
+.feedTop { align-items: flex-start; }
+.feedFiles { margin-top: 6px; }
 .badge {
   width: 40px;
   height: 40px;

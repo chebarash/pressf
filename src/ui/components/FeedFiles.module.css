@@ -1,0 +1,32 @@
+/* The files under a "new files" FeedItem: File/Row v2 (4153:2357) flags, compact. */
+.list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 28px;
+  padding: 2px var(--space-1) 2px 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font: 500 13px/1.25 var(--font-sans);
+  text-decoration: none;
+}
+.flag { flex: none; width: 4px; height: 16px; border-radius: 2px; }
+/* Same families as FileRow; Mock, Notes and Syllabus use the theme-independent 500 primitives. */
+.exam { background: var(--bg-danger); }
+.mock { background: var(--mustard-500); }
+.lecture { background: var(--bg-accent); }
+.notes { background: var(--plum-500); }
+.syllabus { background: var(--moss-500); }
+.other { background: var(--border-subtle); }
+.title { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.type { flex: none; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.chev { flex: none; color: var(--text-secondary); }
+.more { display: inline-flex; align-items: center; min-height: 24px; padding-left: 12px; color: var(--text-secondary); font: 500 12px/normal var(--font-sans); text-decoration: none; }
+.link { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+@media (hover: hover) {
+  .row.link:hover { background: var(--bg-hover); }
+  .more.link:hover { color: var(--text-primary); text-decoration: underline; }
+}
+.link:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 1px; }

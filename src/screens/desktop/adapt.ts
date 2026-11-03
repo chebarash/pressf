@@ -27,7 +27,8 @@ function feedItem(f: V.FeedView, section?: string): M.FeedItemVM {
     kind: f.kind,
     title: f.title,
     // D7 / D1: "LMS · Calculus 1 · 1 h ago · needs your OK"; the author shows when no course is named.
-    meta: join(SOURCE[f.kind], f.courseName ?? f.author, f.ago, f.needsAck && !f.read && "needs your OK"),
+    // New files name the course in the title ("3 new files in Deep Learning"): "Week 8 · 1 h ago".
+    meta: f.files ? join(f.body, f.ago) : join(SOURCE[f.kind], f.courseName ?? f.author, f.ago, f.needsAck && !f.read && "needs your OK"),
     unread: !f.read,
     href: `/notifications?open=${encodeURIComponent(f.id)}`,
     section,
@@ -37,6 +38,7 @@ function feedItem(f: V.FeedView, section?: string): M.FeedItemVM {
     needsAck: f.needsAck,
     acknowledged: !!f.acknowledged,
     open: openAction(f),
+    files: f.files ? { shown: f.files.shown, more: f.files.more, moreHref: f.files.courseHref } : null,
   };
 }
 

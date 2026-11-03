@@ -348,7 +348,16 @@ export type FeedView = {
   /** The LMS asked for a confirmation and the student gave it by opening it ("Acknowledged"). Optional for fixtures. */
   acknowledged?: boolean;
   href: string | null;
+  /**
+   * New-files items (kind "file"): the files themselves, at most three, each
+   * opening the file, plus how many more there are. Null for other kinds or
+   * when the files are no longer known. Always set by the server; optional for fixtures.
+   */
+  files?: FeedFiles | null;
 };
+
+export type FeedFile = { id: string; title: string; type: FileType; typeLabel: string; href: string };
+export type FeedFiles = { count: number; shown: FeedFile[]; more: number; courseHref: string | null };
 
 /** "LMS · System notification" says nothing: the LMS's placeholder sender is no author. */
 const realAuthor = (a: string | null | undefined) => (a && !/^system\s+notification$/i.test(a.trim()) ? a : null);
@@ -367,15 +376,56 @@ function fileWording(i: FeedItem, courseName: string | null): { title: string; b
   return { title: `${count} new files in ${courseName}`, body: [week, fileList(old[2].split(", "))].filter(Boolean).join(" · ") };
 }
 
-export function feedView(i: FeedItem, now: Date, names: Map<string, CourseRef>): FeedView {
+export function feedView(i: FeedItem, now: Date, names: Map<string, CourseRef>, known?: Map<string, FileItem>): FeedView {
   const courseName = (i.courseId ? names.get(i.courseId)?.name : null) ?? i.courseName ?? null;
   const author = realAuthor(i.author);
-  const { title, body } = fileWording(i, courseName);
+  const files = known ? feedFiles(i, known) : null;
+  // With the files listed under it, the item reads "3 new files in Deep Learning" with just the week below.
+  const { title, body } = files && courseName
+    ? { title: files.count === 1 ? `New file in ${courseName}` : `${files.count} new files in ${courseName}`, body: i.body?.match(/Week \d+/)?.[0] ?? null }
+    : fileWording(i, courseName);
   return {
     id: i.id, kind: i.kind, title, body, courseId: i.courseId ?? null, courseName, author,
     byline: i.kind === "announcement" ? ["LMS", courseName, author].filter(Boolean).join(" · ") : null,
     at: i.at.toISOString(), ago: ago(i.at, now), read: i.read, needsAck: !!i.needsAck && !i.read, acknowledged: !!i.needsAck && i.read, href: i.href ?? null,
+    files,
   };
+}
+
+/** The file ids a new-files item carries in its id: "files:<courseId>:<id>,<id>,…" (the last one may be cut short). */
+export function feedFileIds(i: Pick<FeedItem, "id" | "kind">): string[] {
+  const m = i.kind === "file" ? i.id.match(/^files:[^:]+:(.+)$/) : null;
+  return m ? m[1].split(",").filter(Boolean) : [];
+}
+
+/** How many files a new-files item announced: from its title ("10 new files …"), else the ids it carries. */
+function announcedCount(i: FeedItem, ids: number) {
+  const n = i.title.match(/^(\d+) new files?\b/);
+  if (n) return Math.max(Number(n[1]), ids);
+  return /^New file\b/.test(i.title) ? Math.max(1, ids) : ids;
+}
+
+function feedFiles(i: FeedItem, known: Map<string, FileItem>): FeedFiles | null {
+  const ids = feedFileIds(i);
+  const found = ids.map((id) => known.get(id)).filter((f): f is FileItem => !!f);
+  if (!found.length) return null;
+  const count = announcedCount(i, ids.length);
+  const shown = found.slice(0, 3).map((f) => ({ id: f.id, title: f.title, type: f.type, typeLabel: f.typeLabel, href: f.href }));
+  // "and 7 more" opens the course's Files tab.
+  const courseHref = i.href && /^\/c\/[^/?#]+/.test(i.href) ? i.href.replace(/^(\/c\/[^/?#]+)(\/[^?#]*)?/, "$1/files") : null;
+  return { count, shown, more: Math.max(0, count - shown.length), courseHref };
+}
+
+/** Feed rows ready to show: new-files items get their files (one query for the whole list, admin edits applied). */
+export async function feedViews(items: FeedItem[], now: Date, names: Map<string, CourseRef>): Promise<FeedView[]> {
+  const ids = [...new Set(items.flatMap(feedFileIds))];
+  const known = new Map<string, FileItem>();
+  if (ids.length) {
+    const [rows, overrides] = await Promise.all([db().select().from(lmsFiles).where(inArray(lmsFiles.id, ids)), fileOverridesMap()]);
+    const list = rows.map((f) => lmsFileItem(f, { code: f.code ?? "", name: (f.courseId ? names.get(f.courseId)?.name : null) ?? f.code ?? "" }, new Map()));
+    for (const f of overlayAll(list, overrides)) known.set(f.id, f);
+  }
+  return items.map((i) => feedView(i, now, names, known));
 }
 
 /* ───────────── deadlines ───────────── */
