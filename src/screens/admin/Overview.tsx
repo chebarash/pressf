@@ -42,6 +42,25 @@ export function Overview({ data, canSystem }: { data: OverviewData; canSystem: b
           ))}
         </section>
       </div>
+      <section className={s.cardSoft} aria-label="Shared in Telegram">
+        <Label>SHARED IN TELEGRAM</Label>
+        <div style={{ fontSize: 14, fontWeight: 500 }}>
+          {data.shares.total === "0"
+            ? "No shares yet. They count when someone sends a Press F card from the bot's inline mode."
+            : [`${data.shares.total} shares · ${data.shares.week} this week`, ...data.shares.byKind.map((k) => `${k.total} ${k.label}`)].join(" · ")}
+        </div>
+        {data.shares.top.length > 0 && (
+          <div className={s.small}>
+            Most shared:{" "}
+            {data.shares.top.map((t, i) => (
+              <span key={t.href}>
+                {i > 0 ? ", " : ""}
+                <Link href={t.href} className={s.link} prefetch={false}>{t.label}</Link> ({t.n})
+              </span>
+            ))}
+          </div>
+        )}
+      </section>
       <section className={s.cardSoft}>
         <Label>THIS WEEK</Label>
         <div style={{ fontSize: 14, fontWeight: 500 }}>{data.week}</div>

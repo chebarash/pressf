@@ -3,7 +3,7 @@
  * queries inside. Nothing here can link a person to a rating or to an
  * Anonymous post: ratings are counted by pseudonym, posts carry no author.
  */
-import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, max, ne, notInArray, or, sql, sum } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNotNull, like, max, ne, notInArray, or, sql, sum } from "drizzle-orm";
 import { describeFile, TYPE_LABEL, type FileType } from "@/core/files";
 import { displayName, initials } from "@/core/people";
 import { dayStart, DAY_MS, localDay } from "@/core/time";
@@ -11,7 +11,7 @@ import { trustOf, type Trust, type UploadStatus } from "@/core/uploads";
 import { db } from "@/lib/db";
 import {
   adminMarks, auditLog, broadcasts, courseRatings, feedItems, fileOverrides, lmsAccounts, lmsCache, lmsCourses,
-  lmsCourseTeachers, lmsFiles, lmsTeachers, mentionLinks, mentions, reports, teacherAliases, teacherRatings, uploads, userRoles, users,
+  lmsCourseTeachers, lmsFiles, lmsTeachers, mentionLinks, mentions, reports, searchEvents, teacherAliases, teacherRatings, uploads, userRoles, users,
 } from "@/lib/db/schema";
 import { pseudonym } from "@/server/identity";
 import { openReports } from "@/server/reports";
@@ -103,7 +103,7 @@ type NeedRow = { kind: "upload" | "report"; title: string; meta: string; age: st
 export async function overview(now = new Date()) {
   const today = dayStart(localDay(now));
   const week = new Date(now.getTime() - 7 * DAY_MS);
-  const [waiting, open, todayN, signedIn, h, weekUploads, ratingsWeek, hiddenWeek, postsTotal] = await Promise.all([
+  const [waiting, open, todayN, signedIn, h, weekUploads, ratingsWeek, hiddenWeek, postsTotal, shared] = await Promise.all([
     db()
       .select({ id: uploads.id, title: uploads.title, type: uploads.type, createdAt: uploads.createdAt, checks: uploads.checks, uploaderId: uploads.uploaderId, course: lmsCourses.name, code: uploads.courseCode })
       .from(uploads)
@@ -123,6 +123,7 @@ export async function overview(now = new Date()) {
     db().select({ n: count() }).from(courseRatings).where(gte(courseRatings.createdAt, week)),
     db().select({ n: count() }).from(adminMarks).where(and(eq(adminMarks.kind, "post-hidden"), gte(adminMarks.at, week))),
     db().select({ n: count() }).from(mentions),
+    shareTotals(week),
   ]);
   const posts = await postsById(open.filter((r) => r.kind === "post").map((r) => r.id));
   const files = await uploadsById(open.filter((r) => r.kind === "file").map((r) => r.id));
@@ -179,7 +180,46 @@ export async function overview(now = new Date()) {
       { label: "Storage", value: h.storage },
       { label: "Errors (24 h)", value: "Not tracked yet", danger: false },
     ],
+    shares: shared,
     week: `${fmt(n(live?.n))} student files went live · ${fmt(rejected)} not accepted · median review ${median === null ? "—" : `${median} h`} · ${fmt(n(ratingsWeek[0]?.n))} ratings · ${fmt(n(hiddenWeek[0]?.n))} of ${fmt(n(postsTotal[0]?.n))} Anonymous posts hidden`,
+  };
+}
+
+/** Shares sent through the bot's inline mode (search_events "share:<kind>"): all time and this week, per kind, and the most shared. */
+async function shareTotals(since: Date) {
+  const [byKind, top] = await Promise.all([
+    db()
+      .select({ kind: searchEvents.kind, total: count(), week: sql<number>`count(*) filter (where ${searchEvents.createdAt} >= ${since})` })
+      .from(searchEvents)
+      .where(like(searchEvents.kind, "share:%"))
+      .groupBy(searchEvents.kind),
+    db()
+      .select({ kind: searchEvents.kind, id: searchEvents.targetId, n: count() })
+      .from(searchEvents)
+      .where(like(searchEvents.kind, "share:%"))
+      .groupBy(searchEvents.kind, searchEvents.targetId)
+      .orderBy(desc(count()))
+      .limit(5),
+  ]);
+  const kindOf = (k: string) => k.replace(/^share:/, "");
+  const courseNames = new Map(
+    (top.some((t) => kindOf(t.kind) === "course")
+      ? await db().selectDistinctOn([lmsCourses.code], { code: lmsCourses.code, name: lmsCourses.name }).from(lmsCourses).where(inArray(lmsCourses.code, top.filter((t) => kindOf(t.kind) === "course").map((t) => t.id))).orderBy(lmsCourses.code, desc(lmsCourses.fetchedAt))
+      : []
+    ).map((c) => [c.code.toUpperCase(), c.name]),
+  );
+  const LABEL: Record<string, string> = { course: "courses", professor: "professors", file: "files", app: "the app" };
+  const total = byKind.reduce((a, r) => a + n(r.total), 0);
+  const week = byKind.reduce((a, r) => a + n(r.week), 0);
+  return {
+    total: fmt(total),
+    week: fmt(week),
+    byKind: byKind.map((r) => ({ label: LABEL[kindOf(r.kind)] ?? kindOf(r.kind), total: fmt(n(r.total)) })),
+    top: top.map((t) => {
+      const kind = kindOf(t.kind);
+      const href = kind === "course" ? `/c/${encodeURIComponent(t.id)}` : kind === "professor" ? `/p/${encodeURIComponent(t.id)}` : kind === "file" ? `/f/${encodeURIComponent(t.id)}` : "/";
+      return { label: kind === "course" ? `${courseNames.get(t.id) ?? t.id} · ${t.id}` : kind === "app" ? "Press F" : `${kind} ${t.id}`, n: fmt(n(t.n)), href };
+    }),
   };
 }
 
@@ -397,15 +437,17 @@ export async function coursesPage(q: string) {
     .orderBy(lmsCourses.code, desc(lmsCourses.fetchedAt))
     .limit(80);
   const codes = rows.map((r) => r.code);
-  const [lms, students] = codes.length
+  const [lms, students, shared] = codes.length
     ? await Promise.all([
         db().select({ code: lmsFiles.code, n: count() }).from(lmsFiles).where(inArray(lmsFiles.code, codes)).groupBy(lmsFiles.code),
         db().select({ code: uploads.courseCode, n: count() }).from(uploads).where(and(inArray(uploads.courseCode, codes), inArray(uploads.status, ["live", "hidden"]))).groupBy(uploads.courseCode),
+        // Inline-mode shares of the course card (chosen_inline_result).
+        db().select({ code: searchEvents.targetId, n: count() }).from(searchEvents).where(and(eq(searchEvents.kind, "share:course"), inArray(searchEvents.targetId, codes.map((c) => c.toUpperCase())))).groupBy(searchEvents.targetId),
       ])
-    : [[], []];
+    : [[], [], []];
   return {
     q: term,
-    courses: rows.map((r) => ({ ...r, lms: n(lms.find((x) => x.code === r.code)?.n), students: n(students.find((x) => x.code === r.code)?.n) })),
+    courses: rows.map((r) => ({ ...r, lms: n(lms.find((x) => x.code === r.code)?.n), students: n(students.find((x) => x.code === r.code)?.n), shares: n(shared.find((x) => x.code === r.code.toUpperCase())?.n) })),
   };
 }
 

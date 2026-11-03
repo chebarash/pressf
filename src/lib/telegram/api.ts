@@ -38,10 +38,41 @@ export type TelegramCallbackQuery = {
   message?: TelegramMessage;
 };
 
+/** Someone typed "@pressfapp …" in a chat (or a Share button switched to inline mode). */
+export type TelegramInlineQuery = { id: string; from: TelegramUser; query: string; offset: string; chat_type?: string };
+
+/** The result they sent (inline feedback must be on in BotFather: /setinlinefeedback). */
+export type TelegramChosenInlineResult = { result_id: string; from: TelegramUser; query: string; inline_message_id?: string };
+
 export type TelegramUpdate = {
   update_id: number;
   message?: TelegramMessage;
   callback_query?: TelegramCallbackQuery;
+  inline_query?: TelegramInlineQuery;
+  chosen_inline_result?: TelegramChosenInlineResult;
+};
+
+/**
+ * Updates the webhook must ask for (setWebhook allowed_updates): messages and
+ * buttons for the file intake, inline queries and chosen results for sharing.
+ */
+export const ALLOWED_UPDATES = ["message", "callback_query", "inline_query", "chosen_inline_result"] as const;
+
+/** An article result: a rich card (title, description, thumbnail) that sends a message with a link preview and a button. */
+export type InlineArticle = {
+  type: "article";
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail_url?: string;
+  thumbnail_width?: number;
+  thumbnail_height?: number;
+  input_message_content: {
+    message_text: string;
+    parse_mode?: "HTML";
+    link_preview_options?: { url?: string; prefer_large_media?: boolean; show_above_text?: boolean; is_disabled?: boolean };
+  };
+  reply_markup?: InlineKeyboard;
 };
 
 const url = (method: string) =>
@@ -97,6 +128,14 @@ export const editKeyboard = (chatId: number | string, messageId: number, replyMa
 
 export const sendPhoto = (chatId: number | string, photo: string, caption: string, replyMarkup?: InlineKeyboard) =>
   call<TelegramMessage>("sendPhoto", { chat_id: chatId, photo, caption, parse_mode: "HTML", reply_markup: replyMarkup });
+
+export const answerInlineQuery = (id: string, results: InlineArticle[], opts: { cacheTime?: number; personal?: boolean } = {}) =>
+  call<boolean>("answerInlineQuery", {
+    inline_query_id: id,
+    results,
+    cache_time: opts.cacheTime ?? 60,
+    is_personal: opts.personal ?? false,
+  });
 
 export const answerCallback = (id: string, text?: string, alert = !!text) =>
   call<boolean>("answerCallbackQuery", {

@@ -5,6 +5,7 @@ import s from "./parts/Course.module.css";
 import { FilesBrowser, SemesterSwitch, TelegramLink, WeekList, type TermLink } from "./parts/CourseClient";
 import { ChevronDownIcon, ChevronRightIcon } from "@/ui/icons";
 import { CourseRatingStrip, CourseRatingSummary, FewRatings, GateNotice, GhostWeeks, MentionCard, Syllabus, TeacherCard, YouCard } from "./parts/CourseParts";
+import { ShareButton } from "./parts/FileActions";
 import { MainButton } from "./parts/MainButton";
 import { Notice } from "./parts/Notice";
 import type { CourseScreen, CourseTab } from "./views";
@@ -47,6 +48,7 @@ export default function Course({ data }: { data: CourseScreen }) {
       <header className={s.header}>
         <div className={s.tags}>
           <Tag tone="accent">{data.code}</Tag>
+          <ShareButton target={{ to: "course", code: data.code }} title={data.name} text={data.name} className={s.shareCourse} />
         </div>
         <h1 className={s.title}>{data.name}</h1>
         {data.signedIn && data.term && data.terms.length > 1 ? <SemesterSwitch label={`${data.term.term}${note(data.term.courseId) ? ` · ${note(data.term.courseId)}` : ""}`} terms={terms} /> : null}

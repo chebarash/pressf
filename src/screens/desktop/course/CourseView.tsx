@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { CourseData } from "../model";
 import { Disclosure, RatingSummary } from "@/ui/components";
 import { Syllabus } from "@/screens/mobile/parts/CourseParts";
-import { Button, ButtonLink, css, cx, Empty, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, Tag } from "../parts";
+import { Button, ButtonLink, css, cx, Empty, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, shareHref, Tag } from "../parts";
 import c from "./course.module.css";
 import { CourseFiles } from "./CourseFiles";
 import { CourseList } from "./CourseList";
@@ -39,6 +39,11 @@ function CourseDetail({ data, tab }: { data: CourseData; tab: CourseTab }) {
         <div className={c.tags}>
           <Tag>{data.code}</Tag>
           {data.kind && <Tag tone="neutral">{data.kind}</Tag>}
+          {!data.context && (
+            <a href={shareHref(`/c/${encodeURIComponent(data.code)}`, data.name)} className={c.shareLink} target="_blank" rel="noopener">
+              <Icon name="send" size={16} /> Share
+            </a>
+          )}
         </div>
         <h1 className={c.name}>{data.name}</h1>
         {data.context ? (

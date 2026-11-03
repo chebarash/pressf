@@ -55,6 +55,8 @@ export type WebApp = {
   offEvent(name: string, handler: Handler): void;
   openLink(url: string, options?: { try_instant_view?: boolean }): void;
   openTelegramLink(url: string): void;
+  /** Bot API 6.7+: opens the chat picker with "@bot query" typed in (needs inline mode on in BotFather). */
+  switchInlineQuery?(query: string, chooseChatTypes?: Array<"users" | "bots" | "groups" | "channels">): void;
   showPopup?(params: PopupParams, callback?: (id: string) => void): void;
   showConfirm?(message: string, callback?: (ok: boolean) => void): void;
   showScanQrPopup?(params: { text?: string }, callback?: (text: string) => boolean | void): void;

@@ -1,8 +1,7 @@
-import { miniAppUrl } from "@/core/links";
 import { cx, FILE_FLAG } from "@/ui/components";
 import fr from "@/ui/components/FileRow.module.css";
 import b from "./parts/base.module.css";
-import { FileActions, ShareFile } from "./parts/FileActions";
+import { FileActions, ShareButton } from "./parts/FileActions";
 import s from "./parts/File.module.css";
 import { MainButton } from "./parts/MainButton";
 import type { FileView } from "./views";
@@ -24,7 +23,6 @@ export default function File({ data }: { data: FileView }) {
   }
   // Figma 4.9: "Calculus 1 · Week 8 · 2 Nov · LMS · 24 pages" (size when the page count is unknown).
   const meta = [data.course.name, data.week ? `Week ${data.week}` : null, data.dateLabel, data.from, data.pages ? `${data.pages} ${data.pages === 1 ? "page" : "pages"}` : size(data.size)].filter(Boolean).join(" · ");
-  const share = `https://t.me/share/url?url=${encodeURIComponent(miniAppUrl({ to: "file", id: data.id }))}&text=${encodeURIComponent(`${data.title} — ${data.course.name}`)}`;
   return (
     <div className={cx(b.screen, s.screen)}>
       <header className={s.head}>
@@ -33,7 +31,7 @@ export default function File({ data }: { data: FileView }) {
           <h1 className={s.title}>{data.title}</h1>
           <p className={s.meta}>{meta}</p>
         </div>
-        <ShareFile url={share} title={data.title} />
+        <ShareButton target={{ to: "file", id: data.id }} title={data.title} text={`${data.title} — ${data.course.name}`} />
       </header>
       {data.url && data.format === "pdf" ? (
         <iframe className={s.preview} src={`${data.url}#toolbar=0&navpanes=0`} title={`Preview of ${data.title}`} />

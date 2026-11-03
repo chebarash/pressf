@@ -224,7 +224,9 @@ export const nextOg = cache(async (code: string): Promise<NextOg | null> => {
 
 /* ---------- metadata ---------- */
 
-type Meta = { title: string; description: string; path: string; image: string; alt: string };
+/** One share card: what a link preview and an inline result show. `image` and `path` are site-relative. */
+export type ShareCard = { title: string; description: string; path: string; image: string; alt: string };
+type Meta = ShareCard;
 
 /** Next metadata with an OG image (Telegram reads og:title, og:description and og:image). */
 export function ogMetadata(m: Meta): Metadata {
@@ -242,29 +244,48 @@ export function ogMetadata(m: Meta): Metadata {
 const APP_DESCRIPTION = "Timetable, files by week, grades and absences from LMS — plus what students really think of every course.";
 
 export function appMetadata(): Metadata {
-  return ogMetadata({ title: "Press F — your NewUU day, in one place", description: APP_DESCRIPTION, path: "/", image: ogImagePath("app"), alt: "Press F" });
+  return ogMetadata(appCard());
 }
 
-export async function courseMetadata(code: string): Promise<Metadata> {
+/** The app's own card (an empty inline query, unknown links). */
+export const appCard = (): ShareCard => ({ title: "Press F — your NewUU day, in one place", description: APP_DESCRIPTION, path: "/", image: ogImagePath("app"), alt: "Press F" });
+
+/** Course card (page metadata and the bot's inline results share it). */
+export async function courseCard(code: string): Promise<(ShareCard & { code: string; name: string }) | null> {
   const c = await courseOg(code);
-  if (!c) return appMetadata();
+  if (!c) return null;
   const description = c.stats
     ? `${c.stats.recommendPct}% would recommend · ${c.stats.hours} a week · ${c.stats.difficulty} hard. ${courseLine(c) ?? ""}`.trim()
     : `New — not enough ratings yet. Took ${c.name}? Be one of the first five.`;
-  return ogMetadata({ title: `${c.name} (${c.code}) — Press F`, description, path: path({ to: "course", code: c.code }), image: ogImagePath(c.kind, slug(c.code), c), alt: c.name });
+  return { code: c.code, name: c.name, title: `${c.name} (${c.code}) — Press F`, description, path: path({ to: "course", code: c.code }), image: ogImagePath(c.kind, slug(c.code), c), alt: c.name };
+}
+
+export async function professorCard(id: string): Promise<(ShareCard & { name: string }) | null> {
+  const p = await professorOg(id);
+  if (!p) return null;
+  const description = p.pressFPct != null ? `${p.pressFPct}% pressed F — would take again. ${p.line ?? ""}`.trim() : (p.line ?? "Ratings from NewUU students on Press F.");
+  return { name: p.name, title: `${p.name} — Press F`, description, path: path({ to: "professor", id }), image: ogImagePath("professor", id, p), alt: p.name };
+}
+
+export async function fileCard(id: string): Promise<(ShareCard & { name: string; courseName: string }) | null> {
+  const f = await fileOg(id);
+  if (!f) return null;
+  return { name: f.title, courseName: f.courseName, title: `${f.title} — ${f.courseName}`, description: `${fileLine(f)}. Opens in Press F — sign in with your NewUU account.`, path: path({ to: "file", id }), image: ogImagePath("file", id, f), alt: f.title };
+}
+
+export async function courseMetadata(code: string): Promise<Metadata> {
+  const c = await courseCard(code);
+  return c ? ogMetadata(c) : appMetadata();
 }
 
 export async function professorMetadata(id: string): Promise<Metadata> {
-  const p = await professorOg(id);
-  if (!p) return appMetadata();
-  const description = p.pressFPct != null ? `${p.pressFPct}% pressed F — would take again. ${p.line ?? ""}`.trim() : (p.line ?? "Ratings from NewUU students on Press F.");
-  return ogMetadata({ title: `${p.name} — Press F`, description, path: path({ to: "professor", id }), image: ogImagePath("professor", id, p), alt: p.name });
+  const p = await professorCard(id);
+  return p ? ogMetadata(p) : appMetadata();
 }
 
 export async function fileMetadata(id: string): Promise<Metadata> {
-  const f = await fileOg(id);
-  if (!f) return appMetadata();
-  return ogMetadata({ title: `${f.title} — ${f.courseName}`, description: `${fileLine(f)}. Opens in Press F — sign in with your NewUU account.`, path: path({ to: "file", id }), image: ogImagePath("file", id, f), alt: f.title });
+  const f = await fileCard(id);
+  return f ? ogMetadata(f) : appMetadata();
 }
 
 export function rateMetadata(term = termName()): Metadata {

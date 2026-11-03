@@ -7,6 +7,7 @@ import { uploads } from "@/lib/db/schema";
 import { trustFor } from "@/server/uploads";
 import { answerCallback, editKeyboard, editMessage, send, type TelegramCallbackQuery, type TelegramMessage, type TelegramUpdate } from "./api";
 import { answered, newDraft, parseData, reduce, render, type Draft, type DraftFile } from "./conversation";
+import { handleInlineQuery, recordShare } from "./inline";
 import { intake } from "./intake";
 import { askForFile, cancelled, expired, noCourseFound, notAFile, openPage, sharingPaused, slowDown, tooBig, welcome } from "./messages";
 import { dropDraft, linkedUser, loadDraft, saveDraft, searchCourses, studentContext } from "./session";
@@ -157,6 +158,8 @@ async function handleCallback(query: TelegramCallbackQuery, later: Later) {
 }
 
 export async function handleUpdate(update: TelegramUpdate, later: Later = defaultLater) {
+  if (update.inline_query) return handleInlineQuery(update.inline_query);
+  if (update.chosen_inline_result) return recordShare(update.chosen_inline_result);
   if (update.callback_query) return handleCallback(update.callback_query, later);
   const message = update.message;
   if (!message || message.chat.type !== "private") return;

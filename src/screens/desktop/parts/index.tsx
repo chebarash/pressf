@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import type { FileType } from "@/core/files";
+import { SITE_URL } from "@/core/links";
 import { Button as KitButton, CourseCard as KitCourseCard, EmptyState, Face as KitFace, FeedFiles, FeedItem, FileRow as KitFileRow, RatingRing, RatingStrip as KitRatingStrip, Score as KitScore, Tag as KitTag, type FeedType, type ScoreTier } from "@/ui/components";
 import { Icon, type IconName } from "./Icon";
 import { Prefetch } from "./Prefetch";
@@ -56,6 +57,10 @@ export function ButtonLink({ children, href, keyName, variant, size, icon }: Loo
 export const AnchorButton = ({ variant = "primary", className, ...rest }: { variant?: "primary" | "secondary" } & ComponentProps<"a">) => (
   <a className={cx(s.btn, variant === "primary" && s.primary, className)} {...rest} />
 );
+
+/** Desktop share: Telegram's share link to the page (the page's preview is the share card). */
+export const shareHref = (pagePath: string, text?: string) =>
+  `https://t.me/share/url?url=${encodeURIComponent(`${SITE_URL}${pagePath}`)}${text ? `&text=${encodeURIComponent(text)}` : ""}`;
 
 /* ---------- Tags and stickers ---------- */
 
