@@ -204,6 +204,13 @@
       "when": 1793745597929,
       "tag": "0028_calendar_feeds",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793747001997,
+      "tag": "0029_reset_schedules_room_alerts",
+      "breakpoints": true
     }
   ]
 }

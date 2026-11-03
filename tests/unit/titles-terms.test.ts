@@ -83,3 +83,13 @@ describe("why a day has no classes", () => {
     expect(dayOff("2026-11-04")).toBeNull();
   });
 });
+
+import { sameRoom } from "@/server/sync/convert";
+describe("room comparisons ignore the building format", () => {
+  it("treats 306 and MATH 306 as one room, but not different rooms", () => {
+    expect(sameRoom("306", "MATH 306")).toBe(true);
+    expect(sameRoom("MATH 306", "MATH 306")).toBe(true);
+    expect(sameRoom("306", "UCA 209")).toBe(false);
+    expect(sameRoom("MATH 306", "UCA 306")).toBe(false);
+  });
+});
