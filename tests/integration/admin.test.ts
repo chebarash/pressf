@@ -10,7 +10,7 @@ import { report } from "@/server/reports";
 import { trustFor } from "@/server/uploads";
 import { hiddenPosts, postMuted, sessionsRevokedAt, settings } from "@/server/admin/marks";
 import * as ops from "@/server/admin/ops";
-import { auditPage, audienceSize, chrome, courseFiles, overview, peoplePage, professorsPage, reportsPage, systemPage, uploadsPage } from "@/server/admin/views";
+import { auditPage, audienceSize, chrome, courseFiles, coursesPage, overview, peoplePage, professorsPage, reportsPage, systemPage, uploadsPage } from "@/server/admin/views";
 import { resetDb } from "../fixtures/db";
 
 const newUser = async (email: string, extra: Partial<typeof users.$inferInsert> = {}) => (await db().insert(users).values({ email, ...extra }).returning())[0].id;
@@ -239,5 +239,48 @@ describe("system and overview", () => {
     const o = await overview(new Date());
     expect(o.kpis.uploads.value).toBe("1");
     expect(o.rows[0]).toMatchObject({ kind: "upload", title: "Midterm exam, Fall 2025" });
+  });
+});
+
+describe("server-sorted tables", () => {
+  it("orders the uploads queue by a whitelisted column, newest first for age", async () => {
+    const t0 = Date.now();
+    await upload({ title: "b notes", type: "notes", createdAt: new Date(t0 - 3000) });
+    await upload({ title: "A exam", type: "exam", createdAt: new Date(t0 - 2000) });
+    await upload({ title: "c slides", type: "slides", createdAt: new Date(t0 - 1000) });
+    const titles = async (sort: Parameters<typeof uploadsPage>[3]) => (await uploadsPage("waiting", undefined, new Date(), sort)).items.map((i) => i.title);
+    expect(await titles(null)).toEqual(["b notes", "A exam", "c slides"]);
+    expect(await titles({ key: "title", dir: "asc" })).toEqual(["A exam", "b notes", "c slides"]);
+    expect(await titles({ key: "title", dir: "desc" })).toEqual(["c slides", "b notes", "A exam"]);
+    expect(await titles({ key: "age", dir: "asc" })).toEqual(["c slides", "A exam", "b notes"]);
+    expect(await titles({ key: "type", dir: "asc" })).toEqual(["A exam", "b notes", "c slides"]);
+    expect(await titles({ key: "course", dir: "asc" })).toHaveLength(3);
+  });
+
+  it("orders people, the audit log and courses in SQL", async () => {
+    for (let i = 0; i < 5; i++) await upload({ status: "live", title: `Live ${i}` });
+    await db().insert(lmsCourses).values({ id: "78", code: "CS101", name: "Algorithms", raw: {} });
+    await db().insert(lmsFiles).values({ id: "F9", courseId: "78", code: "CS101", name: "Week 1.pdf", extension: "pdf", storageKey: "k9" });
+    await ops.setTrust(admin, student, "paused");
+    await ops.setPersonRole(admin, mod, "student");
+
+    const people = async (sort: Parameters<typeof peoplePage>[3]) => (await peoplePage("", undefined, new Date(), sort)).people.map((p) => p.name);
+    expect((await people({ key: "student", dir: "asc" }))[0]).toBe("Aziz Tursunov");
+    expect((await people({ key: "uploads", dir: "desc" }))[0]).toBe("Aziz Tursunov");
+    const byTrust = await peoplePage("", undefined, new Date(), { key: "trust", dir: "asc" });
+    expect(byTrust.people.map((p) => p.trust)).toEqual(["trusted", "normal", "normal", "paused"]);
+    expect(byTrust.sort).toEqual({ key: "trust", dir: "asc" });
+
+    const log = await auditPage({}, new Date(), 200, { key: "action", dir: "asc" });
+    expect(log.rows.map((r) => r.action)).toEqual(["Role changed", "Trust changed"]);
+    expect((await auditPage({}, new Date(), 200, { key: "who", dir: "desc" })).rows).toHaveLength(2);
+    expect((await auditPage({}, new Date(), 200, { key: "when", dir: "asc" })).rows.map((r) => r.action)).toEqual(["Trust changed", "Role changed"]);
+
+    const codes = async (sort: Parameters<typeof coursesPage>[1]) => (await coursesPage("", sort)).courses.map((c) => c.code);
+    expect(await codes(null)).toEqual(["CS101", "MATH111"]);
+    expect(await codes({ key: "course", dir: "desc" })).toEqual(["MATH111", "CS101"]);
+    expect(await codes({ key: "lms", dir: "desc" })).toEqual(["CS101", "MATH111"]);
+    expect(await codes({ key: "students", dir: "desc" })).toEqual(["MATH111", "CS101"]);
+    expect(await codes({ key: "shares", dir: "asc" })).toHaveLength(2);
   });
 });

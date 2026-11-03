@@ -11,6 +11,8 @@ import type { uploadsPage } from "@/server/admin/views";
 import { Btn, Chip, KV, Label, Radio, cx, s } from "./ui";
 import { AdminToast, type Note } from "./Toast";
 import { useKeys } from "./useKeys";
+import { sortEntries } from "@/core/sort";
+import { UrlSortHead } from "@/ui/table/Sort";
 
 type View = Awaited<ReturnType<typeof uploadsPage>>;
 type Item = Omit<View["items"][number], "storageKey"> & { previewUrl: string | null };
@@ -45,7 +47,7 @@ export function Uploads({ data }: { data: UploadsData }) {
     const next = items[Math.min(Math.max(i, 0), items.length - 1)];
     if (!next) return;
     setSelId(next.id);
-    window.history.replaceState(null, "", `?tab=${data.tab}&id=${next.id}`);
+    window.history.replaceState(null, "", `?${new URLSearchParams({ tab: data.tab, ...sortEntries(data.sort), id: next.id })}`);
   };
 
   const after = (id: string) => {
@@ -98,7 +100,7 @@ export function Uploads({ data }: { data: UploadsData }) {
         <h1 className={s.h1Col}>Uploads</h1>
         <div className={s.tabs}>
           {(Object.keys(TAB_LABEL) as Array<keyof typeof TAB_LABEL>).map((t) => (
-            <Link key={t} href={`/admin/uploads?tab=${t}`} className={cx(s.chip, t === data.tab && s.chipInverse)} prefetch>
+            <Link key={t} href={`/admin/uploads?${new URLSearchParams({ tab: t, ...sortEntries(data.sort) })}`} className={cx(s.chip, t === data.tab && s.chipInverse)} prefetch>
               {TAB_LABEL[t]} {counts[t]}
             </Link>
           ))}
@@ -107,6 +109,18 @@ export function Uploads({ data }: { data: UploadsData }) {
           <AllClear tab={data.tab} />
         ) : (
           <>
+            {items.length > 1 && (
+              <UrlSortHead
+                className={cx(s.tr, s.trHead)}
+                sort={data.sort}
+                columns={[
+                  { key: "title", label: "FILE", className: cx(s.td, s.tdGrow) },
+                  { key: "course", label: "COURSE", className: s.td, style: { width: 72 } },
+                  { key: "type", label: "TYPE", className: s.td, style: { width: 52 } },
+                  { key: "age", label: "AGE", className: s.td, style: { width: 44 } },
+                ]}
+              />
+            )}
             {items.map((i, n) => (
               <button key={i.id} type="button" className={cx(s.queueItem, n === index && s.queueItemActive)} onClick={() => select(n)} aria-current={n === index}>
                 <span className={s.queueTitle}>

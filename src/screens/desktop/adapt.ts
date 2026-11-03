@@ -445,6 +445,7 @@ const row = (c: V.ProgressCourse): M.ProgressRow => ({
   final: c.final,
   absences: c.absences ? { used: c.absences.missed, max: c.absences.limit, left: c.absences.left } : null,
   next: c.next ? `${c.next.title} · ${c.next.dueLabel}` : null,
+  nextAt: c.next?.due ?? null,
   href: c.href,
   detail: null,
 });
@@ -628,6 +629,8 @@ export function nextSemester(v: V.NextSemesterView): M.NextData {
         recommendPct: c.recommendPct,
         hours: c.ratings?.hoursLabel ?? "—",
         difficulty: c.ratings?.difficultyLabel ?? "—",
+        hoursValue: c.ratings?.enough ? c.ratings.hours : null,
+        difficultyValue: c.ratings?.enough ? c.ratings.difficulty : null,
         prereq: p ? { name: p.text, status: p.status === "passed" ? "passed ✓" : p.status === "in-progress" ? "in progress" : p.status === "missing" ? "missing" : "", ok: p.status === "passed" } : null,
         href: c.href,
         detail: {

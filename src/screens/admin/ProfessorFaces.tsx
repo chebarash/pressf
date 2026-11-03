@@ -9,9 +9,12 @@ import type { facesPage } from "@/server/admin/faces";
 import f from "./faces.module.css";
 import { Btn, Chip, Head, KV, Label, cx, s } from "./ui";
 import { useKeys } from "./useKeys";
+import type { SortColumns } from "@/core/sort";
+import { SortHeader, useSortedRows } from "@/ui/table/Sort";
 
 export type FacesData = Awaited<ReturnType<typeof facesPage>>;
 
+const FACE_COLUMNS: SortColumns<FacesData["list"][number], "name" | "courses"> = { name: (t) => t.name, courses: (t) => t.courses };
 const DEFAULT_FACE = "/ui/face-default.png";
 const MAX_BYTES = 512 * 1024;
 
@@ -29,6 +32,7 @@ export function ProfessorFaces({ data }: { data: FacesData }) {
   const [pending, start] = useTransition();
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const search = useRef<HTMLInputElement>(null);
+  const sort = useSortedRows(data.list, FACE_COLUMNS);
   const href = (patch: Record<string, string | undefined>) => {
     const params = new URLSearchParams({ tab: "faces", show: data.show, ...(data.q ? { q: data.q } : {}) });
     for (const [k, v] of Object.entries(patch)) v ? params.set(k, v) : params.delete(k);
@@ -74,11 +78,11 @@ export function ProfessorFaces({ data }: { data: FacesData }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div className={cx(s.tr, s.trHead)}>
             <span className={s.td} style={{ width: 32 }} />
-            <span className={cx(s.td, s.tdGrow)}>NAME</span>
-            <span className={s.td} style={{ width: 70 }}>COURSES</span>
+            <SortHeader state={sort.state} k="name" className={cx(s.td, s.tdGrow)}>NAME</SortHeader>
+            <SortHeader state={sort.state} k="courses" className={s.td} style={{ width: 70 }}>COURSES</SortHeader>
           </div>
           {data.list.length === 0 && <p className={s.small}>{data.q ? `Nobody matches “${data.q}”.` : data.show === "missing" ? "Every professor has a face." : "No faces yet."}</p>}
-          {data.list.map((t) => (
+          {sort.rows.map((t) => (
             <Link key={t.id} href={href({ id: t.id })} className={cx(s.tr, s.trLink, t.id === data.selected?.id && s.trSelected)} prefetch={false} scroll={false}>
               <FaceImg src={t.face} size={32} />
               <span className={cx(s.td, s.tdGrow, s.tdStrong)}>{t.name}</span>

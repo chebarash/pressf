@@ -6,6 +6,8 @@ import { inQuietHours, nextSendable, type Audience } from "@/server/admin/rules"
 import type { broadcastsPage } from "@/server/admin/views";
 import { Btn, Label, cx, s } from "./ui";
 import { useKeys } from "./useKeys";
+import type { SortColumns } from "@/core/sort";
+import { SortHeader, useSortedRows } from "@/ui/table/Sort";
 
 export type BroadcastsData = Awaited<ReturnType<typeof broadcastsPage>>;
 
@@ -31,9 +33,16 @@ const human = (d: Date, now: Date) => {
   return `${label} ${toLocalInput(d).slice(11)}`;
 };
 
+const RECENT_COLUMNS: SortColumns<BroadcastsData["recent"][number], "message" | "delivered" | "opened"> = {
+  message: (b) => b.text,
+  delivered: (b) => b.delivered,
+  opened: (b) => b.openedPct,
+};
+
 /** A8 Broadcasts · compose: bot message + in-app banner from one composer. */
 export function Broadcasts({ data }: { data: BroadcastsData }) {
   const now = new Date();
+  const recent = useSortedRows(data.recent, RECENT_COLUMNS);
   const [audience, setAudience] = useState<Audience>({});
   const [course, setCourse] = useState("");
   const [text, setText] = useState("");
@@ -141,7 +150,14 @@ export function Broadcasts({ data }: { data: BroadcastsData }) {
         <Label>RECENT</Label>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {data.recent.length === 0 && <p className={s.small}>No broadcasts yet.</p>}
-          {data.recent.map((b) => (
+          {data.recent.length > 1 && (
+            <div className={cx(s.tr, s.trHead)} role="row">
+              <SortHeader state={recent.state} k="message" className={cx(s.td, s.tdGrow)}>MESSAGE</SortHeader>
+              <SortHeader state={recent.state} k="delivered" className={s.td} style={{ width: 80 }}>DELIVERED</SortHeader>
+              <SortHeader state={recent.state} k="opened" className={s.td} style={{ width: 70 }}>OPENED</SortHeader>
+            </div>
+          )}
+          {recent.rows.map((b) => (
             <div key={b.id} className={s.tr} title={b.audience}>
               <span className={cx(s.td, s.tdGrow, s.tdStrong)}>{b.text.split("\n")[0]} — {b.when}</span>
               <span className={s.td} style={{ width: 80 }}>{b.delivered == null ? "—" : b.delivered.toLocaleString("en-US")}</span>

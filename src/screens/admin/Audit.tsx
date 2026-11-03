@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import type { auditPage } from "@/server/admin/views";
 import { Head, cx, s } from "./ui";
+import { sortEntries } from "@/core/sort";
+import { UrlSortHead } from "@/ui/table/Sort";
 
 export type AuditData = Awaited<ReturnType<typeof auditPage>>;
 
@@ -10,7 +12,7 @@ export type AuditData = Awaited<ReturnType<typeof auditPage>>;
 export function Audit({ data }: { data: AuditData }) {
   const router = useRouter();
   const go = (patch: { actor?: string; action?: string }) => {
-    const next = { ...data.filter, ...patch };
+    const next = { ...data.filter, ...patch, ...sortEntries(data.sort) };
     const q = new URLSearchParams(Object.entries(next).filter(([, v]) => v) as Array<[string, string]>);
     router.replace(`/admin/audit${q.size ? `?${q}` : ""}`);
   };
@@ -31,12 +33,16 @@ export function Audit({ data }: { data: AuditData }) {
         <a className={s.link} href={`/admin/audit/export${csv.size ? `?${csv}` : ""}`} download>Export CSV</a>
       </div>
       <div className={cx(s.card, s.table)}>
-        <div className={cx(s.tr, s.trHead)}>
-          <span className={s.td} style={{ width: 110 }}>WHEN</span>
-          <span className={s.td} style={{ width: 160 }}>WHO</span>
-          <span className={s.td} style={{ width: 180 }}>ACTION</span>
-          <span className={cx(s.td, s.tdGrow)}>WHAT</span>
-        </div>
+        <UrlSortHead
+          className={cx(s.tr, s.trHead)}
+          sort={data.sort}
+          columns={[
+            { key: "when", label: "WHEN", className: s.td, style: { width: 110 } },
+            { key: "who", label: "WHO", className: s.td, style: { width: 160 } },
+            { key: "action", label: "ACTION", className: s.td, style: { width: 180 } },
+            { key: null, label: "WHAT", className: cx(s.td, s.tdGrow) },
+          ]}
+        />
         {data.rows.length === 0 && <p className={s.small} style={{ padding: 12 }}>Nothing logged yet.</p>}
         {data.rows.map((r) => (
           <div key={r.id} className={s.tr}>

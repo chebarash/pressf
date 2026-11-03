@@ -1,14 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import type { NextData } from "../model";
+import type { SortColumns } from "@/core/sort";
+import { SortHeader, useSortedRows } from "@/ui/table/Sort";
+import type { NextData, NextRow } from "../model";
 import x from "../next.module.css";
 import { AnchorButton, css, cx, Empty, Face, RatingStrip } from "../parts";
+
+const COLUMNS: SortColumns<NextRow, "name" | "ects" | "recommend" | "hours" | "difficulty" | "prereq"> = {
+  name: (r) => r.name,
+  ects: (r) => r.ects,
+  recommend: (r) => r.recommendPct,
+  hours: (r) => r.hoursValue ?? r.hours,
+  difficulty: (r) => r.difficultyValue ?? r.difficulty,
+  prereq: (r) => r.prereq?.name,
+};
 
 /** D16 Next semester — the study plan as a table; the selected course's cohorts on the right. */
 export function NextScreen({ data }: { data: NextData }) {
   const [code, setCode] = useState(data.rows[0]?.code ?? null);
   const sel = data.rows.find((r) => r.code === code) ?? null;
+  const { rows, state } = useSortedRows(data.rows, COLUMNS);
   return (
     <main data-desktop-screen className={cx(css.screen, x.main)}>
       <p className={x.eyebrow}>{data.eyebrow}</p>
@@ -27,15 +39,15 @@ export function NextScreen({ data }: { data: NextData }) {
       ) : (
         <div className={x.body}>
           <section className={cx(css.card, x.table)} data-nav-list="select" data-nav-arrows>
-            <div className={x.headRow}>
-              <span>Course</span>
-              <span>ECTS</span>
-              <span>Recommend</span>
-              <span>Hours</span>
-              <span>Difficulty</span>
-              <span>Prerequisite</span>
+            <div className={x.headRow} role="row">
+              <SortHeader state={state} k="name">Course</SortHeader>
+              <SortHeader state={state} k="ects">ECTS</SortHeader>
+              <SortHeader state={state} k="recommend">Recommend</SortHeader>
+              <SortHeader state={state} k="hours">Hours</SortHeader>
+              <SortHeader state={state} k="difficulty">Difficulty</SortHeader>
+              <SortHeader state={state} k="prereq">Prerequisite</SortHeader>
             </div>
-            {data.rows.map((r) => (
+            {rows.map((r) => (
               <button key={r.code + r.name} type="button" className={cx(x.row, r.code === code && x.rowOn)} onClick={() => setCode(r.code)} aria-current={r.code === code || undefined} data-nav-item>
                 <span className={x.name}>
                   <b>{r.name}</b>

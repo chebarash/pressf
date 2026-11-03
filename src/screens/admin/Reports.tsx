@@ -8,9 +8,17 @@ import type { reportsPage } from "@/server/admin/views";
 import { Btn, Head, Label, cx, s } from "./ui";
 import { AdminToast, type Note } from "./Toast";
 import { useKeys } from "./useKeys";
+import type { SortColumns } from "@/core/sort";
+import { SortHeader, useSortedRows } from "@/ui/table/Sort";
 
 export type ReportsData = Awaited<ReturnType<typeof reportsPage>>;
 type Outcome = "hide" | "mute" | "keep";
+const COLUMNS: SortColumns<ReportsData["items"][number], "title" | "reports" | "age"> = {
+  title: (i) => i.title.replace(/^'/, ""),
+  reports: (i) => i.total,
+  // Youngest first.
+  age: (i) => (i.at == null ? null : -i.at),
+};
 const DONE: Record<Outcome, string> = { hide: "Hidden", mute: "Hidden · author muted 7 days", keep: "Kept" };
 
 /** A4 Reports: one queue for Anonymous posts and student files. H hide, M hide + mute 7 days, K keep. */
@@ -18,15 +26,17 @@ export function Reports({ data }: { data: ReportsData }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [items, drop] = useOptimistic(data.items, (state, key: string) => state.filter((i) => i.key !== key));
+  const sorted = useSortedRows(items, COLUMNS);
+  const list = sorted.rows;
   const [selKey, setSelKey] = useState(data.selectedKey);
   const [toast, setToast] = useState<Note>(null);
 
-  const index = Math.max(0, items.findIndex((i) => i.key === selKey));
-  const sel = items[index] ?? null;
+  const index = Math.max(0, list.findIndex((i) => i.key === selKey));
+  const sel = list[index] ?? null;
   const open = data.tab === "open";
 
   const pick = (n: number) => {
-    const next = items[Math.min(Math.max(n, 0), items.length - 1)];
+    const next = list[Math.min(Math.max(n, 0), list.length - 1)];
     if (!next) return;
     setSelKey(next.key);
     window.history.replaceState(null, "", `?tab=${data.tab}&item=${next.key}`);
@@ -35,7 +45,7 @@ export function Reports({ data }: { data: ReportsData }) {
   const act = (outcome: Outcome) => {
     if (!sel || !open || pending) return;
     if (outcome === "mute" && sel.kind !== "post") return;
-    const rest = items.filter((i) => i.key !== sel.key);
+    const rest = list.filter((i) => i.key !== sel.key);
     setSelKey(rest[Math.min(index, rest.length - 1)]?.key ?? null);
     start(async () => {
       drop(sel.key);
@@ -60,7 +70,14 @@ export function Reports({ data }: { data: ReportsData }) {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {items.length === 0 && <p className={s.small}>{open ? "No open reports. Nice." : "Nothing resolved yet."}</p>}
-          {items.map((i, n) => (
+          {items.length > 1 && (
+            <div className={cx(s.tr, s.trHead)} role="row">
+              <SortHeader state={sorted.state} k="title" className={cx(s.td, s.tdGrow)}>ITEM</SortHeader>
+              <SortHeader state={sorted.state} k="reports" className={s.td} style={{ width: 80 }}>REPORTS</SortHeader>
+              <SortHeader state={sorted.state} k="age" className={s.td} style={{ width: 60 }}>AGE</SortHeader>
+            </div>
+          )}
+          {list.map((i, n) => (
             <button key={i.key} type="button" className={cx(s.listCard, n === index && s.listCardActive)} onClick={() => pick(n)} aria-current={n === index}>
               <span className={s.listTitle}>{i.title}</span>
               <span className={s.listMeta}>{i.meta}{i.outcome ? ` · ${i.outcome}` : ""}</span>

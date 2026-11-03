@@ -7,12 +7,17 @@ import type { courseFiles } from "@/server/admin/views";
 import { Btn, Chip, Head, cx, s } from "./ui";
 import { AdminToast, type Note } from "./Toast";
 import { useKeys } from "./useKeys";
+import type { SortColumns } from "@/core/sort";
+import { SortHeader, useSortedRows } from "@/ui/table/Sort";
 
 export type CourseFilesData = NonNullable<Awaited<ReturnType<typeof courseFiles>>>;
 type File = CourseFilesData["files"][number];
 type Filter = "all" | "lms" | "students" | "hidden";
 const TYPES = Object.keys(TYPE_LABEL) as FileType[];
 const ref = (f: File) => ({ source: f.source, id: f.id });
+const COLUMNS: SortColumns<File, "title" | "type" | "week" | "source" | "added" | "opens"> = {
+  title: (f) => f.title, type: (f) => f.typeLabel, week: (f) => f.week, source: (f) => f.from, added: (f) => f.at, opens: (f) => f.opens,
+};
 
 /** A5 Courses & files: per-course file manager. Bulk move (W) / hide (H); rename, type and week inline. */
 export function CourseFiles({ data }: { data: CourseFilesData }) {
@@ -29,6 +34,7 @@ export function CourseFiles({ data }: { data: CourseFilesData }) {
   const visible = files.filter((f) => !f.hidden);
   const counts = { all: visible.length, lms: visible.filter((f) => f.source === "lms").length, students: visible.filter((f) => f.source === "students").length, hidden: files.length - visible.length };
   const selected = files.filter((f) => picked.has(f.key));
+  const sort = useSortedRows(shown, COLUMNS);
 
   const save = (f: File, p: { title?: string; type?: FileType; week?: number | null }) =>
     start(async () => {
@@ -89,15 +95,15 @@ export function CourseFiles({ data }: { data: CourseFilesData }) {
       <div className={cx(s.card, s.table)}>
         <div className={cx(s.tr, s.trHead)}>
           <span className={s.td} style={{ width: 24 }} />
-          <span className={cx(s.td, s.tdGrow)}>TITLE</span>
-          <span className={s.td} style={{ width: 110 }}>TYPE</span>
-          <span className={s.td} style={{ width: 90 }}>WEEK</span>
-          <span className={s.td} style={{ width: 200 }}>SOURCE</span>
-          <span className={s.td} style={{ width: 110 }}>ADDED</span>
-          <span className={s.td} style={{ width: 90 }}>OPENS</span>
+          <SortHeader state={sort.state} k="title" className={cx(s.td, s.tdGrow)}>TITLE</SortHeader>
+          <SortHeader state={sort.state} k="type" className={s.td} style={{ width: 110 }}>TYPE</SortHeader>
+          <SortHeader state={sort.state} k="week" className={s.td} style={{ width: 90 }}>WEEK</SortHeader>
+          <SortHeader state={sort.state} k="source" className={s.td} style={{ width: 200 }}>SOURCE</SortHeader>
+          <SortHeader state={sort.state} k="added" className={s.td} style={{ width: 110 }}>ADDED</SortHeader>
+          <SortHeader state={sort.state} k="opens" className={s.td} style={{ width: 90 }}>OPENS</SortHeader>
         </div>
         {shown.length === 0 && <p className={s.small} style={{ padding: 12 }}>No files here.</p>}
-        {shown.map((f) => {
+        {sort.rows.map((f) => {
           const on = picked.has(f.key);
           return (
             <div key={f.key} className={cx(s.tr, on && s.trSelected)}>
