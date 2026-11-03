@@ -39,10 +39,14 @@ export async function timetable(userId: string, day?: string, now = new Date()):
   if (!student) return null;
   const selected = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : localDay(now);
   const monday = addDays(selected, -((localWeekday(dayStart(selected)) + 6) % 7));
-  const weekDays = [0, 1, 2, 3, 4].map((i) => addDays(monday, i));
-  const horizon = addDays(weekDays[4] > selected ? weekDays[4] : selected, 14);
+  const friday = addDays(monday, 4);
+  const horizon = addDays(friday > selected ? friday : selected, 14);
 
   const [classes, courses] = await Promise.all([classesBetween(student, monday, horizon, now), progressCourses(student, now)]);
+  // Mon–Fri, plus Saturday when there are classes on it (Entrepreneurship on Saturdays) or it is the day picked.
+  const saturday = addDays(monday, 5);
+  const saturdayClasses = classes.some((c) => localDay(new Date(c.start)) === saturday);
+  const weekDays = [0, 1, 2, 3, 4, ...(saturdayClasses || selected === saturday ? [5] : [])].map((i) => addDays(monday, i));
   const onDay = classes.filter((c) => localDay(new Date(c.start)) === selected);
   const lessonIds = onDay.flatMap((c) => c.lessonIds);
   const courseIds = [...new Set(onDay.map((c) => c.courseId ?? "").filter(Boolean))];
