@@ -390,10 +390,11 @@ export function professor(v: V.ProfessorView): M.ProfessorData {
     stats: [
       ...(s.enough ? [{ value: `${s.pressFPct}%`, label: "pressed F", accent: true }] : []),
       { value: String(s.count), label: "students rated" },
-      { value: String(v.courses.length), label: "courses now" },
+      // Distinct courses taught this semester (a course taught as lecture and lab counts once).
+      { value: String(new Set(v.courses.filter((c) => c.now).map((c) => c.code)).size), label: "courses now" },
       ...(v.years ? [{ value: `${v.years} yr${v.years === 1 ? "" : "s"}`, label: "at NewUU" }] : []),
     ],
-    schedule: { term: termName(new Date()) ?? "this semester", rows: v.when.map((w) => ({ day: w.day, time: w.time, course: w.course, href: `/c/${w.code}`, role: ROLE_ONE[v.courses.find((c) => c.code === w.code)?.role ?? "other"], room: w.room ?? "" })) },
+    schedule: { term: termName(new Date()) ?? "this semester", rows: v.when.map((w) => ({ day: w.day, time: w.time, course: w.course, href: `/c/${w.code}`, role: ROLE_ONE[w.role ?? v.courses.find((c) => c.code === w.code)?.role ?? "other"], room: w.room ?? "" })) },
     summary,
     courses: v.courses.map((c) => ({ code: c.code, name: c.name, role: c.roleLabel, pct: c.pressFPct, href: c.href })),
     tags: s.enough ? s.tags.map((t) => ({ tag: t.tag, pct: t.pct })) : [],
@@ -448,7 +449,8 @@ export function progress(v: V.ProgressView): M.ProgressData {
     open: null,
     semesters: [
       ...[...v.earlier].reverse().map((e) => ({ term: e.term, short: shortTerm(e.term), value: e.gpa, current: false, line: join(e.gpa != null ? `GPA ${e.gpa.toFixed(2)}` : plural(e.courses, "course"), e.ects != null && `${e.ects} ECTS`), href: e.href ?? null })),
-      ...(v.currentTerm ? [{ term: v.currentTerm, short: shortTerm(v.currentTerm), value: v.gpa, current: true, line: "so far" }] : []),
+      // The running semester shows its own GPA once its finals are in, never the cumulative one.
+      ...(v.currentTerm ? [{ term: v.currentTerm, short: shortTerm(v.currentTerm), value: v.currentGpa ?? null, current: true, line: "so far" }] : []),
     ],
     rate: v.rate.waiting > 0 ? { title: `${v.rate.waiting} course${v.rate.waiting === 1 ? "" : "s"} to rate`, line: join(v.rate.term, `${v.rate.rated} of ${v.rate.rated + v.rate.waiting} rated`, "press R to start"), href: "/rate" } : null,
     empty: v.empty,

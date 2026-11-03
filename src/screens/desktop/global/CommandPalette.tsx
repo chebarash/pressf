@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "../parts/Icon";
 import s from "../parts/parts.module.css";
 import { GO_TO, openShortcuts, PALETTE_EVENT, toggleTheme } from "./bus";
@@ -49,7 +49,8 @@ export function CommandPalette() {
     return () => window.removeEventListener(PALETTE_EVENT, onOpen);
   }, []);
 
-  useEffect(() => {
+  // Focus in the same frame the palette appears, so fast typing after ⌘K isn't lost.
+  useLayoutEffect(() => {
     if (open) input.current?.focus();
   }, [open]);
 
@@ -121,6 +122,7 @@ export function CommandPalette() {
           <Icon name="search" size={20} />
           <input
             ref={input}
+            autoFocus
             value={q}
             onChange={(e) => {
               setQ(e.target.value);

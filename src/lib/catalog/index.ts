@@ -1,3 +1,4 @@
+import { courseTitle } from "@/core/people";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { lmsCourseTeachers, lmsCourses, lmsCurricula, lmsDepartments, lmsPrograms, lmsTeachers } from "@/lib/db/schema";
@@ -34,7 +35,7 @@ async function buildCatalog(): Promise<Catalog> {
     const teacherIds = [...(courseTeachers.get(c.id) ?? [])];
     // Several LMS subject ids can share a code across terms; merge their teachers.
     if (existing) { existing.teachers = [...new Set([...existing.teachers, ...teacherIds])]; continue; }
-    byCode.set(c.code, { code: c.code, subject: c.name, aliases: [], same_name_codes: [], teachers: teacherIds, classes: [] });
+    byCode.set(c.code, { code: c.code, subject: courseTitle(c.name), aliases: [], same_name_codes: [], teachers: teacherIds, classes: [] });
   }
 
   const deptFor = (teacherId: string) => {
@@ -85,7 +86,7 @@ async function buildCatalog(): Promise<Catalog> {
         program: slug, source_url: null, academic_year: null,
         semesters: plan.data.semesters.map((s, i) => ({
           number: i + 1, year: s.year ?? Math.ceil((i + 1) / 2), term: i % 2 === 0 ? "fall" : "spring",
-          courses: s.courses.map((c) => ({ code: c.code ?? "", subject: c.name, credits: c.ects, type: "core" as const, elective_group: null, prerequisites: null })),
+          courses: s.courses.map((c) => ({ code: c.code ?? "", subject: courseTitle(c.name), credits: c.ects, type: "core" as const, elective_group: null, prerequisites: null })),
         })),
       };
     }

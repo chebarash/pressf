@@ -148,6 +148,13 @@
       "when": 1793705161633,
       "tag": "0020_drop_old_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793709230362,
+      "tag": "0021_show_lms_syllabi",
+      "breakpoints": true
     }
   ]
 }

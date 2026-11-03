@@ -233,7 +233,8 @@ type Meta = ShareCard;
 export function ogMetadata(m: Meta): Metadata {
   const image = { url: m.image, width: OG_SIZE.width, height: OG_SIZE.height, alt: m.alt, type: "image/png" };
   return {
-    title: m.title,
+    // Share titles already end in "— Press F"; the layout's "%s · Press F" would repeat it in the tab.
+    title: /Press F/.test(m.title) ? { absolute: m.title } : m.title,
     description: m.description,
     metadataBase: new URL(SITE_URL),
     alternates: { canonical: m.path },

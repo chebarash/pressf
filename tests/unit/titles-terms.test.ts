@@ -23,3 +23,11 @@ describe("semester of a date", () => {
     expect(termOfDate(new Date("2026-07-01T10:00:00Z"))).toBe("Summer 2026");
   });
 });
+
+describe("hyphens inside words stay", () => {
+  it("keeps Mid-term and splits spaced dashes", () => {
+    expect(cleanTitle("Mid-term guideline.pdf")).toBe("Mid-term guideline");
+    expect(cleanTitle("ToC - T1.pdf")).toBe("ToC — Tutorial 1");
+    expect(cleanTitle("Week 3: Graphs.pdf")).toBe("Graphs");
+  });
+});

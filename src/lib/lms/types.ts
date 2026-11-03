@@ -165,7 +165,7 @@ export type LmsIepRow = {
   education_program_id?: string;
   semester_id?: string;
   year_of_study?: string;
-  subjects?: Array<{ subject_id?: string; id?: string; code?: string; name?: string; ects?: string }>;
+  subjects?: Array<{ subject_id?: string; id?: string; code?: string; name?: string; ects?: string; /** "3" for a pass/fail course (graded P on the transcript). */ rating_passed?: string }>;
 };
 
 export type LmsTranscript = {
