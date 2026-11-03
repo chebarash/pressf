@@ -56,13 +56,9 @@
 .optionOn { border-width: 2px; background: var(--bg-accent); box-shadow: 0 1px 0 var(--shadow-key); color: var(--text-on-accent); }
 .qMark { font-family: var(--font-serif); font-size: 28px; font-weight: 400; line-height: 1.08; }
 
-.hoursBox { display: flex; flex-direction: column; gap: 6px; }
-.blocks { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; touch-action: none; }
-.block { height: 36px; padding: 0; border: 1.25px solid var(--border-strong); border-radius: 5px; background: var(--bg-surface); cursor: pointer; }
-.blockOn { background: var(--bg-accent); }
-.blocksFoot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-.hours { font-family: var(--font-serif); font-size: 22px; line-height: 1.08; }
-.hint { margin: 0; color: var(--text-secondary); font-family: var(--font-sans); font-size: 11px; line-height: normal; }
+/* Hours: the four D5 buckets as the same keycap options as "Would you recommend it?". */
+.hoursRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.hoursValue { font-family: var(--font-serif); font-size: 28px; font-weight: 400; line-height: 1.08; white-space: nowrap; }
 
 .hard { display: flex; align-items: flex-end; gap: var(--space-3); }
 .steps { display: flex; align-items: flex-end; gap: 6px; }

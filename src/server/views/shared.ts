@@ -4,7 +4,7 @@ import { deadline, type Deadline, type DeadlineStatus } from "@/core/deadlines";
 import { describeFile, FORMAT_CODE, TYPE_LABEL, type FileFormat, type FileType } from "@/core/files";
 import type { FeedItem, FeedKind } from "@/core/notifications";
 import { displayName, roleOf } from "@/core/people";
-import { summarizeCourse, summarizeTeacher, type CourseSummary, type StoredRating, type TeacherRole, type TeacherSummary } from "@/core/ratings";
+import { summarizeCourse, summarizeTeacher, toHours, type CourseSummary, type StoredRating, type TeacherRole, type TeacherSummary } from "@/core/ratings";
 import { weekOf as calendarWeekOf } from "@/core/semester";
 import { ago, clock, localDay, localWeekday, shortDate, toLocal, until } from "@/core/time";
 import { shownAs } from "@/core/uploads";
@@ -185,7 +185,7 @@ export const ratingsByCode = publicCache(
     for (const code of codes) {
       const mine: StoredRating[] = rows
         .filter((r) => r.code === code)
-        .map((r) => ({ courseId: code, term: r.term, recommend: r.recommend, hours: (r.hours as StoredRating["hours"]) ?? null, difficulty: (r.difficulty as StoredRating["difficulty"]) ?? null, tags: r.tags as StoredRating["tags"], teachers: [] }));
+        .map((r) => ({ courseId: code, term: r.term, recommend: r.recommend, hours: toHours(r.hours), difficulty: (r.difficulty as StoredRating["difficulty"]) ?? null, tags: r.tags as StoredRating["tags"], teachers: [] }));
       const s = summarizeCourse(mine);
       const terms = s.enough ? s.trend.map((t) => t.term) : [];
       out[code] = {

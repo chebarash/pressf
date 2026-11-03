@@ -134,6 +134,13 @@
       "when": 1793683999242,
       "tag": "0018_lms_data_gaps",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793700000000,
+      "tag": "0019_hours_buckets",
+      "breakpoints": true
     }
   ]
 }

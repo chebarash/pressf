@@ -21,7 +21,7 @@ export type FaceProps = {
   priority?: boolean;
 };
 
-/** Drawn face (Figma Face 4007:1296). Faces are line art; in dark mode they sit on a paper disc. */
+/** Drawn face (Figma Face 4007:1296). Faces are line art; in dark mode a thin white outline follows the head (no disc). */
 export function Face({ src, kind, size = 40, name, className, priority }: FaceProps) {
   const which = kind ?? (src ? "drawn" : "default");
   const image = which === "mascot" ? MASCOT_FACE : which === "drawn" && src ? src : DEFAULT_FACE;

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { HOURS, MAX_TAGS, type CourseTag, type Hours, type RatingInput, type Recommend, type TeacherTag } from "@/core/ratings";
+import { HOURS, HOURS_LABEL, MAX_TAGS, toHours, type CourseTag, type Hours, type RatingInput, type Recommend, type TeacherTag } from "@/core/ratings";
 import { EmptyState, Sheet } from "@/ui/components";
 import type { RateData } from "../model";
 import { Button, cx, Face, Keys } from "../parts";
@@ -15,7 +15,6 @@ const RECOMMEND: Array<{ id: Recommend; label: string; key: string }> = [
   { id: "unsure", label: "Not sure", key: "?" },
   { id: "no", label: "No", key: "N" },
 ];
-const HOURS_LABEL: Record<Hours, string> = { "0-2": "< 2", "2-4": "2–4", "4-6": "4–6", "6-10": "6–10", "10+": "10+" };
 const HARD = ["Easy", "2", "3", "Hard", "Brutal"];
 
 /**
@@ -27,7 +26,7 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
   const [open, setOpen] = useState(true);
   const [q, setQ] = useState(0);
   const [recommend, setRecommend] = useState<Recommend | null>(data.initial?.recommend ?? null);
-  const [hours, setHours] = useState<Hours | null>((data.initial?.hours as Hours | null) ?? null);
+  const [hours, setHours] = useState<Hours | null>(toHours(data.initial?.hours));
   const [difficulty, setDifficulty] = useState<RatingInput["difficulty"]>((data.initial?.difficulty as RatingInput["difficulty"]) ?? null);
   const [tags, setTags] = useState<string[]>(data.initial?.tags ?? []);
   const [pressed, setPressed] = useState<string[]>(data.initial?.pressed ?? []);
@@ -88,7 +87,7 @@ export function RateScreen({ data, actions }: { data: RateData; actions?: RateAc
       const n = Number(e.key);
       if (n >= 1 && n <= 5) {
         if (q === 2) setDifficulty(n as RatingInput["difficulty"]);
-        else {
+        else if (n <= HOURS.length) {
           setHours(HOURS[n - 1]);
           setQ(2);
         }

@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState, useTransition } from "react";
-import { canSubmit, COURSE_TAG_ORDER, COURSE_TAGS, difficultyWord, MAX_TAGS, TEACHER_TAGS, type CourseTag, type Recommend, type TeacherTag } from "@/core/ratings";
+import { canSubmit, COURSE_TAG_ORDER, COURSE_TAGS, difficultyWord, HOURS, HOURS_LABEL, MAX_TAGS, TEACHER_TAGS, type CourseTag, type Recommend, type TeacherTag } from "@/core/ratings";
 import { sendRating } from "@/app/(app)/rate/actions";
 import { cx, Face, ToastViewport } from "@/ui/components";
 import { Sheet } from "@/ui/shell/overlays";
 import { CheckIcon, XIcon } from "@/ui/icons";
-import { HOUR_BLOCKS, hoursText, initialForm, teacherKey, toggle, toInput, type FormState } from "../rate-form";
+import { initialForm, teacherKey, toggle, toInput, type FormState } from "../rate-form";
 import { MainButton } from "./MainButton";
 import s from "./Rate.module.css";
 import type { RateItem, RateScreen } from "../views";
@@ -46,7 +46,7 @@ export function RateSheet({ open, queue }: { open: NonNullable<RateScreen["open"
   const input = toInput(item, form);
   const ready = canSubmit(input);
   // Figma 4.19: something answered but not the one required question.
-  const incomplete = !form.recommend && (form.blocks > 0 || form.difficulty !== null || form.tags.length > 0 || Object.values(form.teachers).some((t) => t.pressF || t.tags.length));
+  const incomplete = !form.recommend && (form.hours !== null || form.difficulty !== null || form.tags.length > 0 || Object.values(form.teachers).some((t) => t.pressF || t.tags.length));
 
   const index = queue.findIndex((q) => q.courseId === item.courseId && q.term === item.term);
   const next = mode === "queue" && index !== -1 ? queue[index + 1] ?? null : null;
@@ -111,12 +111,6 @@ export function RateSheet({ open, queue }: { open: NonNullable<RateScreen["open"
     </>
   );
 
-  // Drag across the hour blocks: the pointer is captured by the row, the block comes from x.
-  const blockAt = (e: React.PointerEvent<HTMLDivElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    return Math.max(1, Math.min(HOUR_BLOCKS, Math.ceil(((e.clientX - r.left) / r.width) * HOUR_BLOCKS)));
-  };
-
   return (
     <>
       <Sheet label={`Rate ${item.name}`} onClose={close} className={s.sheet}>
@@ -141,34 +135,13 @@ export function RateSheet({ open, queue }: { open: NonNullable<RateScreen["open"
 
         <div className={s.q} role="group" aria-labelledby="rq-hours">
           <p id="rq-hours" className={s.qTitle}>Hours a week outside class</p>
-          <div className={s.hoursBox}>
-          <div
-            className={s.blocks}
-            role="radiogroup"
-            aria-label="Hours a week"
-            onPointerDown={(e) => {
-              if (e.pointerType !== "mouse") e.currentTarget.setPointerCapture(e.pointerId);
-            }}
-            onPointerMove={(e) => {
-              if (e.buttons === 1 || e.currentTarget.hasPointerCapture(e.pointerId)) set("blocks", blockAt(e));
-            }}
-          >
-            {Array.from({ length: HOUR_BLOCKS }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                role="radio"
-                aria-checked={form.blocks === i + 1}
-                aria-label={i + 1 === HOUR_BLOCKS ? "12 or more hours" : `${i + 1} hours`}
-                className={cx(s.block, i < form.blocks && s.blockOn)}
-                onClick={() => set("blocks", form.blocks === i + 1 ? 0 : i + 1)}
-              />
+          <div className={s.hoursRow} role="radiogroup" aria-labelledby="rq-hours">
+            {HOURS.map((h) => (
+              <button key={h} type="button" role="radio" aria-checked={form.hours === h} aria-label={`${HOURS_LABEL[h]} hours`} className={cx(s.option, form.hours === h && s.optionOn)} onClick={() => set("hours", form.hours === h ? null : h)}>
+                <span className={s.hoursValue}>{HOURS_LABEL[h]}</span>
+                hours
+              </button>
             ))}
-          </div>
-          <div className={s.blocksFoot}>
-            <span className={s.hours}>{form.blocks ? hoursText(form.blocks) : "Tap a block"}</span>
-            <span className={s.hint}>drag or tap · 12+ = the last block</span>
-          </div>
           </div>
         </div>
 

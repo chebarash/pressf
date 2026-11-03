@@ -8,7 +8,7 @@ export { today, type TodayView, type Banner, type CourseCard, type ExamView, typ
 export { timetable, type TimetableView, type TimetableClass } from "./timetable";
 export { myCourses, course, file, type MyCoursesView, type CourseView, type FileView, type Viewer, type TeacherCard, type TermOption, type SyllabusFold, type WeekView, type YouInCourse } from "./courses";
 export { professor, professors, type ProfessorView, type ProfessorsView, type ProfessorRow } from "./professor";
-export { progress, courseProgress, courseAttendance, assignments, type ProgressView, type CourseProgressView, type CourseAttendance, type AssignmentsView, type ProgressCourse, type AbsencesView, type ClassMark } from "./progress";
+export { progress, courseProgress, courseAttendance, assignments, termResults, termHref, type TermResultsView, type TermResultCourse, type ProgressView, type CourseProgressView, type CourseAttendance, type AssignmentsView, type ProgressCourse, type AbsencesView, type ClassMark } from "./progress";
 export { guestHome, type GuestHomeView, type GuestCourse, type GuestFile } from "./guest";
 export { notifications, type NotificationsView, type FeedFilter } from "./notifications";
 export { calendar, LAYERS, type CalendarView, type CalendarEvent, type CalendarLayer } from "./calendar";

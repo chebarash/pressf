@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { canSubmit, MAX_TAGS } from "@/core/ratings";
+import { canSubmit, HOURS, MAX_TAGS } from "@/core/ratings";
 import { rateScreen } from "@/screens/mobile/load";
-import { blocksFromHours, hoursFromBlocks, hoursText, initialForm, toggle, toInput } from "@/screens/mobile/rate-form";
+import { initialForm, toggle, toInput } from "@/screens/mobile/rate-form";
 import type { RateQueueView } from "@/screens/mobile/views";
 
 const item = {
@@ -17,13 +17,16 @@ const item = {
 };
 
 describe("rate form", () => {
-  it("maps the 12 hour blocks onto the core buckets and back", () => {
-    expect([0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12].map(hoursFromBlocks)).toEqual([null, "0-2", "0-2", "2-4", "2-4", "4-6", "4-6", "6-10", "6-10", "10+", "10+"]);
-    expect(blocksFromHours("4-6")).toBe(6);
-    expect(blocksFromHours(null)).toBe(0);
-    expect(hoursFromBlocks(blocksFromHours("6-10"))).toBe("6-10");
-    expect(hoursText(6)).toBe("≈ 6 h a week");
-    expect(hoursText(12)).toBe("12+ h a week");
+  it("offers the four D5 hour buckets and sends the one picked", () => {
+    expect(HOURS).toEqual(["0-2", "2-5", "5-10", "10+"]);
+    const form = initialForm(item, null);
+    expect(form.hours).toBeNull();
+    for (const h of HOURS) expect(toInput(item, { ...form, recommend: "yes", hours: h }).hours).toBe(h);
+  });
+
+  it("reads an older five-bucket draft as today's bucket", () => {
+    const draft = { recommend: "yes" as const, hours: "6-10" as never, difficulty: null, tags: [], teachers: [] };
+    expect(initialForm(item, draft).hours).toBe("5-10");
   });
 
   it("keeps at most three stickers", () => {
@@ -42,13 +45,13 @@ describe("rate form", () => {
 
   it("sends only the teachers the student touched", () => {
     const form = initialForm(item, null);
-    const input = toInput(item, { ...form, recommend: "yes", blocks: 6, difficulty: 4, teachers: { ...form.teachers, "t1|lecture": { pressF: true, tags: ["Explains clearly"] } } });
-    expect(input).toEqual({ recommend: "yes", hours: "4-6", difficulty: 4, tags: [], teachers: [{ teacherId: "t1", role: "lecture", pressF: true, tags: ["Explains clearly"] }] });
+    const input = toInput(item, { ...form, recommend: "yes", hours: "5-10", difficulty: 4, teachers: { ...form.teachers, "t1|lecture": { pressF: true, tags: ["Explains clearly"] } } });
+    expect(input).toEqual({ recommend: "yes", hours: "5-10", difficulty: 4, tags: [], teachers: [{ teacherId: "t1", role: "lecture", pressF: true, tags: ["Explains clearly"] }] });
   });
 
   it("starts from an earlier rating when editing", () => {
     const form = initialForm(item, { recommend: "no", hours: "10+", difficulty: 5, tags: ["Heavy reading"], teachers: [{ teacherId: "t2", role: "tutorial", pressF: true, tags: [] }] });
-    expect(form.blocks).toBe(12);
+    expect(form.hours).toBe("10+");
     expect(form.teachers["t2|tutorial"].pressF).toBe(true);
     expect(form.teachers["t1|lecture"].pressF).toBeNull();
   });

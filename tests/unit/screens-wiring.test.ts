@@ -66,7 +66,7 @@ describe("notification previews show the LMS byline (2.9, D7)", () => {
 });
 
 const item = { courseId: "c1", code: "MATH111", name: "Calculus 1", term: "Spring 2026", href: "/rate/c1", teachers: [{ id: "t1", name: "Gonçalo Pinto", role: "lecture" as const, roleLabel: "Lectures" }] };
-const answers = { recommend: "yes" as const, hours: "4-6" as const, difficulty: 4 as const, tags: ["Fair exams" as const], teachers: [{ teacherId: "t1", role: "lecture" as const, pressF: true, tags: ["Explains clearly" as const] }] };
+const answers = { recommend: "yes" as const, hours: "5-10" as const, difficulty: 4 as const, tags: ["Fair exams" as const], teachers: [{ teacherId: "t1", role: "lecture" as const, pressF: true, tags: ["Explains clearly" as const] }] };
 const queue: RateQueueView = {
   currentTerm: "Fall 2026", waiting: [], total: 1, ask: { level: "none", term: null, waiting: [] }, current: [], window: { open: false, opensIn: 14 },
   rated: [{ ...item, recommend: "yes", pressedF: ["Gonçalo Pinto"], updatedAt: "2026-06-01T00:00:00Z", updatedLabel: "1 Jun", canEdit: true, answers }],
@@ -80,7 +80,7 @@ describe("editing a rating opens on the saved answers (4.12, D5)", () => {
   it("prefills the desktop dialog, keeping teacher stickers", () => {
     const d = adapt.rate(queue, "c1");
     expect(d.course?.id).toBe("c1");
-    expect(d.initial).toEqual({ recommend: "yes", hours: "4-6", difficulty: 4, tags: ["Fair exams"], pressed: ["t1"], teacherTags: { "t1|lecture": ["Explains clearly"] } });
+    expect(d.initial).toEqual({ recommend: "yes", hours: "5-10", difficulty: 4, tags: ["Fair exams"], pressed: ["t1"], teacherTags: { "t1|lecture": ["Explains clearly"] } });
   });
 
   it("opens this semester's course once the window is open, empty", () => {

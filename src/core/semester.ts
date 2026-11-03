@@ -113,3 +113,23 @@ export function ratingWindow(now: Date, weeks = WEEKS): { open: boolean; opensIn
 
 /** The next holiday from today, inclusive. */
 export const nextHoliday = (now: Date, holidays = HOLIDAYS) => holidays.find((h) => h.date >= localDay(now)) ?? null;
+
+/** "Fall 2025" → "fall-2025": a past semester's URL segment (/progress/term/fall-2025). */
+export const termSlug = (term: string) =>
+  term
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+/** Whether a semester name matches a URL segment ("Fall 2025" ↔ "fall-2025", also "Fall%202025"). */
+export function termMatches(term: string, segment: string) {
+  let raw = segment;
+  try {
+    raw = decodeURIComponent(segment);
+  } catch {
+    // keep the raw segment
+  }
+  const slug = termSlug(raw);
+  return slug !== "" && termSlug(term) === slug;
+}

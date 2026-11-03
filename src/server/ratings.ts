@@ -1,5 +1,5 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { askLevel, summarizeCourse, summarizeTeacher, validateRating, type RatingInput, type StoredRating, type TeacherRole } from "@/core/ratings";
+import { askLevel, summarizeCourse, summarizeTeacher, toHours, validateRating, type RatingInput, type StoredRating, type TeacherRole } from "@/core/ratings";
 import { db } from "@/lib/db";
 import { courseRatings, lmsCourses, ratingAsks, teacherRatings } from "@/lib/db/schema";
 import { invalidateRating } from "./views/cache";
@@ -46,7 +46,7 @@ async function withTeachers(rows: Row[]): Promise<StoredRating[]> {
     courseId: r.courseId,
     term: r.term,
     recommend: r.recommend,
-    hours: (r.hours as StoredRating["hours"]) ?? null,
+    hours: toHours(r.hours),
     difficulty: (r.difficulty as StoredRating["difficulty"]) ?? null,
     tags: r.tags as StoredRating["tags"],
     teachers: (by.get(r.id) ?? []).map((a) => ({ teacherId: a.teacherId, role: a.role as TeacherRole, pressF: a.pressF, tags: a.tags as StoredRating["teachers"][number]["tags"] })),

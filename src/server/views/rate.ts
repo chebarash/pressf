@@ -1,5 +1,5 @@
 import { desc, eq, inArray } from "drizzle-orm";
-import { askLevel, canEdit, rateQueue as queueOf, termKey, type RatingInput, type Recommend, type StoredRating, type TeacherRole } from "@/core/ratings";
+import { askLevel, canEdit, rateQueue as queueOf, termKey, toHours, type RatingInput, type Recommend, type StoredRating, type TeacherRole } from "@/core/ratings";
 import { roleOf } from "@/core/people";
 import { ratingWindow } from "@/core/semester";
 import { daysBetween, localDay, shortDate } from "@/core/time";
@@ -136,7 +136,7 @@ type AnswerRow = typeof teacherRatings.$inferSelect;
 /** A stored rating as the form's answers (recommend, hours, difficulty, tags, per-teacher Press F and tags). */
 export const answersOf = (r: RatingRow, answers: AnswerRow[]): RatingInput => ({
   recommend: r.recommend,
-  hours: (r.hours as RatingInput["hours"]) ?? null,
+  hours: toHours(r.hours),
   difficulty: (r.difficulty as RatingInput["difficulty"]) ?? null,
   tags: r.tags as RatingInput["tags"],
   teachers: answers.filter((a) => a.ratingId === r.id).map((a) => ({ teacherId: a.teacherId, role: a.role as TeacherRole, pressF: a.pressF, tags: a.tags as StoredRating["teachers"][number]["tags"] })),
