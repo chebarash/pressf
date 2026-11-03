@@ -392,6 +392,10 @@ export const uploads = pgTable(
     sha256: text("sha256").notNull(),
     storageKey: text("storage_key"),
     telegramFileId: text("telegram_file_id"),
+    /** A file imported from a channel export: "tg:<channelId>:<postId>". Re-importing the post updates this row. */
+    sourceKey: text("source_key"),
+    /** Who it is shown as coming from instead of a person: "the channel PU Materials". */
+    sourceLabel: text("source_label"),
     opens: integer("opens").notNull().default(0),
     reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
@@ -403,6 +407,7 @@ export const uploads = pgTable(
     index("uploads_course_code").on(t.courseCode, t.status),
     index("uploads_uploader").on(t.uploaderId),
     uniqueIndex("uploads_sha").on(t.sha256, t.courseId),
+    uniqueIndex("uploads_source_key").on(t.sourceKey),
   ]
 );
 

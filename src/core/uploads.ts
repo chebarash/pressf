@@ -57,8 +57,12 @@ const ALLOWED: Record<UploadStatus, UploadStatus[]> = {
 
 export const canMove = (from: UploadStatus, to: UploadStatus) => ALLOWED[from].includes(to);
 
-/** "From students", or the name when the uploader chose to show it. */
-export const shownAs = (showName: boolean, name?: string | null) => (showName && name ? `From ${name}` : "From students");
+/**
+ * "From students", or the name when the uploader chose to show it. A file
+ * imported from a channel shows the channel ("From the channel PU Materials"), never a person.
+ */
+export const shownAs = (showName: boolean, name?: string | null, sourceLabel?: string | null) =>
+  sourceLabel ? `From ${sourceLabel}` : showName && name ? `From ${name}` : "From students";
 
 /** Exams more recent than this are held for the "exam still running" check. */
 export const RECENT_EXAM_DAYS = 3;

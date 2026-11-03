@@ -323,7 +323,7 @@ export function uploadItem(u: UploadRow): FileItem {
   const meta = describeFile(u.fileName);
   return {
     id: u.id, source: "students", title: u.title, type, typeLabel: TYPE_LABEL[type] ?? "File", format: meta.format, formatCode: FORMAT_CODE[meta.format],
-    week: u.week, date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), from: shownAs(u.showName, null), lessonId: null, size: u.size, pages: null, courseId: u.courseId ?? null, href: `/f/${u.id}`,
+    week: u.week, date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), from: shownAs(u.showName, null, u.sourceLabel), lessonId: null, size: u.size, pages: null, courseId: u.courseId ?? null, href: `/f/${u.id}`,
   };
 }
 
