@@ -24,7 +24,7 @@ export function parseDepartments(html: string): SiteDepartment[] {
   const out: SiteDepartment[] = [];
   for (const m of select.matchAll(/<option[^>]*value=["']?(\d+)["']?[^>]*>([\s\S]*?)<\/option>/gi)) {
     const id = Number(m[1]);
-    const name = decode(m[2].replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+    const name = decode(m[2]).replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
     if (id > 0 && name) out.push({ id, name });
   }
   return out;
