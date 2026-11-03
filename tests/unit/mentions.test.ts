@@ -4,6 +4,10 @@ import { compileMatcher, courseVariants, linkKey, tokens, type MatcherInput } fr
 const courses: MatcherInput["courses"] = [
   { code: "MATH111", name: "Calculus 1" },
   { code: "MATH112", name: "Calculus 2" },
+  // A one-word "Calculus" next to Calculus 1 and 2: "calculus" alone could be any of them.
+  { code: "MATH20", name: "Calculus" },
+  { code: "CS30", name: "Introduction to Data Science" },
+  { code: "CS40", name: "Data Science Fundamentals" },
   { code: "PHYS101", name: "Physics I" },
   { code: "CS102", name: "Computer Programming 2" },
   { code: "ECE201", name: "Digital Logic Design" },
@@ -76,13 +80,20 @@ describe("course names", () => {
     expect(coursesIn("acs2 bilan")).toEqual(["ENG102"]);
     expect(coursesIn("OOP mid past questions")).toEqual(["CS102"]);
     expect(coursesIn("comp prog 2 labs")).toEqual(["CS102"]);
-    expect(coursesIn("microeconomics notes")).toEqual(["ECON101"]);
+    expect(coursesIn("intro to microeconomics notes")).toEqual(["ECON101"]);
+    expect(coursesIn("microeconomics notes")).toEqual([]);
     expect(coursesIn("microeconomics 2 notes")).toEqual(["ECON201"]);
   });
   it("allows Uzbek and Russian endings on the last word", () => {
     expect(coursesIn("linear algebradan fail bo'lsa")).toEqual(["MATH201"]);
     expect(coursesIn("dld dan ertaga")).toEqual(["ECE201"]);
     expect(coursesIn("econometricsni kim o'tadi")).toEqual(["MATH300"]);
+  });
+  it("skips a short name that starts another course's name", () => {
+    expect(coursesIn("Struggling with calculus?")).toEqual([]);
+    expect(coursesIn("data science students")).toEqual([]);
+    expect(coursesIn("introduction to data science syllabus")).toEqual(["CS30"]);
+    expect(coursesIn("data science fundamentals syllabus")).toEqual(["CS40"]);
   });
   it("skips loose words, everyday acronyms and shared names", () => {
     expect(coursesIn("oops, wrong chat")).toEqual([]);
