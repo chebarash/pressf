@@ -7,6 +7,7 @@ import { fileOverride } from "@/server/decisions";
 import { sendDocument, type InlineKeyboard } from "@/lib/telegram/api";
 import { esc } from "@/lib/telegram/html";
 import { appButton } from "@/lib/telegram/links";
+import { dedupe } from "@/lib/telegram/miniapp";
 import { verifyInitData } from "@/lib/telegram/webapp";
 import { COVER_VERSION } from "@/server/covers";
 import { deliverUrl, fileSource } from "@/server/covers/source";
@@ -84,28 +85,42 @@ async function lmsFile(id: string): Promise<Sendable | null> {
   };
 }
 
+type Result = { status: number; body: Record<string, unknown> };
+const reply = (status: number, body: Record<string, unknown>): Result => ({ status, body });
+
+/** A double-tapped Download (or a retried request) inside 10 s gets the first send's answer, not a second copy. */
+const sends = dedupe<Result>(10_000, (r) => r.status !== 200);
+
 /**
  * Sends a file to the Mini App user's chat with the bot: a live student upload
  * or an LMS file (signed-in students only). The first send
  * uploads it; Telegram's file_id is kept so every later send is instant.
+ * The Mini App's Download calls this and falls back to a plain download on any
+ * error: 403 no_access (the student never pressed Start, or blocked the bot),
+ * 403 sign_in, 413 too_big (over the bot's 50 MB upload limit), 502 failed.
  */
 export async function POST(request: Request) {
-  const { id, initData } = (await request.json()) as { id?: string; initData?: string };
-  const chat = verifyInitData(initData ?? "");
+  const { id, initData } = ((await request.json().catch(() => null)) ?? {}) as { id?: unknown; initData?: unknown };
+  const chat = verifyInitData(typeof initData === "string" ? initData : "");
   if (!chat) return Response.json({ error: "unauthorized" }, { status: 401 });
-  const fileId = id ?? "";
+  const fileId = typeof id === "string" ? id : "";
+  if (!fileId) return Response.json({ error: "missing" }, { status: 404 });
+  const { status, body } = await sends.run(`${chat}:${fileId}`, () => deliver(chat, fileId));
+  return Response.json(body, { status });
+}
 
+async function deliver(chat: string, fileId: string): Promise<Result> {
   let file = await upload(fileId);
   if (!file) {
     const lms = await lmsFile(fileId);
     if (lms) {
       const [user] = await db().select({ id: users.id }).from(users).where(eq(users.telegramId, chat));
-      if (!user) return Response.json({ error: "sign_in" }, { status: 403 });
+      if (!user) return reply(403, { error: "sign_in" });
       file = lms;
     }
   }
-  if (!file) return Response.json({ error: "missing" }, { status: 404 });
-  if (!file.fileId && file.size > BY_UPLOAD) return Response.json({ error: "too_big" }, { status: 413 });
+  if (!file) return reply(404, { error: "missing" });
+  if (!file.fileId && file.size > BY_UPLOAD) return reply(413, { error: "too_big" });
 
   const found = file;
   const send = (document: Parameters<typeof sendDocument>[1]) => sendDocument(chat, document, found.caption, found.buttons);
@@ -120,10 +135,10 @@ export async function POST(request: Request) {
     else if (found.size > BY_URL) message = await uploadIt();
     else message = await send(await found.url()).catch((error) => { if (isBlocked(error)) throw error; return uploadIt(); });
     if (!found.fileId && message.document) await found.remember(message.document.file_id);
-    return Response.json({ ok: true });
+    return reply(200, { ok: true });
   } catch (error) {
-    if (isBlocked(error)) return Response.json({ error: "no_access" }, { status: 403 });
-    console.error("Could not send file", error);
-    return Response.json({ error: "failed" }, { status: 502 });
+    if (isBlocked(error)) return reply(403, { error: "no_access" });
+    console.error("Could not send file", error instanceof Error ? error.message : error);
+    return reply(502, { error: "failed" });
   }
 }

@@ -337,7 +337,7 @@ describe("uploads, roles, people, grades, deadlines", () => {
     expect(can("student", "rate")).toBe(true);
     expect(can("moderator", "admin:people")).toBe(false);
     expect(isStaff("admin")).toBe(true);
-    expect(adminSections("moderator").map((s) => s.id)).toEqual(["overview", "uploads", "reports", "audit"]);
+    expect(adminSections("moderator").map((s) => s.id)).toEqual(["overview", "uploads", "reports", "coverage", "audit"]);
   });
   it("names people", () => {
     // hero.study: first_name given, sur_name family, last_name patronymic.
