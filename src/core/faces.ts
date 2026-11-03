@@ -47,6 +47,23 @@ const SVG_UNSAFE = [
   /@import/i,
 ];
 
+/** The document's first element is <svg> (after an XML declaration, comments and a doctype). Linear, no backtracking. */
+function startsWithSvg(text: string): boolean {
+  let at = 0;
+  for (;;) {
+    while (at < text.length && /\s/.test(text[at])) at++;
+    const skip = (open: string, close: string) => {
+      if (text.slice(at, at + open.length).toLowerCase() !== open) return false;
+      const end = text.indexOf(close, at + open.length);
+      if (end < 0) return false;
+      at = end + close.length;
+      return true;
+    };
+    if (skip("<?xml", "?>") || skip("<!--", "-->") || skip("<!doctype", ">")) continue;
+    return /^<svg[\s>]/i.test(text.slice(at, at + 5));
+  }
+}
+
 export function checkFace(bytes: Uint8Array): FaceCheck {
   if (!bytes.length) return { ok: false, error: "The file is empty" };
   if (bytes.length > FACE_MAX_BYTES) return { ok: false, error: "Faces are line drawings: keep the file under 512 KB" };
@@ -60,7 +77,7 @@ export function checkFace(bytes: Uint8Array): FaceCheck {
     return { ok: true, format: { type: "png", contentType: "image/png", ext: "png", width: p.width, height: p.height } };
   }
   const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes.subarray(0, Math.min(bytes.length, FACE_MAX_BYTES)));
-  if (/^\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?<svg[\s>]/i.test(text)) {
+  if (startsWithSvg(text)) {
     if (SVG_UNSAFE.some((r) => r.test(text))) return { ok: false, error: "This SVG has scripts, links or embedded images: export plain vector paths" };
     return { ok: true, format: { type: "svg", contentType: "image/svg+xml", ext: "svg" } };
   }

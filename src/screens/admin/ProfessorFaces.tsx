@@ -15,8 +15,10 @@ const MAX_BYTES = 512 * 1024;
 
 /** A drawn face on the page background, at a fixed size. Plain <img>: faces are tiny and cached per version. */
 function FaceImg({ src, size, alt = "" }: { src: string | null; size: number; alt?: string }) {
+  // Only our own paths or a local preview blob; never a URL from elsewhere.
+  const safe = src && /^(\/faces\/|blob:)/.test(src) ? src : DEFAULT_FACE;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src ?? DEFAULT_FACE} alt={alt} width={size} height={size} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, opacity: src ? 1 : 0.35 }} />;
+  return <img src={safe} alt={alt} width={size} height={size} style={{ width: size, height: size, objectFit: "contain", flexShrink: 0, opacity: safe === DEFAULT_FACE ? 0.35 : 1 }} />;
 }
 
 /** A6 Professors · Faces: drawn faces only (never photos). Upload, replace, remove, and re-use faces from the old catalog. */
