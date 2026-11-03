@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { TimetableClass, TimetableData } from "../model";
 import { ButtonLink, css, cx, FileRow, Hint, Icon, Tag } from "../parts";
@@ -11,6 +12,7 @@ const HEAD = 40;
 
 /** D3 Timetable — the week as a grid; the inspector shows the class you click. ← → change week, T today. */
 export function TimetableScreen({ data }: { data: TimetableData }) {
+  const router = useRouter();
   const [selected, setSelected] = useState<string | null>(data.selected ?? data.classes[0]?.id ?? null);
   const current = data.classes.find((c) => c.id === selected) ?? null;
   const hours = Array.from({ length: data.endHour - data.startHour }, (_, i) => data.startHour + i);
@@ -66,6 +68,8 @@ export function TimetableScreen({ data }: { data: TimetableData }) {
                     className={cx(t.class, t[c.tone], c.id === selected && t.classOn)}
                     style={{ top: top(c.start) + 2, height: Math.max(36, ((c.end - c.start) / 60) * HOUR + 1) }}
                     onClick={() => setSelected(c.id)}
+                    // Double-click opens the course.
+                    onDoubleClick={() => c.href && router.push(c.href)}
                     aria-current={c.id === selected || undefined}
                     data-nav-item
                   >

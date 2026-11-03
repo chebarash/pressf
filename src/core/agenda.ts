@@ -130,3 +130,17 @@ export const firstAfter = (now: Date, blocks: ClassBlock[]) =>
 /** QR check-in is offered from 5 min before a class until it ends. */
 export const checkInOpen = (block: ClassBlock | null, now: Date) =>
   !!block && now.getTime() >= block.start.getTime() - 5 * 60_000 && now < block.end;
+
+type LmsAuditorium = { name?: string | null; aud_num?: string | number | null; campus?: { name?: string | null } | null } | string | null | undefined;
+
+/**
+ * "MATH 306", "UCA 209": the building (the LMS campus, "M.A.T.H." → "MATH")
+ * and the room number. A string room or a named room is kept as written.
+ */
+export function roomLabel(a: LmsAuditorium): string | null {
+  if (typeof a === "string") return a.trim() || null;
+  const room = (a?.name ?? "").trim() || String(a?.aud_num ?? "").trim();
+  const building = (a?.campus?.name ?? "").replace(/[.\s]+/g, "").trim();
+  if (!room) return building || null;
+  return building && !room.toUpperCase().startsWith(building.toUpperCase()) ? `${building} ${room}` : room;
+}
