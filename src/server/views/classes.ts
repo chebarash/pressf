@@ -1,5 +1,5 @@
 import { mergeBlocks, type ClassBlock, type ClassEvent } from "@/core/agenda";
-import { dayInfo } from "@/core/semester";
+import { dayInfo, weekOf } from "@/core/semester";
 import { addDays, clock, dayStart, localDay } from "@/core/time";
 import { coursesByCodes, coursesByIds, kindOf, teachersByIds, type CourseRef } from "./shared";
 import type { Student } from "./student";
@@ -7,7 +7,9 @@ import type { Student } from "./student";
 /**
  * A student's classes on given days: the dated LMS schedule from the last sync
  * where it covers the day, otherwise the weekly pattern from sign-in, skipped
- * on holidays, breaks and weekends.
+ * on holidays, breaks and weekends. The pattern is this semester's, so it only
+ * fills this semester's class weeks: never another term (it used to paint
+ * Fall classes over Spring 2027) and never exam, resit or induction weeks.
  */
 
 export type ClassView = {
@@ -33,7 +35,17 @@ type Event = ClassEvent & { teacherId?: string | null };
 const at = (day: string, time: string) => new Date(`${day}T${time.length === 5 ? time : time.slice(0, 5)}:00+05:00`);
 
 /** Raw events for [fromDay, toDay], both YYYY-MM-DD. */
-async function events(student: Student, fromDay: string, toDay: string): Promise<{ events: Event[]; courses: Map<string, CourseRef> }> {
+/** Week kinds with regular classes, where the weekly pattern may stand in for the dated schedule. */
+const PATTERN_WEEKS = new Set(["teaching", "midterm"]);
+
+/** Days the weekly pattern (captured around `today`) may fill: study days of the same term's class weeks. */
+export function patternFits(day: string, today: string) {
+  const term = weekOf(today)?.term;
+  const info = dayInfo(dayStart(day));
+  return !!term && info.studyDay && info.week?.term === term && PATTERN_WEEKS.has(info.week.kind);
+}
+
+async function events(student: Student, fromDay: string, toDay: string, today: string): Promise<{ events: Event[]; courses: Map<string, CourseRef> }> {
   const window = student.sync.scheduleWindow;
   const covered = (day: string) => !!window && window.from <= day && day <= window.to;
 
@@ -44,7 +56,7 @@ async function events(student: Student, fromDay: string, toDay: string): Promise
 
   const weekly = student.cache?.timetable ?? [];
   const patternDays: string[] = [];
-  for (let d = fromDay; d <= toDay; d = addDays(d, 1)) if (!covered(d) && dayInfo(dayStart(d)).studyDay) patternDays.push(d);
+  for (let d = fromDay; d <= toDay; d = addDays(d, 1)) if (!covered(d) && patternFits(d, today)) patternDays.push(d);
 
   const [byId, byCode] = await Promise.all([
     coursesByIds(dated.map((c) => c.subjectId)),
@@ -78,7 +90,7 @@ async function events(student: Student, fromDay: string, toDay: string): Promise
 }
 
 export async function classesBetween(student: Student, fromDay: string, toDay: string, now: Date): Promise<ClassView[]> {
-  const { events: list } = await events(student, fromDay, toDay);
+  const { events: list } = await events(student, fromDay, toDay, localDay(now));
   const teacherOf = new Map<string, string | null | undefined>();
   for (const e of list) teacherOf.set(`${e.courseId}|${e.start.getTime()}`, e.teacherId);
   const blocks = mergeBlocks(list);

@@ -50,6 +50,19 @@ describe("today", () => {
     expect(t.week.map((d) => d.label)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri"]);
   });
 
+  it("never paints this semester's weekly pattern over another term or exam weeks", async () => {
+    const tue = new Date("2026-11-03T06:00:00Z");
+    const classes = async (day: string) => (await views.timetable(userId, day, tue))!.weekClasses!.length;
+    expect(await classes("2026-11-24")).toBeGreaterThan(0); // Fall teaching week
+    expect(await classes("2027-01-12")).toBe(0); // Fall finals: exam times come from the LMS
+    expect(await classes("2027-02-02")).toBe(0); // resit exams
+    expect(await classes("2027-03-02")).toBe(0); // Spring 2027: another semester
+    const { patternFits } = await import("@/server/views/classes");
+    expect(patternFits("2026-11-04", "2026-11-03")).toBe(true);
+    expect(patternFits("2027-03-03", "2026-11-03")).toBe(false);
+    expect(patternFits("2026-12-23", "2026-11-03")).toBe(false); // break
+  });
+
   it("asks to sign in again and schedules no refresh for a dead login", async () => {
     await db().update(lmsAccounts).set({ status: "invalid" }).where(eq(lmsAccounts.userId, userId));
     const t = (await views.today(userId, NOW))!;
