@@ -1,5 +1,5 @@
-.main { padding: 36px 48px var(--space-6); display: flex; flex-direction: column; gap: 20px; max-width: 1180px; }
-.title { font: 400 64px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.main { padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); display: flex; flex-direction: column; gap: var(--page-gap); max-width: var(--page-max); }
+.title { font: 400 var(--page-title)/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
 .stack { display: flex; flex-direction: column; gap: 20px; }
 /* Figma D13 cards: 50px head, then rows 10px apart, each with a hairline on top. */

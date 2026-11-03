@@ -52,7 +52,7 @@ export function FileThumbnail({ format, size = "l", title, meta, pages, preview,
       <div className={s.motif} aria-hidden>
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element -- signed bucket URL, already sized
-          <img src={preview} alt="" className={s.preview} />
+          <img src={preview} alt="" className={s.preview} loading="lazy" />
         ) : (
           <Motif format={format} />
         )}

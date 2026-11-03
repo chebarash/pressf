@@ -19,12 +19,12 @@ export type TopBarProps = {
 export function TopBar({ searchHref = "/search", placeholder = "Course, professor, file", profileHref, face, className }: TopBarProps) {
   return (
     <div className={cx(s.bar, className)}>
-      <Link href={searchHref} className={s.search} aria-label="Search">
+      <Link prefetch href={searchHref} className={s.search} aria-label="Search">
         <SearchIcon size={18} />
         <span className={s.placeholder}>{placeholder}</span>
       </Link>
       {profileHref ? (
-        <Link href={profileHref} className={s.avatar} aria-label="Profile">
+        <Link prefetch href={profileHref} className={s.avatar} aria-label="Profile">
           <Face src={face} size={40} />
         </Link>
       ) : null}

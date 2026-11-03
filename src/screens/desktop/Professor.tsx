@@ -23,7 +23,7 @@ export function ProfessorScreen({ data }: { data: ProfessorData }) {
         {data.crumbs.map((c, i) => (
           <Fragment key={c.label}>
             {i > 0 && <span>/</span>}
-            {c.href ? <Link href={c.href}>{c.label}</Link> : <span>{c.label}</span>}
+            {c.href ? <Link prefetch href={c.href}>{c.label}</Link> : <span>{c.label}</span>}
           </Fragment>
         ))}
       </nav>
@@ -55,7 +55,7 @@ export function ProfessorScreen({ data }: { data: ProfessorData }) {
         </div>
         {data.rateHref && (
           <KeyTo k="f">
-            <Link href={data.rateHref} className={p.press}>
+            <Link prefetch href={data.rateHref} className={p.press}>
               <span className={p.pressKey}>F</span>
               Press F if they taught you
               <Hint>F F</Hint>
@@ -70,7 +70,7 @@ export function ProfessorScreen({ data }: { data: ProfessorData }) {
           <div>
             {data.schedule.rows.length === 0 && <p className={p.fine}>No classes this semester.</p>}
             {data.schedule.rows.map((r) => (
-              <Link key={r.day + r.time + r.course} href={r.href} className={p.slot}>
+              <Link prefetch key={r.day + r.time + r.course} href={r.href} className={p.slot}>
                 <span className={p.slotDay}>{r.day}</span>
                 <span>{r.time}</span>
                 <span>{r.course}</span>
@@ -93,7 +93,7 @@ export function ProfessorScreen({ data }: { data: ProfessorData }) {
           <h2 className={p.cardTitle}>Courses</h2>
           <div className={cx(p.courses, css.navList)} data-nav-list>
             {data.courses.map((c) => (
-              <Link key={c.code} href={c.href} className={p.course} data-nav-item>
+              <Link prefetch key={c.code} href={c.href} className={p.course} data-nav-item>
                 <span className={p.courseTop}>
                   <span>{c.code}</span>
                   <Pct value={c.pct} suffix=" F" />

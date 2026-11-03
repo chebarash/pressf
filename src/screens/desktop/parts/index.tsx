@@ -111,7 +111,7 @@ export function CardHead({ title, link, href, hint }: { title: ReactNode; link?:
     <div className={s.cardHead}>
       <h2 className={s.cardTitle}>{title}</h2>
       {link && href ? (
-        <Link href={href} className={s.cardLink}>
+        <Link prefetch href={href} className={s.cardLink}>
           {link}
         </Link>
       ) : link ? (

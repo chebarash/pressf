@@ -11,7 +11,8 @@
 }
 a.card, button.card { cursor: pointer; }
 @media (hover: hover) {
-  a.card:hover, button.card:hover { background: var(--bg-hover); }
+  /* A pointer over a card lifts it a step; pressing still sinks it (below). */
+  a.card:hover, button.card:hover { background: var(--bg-hover); transform: translateY(-2px); transition-duration: var(--motion-fast); transition-timing-function: var(--ease-gentle); }
 }
 a.card:active, button.card:active { transform: translateY(3px); box-shadow: none; }
 a.card:focus-visible, button.card:focus-visible {

@@ -19,7 +19,7 @@ export function Banner({ tone = "info", children, action, className }: BannerPro
       <p className="t-body-sm">{children}</p>
       {action ? (
         action.href ? (
-          <Link href={action.href} className={cx(s.action, "t-label-md")}>
+          <Link prefetch href={action.href} className={cx(s.action, "t-label-md")}>
             {action.label}
           </Link>
         ) : (

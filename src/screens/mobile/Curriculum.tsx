@@ -27,7 +27,7 @@ export default function Curriculum({ data, base, year, course }: { data: Curricu
         {data.years.length > 1 ? (
           <nav className={c.tabs} aria-label="Year">
             {data.years.map((y) => (
-              <Link key={y.year} href={yearHref(y.year)} replace scroll={false} className={cx(c.tab, y.year === current?.year && c.tabActive)} aria-current={y.year === current?.year ? "page" : undefined}>
+              <Link prefetch key={y.year} href={yearHref(y.year)} replace scroll={false} className={cx(c.tab, y.year === current?.year && c.tabActive)} aria-current={y.year === current?.year ? "page" : undefined}>
                 Year {y.year}
               </Link>
             ))}
@@ -66,7 +66,7 @@ export default function Curriculum({ data, base, year, course }: { data: Curricu
         {data.programs.length && !data.program ? (
           <div className={c.block8}>
             {data.programs.map((p) => (
-              <Link key={p.id} href={`/programs/${p.id}/curriculum`} className={c.browse}>
+              <Link prefetch key={p.id} href={`/programs/${p.id}/curriculum`} className={c.browse}>
                 <span>{p.name}</span>
               </Link>
             ))}

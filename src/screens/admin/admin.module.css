@@ -194,7 +194,7 @@ select.chip { appearance: none; font-family: var(--font-sans); padding-right: va
 .sub { font-size: 14px; color: var(--text-secondary); margin: 0; }
 
 /* Layout regions */
-.main { flex: 1 0 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: 28px var(--space-6); overflow-y: auto; }
+.main { flex: 1 0 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); overflow-y: auto; }
 .mainFixed { flex: 0 0 auto; }
 .column { flex-shrink: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-5) var(--space-4); border-right: 1.5px solid var(--border-subtle); overflow-y: auto; }
 .inspector { display: flex; flex-direction: column; gap: 14px; padding: var(--space-5) 20px; border-left: 1.5px solid var(--border-subtle); overflow-y: auto; }
@@ -288,7 +288,8 @@ select.chip { appearance: none; font-family: var(--font-sans); padding-right: va
 
 /* Coverage */
 .meter { position: relative; height: 8px; border-radius: var(--radius-full); background: var(--bg-sunken); border: 1px solid var(--border-subtle); overflow: hidden; flex-shrink: 0; }
-.meterFill { position: absolute; inset: 0 auto 0 0; background: var(--rating-high); }
+.meterFill { position: absolute; inset: 0 auto 0 0; background: var(--rating-high); transform-origin: left; animation: grow-x var(--motion-slow) var(--ease-standard) both; }
+@keyframes grow-x { from { transform: scaleX(0); } }
 .meterMid { background: var(--rating-mid); }
 .meterLow { background: var(--rating-low); }
 .tdNum { text-align: right; font-variant-numeric: tabular-nums; }

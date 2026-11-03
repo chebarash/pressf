@@ -3,6 +3,9 @@
 .screen {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: var(--m-max);
+  margin-inline: var(--m-center);
   min-height: 100%;
   background: var(--bg-page);
   color: var(--text-primary);
@@ -15,7 +18,7 @@
   flex-direction: column;
   align-items: stretch;
   gap: 28px;
-  padding: 8px var(--space-4) 40px;
+  padding: var(--m-pad-top) var(--m-pad-x) var(--m-pad-bottom);
 }
 .tight { gap: var(--space-3); }
 .stack { display: flex; flex-direction: column; }
@@ -23,7 +26,7 @@
 .withButton { padding-bottom: calc(95px + 40px + env(safe-area-inset-bottom)); }
 
 .title { margin: 0; color: var(--text-primary); font-weight: 400; overflow-wrap: anywhere; }
-.title54 { margin: 0; font-family: var(--font-serif); font-size: 54px; line-height: 1.04; font-weight: 400; color: var(--text-primary); }
+.title54 { margin: 0; font: 400 var(--m-title)/1 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); }
 .section { margin: 0; color: var(--text-primary); font-weight: 400; }
 
 /* Type helpers (Geologica, line-height normal unless noted). */
@@ -106,7 +109,9 @@
 .absRow { display: flex; align-items: center; gap: var(--space-2); }
 .absRow p { margin: 0; }
 .bar { position: relative; height: 8px; border-radius: 4px; background: var(--border-subtle); overflow: hidden; }
-.fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--bg-accent); }
+.fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--bg-accent); transform-origin: left; animation: grow-x var(--motion-slow) var(--ease-standard) both; }
+/* The bar grows in when the screen mounts (never on a re-render). */
+@keyframes grow-x { from { transform: scaleX(0); } }
 /* Figma uses the mustard-500 primitive here, the same in both themes. */
 .fillLow { background: var(--mustard-500); }
 .fillDanger { background: var(--bg-danger); }

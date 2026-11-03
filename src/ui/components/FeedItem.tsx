@@ -51,7 +51,7 @@ export function FeedItem({ type, title, meta, unread, href, onClick, children, c
   );
   if (children) {
     const head = href ? (
-      <Link href={href} className={s.head}>
+      <Link prefetch href={href} className={s.head}>
         {body}
       </Link>
     ) : onClick ? (
@@ -69,7 +69,7 @@ export function FeedItem({ type, title, meta, unread, href, onClick, children, c
     );
   }
   return href ? (
-    <Link href={href} className={cx(s.item, className)}>
+    <Link prefetch href={href} className={cx(s.item, className)}>
       {body}
     </Link>
   ) : (

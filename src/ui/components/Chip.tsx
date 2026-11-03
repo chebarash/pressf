@@ -43,7 +43,7 @@ export function Chip({ label, size = "m", selected, disabled, removable, onRemov
   if (href && !disabled) {
     return (
       // A filter chip replaces the history entry, so Back leaves the screen rather than undoing filters.
-      <Link href={href} replace scroll={false} className={cls} data-state={state} aria-current={selected ? "true" : undefined} data-haptic="select">
+      <Link prefetch href={href} replace scroll={false} className={cls} data-state={state} aria-current={selected ? "true" : undefined} data-haptic="select">
         <span>{label}</span>
         {x}
       </Link>

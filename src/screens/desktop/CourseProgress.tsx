@@ -17,7 +17,7 @@ export function CourseProgressScreen({ data }: { data: CourseProgressData }) {
   const states = (Object.keys(data.counts) as ClassState[]).filter((s) => data.counts[s] > 0);
   return (
     <main data-desktop-screen className={cx(css.screen, g.main)}>
-      <Link href="/progress" className={g.back} data-key="Escape">
+      <Link prefetch href="/progress" className={g.back} data-key="Escape">
         <Icon name="chevron-left" size={14} /> Progress
       </Link>
       <h1 className={g.title}>{data.course.name}</h1>

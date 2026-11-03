@@ -84,7 +84,7 @@ export function TodayScreen({ data, actions }: { data: TodayData; actions?: Toda
               <Fragment key={`${slot.time}-${slot.title}`}>
                 {data.now?.before === i && <p className={t.nowLine}>{data.now.time}</p>}
                 {slot.href ? (
-                  <Link href={slot.href} className={t.slot}>
+                  <Link prefetch href={slot.href} className={t.slot}>
                     {body}
                   </Link>
                 ) : (

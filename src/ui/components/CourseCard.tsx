@@ -56,7 +56,7 @@ export function CourseCard({ code, name, teacher, line, lineIcon, recommend, hre
     </>
   );
   return href ? (
-    <Link href={href} className={cx(s.cardBox, className)}>
+    <Link prefetch href={href} className={cx(s.cardBox, className)}>
       {body}
     </Link>
   ) : (

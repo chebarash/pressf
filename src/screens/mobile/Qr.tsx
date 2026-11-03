@@ -26,7 +26,7 @@ export default function Qr({ data, preview }: { data: TodayView | null; preview?
         ) : (
           <p className={s.qrLead}>Point the camera at the code your teacher shows. Your check-in goes straight to the LMS.</p>
         )}
-        <Link href="/" className={s.sectionAll}>
+        <Link prefetch href="/" className={s.sectionAll}>
           Back to Today
         </Link>
       </div>

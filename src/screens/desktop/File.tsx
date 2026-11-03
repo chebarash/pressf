@@ -34,7 +34,7 @@ function FilePreview({ file, back, crumb }: { file: NonNullable<FileData["file"]
     <aside className={c.file} aria-label="File preview">
       {/* With the course open next to it (Figma D12) the head is first; Esc goes back. */}
       {back && crumb && (
-        <Link href={back.href} className={c.back}>
+        <Link prefetch href={back.href} className={c.back}>
           <Icon name="chevron-left" size={16} />
           {back.name}
         </Link>
@@ -47,7 +47,7 @@ function FilePreview({ file, back, crumb }: { file: NonNullable<FileData["file"]
         </span>
         {back && (
           <KeyTo k="Escape">
-            <Link href={back.href} aria-label={`Back to ${back.name}`}>
+            <Link prefetch href={back.href} aria-label={`Back to ${back.name}`}>
               <Hint>Esc</Hint>
             </Link>
           </KeyTo>

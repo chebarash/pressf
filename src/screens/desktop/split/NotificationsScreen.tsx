@@ -136,7 +136,7 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
                 ))}
                 {open.files.more > 0 &&
                   (open.files.moreHref ? (
-                    <Link href={open.files.moreHref} className={n.more}>
+                    <Link prefetch href={open.files.moreHref} className={n.more}>
                       and {open.files.more} more
                     </Link>
                   ) : (

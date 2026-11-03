@@ -28,6 +28,39 @@ img, svg { display: block; }
 :root { --sh-top: env(safe-area-inset-top, 0px); --sh-bottom: env(safe-area-inset-bottom, 0px); --sh-bar-h: 0px; }
 :root.tg { --sh-top: var(--tg-top, calc(env(safe-area-inset-top, 0px) + 50px)); --sh-bottom: var(--tg-bottom, env(safe-area-inset-bottom, 0px)); }
 
+/* ---------- Page layout tokens ----------
+   Every screen takes its frame from these, so titles and blocks sit in the same
+   place from page to page. Desktop values are the Figma "Desktop · web" frames
+   (D1 Today, D6 Progress, D9 Professor: 32 top, 40 sides, 48 bottom, 20 between
+   blocks); panes of the split screens (D4, D7, D12) start on the same 32 line.
+   Mobile values are the 390 frames: 8 under App/TopBar, 16 gutters, 40 bottom. */
+:root {
+  --page-pad-top: 32px;
+  --page-pad-x: 40px;
+  --page-pad-bottom: 48px;
+  --page-gap: 20px;
+  --page-max: 1240px;
+  --page-title: 64px;
+  /* Wide-grid tools with an inspector (D3 Timetable, D8 Calendar): the grid runs closer to the right edge. */
+  --tool-pad-right: 24px;
+  --tool-gap: 16px;
+  --tool-title: 48px;
+  /* Split screens: list pane, detail pane, inspector. */
+  --pane-pad-x: 20px;
+  --pane-title: 36px;
+  --detail-pad-x: 32px;
+  --inspector-pad-x: 24px;
+  /* Mobile screen. */
+  --m-pad-top: 8px;
+  --m-pad-x: 16px;
+  --m-pad-bottom: 40px;
+  --m-max: 480px;
+  --m-center: auto;
+  --m-title: 56px;
+}
+/* A phone screen shown on desktop (My ratings, Uploads, Schools…) sits in the page frame like the D screens. */
+.sh-desktop { --m-pad-top: 0px; --m-pad-x: 0px; --m-pad-bottom: 0px; --m-max: 760px; --m-center: 0; --m-title: var(--page-title); }
+
 /* ---------- Keycaps and small chips ---------- */
 .sh-kbd {
   display: inline-flex;
@@ -100,11 +133,12 @@ img, svg { display: block; }
 
 /* Maintenance / broadcast banner over every screen (A10 caption, 9.4 StatusBannerMobile). */
 .sh-banner { padding: 0 var(--space-4) var(--space-3); }
-.sh-desktop .sh-banner { padding: 0 0 var(--space-5); max-width: 720px; }
+.sh-desktop .sh-banner { padding: 0 0 var(--page-gap); max-width: 720px; }
 
 /* Page header pattern (App/TopBar + title). */
 .sh-header { display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-4) var(--space-4); }
-.sh-desktop .sh-header { padding: 0 0 var(--space-5); }
+.sh-desktop .sh-header { padding: 0 0 var(--page-gap); }
+.sh-desktop .t-mobile-title { font-size: var(--m-title); line-height: 1.04; }
 .sh-header__eyebrow { font: 600 13px/normal var(--font-sans); color: var(--text-secondary); }
 .sh-header__sub { font: 400 16px/1.4 var(--font-sans); color: var(--text-secondary); }
 
@@ -201,10 +235,12 @@ img, svg { display: block; }
 
 /* ---------- Desktop frame ---------- */
 .sh-desktop { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100dvh; }
-.sh-desktop__main { min-width: 0; padding: 40px 40px 0 24px; display: flex; flex-direction: column; }
+.sh-desktop__main { min-width: 0; padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); display: flex; flex-direction: column; }
 .sh-desktop__main > .sh-main { flex: 1; }
 /* Desktop screens (src/screens/desktop) lay out their own panes edge to edge. */
 .sh-desktop__main:has(> .sh-main > [data-desktop-screen]) { padding: 0; }
+/* The sticky bottom buttons end the column themselves. */
+.sh-desktop__main:has(> .sh-bottombar) { padding-bottom: 0; }
 
 .sh-sidebar {
   position: sticky;
@@ -247,8 +283,11 @@ img, svg { display: block; }
   color: var(--text-secondary);
 }
 .sh-nav-item > span:first-of-type { flex: 1; min-width: 0; }
-.sh-nav-item svg { color: var(--text-primary); flex-shrink: 0; }
+.sh-nav-item svg { color: var(--text-primary); flex-shrink: 0; transition: transform var(--motion-fast) var(--ease-gentle); }
+.sh-nav-item { transition: background-color var(--motion-fast) var(--ease-standard); }
 .sh-nav-item:hover { background: var(--bg-hover); }
+/* The icon nudges toward its label under the pointer. */
+@media (hover: hover) { .sh-nav-item:hover svg { transform: translateX(2px); } }
 .sh-nav-item[aria-current="page"] {
   background: var(--bg-surface);
   border: 1.5px solid var(--border-strong);
@@ -421,11 +460,13 @@ img, svg { display: block; }
   background: var(--bg-surface);
 }
 .sh-skel { border-radius: var(--radius-sm); background: var(--bg-sunken); }
-.sh-skel-page { display: flex; flex-direction: column; gap: 16px; padding: 8px 16px 24px; overflow: hidden; }
-.sh-skel-page__title { margin: 0; font: 400 54px/1.04 var(--font-serif); color: var(--text-primary); }
+.sh-skel-page { display: flex; flex-direction: column; gap: 16px; padding: var(--m-pad-top) var(--m-pad-x) var(--m-pad-bottom); overflow: hidden; }
+.sh-skel-page__title { margin: 0; font: 400 var(--m-title)/1 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); }
 .sh-skel-row { display: flex; align-items: center; gap: 12px; }
-@media (prefers-reduced-motion: no-preference) { .sh-skel { animation: sh-pulse 1.4s ease-in-out infinite; } }
-@keyframes sh-pulse { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: no-preference) { .sh-skel { animation: sh-pulse 2s ease-in-out infinite; } }
+@keyframes sh-pulse { 50% { opacity: 0.7; } }
+/* A loading screen fades in a beat late: when the page arrives quickly it never flashes. */
+[role="status"][aria-busy="true"] { animation: sh-fade var(--motion-slow) var(--ease-standard) 120ms backwards; }
 
 /* The ⌘K palette (D2) and the ? sheet (D11) live in src/screens/desktop/global. */
 
@@ -561,8 +602,9 @@ img, svg { display: block; }
    rest of the page is never captured, and input passes through at once. */
 :root { view-transition-name: none; }
 ::view-transition { pointer-events: none; }
+/* The box itself never slides (a new page may start scrolled differently); only the snapshots fade. */
 ::view-transition-group(.pf-screen),
-::view-transition-group(.pf-pane) { animation-duration: var(--motion-base); animation-timing-function: var(--ease-standard); }
+::view-transition-group(.pf-pane) { animation: none; }
 ::view-transition-old(.pf-screen) { animation: pf-out var(--motion-fast) var(--ease-exit) both; }
 ::view-transition-new(.pf-screen) { animation: pf-in var(--motion-base) var(--ease-standard) both; }
 ::view-transition-old(.pf-pane) { animation: pf-out var(--motion-base) var(--ease-standard) both; }
@@ -573,6 +615,14 @@ img, svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
+
+/* Focus rings fade in instead of snapping on (keyboard focus only). */
+:is(a, button, input, select, textarea, summary):focus-visible { animation: pf-ring var(--motion-fast) var(--ease-standard); }
+@keyframes pf-ring { from { outline-color: transparent; } }
+
+/* Tab pills (Tabs, course tabs): the active pill slides to the new tab (TabPill). */
+::view-transition-group(.pf-tab) { animation-duration: var(--motion-base); animation-timing-function: var(--ease-emphasized); }
+::view-transition-old(.pf-tab), ::view-transition-new(.pf-tab) { animation-duration: var(--motion-base); }
 
 /* Lists on the first paint only: the boot script marks <html data-enter> until the
    page has loaded, and the first eight rows of a list (card.module.css, desktop

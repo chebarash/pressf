@@ -1,4 +1,4 @@
-.main { padding: 32px 24px var(--space-7) 40px; display: flex; flex-direction: column; gap: var(--space-4); }
+.main { padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); display: flex; flex-direction: column; gap: var(--page-gap); max-width: var(--page-max); }
 /* Query bar (D14/D17): 2px ink, radius 16, Key/SM, 14/14/14/16, 20px regular. */
 .bar {
   display: flex;
@@ -16,7 +16,9 @@
 .results { display: flex; flex-direction: column; gap: 10px; }
 .label { font: 600 11px/normal var(--font-sans); text-transform: uppercase; color: var(--text-secondary); padding-top: 6px; }
 .item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-surface); border: 1.5px solid var(--border-subtle); border-radius: 10px; color: var(--text-primary); }
+.item { transition: transform var(--motion-fast) var(--ease-gentle), border-color var(--motion-fast) var(--ease-standard); }
 .item:hover { border-color: var(--border-strong); }
+@media (hover: hover) { a.item:hover { transform: translateY(-1px); } }
 .itemOn, .itemOn:hover { background: var(--bg-accent-soft); border-color: var(--border-strong); }
 .itemText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .itemTitle { font: 600 15px/normal var(--font-sans); }

@@ -58,7 +58,7 @@ export function CalendarScreen({ data }: { data: CalendarData & { nav: ScheduleN
                       {spans.map((x) => {
                         const style = { gridColumn: `${x.from + 1} / ${x.to + 2}`, gridRow: x.lane + 1 };
                         return x.href ? (
-                          <Link key={x.key} href={x.href} className={cx(k.event, k.span, LOOK[x.kind])} style={style}>
+                          <Link prefetch key={x.key} href={x.href} className={cx(k.event, k.span, LOOK[x.kind])} style={style}>
                             {x.title}
                           </Link>
                         ) : (
@@ -73,7 +73,7 @@ export function CalendarScreen({ data }: { data: CalendarData & { nav: ScheduleN
                     <div key={day.key} role="gridcell" className={cx(k.cell, !day.inMonth && k.out, day.today && k.today)} aria-current={day.today ? "date" : undefined}>
                       {day.href ? (
                         // The date (and its class dots) opens that day's week.
-                        <Link href={day.href} className={k.dayLink} aria-label={`${day.date} ${month.label}: open the week${day.classes?.length ? `, ${day.classes.length} ${day.classes.length === 1 ? "class" : "classes"}` : ""}`}>
+                        <Link prefetch href={day.href} className={k.dayLink} aria-label={`${day.date} ${month.label}: open the week${day.classes?.length ? `, ${day.classes.length} ${day.classes.length === 1 ? "class" : "classes"}` : ""}`}>
                           <span className={k.date}>{day.date}</span>
                           {day.inMonth && !!day.classes?.length && (
                             <span className={k.dots} aria-hidden>
@@ -90,7 +90,7 @@ export function CalendarScreen({ data }: { data: CalendarData & { nav: ScheduleN
                       {day.inMonth &&
                         day.items.slice(0, 3).map((it, n) =>
                           it.href ? (
-                            <Link key={n} href={it.href} className={cx(k.event, LOOK[it.kind])}>
+                            <Link prefetch key={n} href={it.href} className={cx(k.event, LOOK[it.kind])}>
                               {it.title}
                             </Link>
                           ) : (

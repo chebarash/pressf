@@ -1,4 +1,4 @@
-.main { padding: 28px 40px var(--space-7); display: flex; flex-direction: column; gap: 20px; max-width: 1240px; }
+.main { padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); display: flex; flex-direction: column; gap: var(--page-gap); max-width: var(--page-max); }
 .crumbs { display: flex; gap: var(--space-2); font: 500 13px/normal var(--font-sans); color: var(--text-secondary); }
 .crumbs a { color: var(--text-accent); }
 
@@ -13,7 +13,7 @@
   box-shadow: var(--shadow-float-lg);
 }
 .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.name { font: 400 64px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
+.name { font: 400 var(--page-title)/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
 .title { font: 500 15px/normal var(--font-sans); color: var(--text-secondary); }
 .contact { margin: 0; font: 500 14px/normal var(--font-sans); color: var(--text-secondary); }
 .contact a { color: var(--text-accent); text-decoration: underline; text-underline-offset: 2px; }
@@ -53,7 +53,8 @@ a.slot:hover { color: var(--text-accent); }
 .label { font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
 
 .courses { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.course { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; background: var(--bg-page); border: 1.5px solid var(--border-strong); border-radius: 12px; box-shadow: 0 2px 0 var(--shadow-key); color: var(--text-primary); }
+.course { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; background: var(--bg-page); border: 1.5px solid var(--border-strong); border-radius: 12px; box-shadow: 0 2px 0 var(--shadow-key); color: var(--text-primary); transition: transform var(--motion-fast) var(--ease-gentle); }
+@media (hover: hover) { a.course:hover { transform: translateY(-1px); } }
 .course:hover { background: var(--bg-hover); }
 .courseTop { display: flex; align-items: center; font: 600 11px/normal var(--font-sans); color: var(--text-secondary); }
 .courseTop > :first-child { flex: 1; }

@@ -29,7 +29,7 @@ export function SectionHead({ title, href, label = "All" }: { title: string; hre
     <div className={s.sectionHead}>
       <h2 className={`${s.sectionTitle} t-mobile-section`}>{title}</h2>
       {href && (
-        <Link href={href} className={s.sectionAll}>
+        <Link prefetch href={href} className={s.sectionAll}>
           {label}
           <ChevronRightIcon size={16} />
         </Link>
@@ -81,7 +81,7 @@ function StudentHome({ v }: { v: TodayView }) {
               const lit = c.status === "next" || c.status === "now";
               return (
                 <li key={c.key}>
-                  <Link href="/timetable" className={`${s.classRow} ${lit ? s.classNext : c.status === "done" ? s.classDone : ""}`}>
+                  <Link prefetch href="/timetable" className={`${s.classRow} ${lit ? s.classNext : c.status === "done" ? s.classDone : ""}`}>
                     <span className={`${s.classTime} t-label-lg`}>{c.time}</span>
                     <span className={s.classText}>
                       <span className={`${s.classSubject} t-label-lg`}>{c.name}</span>
@@ -119,7 +119,7 @@ function StudentHome({ v }: { v: TodayView }) {
           <section className={`${s.section} ${s.list12}`} aria-label="Due soon">
             <SectionHead title="Due soon" href="/progress" />
             {v.dueSoon.map((x) => (
-              <Link key={x.id} href="/progress" className={s.dueRow}>
+              <Link prefetch key={x.id} href="/progress" className={s.dueRow}>
                 <span className={s.dueText}>
                   <span className={s.dueTitle}>{x.title}</span>
                   <span className={s.dueMeta}>
@@ -134,7 +134,7 @@ function StudentHome({ v }: { v: TodayView }) {
         )}
 
         {exam && (
-          <Link href="/timetable?view=month" className={s.hero}>
+          <Link prefetch href="/timetable?view=month" className={s.hero}>
             <span className={s.heroEyebrow}>Next exams</span>
             <span className={`${s.heroTitle} t-mobile-section`}>{exam.title}</span>
             <span className={s.heroLine}>{exam.line}</span>
