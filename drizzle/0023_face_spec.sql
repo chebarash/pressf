@@ -1,0 +1,1 @@
+ALTER TABLE "faces" ADD COLUMN "spec" jsonb;

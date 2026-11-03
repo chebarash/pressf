@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
-import { removeFace, uploadFace, type Result } from "@/app/admin/actions";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { buildFace, faceFromPhoto, removeFace, uploadFace, type Result } from "@/app/admin/actions";
+import { DEFAULT_FACE_SPEC, FACE_OPTION_LABELS, FACE_PART_LABELS, FACE_PART_ORDER, FACE_PARTS, randomFaceSpec, renderFace, type FacePart, type FaceSpec } from "@/core/face-parts";
 import type { facesPage } from "@/server/admin/faces";
+import f from "./faces.module.css";
 import { Btn, Chip, Head, KV, Label, cx, s } from "./ui";
 import { useKeys } from "./useKeys";
 
@@ -90,7 +92,14 @@ export function ProfessorFaces({ data }: { data: FacesData }) {
   );
 }
 
-function Detail({ sel, pending, run, note }: { sel: NonNullable<FacesData["selected"]>; pending: boolean; run: (fn: () => Promise<Result>) => void; note: { ok: boolean; text: string } | null }) {
+type DetailProps = { sel: NonNullable<FacesData["selected"]>; pending: boolean; run: (fn: () => Promise<Result>) => void; note: { ok: boolean; text: string } | null };
+
+function Detail(props: DetailProps) {
+  const [building, setBuilding] = useState(false);
+  return building ? <FaceBuilder {...props} close={() => setBuilding(false)} /> : <FaceView {...props} build={() => setBuilding(true)} />;
+}
+
+function FaceView({ sel, pending, run, note, build }: DetailProps & { build: () => void }) {
   const file = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<File | null>(null);
@@ -141,8 +150,11 @@ function Detail({ sel, pending, run, note }: { sel: NonNullable<FacesData["selec
       </div>
       <Label>DRAWN FACES ONLY</Label>
       <p className={s.small} style={{ margin: 0 }}>
-        A line drawing of the head in the Press F style — never a photo, never traced from one. PNG with a transparent background or a plain SVG, about square, 96–2048 px, under 512 KB.
+        Build the face from parts, or upload a line drawing of the head in the Press F style: PNG with a transparent background or a plain SVG, about square, 96–2048 px, under 512 KB. Never a photo: a photo can only help pick the parts, and it isn&apos;t kept.
       </p>
+      <div className={s.actions}>
+        <Btn onClick={build} disabled={pending}>{sel.spec ? "Edit the drawing" : "Build a face"}</Btn>
+      </div>
       <input ref={file} type="file" accept="image/png,image/svg+xml,.png,.svg" className={s.input} onChange={(e) => pick(e.target.files?.[0])} aria-label="Face drawing" />
       {error && <div className={s.error}>{error}</div>}
       {note && <div className={note.ok ? s.small : s.error}>{note.text}</div>}
@@ -154,6 +166,112 @@ function Detail({ sel, pending, run, note }: { sel: NonNullable<FacesData["selec
             Remove
           </Btn>
         )}
+      </div>
+    </section>
+  );
+}
+
+/* ───────── Build a face ───────── */
+
+const PHOTO_MAX_BYTES = 8 * 1024 * 1024;
+const PREVIEW_SIZES = [120, 64, 48, 32];
+
+/** The photo shrunk in the browser (smaller upload, no metadata). Falls back to the file as picked. */
+async function shrink(file: File): Promise<Blob> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 1568 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/jpeg", 0.9));
+    return blob ?? file;
+  } catch {
+    return file;
+  }
+}
+
+function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: () => void }) {
+  const [spec, setSpec] = useState<FaceSpec>(sel.spec ?? DEFAULT_FACE_SPEC);
+  const [reading, setReading] = useState(false);
+  const [photoNote, setPhotoNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const photo = useRef<HTMLInputElement>(null);
+  const src = useMemo(() => `data:image/svg+xml,${encodeURIComponent(renderFace(spec))}`, [spec]);
+  const set = <K extends FacePart>(part: K, value: FaceSpec[K]) => setSpec((old) => ({ ...old, [part]: value }));
+
+  const fromPhoto = async (file: File | undefined) => {
+    if (photo.current) photo.current.value = "";
+    setPhotoNote(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return setPhotoNote({ ok: false, text: "Pick a photo (JPEG, PNG, WebP or GIF)" });
+    if (file.size > PHOTO_MAX_BYTES) return setPhotoNote({ ok: false, text: "Photos up to 8 MB" });
+    setReading(true);
+    try {
+      const form = new FormData();
+      form.set("photo", await shrink(file), "photo");
+      const r = await faceFromPhoto(form);
+      if (r.ok) {
+        setSpec((old) => ({ ...r.spec, tone: old.tone }));
+        setPhotoNote({ ok: true, text: `Parts picked from the photo — check them before saving. ${r.note}`.trim() });
+      } else setPhotoNote({ ok: false, text: r.error });
+    } catch {
+      setPhotoNote({ ok: false, text: "The photo couldn't be sent. Build the face by hand." });
+    } finally {
+      setReading(false);
+    }
+  };
+
+  const save = () =>
+    run(async () => {
+      const r = await buildFace(sel.id, spec);
+      if (r.ok) close();
+      return r;
+    });
+
+  return (
+    <section className={cx(s.detail, s.detailNarrow)} aria-label="Build a face">
+      <div className={s.hstack}>
+        <h2 className={s.h2} style={{ flex: "1 0 0" }}>{sel.name}</h2>
+        <Chip tone="mustard">NOT SAVED YET</Chip>
+      </div>
+      <div className={s.row2} style={{ gap: 12 }}>
+        {(["light", "dark"] as const).map((theme) => (
+          <div key={theme} className={cx(f.stage, theme === "dark" && f.stageDark)} aria-label={`${theme} preview`}>
+            {PREVIEW_SIZES.map((size) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={size} src={src} alt={theme === "light" && size === 120 ? `${sel.name}, drawn` : ""} width={size} height={size} className={f.face} />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className={s.actions}>
+        <Btn onClick={() => setSpec(randomFaceSpec())} disabled={reading}>Randomize</Btn>
+        <Btn onClick={() => photo.current?.click()} disabled={reading || pending}>{reading ? "Reading the photo…" : "From a photo"}</Btn>
+        <input ref={photo} type="file" accept="image/*" hidden onChange={(e) => fromPhoto(e.target.files?.[0])} aria-label="Photo to pick parts from" />
+      </div>
+      {photoNote && <div className={photoNote.ok ? s.small : s.error}>{photoNote.text}</div>}
+      <p className={s.small} style={{ margin: 0 }}>The photo is only read to suggest parts; it is never saved or kept. Only the drawing is saved.</p>
+      <div className={f.parts}>
+        {FACE_PART_ORDER.map((part) => (
+          <div key={part} className={f.part} role="radiogroup" aria-label={FACE_PART_LABELS[part]}>
+            <span className={f.partLabel}>{FACE_PART_LABELS[part]}</span>
+            <div className={s.wrap}>
+              {(FACE_PARTS[part] as readonly FaceSpec[typeof part][]).map((value) => (
+                <button key={value} type="button" role="radio" aria-checked={spec[part] === value} className={cx(s.chip, spec[part] === value && s.chipInverse)} onClick={() => set(part, value)}>
+                  {(FACE_OPTION_LABELS[part] as Record<string, string>)[value]}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {note && !note.ok && <div className={s.error}>{note.text}</div>}
+      <div className={s.spacer} />
+      <div className={s.actions}>
+        <Btn tone="accent" onClick={save} disabled={pending || reading}>Use this face</Btn>
+        <Btn onClick={close} disabled={pending}>Cancel</Btn>
       </div>
     </section>
   );
