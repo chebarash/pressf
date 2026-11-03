@@ -73,7 +73,7 @@ const MARKS: Record<string, Mark> = { "0": "unmarked", "1": "present", "2": "lat
 
 export type AttendanceEvent = {
   lesson: string;
-  kind: "lecture" | "lab" | "practice";
+  kind: "lecture" | "tutorial" | "lab" | "independent" | "practice";
   /** When the class took place (falls back to when it was marked). */
   at: Date | null;
   mark: Mark;
@@ -94,7 +94,8 @@ export function classTime(e: LmsAttendanceEvent): Date | null {
 
 const kindOf = (t: unknown): AttendanceEvent["kind"] => {
   const v = String(t ?? "");
-  return v === "0" ? "lecture" : v === "2" ? "lab" : "practice";
+  // The LMS lesson-type numbers: 0 Lecture, 1 Tutorial, 2 Laboratory, 5/6 Independent work.
+  return v === "0" ? "lecture" : v === "1" ? "tutorial" : v === "2" ? "lab" : v === "5" || v === "6" ? "independent" : "practice";
 };
 
 export function attendanceEvents(events: LmsAttendanceEvent[] | null | undefined): AttendanceEvent[] {

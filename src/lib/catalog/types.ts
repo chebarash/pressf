@@ -34,7 +34,7 @@ export type Lesson = {
   teacher_name: string | null;
   room: string | null;
   /** Lecture, lab, practice… from the LMS class type; absent in caches written before it was kept. */
-  kind?: "lecture" | "lab" | "practice" | "exam" | "other";
+  kind?: import("@/core/agenda").ClassKind;
 };
 
 export type Program = { slug: string; name: string; degree: string };

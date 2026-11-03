@@ -56,7 +56,7 @@ describe("real LMS shapes: gradebook", () => {
       ["Lecture № 2", "late", true, "lecture"],
       ["Lab № 1", "absent", false, "lab"],
       ["Lab № 2", "excused", false, "lab"],
-      ["Tutorial № 1", "present", false, "practice"],
+      ["Tutorial № 1", "present", false, "tutorial"],
       ["Lecture № 15", "unmarked", false, "lecture"],
     ]);
     // The class start (schedule[0].begin_time), not the marking time.

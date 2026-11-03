@@ -56,3 +56,12 @@ describe("hours with different teachers stay apart", () => {
     expect(blocks.map((b) => b.teacherId)).toEqual(["141", "215"]);
   });
 });
+
+import { CLASS_KIND_LABEL, kindOfLessonType } from "@/core/agenda";
+describe("LMS lesson types by number", () => {
+  it("maps subjectType.type to the LMS names", () => {
+    expect([0, "1", 2, 5, 6].map((t) => CLASS_KIND_LABEL[kindOfLessonType(t)])).toEqual(["Lecture", "Tutorial", "Laboratory", "Independent work", "Independent work"]);
+    expect(kindOfLessonType(null, "Tutorial")).toBe("tutorial");
+    expect(kindOfLessonType(undefined, "Mid Term Exam")).toBe("exam");
+  });
+});
