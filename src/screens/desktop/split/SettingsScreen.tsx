@@ -123,6 +123,7 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
                 <Switch
                   key={a.id}
                   className={x.alertRow}
+                  size="sm"
                   label={a.title}
                   description={a.note}
                   checked={a.on}

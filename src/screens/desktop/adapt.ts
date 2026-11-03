@@ -416,12 +416,28 @@ export function courseProgress(v: V.CourseProgressView): M.CourseProgressData {
     { label: "Rating", value: c.rating, max: 100, tier: tier(c.rating) },
     { label: "Final", value: c.final, max: 100, tier: tier(c.final) },
   ];
-  const classes = v.events.filter((e) => e.mark !== "unmarked").map((e) => (e.mark === "absent" ? "absent" : e.viaQr ? "qr" : "present") as "present" | "qr" | "absent");
+  const classes: M.ClassLine[] = v.events.map((e, i) => ({ key: `${e.lesson}|${e.at ?? i}`, lesson: e.lesson, kind: KIND_LABEL[e.kind] ?? e.kind, date: e.dateLabel, state: classState(e), viaQr: e.viaQr, score: e.score }));
+  const counts: Record<M.ClassState, number> = { qr: 0, teacher: 0, late: 0, absent: 0, unmarked: 0 };
+  for (const x of classes) counts[x.state]++;
+  const marked = classes.length - counts.unmarked;
+  const dots = [...classes].reverse().map((x) => ({ state: x.state, title: join(x.date, x.lesson, CLASS_STATE_LABEL[x.state]) }));
   return {
     course: { name: c.name, code: c.code, href: `/c/${c.code}`, term: v.term, teacher: v.teacher },
-    row: { ...row(c), meta: join(c.code, v.teacher), detail: { marks, classes, classesLabel: `Every class · ${classes.length} so far`, grading: [] } },
+    row: { ...row(c), meta: join(c.code, v.teacher), detail: { marks, classes: dots, classesLabel: join(`Every class · ${marked} marked`, counts.unmarked > 0 && `${counts.unmarked} not marked yet`), grading: [] } },
+    classes,
+    counts,
   };
 }
+
+/** QR check-in and "present" from the teacher are both attended; late and not-marked stay their own states. */
+export function classState(e: Pick<V.ClassMark, "mark" | "viaQr">): M.ClassState {
+  if (e.mark === "absent") return "absent";
+  if (e.mark === "late") return "late";
+  if (e.mark === "unmarked") return "unmarked";
+  return e.viaQr ? "qr" : "teacher";
+}
+
+export const CLASS_STATE_LABEL: Record<M.ClassState, string> = { qr: "Checked in by QR", teacher: "Marked present by teacher", late: "Late", absent: "Absent", unmarked: "Not marked yet" };
 
 /* ---------- Notifications ---------- */
 
@@ -572,7 +588,7 @@ export function initialFrom(a: NonNullable<V.RatedItem["answers"]>): NonNullable
     hours: a.hours,
     difficulty: a.difficulty,
     tags: [...a.tags],
-    pressed: a.teachers.filter((t) => t.pressF).map((t) => t.teacherId),
+    pressed: a.teachers.filter((t) => t.pressF).map((t) => `${t.teacherId}|${t.role}`),
     teacherTags: Object.fromEntries(a.teachers.map((t) => [`${t.teacherId}|${t.role}`, [...t.tags]])),
   };
 }
