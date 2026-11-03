@@ -479,7 +479,7 @@ export async function file(id: string, viewer: Viewer): Promise<FileView | null>
       ...ctx,
       ...around,
       locked: false, id, source: "students", title: u.title, course, week: u.week, type, typeLabel: TYPE_LABEL[type] ?? "File", format: meta.format, formatCode: FORMAT_CODE[meta.format],
-      from: shownAs(u.showName, null), date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), size: u.size, pages: null, mimeType: u.mimeType, downloadName: name, url, downloadUrl: downloadLink(id),
+      from: shownAs(u.showName, null, u.sourceLabel), date: u.createdAt.toISOString(), dateLabel: shortDate(u.createdAt), size: u.size, pages: null, mimeType: u.mimeType, downloadName: name, url, downloadUrl: downloadLink(id),
     };
   }
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
