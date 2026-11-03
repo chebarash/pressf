@@ -1,8 +1,8 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { keyName } from "@/platform/keys";
-import { NAV, NAV_PREFIX } from "@/ui/shell/nav";
+import { NAV, NAV_PREFIX, NAV_VIEWS } from "@/ui/shell/nav";
 
 /** Every .tsx under a folder, as [path, source]. */
 function sources(dir: string): Array<[string, string]> {
@@ -48,6 +48,29 @@ describe("desktop shortcuts: one per action", () => {
     expect(search).not.toMatch(/data-key="\/"/);
     const palette = readFileSync("src/screens/desktop/global/CommandPalette.tsx", "utf8");
     expect(palette).not.toMatch(/keyName\(e\) === "[np]"/);
+  });
+
+  it("has one Timetable (Calendar merged into it): F T the week, F K the month, ← → on both", async () => {
+    expect(NAV.map((n) => n.label)).not.toContain("Calendar");
+    expect(NAV.find((n) => n.label === "Timetable")).toMatchObject({ key: "t", href: "/timetable" });
+    expect(NAV_VIEWS).toEqual([{ label: "Timetable · Month", href: "/timetable?view=month", key: "k" }]);
+    const { GO_TO } = await import("@/screens/desktop/global/bus");
+    expect(GO_TO.find((g) => g.key === "k")?.href).toBe("/timetable?view=month");
+    expect(GO_TO.find((g) => g.key === "t")?.href).toBe("/timetable");
+    const goKeys = GO_TO.map((g) => g.key);
+    expect(new Set(goKeys).size).toBe(goKeys.length);
+    for (const file of ["src/screens/desktop/split/TimetableScreen.tsx", "src/screens/desktop/split/CalendarScreen.tsx"]) {
+      const text = readFileSync(file, "utf8");
+      expect(text).toContain('data-key="ArrowLeft"');
+      expect(text).toContain('data-key="ArrowRight"');
+    }
+  });
+
+  it("sends /calendar to Timetable's month, keeping the query", async () => {
+    const config = (await import("../../next.config")).default;
+    const redirects = await config.redirects!();
+    expect(redirects).toEqual([{ source: "/calendar", destination: "/timetable?view=month", permanent: false }]);
+    expect(existsSync("src/app/(app)/calendar/page.tsx")).toBe(false);
   });
 
   it("reads keys from the physical key on any layout", () => {

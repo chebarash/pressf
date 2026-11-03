@@ -1,5 +1,5 @@
 import { setTheme } from "@/platform/PlatformProvider";
-import { NAV } from "@/ui/shell/nav";
+import { NAV, NAV_VIEWS } from "@/ui/shell/nav";
 
 /**
  * Tiny event bus between the desktop sidebar and the global overlays, so the
@@ -17,8 +17,11 @@ export function toggleTheme() {
   setTheme(current === "dark" ? "light" : "dark");
 }
 
-/** F then these letters go to each section: the sidebar's own table (src/ui/shell/nav.ts). */
-export const GO_TO: Array<{ key: string; label: string; href: string }> = NAV.filter((n) => n.badge !== "new").map((n) => ({ key: n.key, label: n.label, href: n.href }));
+/** F then these letters go to each section (the sidebar's own table, src/ui/shell/nav.ts) and to Timetable's month (F K). */
+export const GO_TO: Array<{ key: string; label: string; href: string }> = [
+  ...NAV.filter((n) => n.badge !== "new").map((n) => ({ key: n.key, label: n.label, href: n.href })),
+  ...NAV_VIEWS,
+];
 
 /** True while the user types in a field: shortcuts never fire then. */
 export const isTyping = (el: EventTarget | null) => {

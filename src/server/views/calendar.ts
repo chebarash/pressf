@@ -67,10 +67,16 @@ function phases(kinds: WeekKind[], from: string, to: string) {
   return out.filter((p) => p.ends >= from && p.starts <= to);
 }
 
-export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = new Date()): Promise<CalendarView> {
+/**
+ * `range` (default: today and the next 150 days) is what Timetable's week asks
+ * for: that week's deadlines, exam weeks and holidays, even in a past week.
+ * Classes are not events here: the week grid shows them, the month counts them.
+ */
+export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = new Date(), range?: { from: string; to: string }): Promise<CalendarView> {
   const on = new Set<CalendarLayer>(layers?.length ? layers : LAYERS.map((l) => l.id));
   const today = localDay(now);
-  const to = addDays(today, 150);
+  const from = range?.from ?? today;
+  const to = range?.to ?? addDays(today, 150);
   const student = viewer ? await loadStudent(viewer.userId) : null;
   const events: CalendarEvent[] = [];
 
@@ -78,22 +84,21 @@ export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = n
     const classes = await classesBetween(student, today, addDays(today, 13), now);
     for (const c of classes) {
       const day = localDay(new Date(c.start));
-      const exam = c.kind === "exam";
-      if (exam ? !on.has("exams") : !on.has("classes") || day > addDays(today, 6)) continue;
+      if (c.kind !== "exam" || !on.has("exams")) continue;
       events.push({
-        key: `class:${c.key}`, layer: exam ? "exams" : "classes", title: exam ? `${c.name} ${c.exam?.kind ?? "exam"}` : c.name,
-        sub: [LAYER_LABEL[exam ? "exams" : "classes"], c.time, c.room].filter(Boolean).join(" · "), day, endDay: day, time: c.time, href: c.code ? `/c/${c.code}` : null,
+        key: `class:${c.key}`, layer: "exams", title: `${c.name} ${c.exam?.kind ?? "exam"}`,
+        sub: [LAYER_LABEL.exams, c.time, c.room].filter(Boolean).join(" · "), day, endDay: day, time: c.time, href: c.code ? `/c/${c.code}` : null,
       });
     }
     if (on.has("deadlines")) {
       for (const d of deadlines(student.sync.homework)) {
         const day = localDay(d.due);
-        if (day < today || day > to || (d.status !== "todo" && d.status !== "in-progress")) continue;
+        if (day < from || day > to || (d.status !== "todo" && d.status !== "in-progress")) continue;
         events.push({ key: `deadline:${d.id}`, layer: "deadlines", title: d.title, sub: `Deadline · ${d.course} · ${clock(d.due)}`, day, endDay: day, time: clock(d.due), href: "/progress/assignments" });
       }
     }
   }
-  events.push(...(await academicEvents(on, today, to)));
+  events.push(...(await academicEvents(on, from, to)));
 
   const groups = new Map<string, CalendarEvent[]>();
   for (const e of events.sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? "").localeCompare(b.time ?? ""))) {
@@ -123,7 +128,7 @@ export async function academicEvents(on: Set<CalendarLayer>, from: string, to: s
   const events: CalendarEvent[] = [];
   const today = from;
   if (on.has("exams")) {
-    for (const p of phases(EXAM_KINDS, today, to)) {
+    for (const p of phases(EXAM_KINDS, from, to)) {
       events.push({ key: `phase:${p.kind}:${p.starts}`, layer: "exams", title: PHASE_TITLE[p.kind] ?? "Exams", sub: "Exam · Your times appear when the LMS publishes them", day: p.starts, endDay: p.ends, time: null, href: null });
     }
   }
@@ -141,15 +146,15 @@ export async function academicEvents(on: Set<CalendarLayer>, from: string, to: s
       }
       // A long administrative window (the schedule builder runs for months) would
       // paint every day: show where it opens and where it closes, nothing between.
-      if (p.startDay >= today) events.push({ key: `${key}:opens`, layer: "registration", title: `${p.title} opens`, sub, day: p.startDay, endDay: p.startDay, time: null, href: "/programs/mine/curriculum" });
+      if (p.startDay >= from) events.push({ key: `${key}:opens`, layer: "registration", title: `${p.title} opens`, sub, day: p.startDay, endDay: p.startDay, time: null, href: "/programs/mine/curriculum" });
       if (p.endDay <= to) events.push({ key: `${key}:closes`, layer: "registration", title: `${p.title} closes`, sub, day: p.endDay, endDay: p.endDay, time: null, href: "/programs/mine/curriculum" });
     }
-    for (const p of phases(REG_KINDS, today, to)) {
+    for (const p of phases(REG_KINDS, from, to)) {
       events.push({ key: `phase:${p.kind}:${p.starts}`, layer: "registration", title: PHASE_TITLE[p.kind] ?? "Registration", sub: `Registration · Until ${shortDate(p.ends)}`, day: p.starts, endDay: p.ends, time: null, href: "/programs/mine/curriculum" });
     }
   }
   if (on.has("holidays")) {
-    for (const h of HOLIDAYS.filter((x) => x.date >= today && x.date <= to)) {
+    for (const h of HOLIDAYS.filter((x) => x.date >= from && x.date <= to)) {
       events.push({ key: `holiday:${h.date}`, layer: "holidays", title: h.name, sub: "Holiday · No classes", day: h.date, endDay: h.date, time: null, href: null });
     }
   }

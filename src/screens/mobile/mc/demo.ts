@@ -237,6 +237,7 @@ export const profileDemo = (): ProfileView => ({
   sync: { ...sync, label: "2 min ago" },
   ratings: { count: 6, waiting: 2 },
   uploads: { count: 0, live: 0 },
+  feed: LAYER_LIST.map((l) => ({ ...l, on: true })),
 });
 
 const rateItem = (courseId: string, name: string, term: string) => ({ courseId, code: courseId, name, term, teachers: [], href: `/rate/${courseId}` });

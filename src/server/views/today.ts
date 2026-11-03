@@ -118,7 +118,7 @@ function banner(student: Student, now: Date, opts: { courses: ProgressCourse[]; 
     const inPhase = opts.exams.filter((e) => e.start.slice(0, 10) >= exams.starts);
     const list = inPhase.slice(0, 3).map((e) => `${e.name} on ${weekdayName(new Date(e.start))}`).join(", ");
     const startWord = exams.inDays <= 6 ? weekdayName(exams.starts) : shortDate(exams.starts);
-    return { id: `exams:${exams.starts}:${inPhase.length}`, kind: "exams", text: `${word} start ${startWord}${list ? `: ${list}` : ""}.`, action: { label: "Exam plan", href: "/calendar" } };
+    return { id: `exams:${exams.starts}:${inPhase.length}`, kind: "exams", text: `${word} start ${startWord}${list ? `: ${list}` : ""}.`, action: { label: "Exam plan", href: "/timetable?view=month" } };
   }
   const tight = opts.courses.filter((c) => c.absences && c.absences.left <= 2 && c.absences.status !== "over").sort((a, b) => a.absences!.left - b.absences!.left)[0];
   if (tight?.absences) {

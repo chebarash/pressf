@@ -8,7 +8,6 @@ import { addDays, localDay } from "@/core/time";
 import { db } from "@/lib/db";
 import { calendarFeeds } from "@/lib/db/schema";
 import { env } from "@/lib/env";
-import { DEFAULT_LAYERS } from "@/screens/mobile/mc/format";
 import { academicEvents, LAYERS, type CalendarLayer } from "@/server/views/calendar";
 import { classesBetween } from "@/server/views/classes";
 import { deadlines } from "@/server/views/shared";
@@ -21,8 +20,10 @@ import { loadStudent } from "@/server/views/student";
  * page; the database holds only the nonce and the token's HMAC (for the
  * lookup), never the token. "Reset link" draws a new nonce: the old URL 404s.
  *
- * The feed honours the layers the student picked on the Calendar page and is
- * built from Postgres only (the sync snapshot and the sign-in cache).
+ * The feed carries the layers set under "In Google Calendar" (beside "Add to
+ * Google Calendar" and in Settings), every layer until the student changes
+ * them; the site itself always shows everything. Built from Postgres only (the
+ * sync snapshot and the sign-in cache).
  */
 
 const TOKEN = /^[A-Za-z0-9_-]{32}$/;
@@ -43,7 +44,12 @@ const fresh = (userId: string) => {
 export const cleanLayers = (layers: unknown): CalendarLayer[] | null =>
   Array.isArray(layers) ? LAYERS.map((l) => l.id).filter((id) => layers.includes(id)) : null;
 
-/** The student's feed (created on first use) and their saved layers (null = never chosen). */
+/** What a feed carries when the student never chose: everything, classes included. */
+export const FEED_DEFAULT: CalendarLayer[] = LAYERS.map((l) => l.id);
+/** The feed's layers from what is stored (null = never chosen → all). */
+export const feedLayersOf = (stored: CalendarLayer[] | null) => stored ?? FEED_DEFAULT;
+
+/** The student's feed (created on first use) and their saved feed layers (null = never chosen). */
 export async function calendarFeed(userId: string): Promise<{ token: string; layers: CalendarLayer[] | null }> {
   let [row] = await db().select().from(calendarFeeds).where(eq(calendarFeeds.userId, userId));
   if (!row) {
@@ -51,6 +57,13 @@ export async function calendarFeed(userId: string): Promise<{ token: string; lay
     row ??= (await db().select().from(calendarFeeds).where(eq(calendarFeeds.userId, userId)))[0];
   }
   return { token: tokenOf(userId, row.nonce), layers: cleanLayers(row.layers) };
+}
+
+/** "In Google Calendar" for Settings: each layer and whether the feed carries it (no feed is made here). */
+export async function feedSettings(userId: string): Promise<Array<{ id: CalendarLayer; label: string; on: boolean }>> {
+  const [row] = await db().select({ layers: calendarFeeds.layers }).from(calendarFeeds).where(eq(calendarFeeds.userId, userId));
+  const on = feedLayersOf(cleanLayers(row?.layers));
+  return LAYERS.map((l) => ({ ...l, on: on.includes(l.id) }));
 }
 
 /** "Reset link": a new token; the old one stops working at once. Layers stay. */
@@ -61,8 +74,8 @@ export async function resetCalendarFeed(userId: string): Promise<string> {
   return tokenOf(userId, next.nonce);
 }
 
-/** The layers chosen on the Calendar page, which the feed then shows. */
-export async function saveCalendarLayers(userId: string, layers: readonly string[]) {
+/** "In Google Calendar": the layers the student's feed carries. */
+export async function saveFeedLayers(userId: string, layers: readonly string[]) {
   const clean = LAYERS.map((l) => l.id).filter((id) => layers.includes(id) && IDS.has(id));
   await db().insert(calendarFeeds).values({ userId, ...fresh(userId), layers: clean })
     .onConflictDoUpdate({ target: calendarFeeds.userId, set: { layers: clean, updatedAt: new Date() } });
@@ -71,7 +84,7 @@ export async function saveCalendarLayers(userId: string, layers: readonly string
 
 export const feedPath = (token: string) => `/calendar/feed/${token}.ics`;
 
-/** The Calendar page's "Add to Google Calendar". */
+/** Timetable's "Add to Google Calendar". */
 export const personalSubscription = (token: string) => ({ google: googleSubscribeUrl(`${SITE_URL}${feedPath(token)}`), personal: true });
 
 /** Whose feed a token opens; null for a malformed, unknown or reset token. */
@@ -79,7 +92,7 @@ export async function feedOwner(token: string): Promise<{ userId: string; layers
   if (!TOKEN.test(token)) return null;
   const [row] = await db().select().from(calendarFeeds).where(eq(calendarFeeds.hash, hashToken(token, secret())));
   if (!row || tokenOf(row.userId, row.nonce) !== token) return null;
-  return { userId: row.userId, layers: cleanLayers(row.layers) ?? DEFAULT_LAYERS };
+  return { userId: row.userId, layers: feedLayersOf(cleanLayers(row.layers)) };
 }
 
 const uid = (key: string) => `${createHash("sha256").update(key).digest("hex").slice(0, 24)}@pressf.chebarash.uz`;

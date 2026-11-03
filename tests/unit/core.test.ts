@@ -5,7 +5,7 @@ import { deadline, dueSoon, remindersDue } from "@/core/deadlines";
 import { byWeek, cleanTitle, describeFile, downloadName, formatOf, typeOf, uploadTitle, weekOf } from "@/core/files";
 import { changedGrades, tier } from "@/core/grades";
 import { hashToken, linkExpired, newLinkToken, tokenMatches } from "@/core/link-tokens";
-import { miniAppUrl, parseStartParam, path, startParam, uploadLink, type Target } from "@/core/links";
+import { miniAppUrl, parseStartParam, path, startParam, timetableHref, uploadLink, type Target } from "@/core/links";
 import { deliverNow, filterFeed, fromLms, mergeFeed, plainText, sections, unreadCount, type FeedItem } from "@/core/notifications";
 import { displayName, initials, roleOf, shortName } from "@/core/people";
 import { decodePayload, parseQr, qrOutcome, shouldRetry } from "@/core/qr";
@@ -306,6 +306,20 @@ describe("links", () => {
     expect(uploadLink("MATH 111")).toBe("https://t.me/pressfapp?start=upload_MATH111");
     expect(parseStartParam("garbage")).toEqual({ to: "today" });
     expect(parseStartParam(null)).toEqual({ to: "today" });
+  });
+  it("opens Calendar's links in Timetable's month (Calendar was merged into Timetable)", () => {
+    const month: Target = { to: "timetable", view: "month" };
+    expect(path(month)).toBe("/timetable?view=month");
+    expect(path({ to: "timetable", view: "month", day: "2026-11-09" })).toBe("/timetable?view=month&day=2026-11-09");
+    expect(path({ to: "timetable", day: "2026-11-09" })).toBe("/timetable?day=2026-11-09");
+    expect(path({ to: "timetable" })).toBe("/timetable");
+    expect(startParam(month)).toBe("month");
+    expect(parseStartParam("month")).toEqual(month);
+    // Messages already sent carry the old code.
+    expect(parseStartParam("calendar")).toEqual(month);
+    expect(parseStartParam("timetable")).toEqual({ to: "timetable" });
+    expect(timetableHref({ view: "month", day: "2026-11-09" })).toBe("/timetable?view=month&day=2026-11-09");
+    expect(timetableHref({ day: null })).toBe("/timetable");
   });
   it("issues one-time tokens that store only a hash", () => {
     const token = newLinkToken();

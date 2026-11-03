@@ -3,6 +3,7 @@ import type { ProfileView } from "@/server/views";
 import { ChevronRightIcon, Face } from "./mc/kit";
 import { cx, Screen } from "./mc/parts";
 import { DeleteRow, HomeScreenRows, ResetCalendarRow, SignOutRow, ThemeRow } from "./mc/ProfileControls";
+import { FeedLayers } from "./mc/FeedLayers";
 import s from "./mc/mc.module.css";
 import c from "./mc/screens.module.css";
 
@@ -35,6 +36,9 @@ export default function Settings({ data }: { data: ProfileView }) {
           <HomeScreenRows />
           <ResetCalendarRow />
         </div>
+
+        {/* The Google Calendar feed's own settings; Timetable always shows everything. */}
+        <FeedLayers layers={data.feed} />
 
         <div className={c.group}>
           <Link href="/me/ratings" prefetch className={c.setting}>

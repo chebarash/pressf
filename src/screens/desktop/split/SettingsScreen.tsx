@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useSyncExternalStore, useTransition } from "react";
 import { confirm } from "@/platform/client";
 import { setTheme } from "@/platform/PlatformProvider";
+import { FeedLayers } from "@/screens/mobile/mc/FeedLayers";
 import { RESET_CALENDAR_TEXT } from "@/screens/mobile/mc/format";
 import { signOutWithConfirm } from "@/ui/shell/signOut";
 import { Button, Switch } from "@/ui/components";
@@ -64,7 +65,7 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
     if (!ok) return;
     startReset(async () => {
       const res = await actions!.resetCalendar!().catch(() => ({ ok: false }));
-      setResetNote(res.ok ? "Done. Add the calendar again from Calendar" : "Could not reset. Try again");
+      setResetNote(res.ok ? "Done. Add the calendar again from Timetable" : "Could not reset. Try again");
     });
   };
   const signOut = async () => {
@@ -134,7 +135,7 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
               <button type="button" className={x.row} onClick={resetCalendar} disabled={resetting}>
                 <span className={x.text}>
                   <b>Reset calendar link</b>
-                  <span aria-live="polite">{resetNote ?? "Your Google Calendar link stops working; add it again from Calendar"}</span>
+                  <span aria-live="polite">{resetNote ?? "Your Google Calendar link stops working; add it again from Timetable"}</span>
                 </span>
               </button>
             )}
@@ -169,6 +170,14 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
               ))}
           </div>
         </section>
+
+        {data.feed && (
+          <section className={x.box}>
+            <h2 className={x.boxTitle}>In Google Calendar</h2>
+            {/* The Google Calendar feed's own settings; Timetable on the site always shows everything. */}
+            <FeedLayers layers={data.feed} size="sm" bare className={x.alerts} rowClassName={x.alertRow} />
+          </section>
+        )}
       </div>
       <p className={x.credit}>{data.credit}</p>
     </main>
