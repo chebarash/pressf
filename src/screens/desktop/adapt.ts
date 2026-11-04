@@ -275,14 +275,16 @@ const sizeLabel = (n: number | null) => (n ? (n > 1e6 ? `${(n / 1e6).toFixed(1)}
 
 export function file(v: V.FileView): M.FileData {
   if (v.locked) return { file: null, course: null, courseLink: v.course ? { name: v.course.name, href: `/c/${v.course.code}` } : null };
-  const href = v.url ?? `/files/${v.id}`;
+  // The preview and "Open in new tab" read /raw (inline, our origin); /download is an attachment and would only save the file.
+  const inline = v.url ? v.url.replace("/download", "/raw") : null;
+  const href = inline ?? `/files/${v.id}`;
   const pages = v.pages ? `${v.pages} page${v.pages === 1 ? "" : "s"}` : null;
   const me: V.FileItem = { id: v.id, source: v.source, title: v.title, type: v.type, typeLabel: v.typeLabel, format: v.format, formatCode: v.formatCode, week: v.week, date: v.date, dateLabel: v.dateLabel, from: v.from, lessonId: null, size: v.size, pages: v.pages, href: `/f/${v.id}` };
   const weekFiles = [me, ...(v.sameWeek ?? [])].map((f) => fileRow(f));
   const code = v.course.code;
   return {
     // D12: "Week 8 · 2 Nov · LMS · 24 pages · 3.1 MB". The preview and Open show the original; Download gives the branded copy.
-    file: { id: v.id, title: v.title, meta: join(v.week != null && `Week ${v.week}`, v.dateLabel, v.from, pages ?? v.formatCode, sizeLabel(v.size)), type: v.type, previewUrl: v.url && v.format === "pdf" ? v.url : null, downloadHref: v.downloadUrl ?? `/f/${v.id}/download`, openHref: href },
+    file: { id: v.id, title: v.title, meta: join(v.week != null && `Week ${v.week}`, v.dateLabel, v.from, pages ?? v.formatCode, sizeLabel(v.size)), type: v.type, previewUrl: inline && v.format === "pdf" ? inline : null, downloadHref: v.downloadUrl ?? `/f/${v.id}/download`, openHref: href },
     // D12: your courses on the left, the course as on its page in the middle (from file()).
     course: v.courseDetail
       ? { ...course(v.courseDetail), myCourses: v.myCourses?.length ? v.myCourses.map(listItem) : null }
