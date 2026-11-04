@@ -16,7 +16,7 @@ import {
   type PlacedExam,
   type Tab,
 } from "@/core/exams";
-import { WEEKS, type WeekKind } from "@/core/semester";
+import { throughSaturday, WEEKS, type WeekKind } from "@/core/semester";
 import { addDays, localDay } from "@/core/time";
 import { DEFAULT_ALERTS, type FeedItem } from "@/core/notifications";
 import { db } from "@/lib/db";
@@ -45,8 +45,6 @@ export type ExamWindow = { key: string; kind: ExamKind; name: string; starts: st
 const PHASE_NAME: Record<string, string> = { midterm: "Midterm exams", final: "Final exams" };
 
 /** Midterm and final weeks of the published calendar (consecutive weeks merged). */
-/** A Friday becomes the Saturday after it; other days stay. */
-const throughSaturday = (day: string) => (new Date(`${day}T00:00:00Z`).getUTCDay() === 5 ? addDays(day, 1) : day);
 
 export function calendarWindows(weeks = WEEKS): ExamWindow[] {
   const out: ExamWindow[] = [];

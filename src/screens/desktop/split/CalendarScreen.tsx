@@ -90,7 +90,7 @@ function WeekRow({ week, base, month }: { week: number; base: number; month: str
   return (
     <div className={cx(k.week, t.monthRow)} role="row" style={{ ["--lanes" as string]: lanes, transform: `translateY(calc(${week - base} * var(--row)))` }}>
       {lanes > 0 && (
-        <div className={k.spans}>
+        <div className={cx(k.spans, t.monthSpans)}>
           {layout.lanes.map((x) => (
             <EventChip key={x.key} e={x.event} title={x.title} className={k.span} style={{ gridColumn: `${x.from + 1} / ${x.to + 2}`, gridRow: x.lane + 1 }} />
           ))}
