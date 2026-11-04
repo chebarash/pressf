@@ -181,7 +181,8 @@ export async function schedule(userId: string | null, opts: { view: TimetableMod
   const [weeks, cal, feed] = await Promise.all([
     scheduleWeeks(userId, open.from, open.count, now, student),
     calendar(userId ? { userId } : null, ALL, now),
-    userId ? calendarFeed(userId) : Promise.resolve(null),
+    // Without a feed (no signing key on this server) the page still opens, with the public calendar to add.
+    userId ? calendarFeed(userId).catch(() => null) : Promise.resolve(null),
   ]);
   const on = feed ? feedLayersOf(feed.layers) : [];
   return {
