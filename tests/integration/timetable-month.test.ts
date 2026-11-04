@@ -105,21 +105,19 @@ describe("both views show the same data", () => {
     );
   });
 
-  it("brings 'Coming up' and the student's own feed, and shows everything whatever the feed carries", async () => {
+  it("brings 'Coming up' and shows everything whatever the Google Calendar feed carries (its settings are in Settings)", async () => {
     await saveFeedLayers(userId, ["holidays"]);
     const s = (await views.schedule(userId, { view: "week", day: "2026-11-02" }, NOW))!;
     expect(s.coming.length).toBeGreaterThan(0);
     expect(new Set(s.coming.map((e) => e.key)).size).toBe(s.coming.length);
-    expect(s.subscribe.personal).toBe(true);
-    expect(s.feed!.layers.filter((l) => l.on).map((l) => l.id)).toEqual(["holidays"]);
+    expect(s).not.toHaveProperty("subscribe");
+    expect(s).not.toHaveProperty("feed");
     expect(s.weeks.flatMap((w) => w.events).some((e) => e.layer === "deadlines")).toBe(true);
   });
 
   it("asks guests to sign in for the week; the month is the academic calendar for them", async () => {
     expect(await views.schedule(null, { view: "week" }, NOW)).toBeNull();
     const g = (await views.schedule(null, { view: "month" }, NOW))!;
-    expect(g.feed).toBeNull();
-    expect(g.subscribe.personal).toBe(false);
     expect(classesOf(g.weeks)).toEqual([]);
   });
 });
@@ -128,7 +126,8 @@ describe("the lesson panel is about that dated lesson", () => {
   it("a dated lesson: its LMS name, attendance and mark from the gradebook, its files, the syllabus week", async () => {
     const [w] = await scheduleWeeks(userId, "2026-11-02", 1, NOW);
     const c = w.days[0].classes[0];
-    expect(c.lesson).toMatchObject({ lessonId: "L15", title: "Lecture 15", syllabus: "Week 8 · Derivatives", type: "Lecture", grade: "8", lmsHref: "https://newuzbekistan.hero.study/subjects/101" });
+    expect(c.lesson).toMatchObject({ lessonId: "L15", title: "Lecture 15", syllabus: "Week 8 · Derivatives", type: "Lecture", grade: "8" });
+    expect(c.lesson).not.toHaveProperty("lmsHref");
     expect(c.lesson.attendance).toEqual({ mark: "late", label: "Late", viaQr: false });
     expect(c.lesson.files.map((f) => f.id)).toEqual(["F1"]);
     expect(c.lesson.absences).toMatchObject({ missed: 9, left: 6 });

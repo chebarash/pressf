@@ -1,17 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { addDays, between, classByKey, dayAt, dayIndex, dayOf, mondayAt, monthKey, monthLabel, SPAN_DAYS, SPAN_WEEKS, weekIndex, weekTitle } from "@/screens/shared/schedule/model";
+import { addDays, between, classByKey, dayAt, dayIndex, dayOf, mondayAt, monthKey, monthLabel, shiftMonth, SPAN_DAYS, SPAN_WEEKS, toneName, weekIndex, weekTitle, type Weeks } from "@/screens/shared/schedule/model";
 import { lessonPanel } from "@/screens/shared/schedule/lesson";
+import { clock, useNowMinutes } from "@/screens/shared/schedule/now";
 import { useSchedule } from "@/screens/shared/schedule/store";
 import { useTrack } from "@/screens/shared/schedule/useTrack";
-import type { CalendarEvent, ScheduleClass } from "@/server/views";
+import type { CalendarEvent, CalendarLayer, ScheduleClass } from "@/server/views";
 import { cx, EmptyState, Tab, Tag } from "@/ui/components";
+import { ScreenHint } from "@/ui/shell/Hints";
 import { Sheet } from "@/ui/shell/overlays";
 import { ClockIcon, PinIcon, UsersIcon } from "@/ui/icons";
-import { Subscribe } from "../mc/CalendarView";
-import mc from "../mc/screens.module.css";
 import b from "./base.module.css";
 import { FileItemRow } from "./FileItemRow";
 import { MainButton } from "./MainButton";
@@ -19,9 +19,11 @@ import s from "./Timetable.module.css";
 
 /**
  * Phone Timetable (Figma 3.1–3.7 Day, 6.1 Month): one state, two renderers.
- * Day swipes between days endlessly (the day picker slides with it); Month is
- * an endless list of the same days, classes included. A class looks the same
- * in both and opens the same sheet: that dated lesson.
+ * Day is the default: a week strip (weekday, date, a dot per class) over the
+ * day's classes in time order with a now-line between them; the day swipes
+ * endlessly, the strip by week. Month is a light overview: endless month grids
+ * with dots, a tap opens that day. A class opens the sheet of that dated lesson.
+ * The Google Calendar feed lives in Settings → Calendar; here only a hint.
  */
 export function PhoneTimetable({ title }: { title: React.ReactNode }) {
   const st = useSchedule();
@@ -37,24 +39,51 @@ export function PhoneTimetable({ title }: { title: React.ReactNode }) {
         </div>
         {st.view === "week" ? <WeekSub /> : null}
       </header>
-      {st.view === "week" ? <DayPager /> : <MonthAgenda />}
+      <ScreenHint screen="timetable" ctx={{ desktop: false }} className={s.hint} />
+      {st.view === "week" ? <DayPager /> : <MonthOverview />}
       <LessonSheet />
     </>
   );
 }
 
+/** The week's label ("Week 9") and, away from today, the way back to it. */
 function WeekSub() {
   const st = useSchedule();
   const w = st.weeks.get(mondayAt(weekIndex(st.day)));
   const line = w ? [w.label, w.note].filter(Boolean).join(" · ") : weekTitle(st.weeks, st.day);
-  return line ? <p className={b.sub}>{line}</p> : null;
+  const away = st.day !== st.today;
+  if (!line && !away) return null;
+  return (
+    <div className={s.subRow}>
+      <p className={cx(b.sub, s.subLine)}>{line}</p>
+      {away ? (
+        <button type="button" className={s.todayBtn} onClick={() => st.setDay(st.today)}>
+          Today
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 const WEEKDAY = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const weekdayOf = (day: string) => WEEKDAY[((dayIndex(day) % 7) + 7) % 7];
 /** Weeks rendered each side of the selected one (one more is fetched ahead). */
 const AROUND = 2;
+/** Further than this, a jump (Today, a month tap) lands at once instead of scrolling through every day. */
+const SMOOTH_DAYS = 7;
 
-/** Day: an endless row of days, one per screen width, swiped sideways; the picker above slides by week. */
+/** Colour classes for a calendar layer's stripe or dot. */
+const LAYER: Record<CalendarLayer, string> = { classes: s.l_classes, exams: s.l_exams, deadlines: s.l_deadlines, holidays: s.l_holidays, registration: s.l_registration };
+const TONE = (c: ScheduleClass) => s[`tone_${toneName(c)}`];
+
+/** Up to three dots for a day: its classes in their course colours, then its events in theirs. */
+function dotsOf(weeks: Weeks, day: string): string[] {
+  const { classes, events } = between(weeks, day, day);
+  const out = [...classes.map(TONE), ...events.filter((e) => e.layer !== "holidays").map((e) => LAYER[e.layer])];
+  return out.slice(0, 3);
+}
+
+/** Day: an endless row of days, one per screen width, swiped sideways; the week strip above slides by week. */
 function DayPager() {
   const st = useSchedule();
   const opening = useMemo(() => dayIndex(st.day), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -62,7 +91,7 @@ function DayPager() {
   const { scrollRef: pickerRef, probeRef: pickerProbe, ...picker } = useTrack({
     axis: "x",
     start: Math.floor(opening / 7),
-    // Swiping the picker to another week keeps the weekday.
+    // Swiping the strip to another week keeps the weekday.
     onSettle: (w) => {
       const now = dayIndex(st.day);
       if (w !== Math.floor(now / 7)) st.setDay(dayAt(w * 7 + (now % 7)));
@@ -71,12 +100,14 @@ function DayPager() {
   const index = dayIndex(st.day);
   const week = Math.floor(index / 7);
 
-  // The day and the picker follow the selected day (a tap on the picker, Today, a settle).
+  // The day and the strip follow the selected day (a tap on the strip, Today, a settle).
   const { scrollTo: pageTo, at: pageAt } = pager;
   const { scrollTo: pickTo, at: pickAt } = picker;
   useEffect(() => {
-    if (Math.round(pageAt()) !== index) pageTo(index);
-    if (Math.round(pickAt()) !== week) pickTo(week);
+    const from = pageAt();
+    if (Math.round(from) !== index) pageTo(index, Math.abs(from - index) <= SMOOTH_DAYS);
+    const fromWeek = pickAt();
+    if (Math.round(fromWeek) !== week) pickTo(week, Math.abs(fromWeek - week) <= 1);
   }, [index, week, pageTo, pageAt, pickTo, pickAt]);
 
   const { ensure } = st;
@@ -131,7 +162,7 @@ function DayPager() {
   const weekLast = Math.min(SPAN_WEEKS - 1, Math.floor(last / 7));
   return (
     <div className={s.wrap}>
-      <div ref={pickerRef} className={s.picker} aria-label="Days">
+      <div ref={pickerRef} className={s.picker} aria-label="Days, swipe for other weeks">
         <div className={s.pickerTrack} style={{ ["--span" as string]: SPAN_WEEKS }}>
           <div ref={pickerProbe} className={s.probe} aria-hidden />
           {Array.from({ length: weekLast - weekFirst + 1 }, (_, n) => {
@@ -140,7 +171,27 @@ function DayPager() {
               <nav key={w} className={s.pickerWeek} style={{ transform: `translateX(calc(${w - picker.base} * var(--size)))` }} aria-label={`Week of ${mondayAt(w)}`}>
                 {WEEKDAY.map((label, d) => {
                   const day = dayAt(w * 7 + d);
-                  return <Tab key={day} label={label} size="l" active={day === st.day} group={`Day ${w}`} className={cx(s.pick, day === st.today && s.pickToday)} onClick={() => st.setDay(day)} aria-label={`${label} ${Number(day.slice(8))}`} />;
+                  const on = day === st.day;
+                  const dots = dotsOf(st.weeks, day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      className={cx(s.pick, on && s.pickOn, day === st.today && s.pickToday)}
+                      onClick={() => st.setDay(day)}
+                      aria-pressed={on}
+                      aria-current={day === st.today ? "date" : undefined}
+                      aria-label={`${label} ${Number(day.slice(8))}${dots.length ? `, ${dots.length === 3 ? "3 or more" : dots.length} on` : ""}`}
+                    >
+                      <span className={s.pickDay}>{label.slice(0, 2)}</span>
+                      <span className={s.pickNum}>{Number(day.slice(8))}</span>
+                      <span className={s.dots} aria-hidden>
+                        {dots.map((tone, i) => (
+                          <i key={i} className={cx(s.dot, tone)} />
+                        ))}
+                      </span>
+                    </button>
+                  );
                 })}
               </nav>
             );
@@ -164,116 +215,193 @@ function DayPager() {
   );
 }
 
-/** One day: its all-day events, then classes and timed deadlines in time order. */
+type Timed = { at: number; key: string; c?: ScheduleClass; e?: CalendarEvent };
+const minutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+/** One day: its all-day events as one-line rows, then classes and timed deadlines in time order, with the now-line today. */
 function DayPage({ day }: { day: string }) {
   const st = useSchedule();
+  const now = useNowMinutes();
   const { classes, events, loaded } = useMemo(() => between(st.weeks, day, day), [st.weeks, day]);
   const info = dayOf(st.weeks, day);
-  const weekday = WEEKDAY[(dayIndex(day) % 7 + 7) % 7];
   if (!loaded) return <div className={s.skeleton} aria-label="Loading" />;
   const allDay = events.filter((e) => !e.time);
-  const timed: Array<{ at: string; c?: ScheduleClass; e?: CalendarEvent }> = [...classes.map((c) => ({ at: c.time, c })), ...events.filter((e) => e.time).map((e) => ({ at: e.time!, e }))].sort((a, b) => a.at.localeCompare(b.at));
-  if (!classes.length && !events.length) {
-    const next = nextClassAfter(st.weeks, day);
-    return (
-      <EmptyState
-        className={b.bleed}
-        title={info?.off?.startsWith("Holiday") ? info.off.replace(/^Holiday · /, "") : `No classes on ${weekday}`}
-        text={next ? `Next: ${WEEKDAY[(dayIndex(next.day) % 7 + 7) % 7]} ${next.time}, ${next.name}${next.room ? ` in ${next.room}` : ""}.` : info?.off && info.off !== "Weekend" ? info.off : undefined}
-      />
-    );
-  }
+  const timed: Timed[] = [...classes.map((c) => ({ at: c.from, key: c.key, c })), ...events.filter((e) => e.time).map((e) => ({ at: minutes(e.time!), key: e.key, e }))].sort((a, b) => a.at - b.at);
+  const isToday = day === st.today;
+  // The now-line goes before the first item that has not ended yet.
+  const nowAt = isToday && now !== null ? timed.findIndex((x) => (x.c ? x.c.to : x.at) > now) : -2;
+  const ended = (x: Timed) => day < st.today || (isToday && now !== null && (x.c ? x.c.to : x.at) <= now);
+  const holiday = info?.off?.startsWith("Holiday") ? info.off.replace(/^Holiday · /, "") : null;
   return (
-    <ul className={s.list}>
-      {allDay.map((e) => (
-        <li key={e.key}>
-          <EventRow e={e} />
-        </li>
-      ))}
-      {timed.map((x) => (
-        <li key={x.c?.key ?? x.e!.key}>{x.c ? <ClassRow c={x.c} /> : <EventRow e={x.e!} />}</li>
-      ))}
-    </ul>
+    <div className={s.dayBody}>
+      {allDay.length ? (
+        <ul className={s.allDay} aria-label="All day">
+          {allDay.map((e) => (
+            <li key={e.key}>
+              <AllDayRow e={e} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {!classes.length ? (
+        <EmptyDay day={day} holiday={holiday} off={info?.off ?? null} quiet={timed.length > 0 || allDay.length > 0} />
+      ) : null}
+      {timed.length ? (
+        <ul className={s.list}>
+          {timed.map((x, i) => (
+            <Fragment key={x.key}>
+              {i === nowAt ? <NowLine minutes={now!} /> : null}
+              <li className={cx(ended(x) && s.ended)}>{x.c ? <ClassRow c={x.c} /> : <EventRow e={x.e!} />}</li>
+            </Fragment>
+          ))}
+          {nowAt === -1 && classes.length ? <NowLine minutes={now!} /> : null}
+        </ul>
+      ) : null}
+    </div>
   );
 }
 
-function nextClassAfter(weeks: ReturnType<typeof useSchedule>["weeks"], day: string): ScheduleClass | null {
+function NowLine({ minutes: m }: { minutes: number }) {
+  return (
+    <li className={s.nowLine} aria-label={`Now, ${clock(m)}`}>
+      <span className={s.nowTime}>{clock(m)}</span>
+    </li>
+  );
+}
+
+/** A day without classes says why, and when the next one is. */
+function EmptyDay({ day, holiday, off, quiet }: { day: string; holiday: string | null; off: string | null; quiet: boolean }) {
+  const st = useSchedule();
+  const next = nextClassAfter(st.weeks, day);
+  const title = holiday ?? (off === "Weekend" ? "Weekend" : `No classes on ${weekdayOf(day)}`);
+  const text = next ? `Next: ${whenDay(next.day, day)} ${next.time}, ${next.name}${next.room ? ` in ${next.room}` : ""}.` : off && off !== "Weekend" && !holiday ? off : undefined;
+  if (quiet)
+    return (
+      <p className={s.emptyLine}>
+        {title}
+        {text ? ` · ${text}` : ""}
+      </p>
+    );
+  return <EmptyState className={b.bleed} title={title} text={text} />;
+}
+
+/** "Thu" within the coming week, else "Mon 9 Nov". */
+const whenDay = (day: string, from: string) =>
+  dayIndex(day) - dayIndex(from) < 7 && weekIndex(day) === weekIndex(from) ? weekdayOf(day) : `${weekdayOf(day)} ${Number(day.slice(8))} ${new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`))}`;
+
+function nextClassAfter(weeks: Weeks, day: string): ScheduleClass | null {
   const { classes } = between(weeks, addDays(day, 1), addDays(day, 13));
   return classes[0] ?? null;
 }
 
 const isTime = (v: string | null) => !!v && /^\d{1,2}:\d{2}$/.test(v);
 
-/** A class (3.1): time, course, teacher · room; tapping opens that lesson's sheet. The same row in Day and Month. */
+/** A class (3.1): its course colour, the time it runs, course, room · teacher; tapping opens that lesson's sheet. */
 export function ClassRow({ c }: { c: ScheduleClass }) {
   const st = useSchedule();
   const moved = c.changedFrom && !isTime(c.changedFrom) ? `${c.room ?? ""} (was ${c.changedFrom})` : c.room;
   const retimed = isTime(c.changedFrom) ? `moved from ${c.changedFrom}` : null;
-  const details = [c.teacher?.name, moved, retimed].filter(Boolean).join(" · ");
+  const details = [moved, c.teacher?.name, retimed].filter(Boolean).join(" · ");
   const live = c.day === st.today ? c.status : null;
   return (
-    <button type="button" data-lesson={c.key} className={cx(s.row, (live === "next" || live === "now") && s.next, c.key === st.open && s.selected)} onClick={() => st.select(c.key)} aria-haspopup="dialog">
-      <span className={s.time}>{c.time}</span>
+    <button type="button" data-lesson={c.key} className={cx(s.row, TONE(c), live === "now" && s.live, c.key === st.open && s.selected)} onClick={() => st.select(c.key)} aria-haspopup="dialog">
+      <span className={s.stripe} aria-hidden />
+      <span className={s.time}>
+        <span>{c.time}</span>
+        <span className={s.until}>{c.endTime}</span>
+      </span>
       <span className={s.body}>
         <span className={s.subject}>{c.kind === "exam" ? `${c.name} · ${c.lesson.type}` : c.name}</span>
         {details ? <span className={s.details}>{details}</span> : null}
       </span>
-      {live === "now" ? <Tag tone="dark">Now</Tag> : live === "next" ? <Tag tone="dark">Next</Tag> : null}
+      {live === "now" ? <Tag tone="dark">Now</Tag> : live === "next" ? <Tag tone="neutral">Next</Tag> : null}
     </button>
   );
 }
 
-/** A calendar event (6.1 row): stripe in the layer's colour, title, what it is. The same row in Day and Month. */
+/** A timed calendar event (a deadline at 23:59): a slim row in its layer's colour. */
 export function EventRow({ e }: { e: CalendarEvent }) {
+  const body = (
+    <>
+      <span className={cx(s.stripe, LAYER[e.layer])} aria-hidden />
+      <span className={s.time}>
+        <span>{e.time}</span>
+      </span>
+      <span className={s.body}>
+        <span className={s.eventTitle}>{e.title}</span>
+        <span className={s.details}>{e.sub}</span>
+      </span>
+    </>
+  );
+  return e.href ? (
+    <Link prefetch href={e.href} className={cx(s.row, s.eventRow)}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cx(s.row, s.eventRow)}>{body}</div>
+  );
+}
+
+/** An all-day or multi-day event (exam weeks, holidays, registration): one line at the top of the day. */
+function AllDayRow({ e }: { e: CalendarEvent }) {
+  const kind = e.sub.split(" · ")[0];
   return (
-    <div className={mc.event}>
-      <span className={cx(mc.stripe, mc[e.layer])} aria-hidden />
-      <div className={s.eventText}>
-        <p className={s.eventTitle}>{e.title}</p>
-        <p className={s.eventSub}>{e.sub}</p>
-      </div>
+    <div className={s.allDayRow} title={`${e.title} · ${e.sub}`}>
+      <span className={cx(s.allDayDot, LAYER[e.layer])} aria-hidden />
+      <span className={s.allDayTitle}>{e.title}</span>
+      {kind && kind !== e.title ? <span className={s.allDayKind}>{kind}</span> : null}
     </div>
   );
 }
 
-/** Weeks kept in the list; two load at a time at either end. */
-const KEEP = 10;
-const STEP = 2;
+/** Months kept in the list; one loads at a time at either end. */
+const KEEP_MONTHS = 6;
+const monthsAt = (m: string) => {
+  const [y, mo] = m.split("-").map(Number);
+  return y * 12 + mo - 1;
+};
+const monthOf = (n: number) => `${Math.floor(n / 12)}-${String((n % 12) + 1).padStart(2, "0")}`;
 
-/** Month: the same days as an endless list (days with something on them, today and the selected day always). */
-function MonthAgenda() {
+/**
+ * Month: a light overview. Endless month grids (seven columns, the date and up
+ * to three dots per day, exam and holiday days tinted); tapping a day opens it
+ * in Day.
+ */
+function MonthOverview() {
   const st = useSchedule();
-  const opening = useMemo(() => weekIndex(st.day), []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [range, setRange] = useState(() => ({ from: Math.max(0, weekIndex(`${monthKey(st.day)}-01`) - 1), to: opening + 5 }));
+  const opening = useMemo(() => monthsAt(monthKey(st.day)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [range, setRange] = useState(() => ({ from: opening - 1, to: opening + 2 }));
   const list = useRef<HTMLDivElement>(null);
-  const anchor = useRef<{ week: string; top: number } | null>(null);
+  const anchor = useRef<{ month: string; top: number } | null>(null);
 
   const { ensure } = st;
   useEffect(() => {
+    const first = `${monthOf(range.from)}-01`;
+    const last = addDays(`${shiftMonth(monthOf(range.to), 1)}-01`, -1);
     const wanted: string[] = [];
-    for (let w = range.from - 1; w <= range.to + 1; w++) if (w >= 0) wanted.push(mondayAt(w));
+    for (let w = weekIndex(first); w <= weekIndex(last); w++) wanted.push(mondayAt(w));
     ensure(wanted);
   }, [range, ensure]);
 
-  // Opens at the selected day.
+  // Opens at the selected day's month.
   useLayoutEffect(() => {
-    const el = list.current?.querySelector<HTMLElement>(`[data-day="${st.day}"]`);
+    const el = list.current?.querySelector<HTMLElement>(`[data-month="${monthKey(st.day)}"]`);
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 96 });
     // Only on opening.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep what is on screen still when weeks come or go above it.
+  // Keep what is on screen still when months come or go above it.
   const remember = () => {
-    const weeks = [...(list.current?.querySelectorAll<HTMLElement>("[data-week]") ?? [])];
-    const el = weeks.find((w) => w.getBoundingClientRect().bottom > 0) ?? weeks[0];
-    anchor.current = el ? { week: el.dataset.week!, top: el.getBoundingClientRect().top } : null;
+    const months = [...(list.current?.querySelectorAll<HTMLElement>("[data-month]") ?? [])];
+    const el = months.find((m) => m.getBoundingClientRect().bottom > 0) ?? months[0];
+    anchor.current = el ? { month: el.dataset.month!, top: el.getBoundingClientRect().top } : null;
   };
   useLayoutEffect(() => {
     const a = anchor.current;
     anchor.current = null;
     if (!a) return;
-    const el = list.current?.querySelector<HTMLElement>(`[data-week="${a.week}"]`);
+    const el = list.current?.querySelector<HTMLElement>(`[data-month="${a.month}"]`);
     if (el) window.scrollBy(0, el.getBoundingClientRect().top - a.top);
   }, [range]);
 
@@ -286,18 +414,18 @@ function MonthAgenda() {
         for (const e of entries) {
           if (!e.isIntersecting) continue;
           remember();
-          if (e.target === endRef.current) setRange((r) => ({ from: r.to + STEP - r.from + 1 > KEEP ? r.from + STEP : r.from, to: r.to + STEP }));
-          else setRange((r) => (r.from === 0 ? r : { from: Math.max(0, r.from - STEP), to: r.to - r.from + STEP + 1 > KEEP ? r.to - STEP : r.to }));
+          if (e.target === endRef.current) setRange((r) => ({ from: r.to + 1 - r.from + 1 > KEEP_MONTHS ? r.from + 1 : r.from, to: r.to + 1 }));
+          else setRange((r) => ({ from: r.from - 1, to: r.to - r.from + 2 > KEEP_MONTHS ? r.to - 1 : r.to }));
         }
       },
-      { rootMargin: "800px 0px" },
+      { rootMargin: "600px 0px" },
     );
     if (topRef.current) io.observe(topRef.current);
     if (endRef.current) io.observe(endRef.current);
     return () => io.disconnect();
   }, []);
 
-  // The URL's day follows the list: the first day at the top once scrolling stops, unless the selected one is on screen.
+  // The URL's day follows the list: the first of the month at the top once scrolling stops, unless the selected day's month is on screen.
   const { setDay } = st;
   const selected = st.day;
   useEffect(() => {
@@ -305,12 +433,11 @@ function MonthAgenda() {
     const onScroll = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        const days = [...(list.current?.querySelectorAll<HTMLElement>("[data-day]") ?? [])];
-        const shown = days.filter((d) => {
-          const r = d.getBoundingClientRect();
-          return r.bottom > 80 && r.top < window.innerHeight;
+        const months = [...(list.current?.querySelectorAll<HTMLElement>("[data-month]") ?? [])].filter((m) => {
+          const r = m.getBoundingClientRect();
+          return r.bottom > 120 && r.top < window.innerHeight;
         });
-        if (shown.length && !shown.some((d) => d.dataset.day === selected)) setDay(shown[0].dataset.day!);
+        if (months.length && !months.some((m) => m.dataset.month === monthKey(selected))) setDay(`${months[0].dataset.month}-01`);
       }, 200);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -320,56 +447,65 @@ function MonthAgenda() {
     };
   }, [selected, setDay]);
 
-  const weeks = Array.from({ length: range.to - range.from + 1 }, (_, n) => range.from + n);
+  const months = Array.from({ length: range.to - range.from + 1 }, (_, n) => monthOf(range.from + n));
   return (
-    <div ref={list} className={s.agenda}>
-      <Subscribe google={st.page.subscribe.google} personal={st.page.subscribe.personal} feed={st.page.feed?.layers ?? null} />
+    <div ref={list} className={s.months}>
+      <div className={s.weekdays} aria-hidden>
+        {WEEKDAY.map((d) => (
+          <span key={d}>{d.slice(0, 2)}</span>
+        ))}
+      </div>
       <div ref={topRef} aria-hidden />
-      {weeks.map((w) => (
-        <AgendaWeek key={w} week={w} />
+      {months.map((m) => (
+        <MonthBlock key={m} month={m} />
       ))}
       <div ref={endRef} className={s.skeleton} aria-label="Loading" />
     </div>
   );
 }
 
-function AgendaWeek({ week }: { week: number }) {
+function MonthBlock({ month }: { month: string }) {
   const st = useSchedule();
-  const monday = mondayAt(week);
-  const loaded = st.weeks.get(monday);
-  const days = Array.from({ length: 7 }, (_, i) => dayAt(week * 7 + i));
-  const firstOfMonth = days.find((d) => d.endsWith("-01"));
+  const first = `${month}-01`;
+  const lead = ((dayIndex(first) % 7) + 7) % 7;
+  const count = Number(addDays(`${shiftMonth(month, 1)}-01`, -1).slice(8));
+  const loaded = st.weeks.has(mondayAt(weekIndex(first))) && st.weeks.has(mondayAt(weekIndex(`${month}-${String(count).padStart(2, "0")}`)));
   return (
-    <section data-week={monday} className={s.agendaWeek} aria-label={`Week of ${monday}`}>
-      {firstOfMonth ? <h2 className={s.month}>{monthLabel(firstOfMonth)}</h2> : null}
-      {!loaded ? (
-        <div className={s.skeleton} />
-      ) : (
-        days.map((day) => {
-          const { classes, events } = between(st.weeks, day, day);
-          // A multi-day event shows once, on its first day ("11–15 Jan" in its line).
-          const own = events.filter((e) => e.day === day);
-          const items = [...own.filter((e) => !e.time).map((e) => ({ at: "", e })), ...[...classes.map((c) => ({ at: c.time, c })), ...own.filter((e) => e.time).map((e) => ({ at: e.time!, e }))].sort((a, b) => a.at.localeCompare(b.at))] as Array<{ at: string; c?: ScheduleClass; e?: CalendarEvent }>;
-          const keep = items.length || day === st.today || day === st.day;
-          if (!keep) return null;
-          const info = loaded.days.find((d) => d.day === day)!;
+    <section data-month={month} className={s.monthBlock} aria-label={monthLabel(first)}>
+      <h2 className={s.month}>{monthLabel(first)}</h2>
+      <div className={s.grid} role="grid" aria-busy={!loaded || undefined}>
+        {Array.from({ length: lead }, (_, i) => (
+          <span key={`pad${i}`} aria-hidden />
+        ))}
+        {Array.from({ length: count }, (_, i) => {
+          const day = addDays(first, i);
+          const { events } = between(st.weeks, day, day);
+          const dots = dotsOf(st.weeks, day);
+          const exam = events.some((e) => e.layer === "exams");
+          const holiday = events.some((e) => e.layer === "holidays") || dayOf(st.weeks, day)?.off?.startsWith("Holiday");
           return (
-            <div key={day} data-day={day} className={mc.day}>
-              <h3 className={cx(mc.dayLabel, day === st.today && mc.dayToday, day === st.day && s.daySelected)}>
-                <button type="button" className={s.dayBtn} onClick={() => st.setDay(day)}>
-                  {info.weekday} {info.date}
-                  {day === st.today ? " · today" : ""}
-                </button>
-              </h3>
-              {items.length ? (
-                items.map((x) => (x.c ? <ClassRow key={x.c.key} c={x.c} /> : <EventRow key={x.e!.key} e={x.e!} />))
-              ) : (
-                <p className={s.eventSub}>{info.off ?? "No classes"}</p>
-              )}
-            </div>
+            <button
+              key={day}
+              type="button"
+              role="gridcell"
+              className={cx(s.cell, day === st.today && s.cellToday, day === st.day && s.cellOn, exam && s.cellExam, holiday && s.cellHoliday)}
+              aria-current={day === st.today ? "date" : undefined}
+              aria-label={`${weekdayOf(day)} ${Number(day.slice(8))} ${monthLabel(day)}${exam ? ", exams" : ""}${holiday ? ", holiday" : ""}`}
+              onClick={() => {
+                st.setDay(day);
+                st.setView("week");
+              }}
+            >
+              <span className={s.cellNum}>{i + 1}</span>
+              <span className={s.dots} aria-hidden>
+                {dots.map((tone, k) => (
+                  <i key={k} className={cx(s.dot, tone)} />
+                ))}
+              </span>
+            </button>
           );
-        })
-      )}
+        })}
+      </div>
     </section>
   );
 }
@@ -468,11 +604,6 @@ function LessonSheetOf({ c }: { c: ScheduleClass }) {
             <FileItemRow key={f.id} file={f} />
           ))}
         </>
-      ) : null}
-      {p.lmsHref ? (
-        <a href={p.lmsHref} target="_blank" rel="noopener noreferrer" className={s.lms}>
-          Open in LMS
-        </a>
       ) : null}
       {qr ? <MainButton text="Scan QR" href="/qr" secondary={p.courseHref ? { text: "Open course", href: p.courseHref } : null} /> : p.courseHref ? <MainButton text={`Open ${c.name}`} href={p.courseHref} /> : null}
     </Sheet>

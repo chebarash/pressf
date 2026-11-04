@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { ProfileView } from "@/server/views";
 import { ChevronRightIcon, Face } from "./mc/kit";
 import { cx, Screen } from "./mc/parts";
-import { DeleteRow, HomeScreenRows, ResetCalendarRow, SignOutRow, ThemeRow } from "./mc/ProfileControls";
-import { FeedLayers } from "./mc/FeedLayers";
+import { CalendarSection } from "./mc/CalendarView";
+import { DeleteRow, HomeScreenRows, SignOutRow, ThemeRow } from "./mc/ProfileControls";
 import s from "./mc/mc.module.css";
 import c from "./mc/screens.module.css";
 
@@ -34,11 +34,10 @@ export default function Settings({ data }: { data: ProfileView }) {
             <span className={c.settingValue}>{data.sync.signInAgain ? "Sign in again" : data.sync.lmsDown ? "LMS not answering" : data.sync.label ?? "Not yet"}</span>
           </div>
           <HomeScreenRows />
-          <ResetCalendarRow />
         </div>
 
-        {/* The Google Calendar feed's own settings; Timetable always shows everything. */}
-        <FeedLayers layers={data.feed} />
+        {/* Everything about the Google Calendar feed; Timetable on the site always shows everything and only links here. */}
+        <CalendarSection google={data.calendar?.google ?? null} feed={data.feed} />
 
         <div className={c.group}>
           <Link href="/me/ratings" prefetch className={c.setting}>

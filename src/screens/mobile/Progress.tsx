@@ -2,6 +2,7 @@ import Link from "next/link";
 import { tier } from "@/core/grades";
 import type { ProgressCourse, ProgressView } from "@/server/views";
 import { Banner, EmptyState, Score, type ScoreTier } from "./mc/kit";
+import { ScreenHint } from "@/ui/shell/Hints";
 import { Absences, Chevron, cx, RowLink, Screen, Stat } from "./mc/parts";
 import { lowerDay, since } from "./mc/format";
 import s from "./mc/mc.module.css";
@@ -21,6 +22,7 @@ export default function Progress({ data }: { data: ProgressView }) {
             LMS isn&apos;t answering. Grades and absences are from {since(data.state.syncedAt)}.
           </Banner>
         ) : null}
+        <ScreenHint screen="progress" ctx={{ desktop: false, busy: data.state.lmsDown }} />
         {data.empty && !data.courses.length ? (
           <EmptyState title="No grades yet" text="First marks usually land after week 3. We'll message you in Telegram when one arrives." />
         ) : (

@@ -49,15 +49,17 @@
 .weekBlock { position: absolute; top: 0; left: 0; width: calc(7 * var(--size)); height: 100%; will-change: transform; }
 .weekHead { position: sticky; top: 0; z-index: 2; height: var(--head); background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); }
 .heads { display: grid; grid-template-columns: repeat(7, var(--size)); height: 40px; }
-.dayHead { appearance: none; display: flex; align-items: center; min-width: 0; padding: 0 10px; border: 0; border-left: 1px solid var(--border-subtle); background: transparent; font: 600 13px/normal var(--font-sans); color: var(--text-primary); text-align: left; cursor: pointer; white-space: nowrap; }
+.dayHead { appearance: none; display: flex; align-items: center; gap: 6px; min-width: 0; padding: 0 10px; border: 0; border-left: 1px solid var(--border-subtle); background: transparent; font: 600 13px/normal var(--font-sans); color: var(--text-primary); text-align: left; cursor: pointer; white-space: nowrap; }
 .dayHead:hover { background: var(--bg-hover); }
-.headToday { color: var(--text-accent); }
-.headOn { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+/* Today: its date in an accent pill (the column itself only tinted); the selected day underlined. */
+.headNum { display: inline-grid; place-items: center; height: 26px; border-radius: var(--radius-full); }
+.dayHead { gap: 4px; }
+.headToday .headNum { min-width: 26px; padding: 0 6px; background: var(--bg-accent); color: var(--text-on-accent); }
+.headOn > span:first-child { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .days { display: grid; grid-template-columns: repeat(7, var(--size)); }
 .day { position: relative; border-left: 1px solid var(--border-subtle); scroll-snap-align: start; }
-.dayToday { background: var(--bg-accent); }
+.dayToday { background: color-mix(in srgb, var(--bg-accent-soft) 55%, transparent); }
 .lines { position: absolute; inset: 12px 0 0; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour) - 1px), var(--border-subtle) calc(var(--hour) - 1px), var(--border-subtle) var(--hour)); }
-.dayToday .lines { opacity: 0.35; }
 
 .class {
   position: absolute;
@@ -76,6 +78,8 @@
   overflow: hidden;
 }
 .class:hover { filter: brightness(0.98); }
+/* A class that has ended: still there, quieter. */
+.past:not(.classOn) { opacity: 0.55; }
 .classOn { border: 2px solid var(--border-strong); box-shadow: 0 3px 0 var(--shadow-key); z-index: 1; }
 .classTitle { font: 600 13px/normal var(--font-sans); }
 .classMeta { font: 400 11px/1.32 var(--font-sans); color: var(--text-secondary); }
@@ -116,6 +120,9 @@
 /* A deadline due inside the hours shown: a line at the due time, its name under it. */
 .marker { position: absolute; left: 0; right: 0; height: 2px; background: var(--rating-mid); z-index: 2; }
 .marker > span { position: absolute; top: 4px; left: 4px; right: 4px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The one "first time here" hint, under the header (24 short of the inspector like the header). */
+.hint { margin-right: 20px; }
 
 /* Week | Month switch. */
 .views { display: flex; align-items: center; gap: var(--space-1); }

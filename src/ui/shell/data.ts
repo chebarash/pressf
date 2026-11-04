@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { lmsAccounts, lmsCache, users, userState } from "@/lib/db/schema";
 import type { UserCache } from "@/lib/lms/cache";
 import { termName } from "@/server/sync/types";
+import { cleanHints } from "@/core/hints";
 
 export type ShellUser = {
   name: string;
@@ -14,6 +15,8 @@ export type ShellUser = {
   needsReauth: boolean;
   syncedAt: string | null;
   email: string;
+  /** "First time here" hints already dismissed (src/core/hints.ts). */
+  hints: string[];
 };
 
 /** Given name + surname initial: "Shamsiddin A." */
@@ -35,6 +38,7 @@ export const shellUser = cache(async (): Promise<ShellUser | null> => {
       telegramId: users.telegramId, data: lmsCache.data, syncedAt: lmsCache.syncedAt, status: lmsAccounts.status,
       // The background sync's time (snapshot.lms.at) (grades, attendance, files), every ~20 min; the profile cache refreshes only every 6 h.
       lastSync: sql<string | null>`${userState.snapshot}->'lms'->>'at'`,
+      hints: userState.hints,
     })
     .from(users)
     .leftJoin(lmsCache, eq(lmsCache.userId, users.id))
@@ -51,5 +55,6 @@ export const shellUser = cache(async (): Promise<ShellUser | null> => {
     needsReauth: row?.status === "invalid",
     syncedAt: [row?.syncedAt?.toISOString() ?? null, row?.lastSync ?? null].filter((v): v is string => !!v && !Number.isNaN(Date.parse(v))).sort((a, b) => Date.parse(a) - Date.parse(b)).at(-1) ?? null,
     email: user.email,
+    hints: Object.keys(cleanHints(row?.hints)),
   };
 });

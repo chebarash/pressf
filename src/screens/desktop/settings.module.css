@@ -15,4 +15,6 @@ button.row { width: 100%; border: 0; background: none; text-align: left; font: i
 .alerts { display: contents; }
 /* Kit Switch rows laid out as the card rows above; the toggle is the kit's 44×26 "sm" one from D13. */
 .alertRow { min-height: 0; padding: 12px 20px; gap: 10px; border-top: 1px solid var(--border-subtle); }
+.anchor { scroll-margin-top: 24px; }
+.sub { margin: 0; padding: 12px 20px 0; border-top: 1px solid var(--border-subtle); font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
 .credit { font: 500 13px/normal var(--font-sans); color: var(--text-secondary); }

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { CourseData } from "../model";
 import { Disclosure, RatingSummary } from "@/ui/components";
 import { TabPill } from "@/ui/components/TabPill";
+import { ScreenHint } from "@/ui/shell/Hints";
 import { PageHead } from "@/ui/shell/PageHeader";
 import { Syllabus } from "@/screens/mobile/parts/CourseParts";
 import { Button, ButtonLink, css, cx, Empty, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, shareHref, Tag } from "../parts";
@@ -71,6 +72,8 @@ function CourseDetail({ data, tab }: { data: CourseData; tab: CourseTab }) {
           </>
         )}
       </header>
+
+      {!data.context && !data.locked && <ScreenHint screen="course" ctx={{ desktop: true, courseCode: data.code }} />}
 
       {!data.context && (
       <nav className={c.tabs} aria-label="Course sections">

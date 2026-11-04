@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { addDays, classMeta, classTitle, clampIndex, dayAt, dayIndex, dayOf, hoursFor, mondayAt, mondayOf, SPAN_DAYS, toneName, weekLayout, weekTitle } from "@/screens/shared/schedule/model";
 import { ScheduleProvider, useSchedule } from "@/screens/shared/schedule/store";
+import { useNowMinutes } from "@/screens/shared/schedule/now";
 import { useTrack } from "@/screens/shared/schedule/useTrack";
 import type { SchedulePage, ScheduleClass } from "@/server/views";
 import { css, cx } from "../parts";
@@ -130,8 +131,9 @@ function WeekStrip() {
                         const day = addDays(monday, d);
                         const info = dayOf(s.weeks, day);
                         return (
-                          <button key={day} type="button" className={cx(t.dayHead, day === s.today && t.headToday, day === s.day && t.headOn)} onClick={() => s.setDay(day)} aria-pressed={day === s.day}>
-                            {info ? `${info.weekday} ${Number(day.slice(8))}` : headOf(day)}
+                          <button key={day} type="button" className={cx(t.dayHead, day === s.today && t.headToday, day === s.day && t.headOn)} onClick={() => s.setDay(day)} aria-pressed={day === s.day} aria-current={day === s.today ? "date" : undefined}>
+                            <span>{info?.weekday ?? headOf(day).split(" ")[0]}</span>
+                            <span className={t.headNum}>{Number(day.slice(8))}</span>
                           </button>
                         );
                       })}
@@ -175,7 +177,7 @@ function WeekStrip() {
                               key={c.key}
                               type="button"
                               data-lesson={c.key}
-                              className={cx(t.class, t[toneName(c)], c.key === s.open && t.classOn)}
+                              className={cx(t.class, t[toneName(c)], c.key === s.open && t.classOn, (c.day < s.today || (c.day === s.today && nowMinutes !== null && c.to <= nowMinutes)) && t.past)}
                               style={{ top: top(c.from) + 2, height: Math.max(36, ((c.to - c.from) / 60) * HOUR + 1) }}
                               onClick={() => s.select(c.key)}
                               // Double-click opens the course.
@@ -200,20 +202,3 @@ function WeekStrip() {
     </>
   );
 }
-
-/** Minutes since midnight in Tashkent, ticking each minute (null on the server). */
-export function useNowMinutes() {
-  const [m, setM] = useState<number | null>(null);
-  useEffect(() => {
-    const tick = () => setM(tashkentMinutes());
-    tick();
-    const id = window.setInterval(tick, 60_000);
-    return () => window.clearInterval(id);
-  }, [setM]);
-  return m;
-}
-
-const tashkentMinutes = () => {
-  const d = new Date(Date.now() + 5 * 3600_000);
-  return d.getUTCHours() * 60 + d.getUTCMinutes();
-};

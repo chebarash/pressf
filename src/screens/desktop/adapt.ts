@@ -560,6 +560,7 @@ export function profile(v: V.ProfileView): M.SettingsData {
     telegram: { linked: v.telegramLinked, line: v.telegramLinked ? "Linked — alerts and QR check-in live there" : "Not linked — alerts and QR check-in live there", href: "/link" },
     alerts: ALERTS.map((a) => ({ ...a, on: !!v.alerts[a.id] })),
     feed: v.feed,
+    calendar: v.calendar,
     credit: "Made with love by chebarash · issues or ideas? Reach out on Telegram.",
   };
 }

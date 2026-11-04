@@ -238,6 +238,7 @@ export const profileDemo = (): ProfileView => ({
   ratings: { count: 6, waiting: 2 },
   uploads: { count: 0, live: 0 },
   feed: LAYER_LIST.map((l) => ({ ...l, on: true })),
+  calendar: { google: "https://calendar.google.com/calendar/r?cid=webcal://pressf.chebarash.uz/calendar/feed/demo.ics" },
 });
 
 const rateItem = (courseId: string, name: string, term: string) => ({ courseId, code: courseId, name, term, teachers: [], href: `/rate/${courseId}` });

@@ -5,6 +5,7 @@ import { BottomBar } from "./BottomBar";
 import { shellUser } from "./data";
 import { DesktopChrome } from "./DesktopChrome";
 import { DialogHost } from "./DialogHost";
+import { HintsProvider } from "./Hints";
 import { MobileExtras } from "./MobileExtras";
 import { PageTransition } from "./PageTransition";
 import { qrPath } from "./qr";
@@ -26,7 +27,9 @@ export async function Shell({ children }: { children: React.ReactNode }) {
           <SystemBanner />
         </Suspense>
         <PageTransition mobile>
-          <main className="sh-main" id="main">{children}</main>
+          <main className="sh-main" id="main">
+            <HintsProvider signedIn={!!user} telegramLinked={!!user?.telegramLinked} dismissed={user?.hints ?? null}>{children}</HintsProvider>
+          </main>
         </PageTransition>
         <MobileExtras signedIn={!!user} needsReauth={!!user?.needsReauth} email={user?.email} />
         <BottomBar />
@@ -45,7 +48,9 @@ export async function Shell({ children }: { children: React.ReactNode }) {
           <SystemBanner />
         </Suspense>
         <PageTransition mobile={false}>
-          <main className="sh-main" id="main">{children}</main>
+          <main className="sh-main" id="main">
+            <HintsProvider signedIn={!!user} telegramLinked={!!user?.telegramLinked} dismissed={user?.hints ?? null}>{children}</HintsProvider>
+          </main>
         </PageTransition>
         <MobileExtras signedIn={!!user} needsReauth={!!user?.needsReauth} email={user?.email} desktop />
         <BottomBar />

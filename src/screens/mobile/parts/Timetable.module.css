@@ -21,28 +21,70 @@
 @media (hover: hover) { .tab:not(.tabOn):hover { background: var(--bg-sunken); } }
 .tabOn { background: var(--bg-inverse); color: var(--text-inverse); }
 
-.list { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+/* Day: the classes in time order, one compact row each in the course colour. */
+.dayBody { display: flex; flex-direction: column; gap: var(--space-3); }
+.list { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .row {
+  --tone: var(--border-accent);
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   width: 100%;
-  padding: var(--space-3) var(--space-4);
+  min-height: 64px;
+  padding: 10px var(--space-3) 10px 18px;
   overflow: hidden;
-  border: 2px solid var(--border-subtle);
+  border: 1.5px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   color: var(--text-primary);
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.next { border-color: var(--border-accent); background: var(--bg-accent-soft); }
-.selected { border: 3px solid var(--border-accent); background: var(--bg-accent-soft); box-shadow: 0 5px 0 var(--border-accent); padding: 11px 15px; }
-.time, .subject { font-family: var(--font-sans); font-size: 18px; font-weight: 500; line-height: 1.3; white-space: nowrap; }
-.body { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; }
-.subject { overflow: hidden; text-overflow: ellipsis; }
-.details { overflow: hidden; color: var(--text-secondary); font-family: var(--font-sans); font-size: 14px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
+.stripe { position: absolute; left: 6px; top: 8px; bottom: 8px; width: 4px; border-radius: 2px; background: var(--tone); }
+.live { border-color: var(--tone); background: color-mix(in srgb, var(--tone) 10%, var(--bg-surface)); }
+.selected { border: 1.5px solid var(--border-strong); box-shadow: 0 3px 0 var(--shadow-key); }
+.ended { opacity: 0.55; }
+.time { display: flex; flex: none; flex-direction: column; width: 46px; font: 600 15px/1.25 var(--font-sans); font-variant-numeric: tabular-nums; }
+.until { color: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.body { display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0; }
+.subject, .eventTitle { overflow: hidden; font: 600 16px/1.3 var(--font-sans); white-space: nowrap; text-overflow: ellipsis; }
+.eventTitle { font-size: 15px; }
+.details { overflow: hidden; color: var(--text-secondary); font: 400 13px/1.35 var(--font-sans); white-space: nowrap; text-overflow: ellipsis; }
+.eventRow { min-height: 52px; border-style: dashed; cursor: default; }
+a.eventRow { cursor: pointer; }
+
+/* The now-line between what has ended and what is coming. */
+.nowLine { position: relative; display: flex; align-items: center; height: 14px; margin: -2px 0; list-style: none; }
+.nowLine::before { content: ""; position: absolute; left: 44px; right: 0; top: 50%; height: 2px; background: var(--bg-danger); }
+.nowLine::after { content: ""; position: absolute; left: 40px; top: calc(50% - 4px); width: 10px; height: 10px; border-radius: 50%; background: var(--bg-danger); }
+.nowTime { position: relative; width: 36px; font: 700 11px/1 var(--font-sans); color: var(--bg-danger); font-variant-numeric: tabular-nums; }
+
+/* All-day and multi-day events: one line each, at the top of the day. */
+.allDay { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.allDayRow { display: flex; align-items: center; gap: var(--space-2); min-height: 30px; padding: 4px 10px; border-radius: var(--radius-sm); background: var(--bg-sunken); font: 500 13px/1.3 var(--font-sans); }
+.allDayDot { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.allDayTitle { flex: 1 1 0; min-width: 0; overflow: hidden; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.allDayKind { flex: none; color: var(--text-secondary); font-size: 12px; }
+.emptyLine { margin: 0; color: var(--text-secondary); font: 400 13px/1.4 var(--font-sans); }
+
+/* Course colours (the same tones as the desktop cards) and calendar layers. */
+.tone_teal { --tone: var(--border-accent); }
+.tone_mustard { --tone: var(--rating-mid); }
+.tone_plum { --tone: var(--school-humanities); }
+.tone_moss { --tone: var(--school-medicine); }
+.tone_rust { --tone: var(--bg-danger); }
+.tone_sky { --tone: var(--school-computing); }
+.tone_rose { --tone: var(--school-engineering); }
+.tone_sand { --tone: var(--school-management); }
+.l_classes { --tone: var(--bg-accent); }
+.l_exams { --tone: var(--bg-danger); }
+.l_deadlines { --tone: var(--mustard-500); }
+.l_holidays { --tone: var(--moss-500); }
+.l_registration { --tone: var(--plum-500); }
+.allDayDot, .dot { background: var(--tone); }
 
 /* Class sheet (3.2, 3.3): 10 px between rows; the grab bar's 4 px bottom pad + 10 = 14 to the tags. */
 .sheet:global(.sh-sheet) { gap: 10px; }
@@ -58,6 +100,12 @@
 
 .skeleton { height: 71px; border-radius: var(--radius-md); background: var(--bg-sunken); }
 
+/* The week label with "Today" beside it when another day is in view. */
+.subRow { display: flex; align-items: center; gap: var(--space-2); min-height: 28px; }
+.subLine { flex: 1 1 0; min-width: 0; }
+.todayBtn { flex: none; padding: 4px 12px; border: 1.5px solid var(--border-strong); border-radius: var(--radius-full); background: var(--bg-surface); box-shadow: 0 2px 0 var(--shadow-key); color: var(--text-primary); font: 600 13px/1.2 var(--font-sans); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hint { margin-top: var(--space-3); }
+
 /* Day | Month switch (buttons: the view changes in place). */
 .views { display: flex; align-items: center; gap: var(--space-1); }
 
@@ -72,26 +120,37 @@
 }
 .wrap { container-type: inline-size; }
 .picker::-webkit-scrollbar, .pager::-webkit-scrollbar { display: none; }
-.picker { margin: var(--space-4) 0; height: 44px; }
+.picker { margin: var(--space-3) 0 var(--space-4); height: 62px; }
 .pickerTrack, .pagerTrack { position: relative; width: calc(var(--span) * var(--size)); }
-.pickerTrack { height: 44px; }
+.pickerTrack { height: 62px; }
 .pagerTrack { min-height: 120px; }
 .probe { position: absolute; top: 0; left: 0; width: var(--size); height: 1px; visibility: hidden; pointer-events: none; }
 .pickerWeek, .page { position: absolute; top: 0; left: 0; width: var(--size); scroll-snap-align: start; scroll-snap-stop: always; will-change: transform; }
 .pickerWeek { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
-.pick { justify-content: center; padding: 0; }
-.pickToday:not([aria-pressed="true"]) { color: var(--text-accent); }
+/* The week strip: weekday, date, a dot per class or event. Today's date is accent, the selected one filled. */
+.pick { appearance: none; display: flex; flex-direction: column; align-items: center; gap: 2px; height: 62px; padding: 4px 0 0; border: 0; background: none; color: var(--text-primary); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pickDay { font: 500 11px/1 var(--font-sans); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.pickNum { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; font: 600 17px/1 var(--font-sans); font-variant-numeric: tabular-nums; }
+.pickToday .pickNum { color: var(--text-accent); box-shadow: inset 0 0 0 1.5px var(--border-accent); }
+.pickOn .pickNum { background: var(--bg-inverse); color: var(--text-inverse); box-shadow: none; }
+.pickToday.pickOn .pickNum { background: var(--bg-accent); color: var(--text-on-accent); }
+.dots { display: flex; justify-content: center; gap: 3px; height: 5px; }
+.dot { display: block; width: 5px; height: 5px; border-radius: 50%; }
 .page { padding-bottom: var(--space-4); }
-.eventText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.eventTitle { margin: 0; font: 600 15px/1.3 var(--font-sans); color: var(--text-primary); }
 .eventSub { margin: 0; font: 400 12px/1.32 var(--font-sans); color: var(--text-secondary); }
 
-/* Month: the same days as an endless list. */
-.agenda { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4) 0 32px; }
-.agendaWeek { display: flex; flex-direction: column; gap: var(--space-4); }
-.month { margin: var(--space-2) 0 0; font: 400 28px/1.05 var(--font-serif); letter-spacing: -0.01em; }
-.dayBtn { appearance: none; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
-.daySelected { text-decoration: underline; text-underline-offset: 3px; }
+/* Month: a light overview, endless month grids with dots; a tap opens the day. */
+.months { display: flex; flex-direction: column; gap: 24px; padding: var(--space-2) 0 32px; }
+.weekdays { position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 6px 0; background: var(--bg-page); font: 500 11px/1 var(--font-sans); color: var(--text-secondary); text-align: center; text-transform: uppercase; letter-spacing: 0.04em; }
+.monthBlock { display: flex; flex-direction: column; gap: var(--space-2); }
+.month { margin: 0; font: 400 28px/1.05 var(--font-serif); letter-spacing: -0.01em; }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); row-gap: 4px; }
+.cell { appearance: none; display: flex; flex-direction: column; align-items: center; gap: 3px; height: 52px; padding: 4px 0 0; border: 0; border-radius: var(--radius-md); background: none; color: var(--text-primary); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.cellNum { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; font: 500 15px/1 var(--font-sans); font-variant-numeric: tabular-nums; }
+.cellExam { background: color-mix(in srgb, var(--bg-danger) 9%, transparent); }
+.cellHoliday { background: color-mix(in srgb, var(--moss-500) 12%, transparent); }
+.cellToday .cellNum { background: var(--bg-accent); color: var(--text-on-accent); font-weight: 700; }
+.cellOn:not(.cellToday) .cellNum { box-shadow: inset 0 0 0 1.5px var(--border-strong); }
 
 /* The lesson sheet's extra rows. */
 .block { display: flex; flex-direction: column; gap: 4px; }
@@ -102,4 +161,3 @@
 .mark_late { background: var(--tint-mustard); border-color: var(--rating-mid); }
 .mark_bad { background: var(--tint-rust); border-color: var(--bg-danger); }
 .mark_none { background: var(--bg-sunken); }
-.lms { align-self: flex-start; font: 600 14px/normal var(--font-sans); color: var(--text-accent); }

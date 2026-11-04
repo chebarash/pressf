@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScreenHint } from "@/ui/shell/Hints";
 import type { ProfessorRow, ProfessorsView } from "@/server/views";
 import { Chip, EmptyState, Face } from "./mc/kit";
 import { cx, Screen } from "./mc/parts";
@@ -22,6 +23,7 @@ export default function Professors({ data, school, dept }: { data: ProfessorsVie
       <div className={cx(s.body, s.tight)}>
         <h1 className={s.title54}>Professors</h1>
         <p className={cx(s.p0, s.t14, s.soft)}>{data.count} teaching this year</p>
+        <ScreenHint screen="professors" ctx={{ desktop: false }} />
         <nav className={cx(c.layers, c.schoolChips)} aria-label="School">
           <Chip label="All" selected={!picked} href="/professors" />
           {data.schools.map((k) => (

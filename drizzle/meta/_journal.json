@@ -239,6 +239,13 @@
       "when": 1793749749659,
       "tag": "0033_drop_room_alerts_again",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793795335287,
+      "tag": "0034_hints",
+      "breakpoints": true
     }
   ]
 }

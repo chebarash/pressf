@@ -26,7 +26,6 @@ export type LessonPanel = {
   homework: Array<{ id: string; title: string; meta: string }>;
   files: ScheduleClass["lesson"]["files"];
   courseHref: string | null;
-  lmsHref: string | null;
 };
 
 const isTime = (v: string | null) => !!v && /^\d{1,2}:\d{2}$/.test(v);
@@ -55,6 +54,5 @@ export function lessonPanel(c: ScheduleClass): LessonPanel {
     homework: l.homework.map((h) => ({ id: h.id, title: h.title, meta: [`Due ${clockOf(h.due)}`, h.status, h.grade !== null ? `${h.grade} points` : null].filter(Boolean).join(" · ") })),
     files: l.files,
     courseHref: c.code ? `/c/${c.code}` : null,
-    lmsHref: l.lmsHref,
   };
 }
