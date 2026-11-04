@@ -1,9 +1,10 @@
 /* Admin · desktop (Figma 10 Redesign › Admin · desktop). Tokens only. */
 
+/* Below 1200px the admin keeps its layout and scrolls sideways instead of cutting off its right side. */
+.viewport { position: fixed; inset: 0; z-index: 100; overflow-x: auto; overflow-y: hidden; background: var(--bg-page); }
 .shell {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
+  position: relative;
+  height: 100%;
   display: flex;
   align-items: stretch;
   min-width: 1200px;
