@@ -58,7 +58,10 @@ describe("semester", () => {
   });
   it("knows study days, weekends and holidays", () => {
     expect(dayInfo(at("2026-09-08T09:00:00"), weeks, []).studyDay).toBe(true);
-    expect(dayInfo(at("2026-09-12T09:00:00"), weeks, []).weekend).toBe(true);
+    // Saturday is a teaching day; only Sunday is off.
+    expect(dayInfo(at("2026-09-12T09:00:00"), weeks, []).weekend).toBe(false);
+    expect(dayInfo(at("2026-09-12T09:00:00"), weeks, []).studyDay).toBe(true);
+    expect(dayInfo(at("2026-09-13T09:00:00"), weeks, []).weekend).toBe(true);
     const h = dayInfo(at("2026-09-08T09:00:00"), weeks, [{ date: "2026-09-08", name: "Holiday" }]);
     expect(h.holiday?.name).toBe("Holiday");
     expect(h.studyDay).toBe(false);

@@ -38,10 +38,10 @@ describe("Today screen words (Figma 2.x)", () => {
     expect(showClasses(v)).toBe(false);
   });
 
-  it("weekend: weekday title, Monday's first class", () => {
+  it("weekend (Sunday): weekday title, Monday's first class", () => {
     const v = TODAY_STATES["2.4-weekend"]();
-    expect(v.title).toBe("Saturday");
-    expect(hero(v)).toMatchObject({ eyebrow: "No classes today", title: "Monday 10:00" });
+    expect(v.title).toBe("Sunday");
+    expect(hero(v)).toMatchObject({ eyebrow: "No classes today", title: "Tomorrow 10:00" });
   });
 
   it("break: dates of the break, when it ends, what comes next", () => {
