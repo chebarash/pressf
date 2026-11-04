@@ -360,6 +360,8 @@ describe("uploads, roles, people, grades, deadlines", () => {
     // hero.study: first_name given, sur_name family, last_name patronymic.
     expect(displayName({ first_name_en: "GONÇALO", last_name_en: "", sur_name_en: "pinto" })).toBe("Gonçalo Pinto");
     expect(displayName({ first_name_en: "Vohid", last_name_en: "Akmalovich", sur_name_en: "Kholov" })).toBe("Vohid Kholov");
+    expect(displayName({ first_name_en: "Prof. 2 Selim", sur_name_en: "Temizer" })).toBe("Selim Temizer");
+    expect(displayName({ first_name_en: "Dr Aziz", sur_name_en: "Tursunov" })).toBe("Aziz Tursunov");
     expect(displayName({ first_name_en: "Ann", last_name_en: "Lee", sur_name_en: "" })).toBe("Ann Lee");
     expect(shortName("Shamsiddin Abdurakhimov")).toBe("Shamsiddin A.");
     expect(initials("Aziz Tursunov")).toBe("AT");

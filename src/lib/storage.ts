@@ -24,7 +24,7 @@ export async function putObject(key: string, body: Buffer, contentType: string) 
 }
 
 /** An ASCII stand-in for clients that ignore filename* (quotes and non-ASCII replaced). */
-const asciiName = (name: string) => name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[–—]/g, "-").replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
+export const asciiName = (name: string) => name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[–—]/g, "-").replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
 
 export const signedUrl = (key: string, fileName?: string, disposition: "inline" | "attachment" = "inline") =>
   getSignedUrl(
