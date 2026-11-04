@@ -45,11 +45,12 @@ export default function Course({ data }: { data: CourseScreen }) {
   return (
     <div className={cx(b.screen, !action && b.noButton)}>
       <header className={s.header}>
+        {/* The title opens the screen on the same line as every other screen; the code and Share follow. */}
+        <h1 className={s.title}>{data.name}</h1>
         <div className={s.tags}>
           <Tag tone="accent">{data.code}</Tag>
           <ShareButton target={{ to: "course", code: data.code }} title={data.name} text={data.name} className={s.shareCourse} />
         </div>
-        <h1 className={s.title}>{data.name}</h1>
         {data.signedIn && data.term && data.terms.length > 1 ? <SemesterSwitch label={`${data.term.term}${note(data.term.term) ? ` · ${note(data.term.term)}` : ""}`} terms={terms} /> : null}
         <CourseRatingStrip summary={data.ratings} />
       </header>

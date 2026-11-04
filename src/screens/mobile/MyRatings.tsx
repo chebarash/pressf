@@ -12,7 +12,7 @@ export default function MyRatings({ data }: { data: RateQueueView }) {
   return (
     <Screen>
       <div className={cx(s.body, s.tight)}>
-        <h1 className={s.title54}>My ratings</h1>
+        <h1 className={`${s.title54} pf-m-title`}>My ratings</h1>
         <p className={cx(s.p0, s.t14, s.soft)} style={{ lineHeight: 1.4 }}>
           Only you can see this. Edit until the end of next semester.
         </p>

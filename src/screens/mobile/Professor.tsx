@@ -55,8 +55,9 @@ export default function Professor({ data }: { data: ProfessorView }) {
     <Screen>
       <div className={s.body} style={{ gap: 0, paddingBottom: 0 }}>
         <header className={c.profHead}>
-          <Face src={data.face} size={160} name={data.name} priority />
+          {/* The name opens the screen on the same line as every other screen; the drawn face follows. */}
           <h1 className={cx(s.title, "t-mobile-title")}>{data.name}</h1>
+          <Face src={data.face} size={160} name={data.name} priority />
           {line ? <p className={c.profLine}>{line}</p> : null}
           {crumbs.length ? (
             <nav aria-label="School and department" className={cx(s.t14, s.soft)}>

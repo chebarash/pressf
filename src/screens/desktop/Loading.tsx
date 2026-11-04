@@ -1,4 +1,5 @@
 import { Skeleton } from "@/ui/components";
+import { PageHead } from "@/ui/shell/PageHeader";
 import c from "./course/course.module.css";
 import l from "./loading.module.css";
 import n from "./notifications.module.css";
@@ -18,11 +19,9 @@ const Block = (p: { w?: number | string; h: number; r?: "sm" | "md" | "lg" | "fu
 export function TodayLoading() {
   return (
     <div data-desktop-screen className={cx(css.screen, l.page)} role="status" aria-busy="true" aria-label="Loading Today">
-      <header className={l.header}>
-        <Block w={180} h={14} r="sm" />
-        <h1 className={l.title}>Today</h1>
+      <PageHead title="Today">
         <Block w={260} h={16} r="sm" />
-      </header>
+      </PageHead>
       <section className={l.row}>
         <div className={cx(l.card, l.cardAccent)} style={{ minHeight: 210 }}>
           <Block w={140} h={14} r="sm" />
@@ -63,7 +62,7 @@ export function TodayLoading() {
 function CourseListLoading() {
   return (
     <div className={c.list} aria-hidden>
-      <h1 className={c.listTitle}>Courses</h1>
+      <PageHead title="Courses" />
       <Block h={38} r="md" sunken />
       <div className={l.chips}>
         <Block w={52} h={28} r="full" sunken />
@@ -84,11 +83,11 @@ export function CourseLoading({ list = true }: { list?: boolean }) {
       {list && <CourseListLoading />}
       <div className={c.detail}>
         <div className={c.head}>
-          <div className={c.tags}>
+          <div className={l.line}>
+            <Block w="40%" h={50} />
             <Block w={72} h={24} r="sm" />
             <Block w={48} h={24} r="sm" />
           </div>
-          <Block w="60%" h={64} />
           <Block w={180} h={39} r="full" />
           <div className={l.line}>
             <Block w={150} h={34} r="full" />
@@ -127,9 +126,7 @@ export function NotificationsLoading() {
   return (
     <div data-desktop-screen className={cx(css.screen, n.split)} role="status" aria-busy="true" aria-label="Loading notifications">
       <div className={n.list} aria-hidden>
-        <div className={n.head}>
-          <h1 className={n.title}>Notifications</h1>
-        </div>
+        <PageHead title="Notifications" />
         <div className={l.chips}>
           {[40, 52, 64, 76, 50, 96].map((w, i) => (
             <Block key={i} w={w} h={30} r="full" sunken />
@@ -159,10 +156,9 @@ export function NotificationsLoading() {
 export function PageLoading({ title }: { title: string }) {
   return (
     <div data-desktop-screen className={cx(css.screen, l.page)} role="status" aria-busy="true" aria-label={`Loading ${title}`}>
-      <header className={l.header}>
-        <h1 className={l.title}>{title}</h1>
+      <PageHead title={title}>
         <Block w={240} h={16} r="sm" />
-      </header>
+      </PageHead>
       <div className={l.grid}>
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <div key={i} className={l.card} style={{ minHeight: 150 }}>

@@ -255,7 +255,8 @@ export type CourseProgressData = {
   counts: Record<ClassState, number>;
 };
 
-export type NotificationsData = { unread: number; items: FeedItemVM[]; open: string | null };
+/** `named`: the link named the open one (?open=), so a one-pane window opens on it rather than on the list. */
+export type NotificationsData = { unread: number; items: FeedItemVM[]; open: string | null; named?: boolean };
 
 export type CalendarKind = "week" | "deadline" | "exam" | "registration" | "holiday" | "class";
 export type CalendarMonth = {

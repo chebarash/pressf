@@ -13,8 +13,6 @@
   box-shadow: var(--shadow-float-lg);
 }
 .who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.name { font: 400 var(--page-title)/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
-.title { font: 500 15px/normal var(--font-sans); color: var(--text-secondary); }
 .contact { margin: 0; font: 500 14px/normal var(--font-sans); color: var(--text-secondary); }
 .contact a { color: var(--text-accent); text-decoration: underline; text-underline-offset: 2px; }
 .contactNote { margin: 0; font: 500 13px/normal var(--font-sans); color: var(--text-secondary); font-style: italic; }
@@ -43,6 +41,12 @@
 .press:active .pressKey { transform: translateY(6px); box-shadow: none; transition-duration: var(--motion-press); transition-timing-function: var(--ease-standard); }
 
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 20px var(--space-4); align-items: stretch; }
+/* Narrow pages: the side cards drop under, the hero wraps the Press F key under the face. */
+@container page (max-width: 1100px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+@container page (max-width: 760px) {
+  .hero { flex-wrap: wrap; gap: 20px; padding: 24px; }
+  .courses { grid-template-columns: minmax(0, 1fr); }
+}
 .cardTitle { font: 400 28px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
 .slot { display: grid; grid-template-columns: 54px 66px minmax(0, 1fr) auto 52px; align-items: center; gap: var(--space-2); padding: 14px 0; border-top: 1.5px solid var(--border-subtle); font: 600 15px/normal var(--font-sans); color: var(--text-primary); }
 .slotDay { font-weight: 500; font-size: 14px; color: var(--text-secondary); }

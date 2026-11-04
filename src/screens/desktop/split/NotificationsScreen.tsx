@@ -5,6 +5,7 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import type { FeedItemVM, NotificationsData } from "../model";
 import n from "../notifications.module.css";
 import { FeedMark, FileRow } from "@/ui/components";
+import { PageHead } from "@/ui/shell/PageHeader";
 import { Button, ButtonLink, css, cx, Empty, FeedRow, Hint, type FeedKind } from "../parts";
 
 const FILTERS: Array<{ id: "all" | FeedKind; label: string; kinds: FeedKind[] }> = [
@@ -26,6 +27,8 @@ export type NotificationActions = {
 export function NotificationsScreen({ data, actions }: { data: NotificationsData; actions?: NotificationActions }) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [openId, setOpenId] = useState<string | null>(data.open ?? data.items[0]?.id ?? null);
+  // Narrow windows show one pane: the list, or the one being read (a link that names one opens on it).
+  const [reading, setReading] = useState(!!data.named);
   const [, startTransition] = useTransition();
   const [items, markRead] = useOptimistic(data.items, (state: FeedItemVM[], id: string | "all") =>
     state.map((i) =>
@@ -64,15 +67,14 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
   const allRead = items.length === 0 || items.every((i) => !i.unread || i.needsAck);
 
   return (
-    <div data-desktop-screen className={cx(css.screen, n.split)}>
+    <div data-desktop-screen data-open={reading || undefined} className={cx(css.screen, n.split)}>
       <nav className={n.list} aria-label="Notifications">
-        <div className={n.head}>
-          <h1 className={n.title}>Notifications</h1>
+        <PageHead title="Notifications">
           {/* Shown in D18 (all read) too; nothing to do then. */}
           <button type="button" className={n.readAll} onClick={() => !allRead && read("all")} disabled={allRead} data-key="shift+r">
             <Hint>⇧R read all</Hint>
           </button>
-        </div>
+        </PageHead>
         <div className={css.chips} role="tablist" aria-label="Filter">
           {FILTERS.map((f) => (
             <button key={f.id} type="button" role="tab" aria-selected={filter === f.id} className={cx(css.chip, filter === f.id && css.chipOn)} onClick={() => setFilter(f.id)}>
@@ -99,6 +101,7 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
                     selected={i.id === openId}
                     onClick={() => {
                       setOpenId(i.id);
+                      setReading(true);
                       if (i.unread) read(i.id);
                     }}
                   />
@@ -112,6 +115,10 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
       <main className={n.detail}>
         {open && (
           <>
+            {/* One pane at a time on a narrow window: back to the list. */}
+            <button type="button" className={cx("pf-head__back", n.narrowOnly)} onClick={() => setReading(false)}>
+              <span aria-hidden>‹</span> Notifications
+            </button>
             {open.eyebrow && <p className={n.eyebrow}>{open.eyebrow}</p>}
             <h2 className={cx(n.detailTitle, open.title.length > 56 && n.detailTitleLong)} title={open.title}>
               {open.title}

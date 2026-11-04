@@ -1,12 +1,11 @@
 .main { padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); display: flex; flex-direction: column; gap: var(--page-gap); max-width: var(--page-max); }
 
-.header { display: flex; flex-direction: column; gap: 6px; }
-.greeting { font: 600 13px/normal var(--font-sans); color: var(--text-secondary); }
-.title { font: 400 var(--page-title)/1.04 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); margin: 0; }
-.dateLine { font: 400 15px/normal var(--font-sans); color: var(--text-secondary); }
-
-/* Bento: wide column 736 + side 360 at 1440; the wide one gives way down to 1280. */
+/* Bento: wide column 736 + side 360 at 1440; the wide one gives way down to 1280,
+   then the side column drops under it (page container, shell.css breakpoints). */
 .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 0.49fr); gap: var(--space-4); align-items: stretch; }
+@container page (max-width: 900px) {
+  .row { grid-template-columns: minmax(0, 1fr); }
+}
 .side { display: flex; flex-direction: column; gap: var(--space-4); }
 
 /* Next class */

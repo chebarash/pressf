@@ -1,7 +1,17 @@
 .split { display: grid; grid-template-columns: 420px minmax(0, 1fr); min-height: 100dvh; }
-.list { background: var(--bg-sunken); border-right: 1.5px solid var(--border-subtle); padding: var(--page-pad-top) var(--pane-pad-x) var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); position: sticky; top: 0; height: 100dvh; overflow-y: auto; }
-.head { display: flex; align-items: center; gap: var(--space-2); }
-.title { flex: 1; font: 400 var(--pane-title)/1.04 var(--font-serif); margin: 0; }
+/* The title keeps the page offsets (40 in); the rows run 20 from the right edge. */
+.list { --flow-gap: var(--space-2); background: var(--bg-sunken); border-right: 1.5px solid var(--border-subtle); padding: var(--page-pad-top) var(--pane-pad-x) var(--space-5) var(--pane-head-x); display: flex; flex-direction: column; gap: var(--space-2); position: sticky; top: 0; height: 100dvh; overflow-y: auto; }
+.narrowOnly { display: none; align-self: flex-start; }
+/* Narrow pages: a thinner list; then one pane at a time (the list, or the one being read). */
+@container page (max-width: 1100px) {
+  .split { grid-template-columns: 340px minmax(0, 1fr); }
+}
+@container page (max-width: 760px) {
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .split[data-open] > .list, .split:not([data-open]) > .detail { display: none; }
+  .list { position: static; height: auto; min-height: 100dvh; border-right: 0; }
+  .narrowOnly { display: inline-flex; }
+}
 .readAll { appearance: none; display: flex; background: none; border: 0; padding: 0; cursor: pointer; }
 .readAll:disabled { cursor: default; }
 .section { font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CurriculumView } from "@/server/views";
 import { Chip } from "@/ui/components";
+import { PageHead } from "@/ui/shell/PageHeader";
 import * as adapt from "./adapt";
 import x from "./lists.module.css";
 import type { CurriculumData } from "./model";
@@ -16,12 +17,7 @@ export default function DesktopCurriculum({ data }: { data: CurriculumView }) {
 export function CurriculumScreen({ data }: { data: CurriculumData }) {
   return (
     <main data-desktop-screen className={cx(css.screen, x.main)}>
-      <header className={x.head}>
-        <div>
-          <h1 className={x.title}>{data.program}</h1>
-          <p className={x.sub}>{data.line}</p>
-        </div>
-      </header>
+      <PageHead title={data.program} sub={data.line} />
       {data.programs.length > 1 && (
         <nav className={x.programs} aria-label="Programmes">
           {data.programs.map((p) => (

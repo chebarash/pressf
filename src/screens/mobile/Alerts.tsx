@@ -29,9 +29,9 @@ const SEMESTER: Row[] = [
 /** Mobile Alerts settings (Figma 8.5): what the bot sends, per type. Quiet hours from core (23:00–07:00). */
 export default function Alerts({ data }: { data: ProfileView }) {
   return (
-    <Screen className={s.noTopBar}>
+    <Screen>
       <div className={s.body} style={{ gap: 14 }}>
-        <h1 className={s.title54}>Alerts</h1>
+        <h1 className={`${s.title54} pf-m-title`}>Alerts</h1>
         <p className={cx(s.p0, s.t14, s.soft)} style={{ lineHeight: 1.4 }}>
           What the Press F bot sends you in Telegram. Quiet hours 23:00–07:00.
         </p>

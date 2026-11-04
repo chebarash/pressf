@@ -4,6 +4,7 @@ import * as adapt from "./adapt";
 import type { TermResultsData } from "./model";
 import { css, cx, Empty, Icon } from "./parts";
 import g from "./progress.module.css";
+import { PageHead } from "@/ui/shell/PageHeader";
 import { SortableRows, type SortableColumn } from "@/ui/table/Sort";
 
 /** D6 for an earlier semester: the 5.6 results laid out like Progress (tiles, one table, bottom cards). */
@@ -25,11 +26,7 @@ const TERM_COLUMNS: SortableColumn<"course" | "final" | "status" | "ects">[] = [
 export function ProgressTermScreen({ data }: { data: TermResultsData }) {
   return (
     <main data-desktop-screen className={cx(css.screen, g.main)}>
-      <Link prefetch href="/progress" className={g.back} data-key="Escape">
-        <Icon name="chevron-left" size={14} /> Progress
-      </Link>
-      <h1 className={g.title}>{data.title}</h1>
-      <p className={g.sub}>{data.sub}</p>
+      <PageHead title={data.title} sub={data.sub} back={{ href: "/progress", label: "Progress" }} />
 
       {data.tiles.length > 0 && (
         <section className={g.tiles}>

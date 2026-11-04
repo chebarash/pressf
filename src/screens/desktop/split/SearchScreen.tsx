@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Chip, EmptyState } from "@/ui/components";
+import { PageHead } from "@/ui/shell/PageHeader";
 import type { SearchData } from "../model";
 import { ButtonLink, css, cx, Hint, Icon, RatingStrip } from "../parts";
 import x from "../search.module.css";
@@ -18,6 +19,7 @@ export function SearchScreen({ data }: { data: SearchData }) {
 
   return (
     <main data-desktop-screen className={cx(css.screen, x.main)}>
+      <PageHead title="Search" sub={typed ? `${data.total} ${data.total === 1 ? "result" : "results"} for “${data.q.trim()}”` : "Courses, professors and files"} />
       <form action="/search" className={x.bar} role="search">
         <Icon name="search" size={20} />
         <input name="q" defaultValue={data.q} placeholder="Search courses, professors and files" aria-label="Search" autoFocus={!typed} />
