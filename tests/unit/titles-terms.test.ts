@@ -103,3 +103,11 @@ describe("the Google Calendar feed covers the whole semester", () => {
     expect(r.to >= "2026-12-31").toBe(true);
   });
 });
+
+import { downloadName } from "@/core/files";
+describe("downloaded files carry the title shown on the site", () => {
+  it("names an LMS file by its clean title and course", () => {
+    const o = { courseCode: "CS412", courseName: "Deep Learning", teachers: ["Sejuti Rahman"] };
+    expect(downloadName(cleanTitle("Week_5_L910_v5.pdf", o), "Deep Learning", "pdf", "pdf")).toBe("Lectures 9–10 — Deep Learning.pdf");
+  });
+});

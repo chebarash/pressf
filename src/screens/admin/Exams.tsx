@@ -37,7 +37,7 @@ export function Exams({ data }: { data: ExamsData }) {
 
   return (
     <section className={s.main}>
-      <Head title="Exams" sub="University exam sheets → each student's exams. During an exam window regular classes are hidden." />
+      <Head title="Exams" sub={`University exam sheets → each student's exams. During an exam window regular classes are hidden. Seats are matched by student ID: ${data.students.withId} of ${data.students.active} active students have one.`} />
 
       <section className={s.card}>
         <h2 className={s.h3}>Exam windows</h2>
