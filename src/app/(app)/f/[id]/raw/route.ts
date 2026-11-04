@@ -1,4 +1,5 @@
 import { getUser } from "@/lib/auth";
+import { asciiName } from "@/lib/storage";
 import { deliverUrl, downloadAllowed, fileSource } from "@/server/covers/source";
 
 /**
@@ -17,7 +18,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!res.ok || !res.body) return new Response("File unavailable", { status: 502 });
   const headers = new Headers({
     "Content-Type": res.headers.get("content-type") ?? src.mimeType ?? "application/octet-stream",
-    "Content-Disposition": "inline",
+    // Inline, but named like the download, so "Save" from the viewer keeps the site's clean name.
+    "Content-Disposition": `inline; filename="${asciiName(src.downloadName)}"; filename*=UTF-8''${encodeURIComponent(src.downloadName)}`,
     "Cache-Control": "private, max-age=3600",
     "X-Content-Type-Options": "nosniff",
   });

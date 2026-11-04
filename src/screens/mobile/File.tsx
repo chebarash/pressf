@@ -37,7 +37,7 @@ export default function File({ data }: { data: FileView }) {
       {data.url && data.format === "pdf" ? (
         <PdfPages
           src={data.url.replace("/download", "/raw")}
-          openUrl={data.url}
+          openUrl={data.url.replace("/download", "/raw")}
           title={data.title}
           pages={data.pages ?? null}
           fallback={<NoPreview code={data.formatCode} title="No preview here" text="Download it to open it on your phone." />}

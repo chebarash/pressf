@@ -135,6 +135,8 @@ button.navBtn { appearance: none; cursor: pointer; }
 .rowProbe { position: absolute; top: 0; left: 0; width: 1px; height: var(--row); visibility: hidden; pointer-events: none; }
 .monthTrack > .monthRow { position: absolute; top: 0; left: 0; right: 0; height: var(--row); border-bottom: 1.5px solid var(--border-subtle); scroll-snap-align: start; will-change: transform; }
 .monthTrack > .monthRow > [role="gridcell"] { min-height: 0; height: var(--row); overflow: hidden; gap: 4px; }
+/* Banners sit where each cell keeps room for them: 7px padding, the 16px date, the 4px gap. */
+.monthTrack > .monthRow > .monthSpans { top: 27px; }
 .cellOn { box-shadow: inset 0 0 0 2px var(--border-accent); }
 .chip { appearance: none; display: block; width: calc(100% - 4px); padding: 3px 6px; border: 1.25px solid var(--border-accent); border-radius: 6px; font: 600 11px/1.3 var(--font-sans); color: var(--text-primary); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 .chip.classOn { border-width: 2px; border-color: var(--border-strong); box-shadow: 0 2px 0 var(--shadow-key); }

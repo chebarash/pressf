@@ -105,6 +105,11 @@ describe("file preview context (D12)", () => {
     expect(d.course?.weeks[0].files.map((x) => x.id)).toEqual(["f1", "f2"]);
     expect(d.course?.teachers[0]).toMatchObject({ name: "Gonçalo Pinto", face: "/faces/t1", href: "/p/t1" });
   });
+
+  it("previews and opens the inline copy; only Download is the attachment", () => {
+    const d = adapt.file({ ...f, url: "/f/f1/download?exp=1&sig=s", downloadUrl: "/f/f1/download?exp=1&sig=s" } as FileView);
+    expect(d.file).toMatchObject({ previewUrl: "/f/f1/raw?exp=1&sig=s", openHref: "/f/f1/raw?exp=1&sig=s", downloadHref: "/f/f1/download?exp=1&sig=s" });
+  });
 });
 
 describe("professor background and years (D9)", () => {

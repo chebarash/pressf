@@ -12,7 +12,7 @@ import { trustOf, type Trust, type UploadStatus } from "@/core/uploads";
 import { db } from "@/lib/db";
 import {
   adminMarks, auditLog, broadcasts, courseRatings, feedItems, fileOverrides, lmsAccounts, lmsCache, lmsCourses,
-  lmsCourseTeachers, lmsFiles, lmsTeachers, mentionLinks, mentions, reports, searchEvents, teacherAliases, teacherRatings, uploads, userRoles, users,
+  lmsCourseTeachers, lmsFiles, lmsTeachers, mentionLinks, mentions, reports, searchEvents, teacherAliases, teacherRatings, uploads, userRoles, userState, users,
 } from "@/lib/db/schema";
 import { pseudonym } from "@/server/identity";
 import { syllabusQueueItems } from "@/server/syllabus-queue";
@@ -58,13 +58,23 @@ export async function chrome(viewer: { id: string; email: string }) {
 
 /* ───────── Health (overview + system) ───────── */
 
+/** An ISO timestamp read out of a JSON snapshot, as a Date (null when absent or unreadable). */
+const snapshotAt = (expr: ReturnType<typeof sql>) =>
+  expr.mapWith((v: unknown) => {
+    const d = v ? new Date(String(v)) : null;
+    return d && !Number.isNaN(d.getTime()) ? d : null;
+  });
+const newest = (...xs: Array<Date | null>) => xs.reduce<Date | null>((a, b) => (b && (!a || b > a) ? b : a), null);
+
 type Job = { id: string; name: string; every: string; lastRun: Date | null; result: string; ok: boolean; run?: "sync" | "harvest" };
 
 async function health(now: Date) {
   const day = new Date(now.getTime() - DAY_MS);
   const week = new Date(now.getTime() - 7 * DAY_MS);
-  const [cache, accounts, files, catalog, sent, absences, store, linked, flags] = await Promise.all([
+  const [[signIn], [synced], accounts, files, catalog, sent, absences, store, linked, flags] = await Promise.all([
     db().select({ at: max(lmsCache.syncedAt), n: count() }).from(lmsCache),
+    // The 5-minute student sync writes the snapshot in user_state; lms_cache only changes at sign-in.
+    db().select({ at: snapshotAt(sql`max(${userState.snapshot}->'lms'->>'at')`) }).from(userState),
     db().select({ status: lmsAccounts.status, n: count() }).from(lmsAccounts).groupBy(lmsAccounts.status),
     db().select({ at: max(lmsFiles.fetchedAt), week: sql<number>`count(*) filter (where ${lmsFiles.fetchedAt} > ${week})`, size: sum(lmsFiles.size) }).from(lmsFiles),
     db().select({ at: max(lmsCourses.fetchedAt), n: count() }).from(lmsCourses),
@@ -74,6 +84,7 @@ async function health(now: Date) {
     db().select({ n: count() }).from(users).where(isNotNull(users.telegramId)),
     settings(),
   ]);
+  const cache = [{ at: newest(signIn?.at ?? null, synced?.at ?? null), n: signIn?.n ?? 0 }];
   const late = (at: Date | null, everyMs: number) => !at || now.getTime() - at.getTime() > 3 * everyMs;
   const ago = (at: Date | null) => (at ? (now.getTime() - at.getTime() < 60_000 ? "now" : `${age(at, now)} ago`) : "never");
   const jobs: Job[] = [
@@ -120,7 +131,7 @@ export async function overview(now = new Date()) {
     db().select({ n: count() }).from(users),
     health(now),
     db()
-      .select({ status: uploads.status, n: count(), median: sql<number | null>`percentile_cont(0.5) within group (order by extract(epoch from ${uploads.reviewedAt} - ${uploads.createdAt}))` })
+      .select({ status: uploads.status, n: count(), median: sql<number | null>`percentile_cont(0.5) within group (order by extract(epoch from ${uploads.reviewedAt} - ${uploads.createdAt})) filter (where ${uploads.sourceKey} is null)` })
       .from(uploads)
       .where(gte(uploads.reviewedAt, week))
       .groupBy(uploads.status),
@@ -624,7 +635,7 @@ export async function peoplePage(q: string, selectedId: string | undefined, now 
     const [[u], [acct], [cache], ratingsGiven, [state]] = await Promise.all([
       db().select({ email: users.email, telegramId: users.telegramId, createdAt: users.createdAt, group: users.group }).from(users).where(eq(users.id, sel.id)),
       db().select({ lmsUserId: lmsAccounts.lmsUserId, status: lmsAccounts.status, lastUsedAt: lmsAccounts.lastUsedAt }).from(lmsAccounts).where(eq(lmsAccounts.userId, sel.id)),
-      db().select({ data: lmsCache.data, syncedAt: lmsCache.syncedAt }).from(lmsCache).where(eq(lmsCache.userId, sel.id)),
+      db().select({ data: lmsCache.data, syncedAt: lmsCache.syncedAt, snapshotAt: snapshotAt(sql`${userState.snapshot}->'lms'->>'at'`) }).from(lmsCache).leftJoin(userState, eq(userState.userId, lmsCache.userId)).where(eq(lmsCache.userId, sel.id)),
       db().select({ n: count() }).from(courseRatings).where(eq(courseRatings.rater, pseudonym(sel.id, "rater"))),
       db().select({ at: adminMarks.at }).from(adminMarks).where(and(eq(adminMarks.kind, "signout"), eq(adminMarks.target, sel.id))),
     ]);
@@ -636,7 +647,7 @@ export async function peoplePage(q: string, selectedId: string | undefined, now 
       initials: p.initials,
       line: [u.telegramId ? `Telegram linked` : null, acct?.lmsUserId ? `LMS ${acct.lmsUserId}` : null, p.year ? `Year ${p.year}` : null, u.group].filter(Boolean).join(" · "),
       signedIn: `since ${since}${acct?.lastUsedAt ? ` · last seen ${age(acct.lastUsedAt, now)} ago` : ""}`,
-      lms: acct ? (acct.status === "active" ? `OK · ${cache ? `synced ${age(cache.syncedAt, now)} ago` : "not synced yet"}` : "Password changed — waiting for a new sign-in") : "Not linked",
+      lms: acct ? (acct.status === "active" ? `OK · ${cache ? `synced ${age(newest(cache.syncedAt, cache.snapshotAt) ?? cache.syncedAt, now)} ago` : "not synced yet"}` : "Password changed — waiting for a new sign-in") : "Not linked",
       bot: u.telegramId ? "Linked" : "Not linked",
       ratings: `${n(ratingsGiven[0]?.n)} given (content private)`,
       signedOutAt: state?.at ?? null,

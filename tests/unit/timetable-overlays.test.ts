@@ -81,6 +81,15 @@ describe("Timetable: one model, two views", () => {
     );
     expect(list.map((e) => e.key)).toEqual(["phase:reg", "deadline:1"]);
   });
+
+  it("drops today's exam once it is over", () => {
+    const events = [
+      ev({ key: "class:toc", layer: "exams", day: "2026-11-04", time: "09:45", ends: "2026-11-04T06:45:00.000Z" }),
+      ev({ key: "class:cc", layer: "exams", day: "2026-11-05", time: "12:30", ends: "2026-11-05T09:30:00.000Z" }),
+    ];
+    expect(comingUp(events, "2026-11-04", 6, new Date("2026-11-04T05:00:00Z")).map((e) => e.key)).toEqual(["class:toc", "class:cc"]);
+    expect(comingUp(events, "2026-11-04", 6, new Date("2026-11-04T13:00:00Z")).map((e) => e.key)).toEqual(["class:cc"]);
+  });
 });
 
 describe("the lesson panel picks that dated lesson's facts", () => {

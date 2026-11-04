@@ -332,7 +332,7 @@ export async function course(code: string, term: string | null, viewer: Viewer, 
   if (student && taken) {
     if (openIds.has(taken.semesterId)) {
       const p = progressRows.find((r) => r.courseId === taken.subjectId);
-      you = { status: "now", courseId: taken.subjectId, mark: p?.mark ?? null, average: taken.average, rating: taken.rating, absences: p?.absences ?? null, next: p?.next ?? null };
+      you = { status: "now", courseId: taken.subjectId, mark: p?.mark ?? null, average: p ? p.average : taken.average, rating: p ? p.rating : taken.rating, absences: p?.absences ?? null, next: p?.next ?? null };
     } else {
       const semester = student.sync.semesters.find((s) => s.id === taken.semesterId);
       you = {
