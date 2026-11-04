@@ -123,13 +123,17 @@ async function usersByStudentId(): Promise<Map<string, string>> {
  * Fills the student ID for synced students whose cached profile predates it:
  * one GET /users/current with their own session each, a few at a time.
  */
+/** How long before a student whose LMS gave no student ID is asked again. */
+const ID_RETRY_MS = 24 * 3600_000;
+
 export async function backfillStudentIds(limit = 40, budgetMs = 60_000): Promise<{ checked: number; found: number }> {
   const until = Date.now() + budgetMs;
   const rows = await db()
     .select({ userId: lmsCache.userId })
     .from(lmsCache)
     .innerJoin(lmsAccounts, eq(lmsAccounts.userId, lmsCache.userId))
-    .where(and(eq(lmsAccounts.status, "active"), sql`${lmsCache.data}->'profile' is not null and jsonb_typeof(${lmsCache.data}->'profile') = 'object'`, sql`not (${lmsCache.data}->'profile' ? 'studentId')`))
+    .where(and(eq(lmsAccounts.status, "active"), sql`${lmsCache.data}->'profile' is not null and jsonb_typeof(${lmsCache.data}->'profile') = 'object'`, sql`(not (${lmsCache.data}->'profile' ? 'studentId') or (jsonb_typeof(${lmsCache.data}->'profile'->'studentId') = 'null' and coalesce(${lmsCache.data}->'profile'->>'studentIdCheckedAt', '') < ${new Date(Date.now() - ID_RETRY_MS).toISOString()}))`))
+    .orderBy(sql`${lmsCache.data}->'profile'->>'studentIdCheckedAt' asc nulls first`)
     .limit(limit);
   let found = 0;
   for (const { userId } of rows) {
@@ -138,7 +142,8 @@ export async function backfillStudentIds(limit = 40, budgetMs = 60_000): Promise
     const me = session ? await currentUser(session).catch(() => null) : null;
     if (!session || !me) continue;
     const id = studentIdOf(me);
-    await db().update(lmsCache).set({ data: sql`jsonb_set(${lmsCache.data}, '{profile,studentId}', ${JSON.stringify(id)}::jsonb)` }).where(eq(lmsCache.userId, userId));
+    // An empty ID is retried a day later (the LMS fills external_id late), not given up on.
+    await db().update(lmsCache).set({ data: sql`jsonb_set(jsonb_set(${lmsCache.data}, '{profile,studentId}', ${JSON.stringify(id)}::jsonb), '{profile,studentIdCheckedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)` }).where(eq(lmsCache.userId, userId));
     if (id) found++;
   }
   return { checked: rows.length, found };
@@ -534,9 +539,15 @@ export function examWeekNote(windows: ExamWindow[], day: string): string | null 
 /* ───────────── admin page ───────────── */
 
 export async function examsAdmin(now = new Date()) {
-  const [sources, windows] = await Promise.all([
+  const [sources, windows, [ids]] = await Promise.all([
     db().select().from(examSources).orderBy(sql`${examSources.starts} desc`, sql`${examSources.createdAt} desc`),
     examWindowList(),
+    // Seats are matched by student ID: how many active students have one.
+    db()
+      .select({ active: sql<number>`count(*)::int`, withId: sql<number>`count(*) filter (where coalesce(${lmsCache.data}->'profile'->>'studentId', '') <> '')::int` })
+      .from(lmsAccounts)
+      .leftJoin(lmsCache, eq(lmsCache.userId, lmsAccounts.userId))
+      .where(eq(lmsAccounts.status, "active")),
   ]);
   const today = localDay(now);
   return {
@@ -546,5 +557,6 @@ export async function examsAdmin(now = new Date()) {
       fetchedAt: s.fetchedAt?.toISOString() ?? null, importedAt: s.importedAt?.toISOString() ?? null, layout: ((s.mapping as Mapping | null)?.tabs ?? []).map((t) => `${t.tab}: ${t.layout.replace("_", " ")}`),
     })),
     windows: windows.filter((w) => w.ends >= addDays(today, -60)).map((w) => ({ ...w, now: w.starts <= today && today <= w.ends })),
+    students: { active: ids?.active ?? 0, withId: ids?.withId ?? 0 },
   };
 }
