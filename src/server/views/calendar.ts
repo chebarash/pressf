@@ -28,6 +28,8 @@ export type CalendarEvent = {
   endDay: string;
   time: string | null;
   href: string | null;
+  /** When a timed event is over (an exam's end, a deadline), ISO; Coming up drops it after that. */
+  ends?: string;
 };
 
 export type CalendarView = {
@@ -87,14 +89,14 @@ export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = n
       if (c.kind !== "exam" || !on.has("exams")) continue;
       events.push({
         key: `class:${c.key}`, layer: "exams", title: `${c.name} ${c.exam?.kind ?? "exam"}`,
-        sub: [LAYER_LABEL.exams, c.time, c.room].filter(Boolean).join(" · "), day, endDay: day, time: c.time, href: c.code ? `/c/${c.code}` : null,
+        sub: [LAYER_LABEL.exams, c.time, c.room].filter(Boolean).join(" · "), day, endDay: day, time: c.time, href: c.code ? `/c/${c.code}` : null, ends: c.end,
       });
     }
     if (on.has("deadlines")) {
       for (const d of deadlines(student.sync.homework)) {
         const day = localDay(d.due);
         if (day < from || day > to || (d.status !== "todo" && d.status !== "in-progress")) continue;
-        events.push({ key: `deadline:${d.id}`, layer: "deadlines", title: d.title, sub: `Deadline · ${d.course} · ${clock(d.due)}`, day, endDay: day, time: clock(d.due), href: "/progress/assignments" });
+        events.push({ key: `deadline:${d.id}`, layer: "deadlines", title: d.title, sub: `Deadline · ${d.course} · ${clock(d.due)}`, day, endDay: day, time: clock(d.due), href: "/progress/assignments", ends: d.due.toISOString() });
       }
     }
   }
