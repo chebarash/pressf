@@ -388,3 +388,12 @@ describe("uploads, roles, people, grades, deadlines", () => {
     expect(remindersDue(d, at("2026-11-03T12:01:00"), at("2026-11-03T11:00:00"))).toEqual([48]);
   });
 });
+
+describe("dated labels", () => {
+  it("adds the year only for another year", async () => {
+    const { datedLabel } = await import("@/core/time");
+    const now = new Date("2026-11-04T12:00:00Z");
+    expect(datedLabel("2026-11-08", now)).toBe("8 Nov");
+    expect(datedLabel("2025-11-08", now)).toBe("8 Nov 2025");
+  });
+});
