@@ -101,7 +101,7 @@ export function WeekList({ weeks: all, filesHref, filesTotal, extra, teachingWee
         ) : null}
         {filesTotal ? (
           <Link href={filesHref} className={s.ghost} prefetch>
-            All {filesTotal} files
+            {filesTotal === 1 ? "1 file" : `All ${filesTotal} files`}
             <ChevronRightIcon size={20} />
           </Link>
         ) : null}
