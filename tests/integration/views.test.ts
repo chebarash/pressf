@@ -47,7 +47,7 @@ describe("today", () => {
     const tue = new Date("2026-11-03T06:00:00Z");
     const t = (await views.timetable(userId, "2026-11-03", tue))!;
     expect(t.classes.map((c) => [c.name, c.time, c.room])).toEqual([["Physics 1", "13:00", "A-108"]]);
-    expect(t.week.map((d) => d.label)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+    expect(t.week.map((d) => d.label)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
   });
 
   it("never paints this semester's weekly pattern over another term or exam weeks", async () => {

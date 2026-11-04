@@ -158,7 +158,7 @@ export const TODAY_STATES = {
   "2.1-morning": () => student(at(MON, "08:30")),
   "2.2-afternoon": () => student(at(MON, "14:30")),
   "2.3-over": () => student(at(MON, "17:30")),
-  "2.4-weekend": () => student(at("2026-10-31", "11:00")),
+  "2.4-weekend": () => student(at("2026-11-01", "11:00")),
   "2.5-break": () => {
     const v = student(at("2026-12-23", "11:00"), { dueSoon: [], nextExams: [], examsThisWeek: [] }, { classes: false });
     return { ...v, notifications: { unread: 1, items: v.notifications.items.filter((i) => i.kind === "anonymous") } };

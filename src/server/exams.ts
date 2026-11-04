@@ -45,13 +45,18 @@ export type ExamWindow = { key: string; kind: ExamKind; name: string; starts: st
 const PHASE_NAME: Record<string, string> = { midterm: "Midterm exams", final: "Final exams" };
 
 /** Midterm and final weeks of the published calendar (consecutive weeks merged). */
+/** A Friday becomes the Saturday after it; other days stay. */
+const throughSaturday = (day: string) => (new Date(`${day}T00:00:00Z`).getUTCDay() === 5 ? addDays(day, 1) : day);
+
 export function calendarWindows(weeks = WEEKS): ExamWindow[] {
   const out: ExamWindow[] = [];
   for (const w of weeks.filter((x) => x.kind === "midterm" || x.kind === "final")) {
     const kind = w.kind as Extract<WeekKind, "midterm" | "final">;
     const last = out.at(-1);
-    if (last && last.kind === kind && w.starts <= addDays(last.ends, 3)) last.ends = w.ends;
-    else out.push({ key: `${kind}:${w.starts}`, kind, name: PHASE_NAME[kind], starts: w.starts, ends: w.ends, classes: "hide", origin: "calendar" });
+    // The calendar lists weeks Mon–Fri; the Saturday is part of the exam week too.
+    const ends = throughSaturday(w.ends);
+    if (last && last.kind === kind && w.starts <= addDays(last.ends, 2)) last.ends = ends;
+    else out.push({ key: `${kind}:${w.starts}`, kind, name: PHASE_NAME[kind], starts: w.starts, ends, classes: "hide", origin: "calendar" });
   }
   return out;
 }

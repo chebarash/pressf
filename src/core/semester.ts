@@ -21,7 +21,7 @@ const HOLIDAY_NAMES: Record<string, string> = {
 export const WEEKS = calendar.weeks as CalendarWeek[];
 export const HOLIDAYS: Holiday[] = calendar.holidays.map((h) => ({ date: h.date, name: HOLIDAY_NAMES[h.date] ?? "Holiday" }));
 
-/** The week containing `day`; a weekend belongs to the week that just ended. */
+/** The week containing `day` (the calendar lists Mon–Fri; Saturday and Sunday belong to the week that just ended). */
 export function weekOf(day: string, weeks = WEEKS): CalendarWeek | null {
   return (
     weeks.find((w) => w.starts <= day && day <= w.ends) ??
@@ -70,7 +70,8 @@ export function dayInfo(now: Date, weeks = WEEKS, holidays = HOLIDAYS): DayInfo 
   const week = weekOf(day, weeks);
   const holiday = holidayOn(day, holidays);
   const weekday = localWeekday(now);
-  const weekend = weekday === 0 || weekday === 6;
+  // NewUU teaches on Saturdays: only Sunday is a day off.
+  const weekend = weekday === 0;
   const studyDay = !!week && !weekend && !holiday && ["teaching", "midterm", "final", "resit_exam", "induction"].includes(week.kind);
   return { day, week, label: weekLabel(week, weeks), holiday, weekend, studyDay };
 }

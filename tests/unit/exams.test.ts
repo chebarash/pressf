@@ -167,7 +167,7 @@ describe("changes", () => {
 describe("exam windows", () => {
   it("come from the calendar's midterm and final weeks", () => {
     const list = calendarWindows();
-    expect(list.find((w) => w.key === "midterm:2026-11-02")).toMatchObject({ kind: "midterm", starts: "2026-11-02", ends: "2026-11-06", classes: "hide" });
+    expect(list.find((w) => w.key === "midterm:2026-11-02")).toMatchObject({ kind: "midterm", starts: "2026-11-02", ends: "2026-11-07", classes: "hide" });
     expect(list.some((w) => w.kind === "final")).toBe(true);
     expect(hidingWindows(list, "2026-11-04", "2026-11-04").map((w) => w.key)).toEqual(["midterm:2026-11-02"]);
     expect(examWeekNote(list, "2026-11-04")).toBe("No regular classes during midterm week");

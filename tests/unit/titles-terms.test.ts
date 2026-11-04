@@ -79,7 +79,8 @@ describe("LMS lesson types by number", () => {
 import { dayOff } from "@/server/views/timetable";
 describe("why a day has no classes", () => {
   it("names holidays and weekends, and leaves teaching days alone", () => {
-    expect(dayOff("2026-11-07")).toBe("Weekend");
+    expect(dayOff("2026-11-08")).toBe("Weekend");
+    expect(dayOff("2026-10-31")).toBeNull();
     expect(dayOff("2026-11-04")).toBeNull();
   });
 });
