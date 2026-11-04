@@ -65,7 +65,7 @@ export function CourseFiles({ data }: { data: CourseFilesData }) {
 
   return (
     <section className={s.main}>
-      <Head title={data.name} sub={`${data.code} · ${counts.all} files: ${counts.lms} from LMS, ${counts.students} from students`} />
+      <Head title={data.name} sub={`${data.code} · ${counts.all} file${counts.all === 1 ? "" : "s"}: ${counts.lms} from LMS, ${counts.students} from students`} />
       <div className={s.hstack} style={{ minHeight: 100 }}>
         {(["all", "lms", "students", "hidden"] as Filter[]).map((k) => (
           <button key={k} type="button" className={cx(s.chip, filter === k && s.chipInverse)} onClick={() => (setFilter(k), setPicked(new Set()))}>

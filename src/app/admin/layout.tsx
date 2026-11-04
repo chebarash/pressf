@@ -13,9 +13,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { counts, me } = await chrome(viewer);
   const sections = adminSections(viewer.role).map(({ id, label }) => ({ id, label }));
   return (
-    <div className={s.shell}>
-      <Sidebar sections={sections} counts={counts} me={{ ...me, role: viewer.role === "admin" ? "Admin" : "Moderator" }} />
-      {children}
+    <div className={s.viewport}>
+      <div className={s.shell}>
+        <Sidebar sections={sections} counts={counts} me={{ ...me, role: viewer.role === "admin" ? "Admin" : "Moderator" }} />
+        {children}
+      </div>
     </div>
   );
 }
