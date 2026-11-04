@@ -8,7 +8,17 @@ import type { IconName } from "./icons";
  */
 export const NAV_PREFIX = "f";
 
-export type NavItem = { label: string; href: string; icon: IconName; key: string; group: "main" | "browse"; badge?: "new" | "count" };
+export type NavItem = {
+  label: string;
+  /** The page itself, never a path that redirects: a redirect costs a second round trip, skips the loading skeleton and the page change. */
+  href: string;
+  icon: IconName;
+  key: string;
+  group: "main" | "browse";
+  badge?: "new" | "count";
+  /** Other paths that belong to the section (active there too). */
+  also?: string[];
+};
 
 export const NAV: NavItem[] = [
   { label: "Today", href: path({ to: "today" }), icon: "pin", key: "h", group: "main" },
@@ -17,7 +27,7 @@ export const NAV: NavItem[] = [
   { label: "Progress", href: path({ to: "progress" }), icon: "check", key: "p", group: "main" },
   { label: "Notifications", href: path({ to: "notifications" }), icon: "mail", key: "n", group: "main", badge: "count" },
   { label: "Professors", href: "/professors", icon: "users", key: "r", group: "browse" },
-  { label: "Curriculum", href: "/programs", icon: "file", key: "u", group: "browse" },
+  { label: "Curriculum", href: "/programs/mine/curriculum", icon: "file", key: "u", group: "browse", also: ["/programs", "/schools"] },
 ];
 
 /**
@@ -31,3 +41,6 @@ export const NAV_VIEWS: Array<{ label: string; href: string; key: string }> = [
 /** Active when the path is the item's or below it (Today only on "/"). */
 export const isActive = (href: string, pathname: string) =>
   href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+
+/** A sidebar item is active on its page and anywhere in its section. */
+export const navActive = (n: Pick<NavItem, "href" | "also">, pathname: string) => isActive(n.href.split("?")[0], pathname) || !!n.also?.some((p) => isActive(p, pathname));

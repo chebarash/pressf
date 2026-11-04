@@ -1,5 +1,6 @@
 "use client";
 
+import { ScreenHint } from "@/ui/shell/Hints";
 import { useRouter } from "next/navigation";
 import { useCallback, useOptimistic, useState, useTransition } from "react";
 import type { FeedKind } from "@/core/notifications";
@@ -64,6 +65,7 @@ export default function Notifications({ data }: { data: NotificationsView }) {
   return (
     <div className={`${s.screen} ${s.notifBody}`}>
       <h1 className={s.notifTitle}>Notifications</h1>
+      <ScreenHint screen="notifications" ctx={{ desktop: false }} />
       <div className={s.unreadRow}>
         <p className={s.unreadCount}>{unread ? `${unread} unread` : "All read"}</p>
         <button type="button" className={s.linkButton} onClick={markAll} disabled={!canMarkAll}>

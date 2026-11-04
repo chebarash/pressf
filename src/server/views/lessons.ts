@@ -46,8 +46,6 @@ export type LessonInfo = {
   files: FileItem[];
   homework: Array<{ id: string; title: string; due: string; status: string; grade: number | null }>;
   absences: AbsencesView | null;
-  /** The course in the LMS (the LMS has no page per lesson). */
-  lmsHref: string | null;
 };
 
 export const LMS_SITE = "https://newuzbekistan.hero.study";
@@ -167,7 +165,6 @@ export async function lessonInfos(student: Student, classes: ClassView[], now: D
       files: overlayAll(files, overrides),
       homework: homeworkFor(student.sync.homework, c),
       absences: progress.find((p) => p.courseId === c.courseId)?.absences ?? null,
-      lmsHref: c.courseId && /^\d+$/.test(c.courseId) ? `${LMS_SITE}/subjects/${c.courseId}` : null,
     });
   }
   return out;

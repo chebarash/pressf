@@ -2,23 +2,23 @@
 
 import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
-import { FeedLayers } from "@/screens/mobile/mc/FeedLayers";
-import { subscribeHint } from "@/screens/mobile/mc/format";
 import { lessonPanel } from "@/screens/shared/schedule/lesson";
 import { classByKey } from "@/screens/shared/schedule/model";
 import { useSchedule } from "@/screens/shared/schedule/store";
 import type { CalendarEvent, CalendarLayer, ScheduleClass } from "@/server/views";
 import { Tab } from "@/ui/components";
+import { ScreenHint } from "@/ui/shell/Hints";
 import { PageHead } from "@/ui/shell/PageHeader";
 import k from "../calendar.module.css";
 import type { CalendarKind } from "../model";
-import { AnchorButton, ButtonLink, css, cx, FileRow, Hint, Icon, Tag } from "../parts";
+import { ButtonLink, css, cx, FileRow, Hint, Icon, Tag } from "../parts";
 import t from "../timetable.module.css";
 
 /**
  * What Timetable's Week and Month share (they are two renderers of one state):
  * the header with the Week | Month switch and ‹ Today ›, the inspector (the
- * clicked lesson, else "Coming up" with the Google Calendar feed).
+ * clicked lesson, else "Coming up"). The Google Calendar feed lives in
+ * Settings → Calendar; Timetable only offers it once, as a hint.
  */
 
 export const KIND: Record<CalendarLayer, CalendarKind> = { classes: "class", exams: "exam", deadlines: "deadline", holidays: "holiday", registration: "registration" };
@@ -40,14 +40,15 @@ export function ViewSwitch() {
 /** The header both views share: title, what is on screen, the switch, ‹ Today › (← → on the keyboard). */
 export function ScheduleHeader({ sub, unit, onPrev, onToday, onNext }: { sub: string; unit: "week" | "month"; onPrev: () => void; onToday: () => void; onNext: () => void }) {
   return (
+    <>
     <PageHead title="Timetable" sub={sub} className={t.head}>
       <ViewSwitch />
       <nav className={t.weekNav} aria-label={unit === "week" ? "Week" : "Month"}>
         <button type="button" className={t.navBtn} onClick={onPrev} data-key="ArrowLeft" aria-label={`Previous ${unit}`}>
           ‹
         </button>
-        <button type="button" className={t.navBtn} onClick={onToday}>
-          {unit === "week" ? "This week" : "This month"}
+        <button type="button" className={t.navBtn} onClick={onToday} aria-label={unit === "week" ? "Today, this week" : "Today, this month"}>
+          Today
         </button>
         <button type="button" className={t.navBtn} onClick={onNext} data-key="ArrowRight" aria-label={`Next ${unit}`}>
           ›
@@ -55,6 +56,8 @@ export function ScheduleHeader({ sub, unit, onPrev, onToday, onNext }: { sub: st
         <Hint>← →</Hint>
       </nav>
     </PageHead>
+    <ScreenHint screen="timetable" ctx={{ desktop: true }} className={t.hint} />
+    </>
   );
 }
 
@@ -175,18 +178,13 @@ export function LessonInspector({ c, onClose }: { c: ScheduleClass; onClose: () 
         </section>
       )}
 
-      <div className={t.actions}>
-        {p.courseHref && (
+      {p.courseHref && (
+        <div className={t.actions}>
           <ButtonLink href={p.courseHref} keyName="Enter">
             Open course
           </ButtonLink>
-        )}
-        {p.lmsHref && (
-          <AnchorButton href={p.lmsHref} target="_blank" rel="noopener noreferrer" variant="secondary">
-            Open in LMS
-          </AnchorButton>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
@@ -198,7 +196,7 @@ const Fact = ({ icon, children }: { icon: ReactNode; children: ReactNode }) => (
   </p>
 );
 
-/** "Coming up": exams, deadlines, holidays and registration from today, then the Google Calendar feed and its settings. */
+/** "Coming up": exams, deadlines, holidays and registration from today. */
 export function ComingUp({ className }: { className?: string }) {
   const { page } = useSchedule();
   return (
@@ -214,12 +212,6 @@ export function ComingUp({ className }: { className?: string }) {
           </span>
         </div>
       ))}
-      {/* Google's add-by-URL page for the student's own feed; in Telegram the bridge opens it with openLink. */}
-      <AnchorButton href={page.subscribe.google} target="_blank" rel="noopener noreferrer" variant="secondary">
-        Add to Google Calendar
-      </AnchorButton>
-      <p className={k.itemMeta}>{subscribeHint(page.subscribe.personal)}</p>
-      {page.feed && <FeedLayers layers={page.feed.layers} size="sm" />}
     </section>
   );
 }

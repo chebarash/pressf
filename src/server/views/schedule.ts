@@ -1,8 +1,7 @@
 import { dayInfo } from "@/core/semester";
 import { addDays, clock, dayStart, localDay, localMinutes, localWeekday, shortDate } from "@/core/time";
-import { calendarFeed, feedLayersOf, personalSubscription } from "@/server/calendar-feed";
 import { examWeekNote, examWindowList } from "@/server/exams";
-import { academicEvents, calendar, LAYERS, type CalendarEvent, type CalendarLayer, type CalendarView } from "./calendar";
+import { academicEvents, calendar, LAYERS, type CalendarEvent, type CalendarLayer } from "./calendar";
 import { classesBetween, type ClassView } from "./classes";
 import { lessonInfos, type LessonInfo } from "./lessons";
 import { DAY_ABBR, deadlines } from "./shared";
@@ -16,7 +15,8 @@ import { dayOff } from "./timetable";
  * exam weeks, holidays, registration). Week and Month (Day and Month on the
  * phone) are two renderers of the same weeks, loaded as they scroll into view
  * (`scheduleWeeks`, served by /api/timetable). The site always shows
- * everything; only the Google Calendar feed has settings.
+ * everything; the Google Calendar feed and its settings live in Settings →
+ * Calendar (src/server/views/profile.ts).
  */
 
 export type TimetableMode = "week" | "month";
@@ -66,10 +66,6 @@ export type SchedulePage = {
   weeks: ScheduleWeek[];
   /** From today on, soonest first: "Coming up". */
   coming: CalendarEvent[];
-  /** "Add to Google Calendar": the student's own feed, or the public academic calendar for guests. */
-  subscribe: CalendarView["subscribe"];
-  /** "In Google Calendar": what the student's feed carries; null for guests. */
-  feed: { layers: Array<{ id: CalendarLayer; label: string; on: boolean }> } | null;
   signedIn: boolean;
   sync: SyncState | null;
 };
@@ -170,7 +166,7 @@ export function openingWeeks(view: TimetableMode, day: string): { from: string; 
   return { from, count: Math.min(MAX_WEEKS, Math.ceil((Date.parse(end) - Date.parse(from)) / (7 * 86_400_000)) + 1) };
 }
 
-/** The Timetable page: the opening weeks, "Coming up" and the Google Calendar feed. Null for a guest asking for the week. */
+/** The Timetable page: the opening weeks and "Coming up". Null for a guest asking for the week. */
 export async function schedule(userId: string | null, opts: { view: TimetableMode; day?: string | null }, now = new Date()): Promise<SchedulePage | null> {
   const today = localDay(now);
   const day = isDay(opts.day) ? opts.day : today;
@@ -178,21 +174,13 @@ export async function schedule(userId: string | null, opts: { view: TimetableMod
   const student = userId ? await loadStudent(userId) : null;
   if (userId && !student) return null;
   const open = openingWeeks(opts.view, day);
-  const [weeks, cal, feed] = await Promise.all([
-    scheduleWeeks(userId, open.from, open.count, now, student),
-    calendar(userId ? { userId } : null, ALL, now),
-    // Without a feed (no signing key on this server) the page still opens, with the public calendar to add.
-    userId ? calendarFeed(userId).catch(() => null) : Promise.resolve(null),
-  ]);
-  const on = feed ? feedLayersOf(feed.layers) : [];
+  const [weeks, cal] = await Promise.all([scheduleWeeks(userId, open.from, open.count, now, student), calendar(userId ? { userId } : null, ALL, now)]);
   return {
     view: opts.view,
     day,
     today,
     weeks,
     coming: comingUp(cal.days.flatMap((d) => d.events), today),
-    subscribe: feed ? personalSubscription(feed.token) : cal.subscribe,
-    feed: feed ? { layers: LAYERS.map((l) => ({ ...l, on: on.includes(l.id) })) } : null,
     signedIn: !!student,
     sync: student?.state ?? null,
   };

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Chip } from "@/ui/components";
+import { ScreenHint } from "@/ui/shell/Hints";
 import { PageHead } from "@/ui/shell/PageHeader";
 import x from "../lists.module.css";
 import type { ProfessorsData } from "../model";
@@ -38,6 +39,7 @@ export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
           <Hint>/ to filter</Hint>
         </label>
       </PageHead>
+      <ScreenHint screen="professors" ctx={{ desktop: true }} />
       {data.schools.length > 1 && (
         <div className={css.chips}>
           <Chip size="s" label="All" selected={!school} onClick={() => pickSchool(null)} />
