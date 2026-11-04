@@ -91,6 +91,17 @@ export async function curriculum(viewer: Viewer, programId?: string | null): Pro
   return { program: plan.programId ? { id: plan.programId, name } : null, years: [...years.values()].sort((a, b) => a.year - b.year), programs: programList };
 }
 
+/** Programs whose LMS department names no school: the field in the program's own name says where it sits. */
+const PROGRAM_SCHOOL: Array<[RegExp, string]> = [
+  [/econom/i, "School of Humanities, Natural and Social Sciences"],
+  [/cyber|robotic|artificial intelligence|\bAI\b|computer|software|data science/i, "School of Computing"],
+  [/physics|aerospace|mechanical|chemical|materials|engineering/i, "School of Engineering"],
+  [/management|business/i, "School of Management"],
+  [/math|econom|linguistic|tesol|pedagog|education|english/i, "School of Humanities, Natural and Social Sciences"],
+  [/medic/i, "School of Medicine"],
+  [/agro/i, "School of Agrotechnologies"],
+];
+
 const slugOf = (name: string) => name.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 export type SchoolsView = { schools: Array<{ id: string; name: string; programs: Array<{ id: string; name: string }> }>; programCount: number };
@@ -127,7 +138,8 @@ export const schools = publicCache(
     };
     const byProgramName = (name: string | null) => {
       const unit = unitOf(name);
-      return unit && SCHOOLS.some((x) => x.name === unit.school) ? { id: slugOf(unit.school), name: unit.school } : null;
+      const school = unit && SCHOOLS.some((x) => x.name === unit.school) ? unit.school : PROGRAM_SCHOOL.find(([re]) => re.test(name ?? ""))?.[1] ?? null;
+      return school ? { id: slugOf(school), name: school } : null;
     };
     const out = new Map<string, SchoolsView["schools"][number]>();
     for (const p of programs) {
