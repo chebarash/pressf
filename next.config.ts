@@ -11,6 +11,21 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{ source: "/calendar", destination: "/timetable?view=month", permanent: false }];
   },
+  // "From a photo" in the admin face constructor runs MediaPipe in the browser
+  // from public/mediapipe (same origin, nothing from a CDN). The site sends no
+  // CSP; if one is added it must allow 'self' scripts and fetches plus
+  // 'wasm-unsafe-eval' for these files. The wasm and models are ~18 MB: cache them.
+  async headers() {
+    return [
+      {
+        source: "/mediapipe/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+        ],
+      },
+    ];
+  },
   serverExternalPackages: ["pdf-lib", "@pdf-lib/fontkit", "pdfjs-dist", "pg"],
   outputFileTracingIncludes: {
     "/api/telegram/files": ["./src/lib/telegram/fonts/*.ttf", "./src/server/covers/assets/*"],

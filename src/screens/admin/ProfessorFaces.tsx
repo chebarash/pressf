@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ChangeEvent, type RefObject } from "react";
 import { buildFace, removeFace, uploadFace, type Result } from "@/app/admin/actions";
-import { DEFAULT_NOTION_FACE, isNotionFace, NOTION_ROWS, NOTION_TAGS, notionFacePreviewUrl, notionFaceString, notionThumbUrl, notionTileTransform, parseNotionFace, randomNotionFace, type NotionFace, type NotionField } from "@/core/notion-faces";
+import { DEFAULT_NOTION_FACE, isNotionFace, NOTION_FIELDS, NOTION_ROWS, NOTION_TAGS, notionFacePreviewUrl, notionFaceString, notionThumbUrl, notionTileTransform, parseNotionFace, randomNotionFace, type NotionFace, type NotionField } from "@/core/notion-faces";
+import type { Suggestions } from "@/core/notion-faces/match";
+import type { NotionPart } from "@/core/notion-faces/parts";
 import type { facesPage } from "@/server/admin/faces";
 import f from "./faces.module.css";
 import { Btn, Chip, Head, KV, Label, cx, s } from "./ui";
@@ -188,6 +190,8 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
   const [face, setFace] = useState<NotionFace>(isNotionFace(sel.spec) ? sel.spec : DEFAULT_NOTION_FACE);
   const [link, setLink] = useState("");
   const [linkNote, setLinkNote] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const photo = usePhotoFace(photoInput, (suggested) => setFace(firstOf(suggested)));
   const src = notionFacePreviewUrl(face);
   const set = (field: NotionField, id: number) => setFace((old) => ({ ...old, [field]: id }));
 
@@ -202,7 +206,10 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
   const save = () =>
     run(async () => {
       const r = await buildFace(sel.id, face);
-      if (r.ok) close();
+      if (r.ok) {
+        photo.clear();
+        close();
+      }
       return r;
     });
 
@@ -224,10 +231,26 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
       </div>
       <div className={s.actions}>
         <Btn onClick={() => setFace(randomNotionFace())}>Randomize</Btn>
+        <Btn onClick={photo.pick} disabled={photo.busy}>{photo.busy ? "Reading the photo…" : "From a photo"}</Btn>
         <a className={s.link} href={`https://faces.notion.com/?face=${notionFaceString(face)}`} target="_blank" rel="noreferrer">
           Open on Notion Faces
         </a>
       </div>
+      <input ref={photoInput} type="file" accept="image/*" hidden onChange={photo.onFile} aria-label="Photo of the professor" />
+      {photo.url && (
+        <div className={f.photo}>
+          {/* The photo, from this browser's memory only (an object URL, revoked when it's cleared); never uploaded. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photo.url} alt="" width={56} height={56} />
+          <p className={s.small} style={{ margin: 0, flex: "1 0 0" }}>
+            {photo.suggested ? "Parts picked from the photo, best first in each row. The photo stays in this browser and is never saved." : "Reading the photo in this browser…"}
+          </p>
+          <button type="button" className={s.link} onClick={photo.clear}>
+            Clear
+          </button>
+        </div>
+      )}
+      {photo.error && <div className={s.error}>{photo.error}</div>}
       <form
         className={s.hstack}
         onSubmit={(e) => {
@@ -241,7 +264,7 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
       {linkNote && <div className={s.error}>{linkNote}</div>}
       <div className={f.parts}>
         {NOTION_ROWS.map((row) => (
-          <PartRow key={row.field} row={row} value={face[row.field]} onPick={(id) => set(row.field, id)} />
+          <PartRow key={row.field} row={row} value={face[row.field]} suggested={photo.suggested?.[row.field]} onPick={(id) => set(row.field, id)} />
         ))}
       </div>
       <p className={s.small} style={{ margin: 0 }}>Parts from Notion Faces (faces.notion.com).</p>
@@ -255,8 +278,76 @@ function FaceBuilder({ sel, pending, run, note, close }: DetailProps & { close: 
   );
 }
 
+/* ───────── From a photo ───────── */
+
+/** The face of the photo's best suggestions (each category's first). */
+const firstOf = (s: Suggestions): NotionFace => ({ v: 3, ...(Object.fromEntries(NOTION_FIELDS.map((f) => [f, s[f][0] ?? 0])) as Record<NotionField, number>) });
+
+/**
+ * "From a photo": the admin picks a photo; it is read in this browser only
+ * (./photo-face, loaded on first use, with MediaPipe served by this site) and
+ * turned into suggested parts. The photo is never uploaded or stored: the
+ * file input is emptied, the preview's object URL revoked on clear, on a new
+ * photo, on save and when the constructor closes.
+ */
+function usePhotoFace(input: RefObject<HTMLInputElement | null>, apply: (s: Suggestions) => void) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [suggested, setSuggested] = useState<Suggestions | null>(null);
+  const shown = useRef<string | null>(null);
+  const runs = useRef(0);
+  const release = () => {
+    if (shown.current) URL.revokeObjectURL(shown.current);
+    shown.current = null;
+  };
+  useEffect(() => release, []);
+
+  const clear = () => {
+    runs.current++;
+    release();
+    setUrl(null);
+    setSuggested(null);
+    setError(null);
+    setBusy(false);
+  };
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // the input lets go of the file
+    if (!file) return;
+    clear();
+    const run = runs.current;
+    shown.current = URL.createObjectURL(file);
+    setUrl(shown.current);
+    setBusy(true);
+    try {
+      const { faceFromPhoto } = await import("./photo-face");
+      const { suggestions } = await faceFromPhoto(file);
+      if (run !== runs.current) return;
+      setSuggested(suggestions);
+      apply(suggestions);
+    } catch (err) {
+      if (run !== runs.current) return;
+      setError(err instanceof Error && err.name === "PhotoFaceError" ? err.message : "Couldn't read the photo in this browser. Try another photo, or build the face by hand.");
+    } finally {
+      if (run === runs.current) setBusy(false);
+    }
+  };
+  return { url, busy, error, suggested, clear, onFile, pick: () => input.current?.click() };
+}
+
+/** A part's tile: the part on white, zoomed like Notion's. */
+function PartTile({ field, part, on, onPick, radio = true }: { field: NotionField; part: NotionPart; on: boolean; onPick: () => void; radio?: boolean }) {
+  return (
+    <button type="button" {...(radio ? { role: "radio", "aria-checked": on } : { "aria-pressed": on })} aria-label={part.label} title={part.label} className={cx(f.tile, on && f.tileOn)} onClick={onPick}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={notionThumbUrl(field, part.id)} alt="" width={56} height={56} loading="lazy" decoding="async" style={{ transform: notionTileTransform(part) }} />
+    </button>
+  );
+}
+
 /** One category: a "none" tile (all but skin tone) and every part's tile; hair gets Notion's style and colour filters. */
-function PartRow({ row, value, onPick }: { row: (typeof NOTION_ROWS)[number]; value: number; onPick: (id: number) => void }) {
+function PartRow({ row, value, suggested, onPick }: { row: (typeof NOTION_ROWS)[number]; value: number; suggested?: number[]; onPick: (id: number) => void }) {
   const [style, setStyle] = useState<string | null>(null);
   const [colour, setColour] = useState<string | null>(null);
   const parts = useMemo(() => row.category.parts.filter((p) => (!style || p.style?.includes(style)) && (!colour || p.color?.includes(colour))), [row, style, colour]);
@@ -279,6 +370,23 @@ function PartRow({ row, value, onPick }: { row: (typeof NOTION_ROWS)[number]; va
         <span className={f.partCount}>{row.category.parts.length}</span>
       </span>
       <div className={f.partBody}>
+        {suggested && suggested.length > 0 && (
+          <div className={f.suggested} aria-label={`${row.category.label}: from the photo`}>
+            <span className={f.suggestedLabel}>From the photo</span>
+            <div className={f.suggestedTiles}>
+              {suggested.map((id) => {
+                const part = row.category.parts.find((p) => p.id === id);
+                return part ? (
+                  <PartTile key={id} field={row.field} part={part} on={value === id} onPick={() => onPick(id)} radio={false} />
+                ) : (
+                  <button key={id} type="button" aria-pressed={value === 0} aria-label="None" title="None" className={cx(f.tile, f.tileNone, value === 0 && f.tileOn)} onClick={() => onPick(0)}>
+                    None
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {row.field === "hair" && (
           <div className={s.wrap}>
             {filter(HAIR_STYLES, style, setStyle)}
@@ -292,10 +400,7 @@ function PartRow({ row, value, onPick }: { row: (typeof NOTION_ROWS)[number]; va
             </button>
           )}
           {parts.map((p) => (
-            <button key={p.id} type="button" role="radio" aria-checked={value === p.id} aria-label={p.label} title={p.label} className={cx(f.tile, value === p.id && f.tileOn)} onClick={() => onPick(p.id)}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={notionThumbUrl(row.field, p.id)} alt="" width={56} height={56} loading="lazy" decoding="async" style={{ transform: notionTileTransform(p) }} />
-            </button>
+            <PartTile key={p.id} field={row.field} part={p} on={value === p.id} onPick={() => onPick(p.id)} />
           ))}
         </div>
       </div>

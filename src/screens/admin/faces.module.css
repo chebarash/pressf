@@ -30,3 +30,10 @@
 .tile img { display: block; width: 100%; height: 100%; }
 .tileNone { font: inherit; font-size: 11px; color: var(--native-camera); }
 .tileOn { border: 2px solid var(--bg-inverse); box-shadow: 0 0 0 1px var(--bg-inverse); }
+
+/* From a photo: the photo (this browser only) and each row's suggested parts, best first. */
+.photo { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1.5px solid var(--border-subtle); border-radius: 12px; }
+.photo img { width: 56px; height: 56px; flex-shrink: 0; object-fit: cover; border-radius: 8px; }
+.suggested { display: flex; align-items: center; gap: var(--space-2); }
+.suggestedLabel { font-size: 11px; color: var(--text-secondary); width: 72px; flex-shrink: 0; }
+.suggestedTiles { display: flex; gap: 6px; padding: 1px; }
