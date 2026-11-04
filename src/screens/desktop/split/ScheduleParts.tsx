@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { FeedLayers } from "@/screens/mobile/mc/FeedLayers";
 import { subscribeHint } from "@/screens/mobile/mc/format";
 import { lessonPanel } from "@/screens/shared/schedule/lesson";
@@ -9,6 +9,7 @@ import { classByKey } from "@/screens/shared/schedule/model";
 import { useSchedule } from "@/screens/shared/schedule/store";
 import type { CalendarEvent, CalendarLayer, ScheduleClass } from "@/server/views";
 import { Tab } from "@/ui/components";
+import { PageHead } from "@/ui/shell/PageHeader";
 import k from "../calendar.module.css";
 import type { CalendarKind } from "../model";
 import { AnchorButton, ButtonLink, css, cx, FileRow, Hint, Icon, Tag } from "../parts";
@@ -39,9 +40,7 @@ export function ViewSwitch() {
 /** The header both views share: title, what is on screen, the switch, ‹ Today › (← → on the keyboard). */
 export function ScheduleHeader({ sub, unit, onPrev, onToday, onNext }: { sub: string; unit: "week" | "month"; onPrev: () => void; onToday: () => void; onNext: () => void }) {
   return (
-    <header className={t.header}>
-      <h1 className={t.title}>Timetable</h1>
-      <p className={t.sub}>{sub}</p>
+    <PageHead title="Timetable" sub={sub} className={t.head}>
       <ViewSwitch />
       <nav className={t.weekNav} aria-label={unit === "week" ? "Week" : "Month"}>
         <button type="button" className={t.navBtn} onClick={onPrev} data-key="ArrowLeft" aria-label={`Previous ${unit}`}>
@@ -55,7 +54,7 @@ export function ScheduleHeader({ sub, unit, onPrev, onToday, onNext }: { sub: st
         </button>
         <Hint>← →</Hint>
       </nav>
-    </header>
+    </PageHead>
   );
 }
 
@@ -78,8 +77,15 @@ export function EventChip({ e, title, className, style }: { e: CalendarEvent; ti
 export function Inspector() {
   const s = useSchedule();
   const current = classByKey(s.weeks, s.open);
+  const ref = useRef<HTMLElement>(null);
+  // On a narrow page the panel sits under the grid: bring the lesson into view when one is picked.
+  useEffect(() => {
+    const el = ref.current;
+    if (!s.open || !el || el.getBoundingClientRect().top < window.innerHeight - 80) return;
+    el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }, [s.open]);
   return (
-    <aside className={cx(css.inspector, t.inspector)} aria-label={current ? "Lesson" : "Coming up"}>
+    <aside ref={ref} className={cx(css.inspector, t.inspector)} aria-label={current ? "Lesson" : "Coming up"}>
       {current ? <LessonInspector c={current} onClose={() => s.select(null)} /> : <ComingUp />}
       <p className={t.tip}>Tip: click any class to see that lesson here. ← → move a {s.view}, F T back to today, F K the month.</p>
     </aside>

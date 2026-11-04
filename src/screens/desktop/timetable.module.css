@@ -1,10 +1,10 @@
 .split { display: grid; grid-template-columns: minmax(0, 1fr) 360px; height: 100dvh; }
 /* Figma D3: the header stops 24px short of the inspector, the week grid runs to 4px from it. */
-.main { padding: var(--page-pad-top) 4px var(--page-pad-bottom) var(--page-pad-x); display: flex; flex-direction: column; gap: var(--tool-gap); min-width: 0; min-height: 0; }
+.main { --flow-gap: var(--tool-gap); padding: var(--page-pad-top) 4px var(--page-pad-bottom) var(--page-pad-x); display: flex; flex-direction: column; gap: var(--tool-gap); min-width: 0; min-height: 0; }
 
-.header { display: flex; align-items: center; gap: var(--space-3); margin-right: 20px; }
-.title { font: 400 var(--tool-title)/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
-.sub { flex: 1; min-width: 0; font: 600 15px/normal var(--font-sans); color: var(--text-secondary); padding-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* PageHead, ending 24 short of the inspector like the grid's own 4 + 20. */
+.head { margin-right: 20px; }
+.head :global(.pf-head__sub) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .weekNav { display: flex; align-items: center; gap: var(--space-2); }
 .navBtn {
   display: inline-flex;
@@ -155,3 +155,15 @@ button.navBtn { appearance: none; cursor: pointer; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .monthTrack [role="gridcell"] > * { flex-shrink: 0; }
 .monthTrack [role="gridcell"] > a, .monthTrack [role="gridcell"] > span:not([aria-hidden]) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Narrow pages (the content column 1100 or less): the panel goes under the grid,
+   which keeps a fixed height and scrolls inside itself. */
+@container page (max-width: 1100px) {
+  .split { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .main { height: min(100dvh, 860px); padding-right: var(--page-pad-x); }
+  .head { margin-right: 0; }
+  .split > .inspector { height: auto; position: static; border-left: 0; border-top: 1.5px solid var(--border-subtle); padding: var(--space-5) var(--page-pad-x) var(--page-pad-bottom); scroll-margin-top: 16px; }
+}
+@container page (max-width: 760px) {
+  .strip { --size: calc((100cqw - var(--gutter)) / 4); }
+}
