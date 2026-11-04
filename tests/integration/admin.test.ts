@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import {
   adminMarks, auditLog, broadcasts, courseRatings, fileOverrides, lmsCache, lmsCourses, lmsCourseTeachers, lmsFiles, lmsTeachers, mentionLinks, mentions,
-  reports, teacherAliases, teacherRatings, uploads, userRoles, users,
+  reports, teacherAliases, teacherRatings, uploads, userRoles, userState, users,
 } from "@/lib/db/schema";
 import { setRole } from "@/server/identity";
 import { report } from "@/server/reports";
@@ -286,6 +286,27 @@ describe("system and overview", () => {
     const o = await overview(new Date());
     expect(o.kpis.uploads.value).toBe("1");
     expect(o.rows[0]).toMatchObject({ kind: "upload", title: "Midterm exam, Fall 2025" });
+  });
+});
+
+describe("health", () => {
+  it("counts the student sync's snapshot as an LMS sync, not only the sign-in cache", async () => {
+    const now = new Date();
+    const old = new Date(now.getTime() - 12 * 3600_000);
+    await db().update(lmsCache).set({ syncedAt: old }).where(eq(lmsCache.userId, uploader));
+    expect((await overview(now)).health[0].value).toMatch(/^Late/);
+    await db().insert(userState).values({ userId: uploader, snapshot: { lms: { at: new Date(now.getTime() - 2 * 60_000).toISOString() } } });
+    const o = await overview(now);
+    expect(o.health[0].value).toBe("OK · 2 min ago");
+    expect((await systemPage(now)).jobs[0]).toMatchObject({ ok: true, lastRunText: "2 min ago" });
+  });
+
+  it("leaves channel imports out of the median review time", async () => {
+    const now = new Date();
+    await upload({ status: "live", sourceKey: "tg:1:2", createdAt: new Date(now.getTime() - 400 * 24 * 3600_000), reviewedAt: now });
+    expect((await overview(now)).week).toContain("median review —");
+    await upload({ status: "live", createdAt: new Date(now.getTime() - 3 * 3600_000), reviewedAt: now });
+    expect((await overview(now)).week).toContain("median review 3 h");
   });
 });
 

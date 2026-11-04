@@ -19,6 +19,9 @@ const HOLIDAY_NAMES: Record<string, string> = {
 };
 
 export const WEEKS = calendar.weeks as CalendarWeek[];
+
+/** The calendar lists weeks Mon–Fri, but NewUU teaches and examines on Saturday too: a Friday becomes the Saturday after it. */
+export const throughSaturday = (day: string) => (new Date(`${day}T00:00:00Z`).getUTCDay() === 5 ? addDays(day, 1) : day);
 export const HOLIDAYS: Holiday[] = calendar.holidays.map((h) => ({ date: h.date, name: HOLIDAY_NAMES[h.date] ?? "Holiday" }));
 
 /** The week containing `day` (the calendar lists Mon–Fri; Saturday and Sunday belong to the week that just ended). */

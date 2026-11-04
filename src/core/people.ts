@@ -5,6 +5,10 @@ export type LmsName = { first_name_en?: string | null; last_name_en?: string | n
 const tidy = (s: string | null | undefined) =>
   (s ?? "").trim().toLowerCase().replace(/(^|[\s'-])(\p{L})/gu, (_, a: string, b: string) => a + b.toUpperCase());
 
+/** Titles and placeholder numbers some LMS records carry in a name field ("Prof. 2 Selim"): a name is only the name. */
+const NOISE = /^(?:prof|professor|dr|mr|mrs|ms|assoc|asst)\.?$|^\d+\.?$/i;
+const bare = (s: string | null | undefined) => tidy((s ?? "").split(/\s+/).filter((w) => w && !NOISE.test(w)).join(" "));
+
 /**
  * hero.study names: `first_name_*` is the given name, `sur_name_*` the family
  * name and `last_name_*` the patronymic (empty for most teachers). Checked on
@@ -12,7 +16,7 @@ const tidy = (s: string | null | undefined) =>
  * { first_name_en: "Sejuti", sur_name_en: "Rahman", last_name_en: "" }.
  * The patronymic only stands in when a record has no family name at all.
  */
-export const displayName = (n: LmsName) => [tidy(n.first_name_en), tidy(n.sur_name_en) || tidy(n.last_name_en)].filter(Boolean).join(" ") || "Teacher";
+export const displayName = (n: LmsName) => [bare(n.first_name_en), bare(n.sur_name_en) || bare(n.last_name_en)].filter(Boolean).join(" ") || "Teacher";
 
 /** A stored teacher row (`lms_teachers`) as shown: given name + family name. */
 export const teacherName = (t: { firstName?: string | null; lastName?: string | null; surName?: string | null }) =>
