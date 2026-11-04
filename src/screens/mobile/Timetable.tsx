@@ -1,39 +1,20 @@
-import { timetableHref } from "@/core/links";
-import { shortDate, weekdayName } from "@/core/time";
-import { EmptyState, Tabs } from "@/ui/components";
+import { ScheduleProvider } from "@/screens/shared/schedule/store";
+import type { SchedulePage } from "@/server/views";
 import b from "./parts/base.module.css";
-import { ClassList } from "./parts/TimetableDays";
-import s from "./parts/Timetable.module.css";
-import { TimetableTitle, type TimetableViewLinks } from "./parts/TimetableViews";
-import type { TimetableView } from "./views";
+import { PhoneTimetable } from "./parts/TimetableDays";
 
-/** Mobile Timetable · Day (Figma 3.1–3.6): week header, Day | Month switch, day tabs, classes, class sheet. */
-export default function Timetable({ data, views }: { data: TimetableView & { open?: string | null }; views?: TimetableViewLinks }) {
-  const weekday = weekdayName(data.day);
-  const next = data.nextClass;
-  const classes = data.classes;
-  // 3.4 "Next: Monday 10:00, Calculus 1 in B-204." · 3.6 "Back on Wednesday, 10:00 Calculus 1."
-  const nextLine = next ? `${next.label}, ${next.class.name}${next.class.room ? ` in ${next.class.room}` : ""}` : null;
-  const backLine = next ? `${weekdayName(new Date(next.class.start))}, ${next.class.time} ${next.class.name}` : null;
-  const title = <h1 className={b.title}>Timetable</h1>;
+/**
+ * Mobile Timetable (Figma 3.1–3.7 Day, 6.1 Month): one state, two renderers
+ * switched in place. Day swipes endlessly between days; Month is an endless
+ * list of the same days (classes included). A class opens the sheet of that
+ * dated lesson in both.
+ */
+export default function Timetable({ data, open = null, demo = false }: { data: SchedulePage; open?: string | null; demo?: boolean }) {
   return (
-    <div className={b.screen}>
-      <header className={b.head}>
-        {views ? <TimetableTitle title={title} views={views} active="day" /> : title}
-        {data.weekLabel ? <p className={b.sub}>{data.weekLabel}</p> : null}
-        {data.examWeek ? <p className={b.sub}>{data.examWeek}</p> : null}
-      </header>
-      <Tabs label="Day" size="l" spread className={s.tabs} items={data.week.map((d) => ({ label: d.label, value: d.day, href: timetableHref({ day: d.day }), active: d.selected }))} />
-
-      {classes.length ? (
-        <ClassList key={data.day} classes={classes} weekday={weekday.slice(0, 3)} openKey={data.open ?? null} />
-      ) : (
-        <EmptyState
-          className={b.bleed}
-          title={data.holiday ? data.holiday.name : data.examWeek ? `No exams on ${weekday}` : `No classes on ${weekday}`}
-          text={data.holiday ? `No classes on ${weekday} ${shortDate(data.day)}.${backLine ? ` Back on ${backLine}.` : ""}` : nextLine ? `Next: ${nextLine}.` : undefined}
-        />
-      )}
-    </div>
+    <ScheduleProvider page={data} open={open} demo={demo}>
+      <div className={b.screen}>
+        <PhoneTimetable title={<h1 className={b.title}>Timetable</h1>} />
+      </div>
+    </ScheduleProvider>
   );
 }

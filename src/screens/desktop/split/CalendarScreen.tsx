@@ -1,115 +1,138 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo } from "react";
+import { addDays, classTitle, clampIndex, dayAt, firstOfMonth, monthKey, monthLabel, mondayAt, monthLayout, shiftMonth, SPAN_WEEKS, toneName, weekIndex } from "@/screens/shared/schedule/model";
+import { useSchedule } from "@/screens/shared/schedule/store";
+import { useTrack } from "@/screens/shared/schedule/useTrack";
+import type { CalendarEvent, ScheduleClass } from "@/server/views";
 import k from "../calendar.module.css";
-import type { CalendarData, CalendarKind, ScheduleNav } from "../model";
-import { css, cx } from "../parts";
-import { ComingUp, ViewSwitch } from "./ScheduleParts";
+import { cx } from "../parts";
+import t from "../timetable.module.css";
+import { EventChip, ScheduleHeader } from "./ScheduleParts";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const LOOK: Record<CalendarKind, string> = { week: k.week_, class: k.class_, deadline: k.deadline, exam: k.exam, registration: k.registration, holiday: k.holiday };
+/** Rows rendered above and below the one at the top; a month needs six. */
+const ABOVE = 2;
+const BELOW = 8;
+/** Items shown in a day before "+N more". */
+const SHOWN = 3;
 
 /**
- * Timetable · Month (D8, Calendar merged into Timetable): exam weeks, deadlines,
- * holidays and registration on the month, a dot per class on each day; a day's
- * date opens its week. "Coming up" beside it. ← → change month.
+ * Timetable · Month (D8): the same weeks as the Week, as an endless column of
+ * week rows. Multi-day phases are bars across their days; each day lists its
+ * events and its classes (the same cards, in the course colour, opening the
+ * same lesson panel). Days outside the month in view are dimmed; the selected
+ * day is highlighted. ← → move a month.
  */
-export function CalendarScreen({ data }: { data: CalendarData & { nav: ScheduleNav } }) {
-  const [i, setI] = useState(data.start ?? 0);
-  const month = data.months[i] ?? data.months[0];
-  const nav = data.nav;
+export function MonthGrid() {
+  const s = useSchedule();
+  // The selected day's month opens with its first week at the top.
+  const start = useMemo(() => weekIndex(firstOfMonth(monthKey(s.day))), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const { scrollRef: trackRef, probeRef: trackProbe, ...track } = useTrack({
+    axis: "y",
+    start,
+    onSettle: (row) => {
+      // The URL's day follows: the selected day while its row is in view, else the first day shown.
+      const first = mondayAt(row);
+      if (s.day < first || s.day > addDays(first, 34)) s.setDay(first);
+    },
+  });
+  const lead = track.lead;
+  const from = Math.max(0, lead - ABOVE);
+  const to = Math.min(SPAN_WEEKS - 1, lead + BELOW);
+  const { ensure } = s;
+  useEffect(() => {
+    const wanted: string[] = [];
+    for (let w = lead - ABOVE - 1; w <= lead + BELOW + 1; w++) if (w >= 0) wanted.push(mondayAt(w));
+    ensure(wanted);
+  }, [lead, ensure]);
+
+  // The month in view: the one most of the five rows from the top belong to.
+  const month = useMemo(() => {
+    const count = new Map<string, number>();
+    for (let i = 0; i < 35; i++) {
+      const m = monthKey(dayAt(lead * 7 + i));
+      count.set(m, (count.get(m) ?? 0) + 1);
+    }
+    return [...count.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  }, [lead]);
+  const goMonth = (m: string) => track.scrollTo(clampIndex(weekIndex(firstOfMonth(m)), SPAN_WEEKS - 6));
+
   return (
-    <main data-desktop-screen className={cx(css.screen, k.main)}>
-      <header className={k.header}>
-        <h1 className={k.title}>Timetable</h1>
-        <p className={k.sub}>{month?.label}</p>
-        <ViewSwitch nav={nav} week={month?.weekHref} />
-        <div className={k.monthNav}>
-          <button type="button" className={k.navBtn} onClick={() => setI((x) => Math.max(0, x - 1))} disabled={i === 0} data-key="ArrowLeft" aria-label="Previous month">
-            ‹
-          </button>
-          <button type="button" className={k.navBtn} onClick={() => setI(Math.max(0, data.months.findIndex((m) => m.weeks.some((w) => w.some((d) => d.today && d.inMonth)))))}>
-            This month
-          </button>
-          <button type="button" className={k.navBtn} onClick={() => setI((x) => Math.min(data.months.length - 1, x + 1))} disabled={i >= data.months.length - 1} data-key="ArrowRight" aria-label="Next month">
-            ›
-          </button>
-        </div>
-      </header>
-
-      <div className={k.body}>
-        {month && (
-          <div className={k.month} role="grid" aria-label={month.label}>
-            <div className={k.weekdays} role="row">
-              {WEEKDAYS.map((d) => (
-                <span key={d} role="columnheader">
-                  {d}
-                </span>
-              ))}
-            </div>
-            {month.weeks.map((week, w) => {
-              const spans = month.spans?.[w] ?? [];
-              const lanes = spans.reduce((n, x) => Math.max(n, x.lane + 1), 0);
-              return (
-                <div key={week[0].key} className={k.week} role="row" style={{ ["--lanes" as string]: lanes }}>
-                  {spans.length > 0 && (
-                    <div className={k.spans}>
-                      {spans.map((x) => {
-                        const style = { gridColumn: `${x.from + 1} / ${x.to + 2}`, gridRow: x.lane + 1 };
-                        return x.href ? (
-                          <Link prefetch key={x.key} href={x.href} className={cx(k.event, k.span, LOOK[x.kind])} style={style}>
-                            {x.title}
-                          </Link>
-                        ) : (
-                          <span key={x.key} className={cx(k.event, k.span, LOOK[x.kind])} style={style}>
-                            {x.title}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {week.map((day) => (
-                    <div key={day.key} role="gridcell" className={cx(k.cell, !day.inMonth && k.out, day.today && k.today)} aria-current={day.today ? "date" : undefined}>
-                      {day.href ? (
-                        // The date (and its class dots) opens that day's week.
-                        <Link prefetch href={day.href} className={k.dayLink} aria-label={`${day.date} ${month.label}: open the week${day.classes?.length ? `, ${day.classes.length} ${day.classes.length === 1 ? "class" : "classes"}` : ""}`}>
-                          <span className={k.date}>{day.date}</span>
-                          {day.inMonth && !!day.classes?.length && (
-                            <span className={k.dots} aria-hidden>
-                              {day.classes.map((tone, n) => (
-                                <span key={n} className={cx(k.dot, k[`tone_${tone}`])} />
-                              ))}
-                            </span>
-                          )}
-                        </Link>
-                      ) : (
-                        <span className={k.date}>{day.date}</span>
-                      )}
-                      {lanes > 0 && <span className={k.spanRoom} aria-hidden />}
-                      {day.inMonth &&
-                        day.items.slice(0, 3).map((it, n) =>
-                          it.href ? (
-                            <Link prefetch key={n} href={it.href} className={cx(k.event, LOOK[it.kind])}>
-                              {it.title}
-                            </Link>
-                          ) : (
-                            <span key={n} className={cx(k.event, LOOK[it.kind])}>
-                              {it.title}
-                            </span>
-                          ),
-                        )}
-                      {day.inMonth && day.items.length > 3 && <span className={k.more}>+{day.items.length - 3} more</span>}
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
+    <>
+      <ScheduleHeader sub={monthLabel(firstOfMonth(month))} unit="month" onPrev={() => goMonth(shiftMonth(month, -1))} onToday={() => { s.setDay(s.today); goMonth(monthKey(s.today)); }} onNext={() => goMonth(shiftMonth(month, 1))} />
+      <div className={t.stripBox}>
+        <div ref={trackRef} className={cx(t.monthScroll, k.month)} role="grid" aria-label={monthLabel(firstOfMonth(month))} data-nav-list="select">
+          <div className={k.weekdays} role="row">
+            {WEEKDAYS.map((d) => (
+              <span key={d} role="columnheader">
+                {d}
+              </span>
+            ))}
           </div>
-        )}
-
-        <ComingUp nav={nav} />
+          <div className={t.monthTrack} style={{ ["--span" as string]: SPAN_WEEKS }}>
+            <div ref={trackProbe} className={t.rowProbe} aria-hidden />
+            {Array.from({ length: to - from + 1 }, (_, n) => (
+              <WeekRow key={from + n} week={from + n} base={track.base} month={month} />
+            ))}
+          </div>
+        </div>
       </div>
-    </main>
+    </>
+  );
+}
+
+function WeekRow({ week, base, month }: { week: number; base: number; month: string }) {
+  const s = useSchedule();
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => dayAt(week * 7 + i)), [week]);
+  const layout = useMemo(() => monthLayout(s.weeks, days), [s.weeks, days]);
+  const lanes = layout.lanes.reduce((n, x) => Math.max(n, x.lane + 1), 0);
+  return (
+    <div className={cx(k.week, t.monthRow)} role="row" style={{ ["--lanes" as string]: lanes, transform: `translateY(calc(${week - base} * var(--row)))` }}>
+      {lanes > 0 && (
+        <div className={k.spans}>
+          {layout.lanes.map((x) => (
+            <EventChip key={x.key} e={x.event} title={x.title} className={k.span} style={{ gridColumn: `${x.from + 1} / ${x.to + 2}`, gridRow: x.lane + 1 }} />
+          ))}
+        </div>
+      )}
+      {days.map((day) => {
+        const items: Array<{ at: string; e?: CalendarEvent; c?: ScheduleClass }> = [
+          ...layout.single.filter((e) => e.day === day).map((e) => ({ at: e.time ?? "", e })),
+          ...layout.classes.filter((c) => c.day === day).map((c) => ({ at: c.time, c })),
+        ].sort((a, b) => a.at.localeCompare(b.at));
+        return (
+          <div key={day} role="gridcell" className={cx(k.cell, monthKey(day) !== month && k.out, day === s.today && k.today, day === s.day && t.cellOn)} aria-current={day === s.today ? "date" : undefined}>
+            <button type="button" className={k.dayLink} onClick={() => s.setDay(day)} aria-pressed={day === s.day} aria-label={`${Number(day.slice(8))} ${monthLabel(day)}`}>
+              <span className={k.date}>{Number(day.slice(8))}</span>
+            </button>
+            {lanes > 0 && <span className={k.spanRoom} style={{ height: lanes * 30 - 4 }} aria-hidden />}
+            {items.slice(0, SHOWN).map((it) =>
+              it.c ? (
+                <button
+                  key={it.c.key}
+                  type="button"
+                  data-lesson={it.c.key}
+                  className={cx(t.chip, t[toneName(it.c)], it.c.key === s.open && t.classOn)}
+                  onClick={() => s.select(it.c!.key)}
+                  aria-current={it.c.key === s.open || undefined}
+                  title={`${classTitle(it.c)} · ${it.c.time}${it.c.room ? ` · ${it.c.room}` : ""}`}
+                  data-nav-item
+                >
+                  {it.c.time} {classTitle(it.c)}
+                </button>
+              ) : (
+                <EventChip key={it.e!.key} e={it.e!} />
+              ),
+            )}
+            {items.length > SHOWN && (
+              <button type="button" className={cx(k.more, t.moreBtn)} onClick={() => { s.setDay(day); s.setView("week"); }}>
+                +{items.length - SHOWN} more
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

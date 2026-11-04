@@ -1,14 +1,11 @@
-import type { ScheduleView } from "@/server/views";
-import * as adapt from "./adapt";
-import { CalendarScreen } from "./split/CalendarScreen";
+import type { SchedulePage } from "@/server/views";
 import { TimetableScreen } from "./split/TimetableScreen";
 
 /**
- * Timetable (D3 week, D8 month; Calendar was merged into it). Week: the class
- * grid with the calendar over it, the inspector or "Coming up" beside it.
- * Month: the calendar month with class dots. ← → change week or month.
+ * Timetable (D3 week, D8 month; Calendar was merged into it): one state and
+ * two renderers, switched in place. The week scrolls sideways endlessly, the
+ * month down; the inspector shows the clicked lesson or "Coming up".
  */
-export default function DesktopTimetable({ data, open = null }: { data: ScheduleView; /** ?class= : the class the inspector opens with. */ open?: string | null }) {
-  const s = adapt.schedule(data, new Date(), open);
-  return s.view === "week" ? <TimetableScreen data={s.data} /> : <CalendarScreen data={{ ...s.data, nav: s.data.nav! }} />;
+export default function DesktopTimetable({ data, open = null, demo = false }: { data: SchedulePage; /** ?class= : the lesson the inspector opens with. */ open?: string | null; demo?: boolean }) {
+  return <TimetableScreen page={data} open={open} demo={demo} />;
 }

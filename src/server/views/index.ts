@@ -12,7 +12,8 @@ export { progress, courseProgress, courseAttendance, assignments, termResults, t
 export { guestHome, type GuestHomeView, type GuestCourse, type GuestFile } from "./guest";
 export { notifications, type NotificationsView, type FeedFilter } from "./notifications";
 export { calendar, LAYERS, type CalendarView, type CalendarEvent, type CalendarLayer } from "./calendar";
-export { schedule, type ScheduleView, type TimetableMode } from "./schedule";
+export { schedule, scheduleWeeks, type SchedulePage, type ScheduleWeek, type ScheduleDay, type ScheduleClass, type TimetableMode } from "./schedule";
+export { type LessonInfo, type AttendanceMark } from "./lessons";
 export { search, type SearchView } from "./search";
 export { curriculum, schools, nextSemester, cohorts, type CurriculumView, type SchoolsView, type NextSemesterView, type NextCourse, type Cohort } from "./curriculum";
 export { profile, myUploads, type ProfileView, type MyUploadView } from "./profile";

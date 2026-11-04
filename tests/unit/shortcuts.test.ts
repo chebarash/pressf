@@ -59,7 +59,7 @@ describe("desktop shortcuts: one per action", () => {
     expect(GO_TO.find((g) => g.key === "t")?.href).toBe("/timetable");
     const goKeys = GO_TO.map((g) => g.key);
     expect(new Set(goKeys).size).toBe(goKeys.length);
-    for (const file of ["src/screens/desktop/split/TimetableScreen.tsx", "src/screens/desktop/split/CalendarScreen.tsx"]) {
+    for (const file of ["src/screens/desktop/split/ScheduleParts.tsx"]) {
       const text = readFileSync(file, "utf8");
       expect(text).toContain('data-key="ArrowLeft"');
       expect(text).toContain('data-key="ArrowRight"');
