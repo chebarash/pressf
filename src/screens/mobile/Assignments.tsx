@@ -1,4 +1,4 @@
-import { shortDate } from "@/core/time";
+import { datedLabel } from "@/core/time";
 import type { AssignmentsView, DeadlineView } from "@/server/views";
 import { Banner, EmptyState } from "./mc/kit";
 import { cx, RowLink, Screen } from "./mc/parts";
@@ -15,9 +15,9 @@ export default function Assignments({ data }: { data: AssignmentsView }) {
   const groups: Array<[string, DeadlineView[], (d: DeadlineView) => string]> = [
     ["Due this week", data.dueThisWeek, due],
     ["Later", data.later, due],
-    ["Waiting for a grade", data.waiting, (d) => `sent ${shortDate(new Date(d.due))}`],
-    ["Graded", data.graded, (d) => (d.grade !== null ? String(d.grade) : `due ${shortDate(new Date(d.due))}`)],
-    ["Missed", data.missed, (d) => `was due ${shortDate(new Date(d.due))}`],
+    ["Waiting for a grade", data.waiting, (d) => `sent ${datedLabel(new Date(d.due))}`],
+    ["Graded", data.graded, (d) => (d.grade !== null ? String(d.grade) : `due ${datedLabel(new Date(d.due))}`)],
+    ["Missed", data.missed, (d) => `was due ${datedLabel(new Date(d.due))}`],
   ];
   const any = groups.some(([, items]) => items.length);
   return (

@@ -1,5 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import { roleOf } from "@/core/people";
+import { SCHOOLS, unitOf } from "@/core/placement";
 import { WEEKS } from "@/core/semester";
 import { localDay, shortDate } from "@/core/time";
 import { courseDetails, resolveRequirement } from "@/lib/content";
@@ -90,6 +91,8 @@ export async function curriculum(viewer: Viewer, programId?: string | null): Pro
   return { program: plan.programId ? { id: plan.programId, name } : null, years: [...years.values()].sort((a, b) => a.year - b.year), programs: programList };
 }
 
+const slugOf = (name: string) => name.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
 export type SchoolsView = { schools: Array<{ id: string; name: string; programs: Array<{ id: string; name: string }> }>; programCount: number };
 
 /** Figma 7.8: schools (top departments) and their programs, from the LMS. */
@@ -97,25 +100,46 @@ export const schools = publicCache(
   "schools",
   async (): Promise<SchoolsView> => {
     const [depts, programs] = await Promise.all([
-      db().select({ id: lmsDepartments.id, parentId: lmsDepartments.parentId, name: lmsDepartments.name }).from(lmsDepartments),
+      db().select({ id: lmsDepartments.id, parentId: lmsDepartments.parentId, name: lmsDepartments.name, shortName: lmsDepartments.shortName }).from(lmsDepartments),
       db().select({ id: lmsPrograms.id, name: lmsPrograms.name, departmentId: lmsPrograms.departmentId }).from(lmsPrograms),
     ]);
     const byId = new Map(depts.map((d) => [d.id, d]));
-    const root = (id: string | null) => {
+    const label = (d: (typeof depts)[number]) => d.name?.trim() || d.shortName?.trim() || null;
+    /**
+     * The school a program sits in: the first department up its chain that names
+     * one of the university's schools (or a department of one), as on Coverage;
+     * else the top department's own label. Many LMS top departments carry no
+     * name, so the old "top department" grouping showed "Other programs" ten times.
+     */
+    const schoolFor = (id: string | null): { id: string; name: string } | null => {
       let d = id ? byId.get(id) : undefined;
+      let top: (typeof depts)[number] | undefined;
       const seen = new Set<string>();
-      while (d?.parentId && byId.has(d.parentId) && !seen.has(d.id)) { seen.add(d.id); d = byId.get(d.parentId); }
-      return d ?? null;
+      while (d && !seen.has(d.id)) {
+        seen.add(d.id);
+        const unit = unitOf(label(d));
+        if (unit && SCHOOLS.some((x) => x.name === unit.school)) return { id: slugOf(unit.school), name: unit.school };
+        top = d;
+        d = d.parentId ? byId.get(d.parentId) : undefined;
+      }
+      const name = top ? label(top) : null;
+      return top && name ? { id: top.id, name } : null;
+    };
+    const byProgramName = (name: string | null) => {
+      const unit = unitOf(name);
+      return unit && SCHOOLS.some((x) => x.name === unit.school) ? { id: slugOf(unit.school), name: unit.school } : null;
     };
     const out = new Map<string, SchoolsView["schools"][number]>();
     for (const p of programs) {
-      const r = root(p.departmentId);
+      const found = schoolFor(p.departmentId);
+      // A program under an unnamed or unknown department: its own name may say ("Software Engineering").
+      const r = found && SCHOOLS.some((x) => x.name === found.name) ? found : byProgramName(p.name) ?? found;
       const key = r?.id ?? "other";
       const s = out.get(key) ?? { id: key, name: r?.name ?? "Other programs", programs: [] };
       s.programs.push({ id: p.id, name: p.name ?? "Program" });
       out.set(key, s);
     }
-    const list = [...out.values()].map((s) => ({ ...s, programs: s.programs.sort((a, b) => a.name.localeCompare(b.name)) })).sort((a, b) => a.name.localeCompare(b.name));
+    const list = [...out.values()].map((s) => ({ ...s, programs: s.programs.sort((a, b) => a.name.localeCompare(b.name)) })).sort((a, b) => Number(a.id === "other") - Number(b.id === "other") || a.name.localeCompare(b.name));
     return { schools: list, programCount: programs.length };
   },
   () => [TAGS.catalog],

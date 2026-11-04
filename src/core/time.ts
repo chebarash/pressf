@@ -42,6 +42,12 @@ export const shortDate = (value: string | Date) => {
   return `${Number(day.slice(8, 10))} ${MONTHS[Number(day.slice(5, 7)) - 1]}`;
 };
 
+/** "2 Nov", or "2 Nov 2025" when the day is not in `now`'s year. */
+export const datedLabel = (value: string | Date, now: Date = new Date()) => {
+  const day = typeof value === "string" ? value : localDay(value);
+  return day.slice(0, 4) === localDay(now).slice(0, 4) ? shortDate(day) : `${shortDate(day)} ${day.slice(0, 4)}`;
+};
+
 export const weekdayName = (value: string | Date) =>
   WEEKDAYS[typeof value === "string" ? new Date(`${value}T00:00:00Z`).getUTCDay() : localWeekday(value)];
 
