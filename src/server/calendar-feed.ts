@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
+import { WEEKS, weekOf } from "@/core/semester";
 import { eq } from "drizzle-orm";
 import { CLASS_KIND_LABEL } from "@/core/agenda";
 import { googleSubscribeUrl, icsCalendar, type IcsEvent } from "@/core/ics";
@@ -102,6 +103,21 @@ const firstName = (name: string | null | undefined) => name?.trim().split(/\s+/)
 export const FEED_PAST_DAYS = 14;
 export const FEED_AHEAD_DAYS = 150;
 
+/**
+ * The whole current semester, first week to last (a Google calendar should
+ * show the term from start to end), and at least two weeks back and the
+ * rest of the year ahead.
+ */
+export function feedRange(today: string, weeks = WEEKS) {
+  const term = weekOf(today, weeks);
+  const same = term ? weeks.filter((w) => w.term === term.term && Math.abs(Date.parse(w.starts) - Date.parse(today)) < 200 * 86_400_000) : [];
+  const termStart = same.length ? same.reduce((a, w) => (w.starts < a ? w.starts : a), same[0].starts) : null;
+  const termEnd = same.length ? addDays(same.reduce((a, w) => (w.ends > a ? w.ends : a), same[0].ends), 1) : null;
+  const back = addDays(today, -FEED_PAST_DAYS);
+  const ahead = addDays(today, FEED_AHEAD_DAYS);
+  return { from: termStart && termStart < back ? termStart : back, to: termEnd && termEnd > ahead ? termEnd : ahead };
+}
+
 /** The .ics for a token, or null (→ 404). Never calls the LMS, never schedules a sync. */
 export async function personalFeed(token: string, now = new Date()): Promise<string | null> {
   const owner = await feedOwner(token);
@@ -110,8 +126,7 @@ export async function personalFeed(token: string, now = new Date()): Promise<str
   if (!student) return null;
   const on = new Set(owner.layers);
   const today = localDay(now);
-  const from = addDays(today, -FEED_PAST_DAYS);
-  const to = addDays(today, FEED_AHEAD_DAYS);
+  const { from, to } = feedRange(today);
   const events: IcsEvent[] = [];
 
   if (on.has("classes") || on.has("exams")) {
