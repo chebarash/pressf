@@ -15,5 +15,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
   const src = await fileSource(id, user?.id ?? null);
   if (!src) return new Response("Not found", { status: 404 });
-  return Response.redirect(await deliverUrl(src), 302);
+  return Response.redirect(await deliverUrl(src, "attachment"), 302);
 }

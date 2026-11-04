@@ -23,14 +23,17 @@ export async function putObject(key: string, body: Buffer, contentType: string) 
   return key;
 }
 
-export const signedUrl = (key: string, fileName?: string) =>
+/** An ASCII stand-in for clients that ignore filename* (quotes and non-ASCII replaced). */
+const asciiName = (name: string) => name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[–—]/g, "-").replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
+
+export const signedUrl = (key: string, fileName?: string, disposition: "inline" | "attachment" = "inline") =>
   getSignedUrl(
     s3(),
     new GetObjectCommand({
       Bucket: env().S3_BUCKET,
       Key: key,
       ResponseContentDisposition: fileName
-        ? `inline; filename*=UTF-8''${encodeURIComponent(fileName)}`
+        ? `${disposition}; filename="${asciiName(fileName)}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
         : undefined,
     }),
     { expiresIn: 60 * 60 }

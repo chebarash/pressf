@@ -14,13 +14,13 @@ import type { CoverMeta } from "./meta";
 export type BrandStore = {
   exists(key: string): Promise<boolean>;
   put(key: string, bytes: Uint8Array, contentType: string): Promise<unknown>;
-  url(key: string, fileName: string): Promise<string>;
+  url(key: string, fileName: string, disposition?: "inline" | "attachment"): Promise<string>;
 };
 
 const bucket: BrandStore = {
   exists: objectExists,
   put: (key, bytes, type) => putObject(key, Buffer.from(bytes), type),
-  url: (key, name) => signedUrl(key, name),
+  url: (key, name, disposition) => signedUrl(key, name, disposition),
 };
 
 const digest = (meta: CoverMeta, stamp: boolean) =>
@@ -50,7 +50,7 @@ const inflight = new Map<string, Promise<BrandedCopy | null>>();
 export function brandedCopy(
   file: { sha256: string; name: string; mimeType?: string | null; load: () => Promise<Uint8Array> },
   meta: CoverMeta,
-  opts: { stamp?: boolean; store?: BrandStore } = {},
+  opts: { stamp?: boolean; store?: BrandStore; disposition?: "inline" | "attachment" } = {},
 ): Promise<BrandedCopy | null> {
   const store = opts.store ?? bucket;
   const ext = file.name.match(/\.([A-Za-z0-9]{1,5})$/)?.[1]?.toLowerCase() ?? "";
@@ -61,11 +61,11 @@ export function brandedCopy(
   const pending = inflight.get(key);
   if (pending) return pending;
   const job = (async () => {
-    if (await store.exists(key)) return { key, url: await store.url(key, fileName), fileName, contentType: contentTypeOf(outExt) };
+    if (await store.exists(key)) return { key, url: await store.url(key, fileName, opts.disposition), fileName, contentType: contentTypeOf(outExt) };
     const out = await brandFile(await file.load(), { name: file.name, mimeType: file.mimeType }, meta, { stamp: opts.stamp });
     if (!out.branded) return null;
     await store.put(key, out.bytes, out.contentType);
-    return { key, url: await store.url(key, fileName), fileName, contentType: out.contentType };
+    return { key, url: await store.url(key, fileName, opts.disposition), fileName, contentType: out.contentType };
   })().finally(() => inflight.delete(key));
   inflight.set(key, job);
   return job;

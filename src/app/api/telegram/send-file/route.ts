@@ -35,7 +35,8 @@ type Sendable = {
  * were branded (or under an older cover) point at the original, so a new
  * version starts a fresh cache and the next send uploads the branded copy.
  */
-const BRANDED = `cover${COVER_VERSION}:`;
+// "n2": files are sent under their clean names; older cached copies carry the LMS name.
+const BRANDED = `cover${COVER_VERSION}:n2:`;
 
 const isUuid = (id: string) => /^[0-9a-f-]{36}$/.test(id);
 const courseButtons = (code: string | null | undefined): InlineKeyboard => ({
@@ -74,11 +75,13 @@ async function lmsFile(id: string): Promise<Sendable | null> {
   const edit = row ? await fileOverride(id) : null;
   if (!row || edit?.hidden) return null;
   const key = `${BRANDED}lms:${row.f.id}:${row.f.version ?? ""}`;
+  const src = await fileSource(id, null);
+  if (!src) return null;
   return {
-    url: async () => { const src = await fileSource(id, null); if (!src) throw new Error("missing"); return deliverUrl(src); },
-    fileName: row.f.extension && !row.f.name.toLowerCase().endsWith(`.${row.f.extension.toLowerCase()}`) ? `${row.f.name}.${row.f.extension}` : row.f.name,
+    url: () => deliverUrl(src),
+    fileName: src.downloadName,
     size: row.f.size ?? 0,
-    caption: `<b>${esc(edit?.title?.trim() || row.f.name.replace(/\.[a-z0-9]+$/i, ""))}</b>${row.courseName ? `\n${esc(row.courseName)}` : ""}`,
+    caption: `<b>${esc(src.meta.title)}</b>${row.courseName ? `\n${esc(row.courseName)}` : ""}`,
     buttons: courseButtons(row.f.code),
     fileId: await cached(key),
     remember: rememberAs(key),
