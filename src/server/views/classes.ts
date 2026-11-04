@@ -93,9 +93,17 @@ async function events(student: Student, fromDay: string, toDay: string, today: s
     coursesByIds(dated.map((c) => c.subjectId)),
     coursesByCodes(patternDays.length ? weekly.map((l) => l.code) : []),
   ]);
-  const enrolledIds = new Set(student.sync.courses.map((c) => c.subjectId));
+  // A code runs once per semester (a course id each): this semester's run first, then any the student took, then any.
+  const open = new Set(student.sync.semesters.filter((s) => s.open).map((s) => s.id));
+  const rank = (id: string) => {
+    const mine = student.sync.courses.filter((c) => c.subjectId === id);
+    return mine.some((c) => open.has(c.semesterId)) ? 2 : mine.length ? 1 : 0;
+  };
   const idForCode = new Map<string, CourseRef>();
-  for (const c of byCode) if (!idForCode.has(c.code) || enrolledIds.has(c.id)) idForCode.set(c.code, c);
+  for (const c of byCode) {
+    const had = idForCode.get(c.code);
+    if (!had || rank(c.id) > rank(had.id)) idForCode.set(c.code, c);
+  }
 
   const out: Event[] = dated.map((c) => {
     const course = byId.get(c.subjectId);

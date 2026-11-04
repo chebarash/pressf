@@ -1,6 +1,6 @@
-.split { display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: 100dvh; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) 360px; height: 100dvh; }
 /* Figma D3: the header stops 24px short of the inspector, the week grid runs to 4px from it. */
-.main { padding: var(--page-pad-top) 4px var(--page-pad-bottom) var(--page-pad-x); display: flex; flex-direction: column; gap: var(--tool-gap); min-width: 0; }
+.main { padding: var(--page-pad-top) 4px var(--page-pad-bottom) var(--page-pad-x); display: flex; flex-direction: column; gap: var(--tool-gap); min-width: 0; min-height: 0; }
 
 .header { display: flex; align-items: center; gap: var(--space-3); margin-right: 20px; }
 .title { font: 400 var(--tool-title)/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
@@ -19,28 +19,44 @@
 }
 .navBtn:hover { background: var(--bg-hover); }
 
-/* Week grid */
-.grid {
-  --hour: 64px;
-  --head: 40px;
-  position: relative;
-  display: grid;
-  grid-template-columns: 56px repeat(var(--days), minmax(0, 1fr));
+/* Week: an endless strip of days (six fit), scrolled sideways; hours stick left, day heads on top. */
+.stripBox {
+  flex: 1;
+  min-height: 0;
+  container-type: inline-size;
   background: var(--bg-surface);
   border: 1.5px solid var(--border-strong);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-key-lg);
   overflow: hidden;
 }
-.gutter { position: relative; }
+.strip {
+  --hour: 64px;
+  --gutter: 56px;
+  --size: calc((100cqw - var(--gutter)) / 6);
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline-start: var(--gutter);
+  scrollbar-width: thin;
+}
+.track { position: relative; width: calc(var(--gutter) + var(--span) * var(--size)); }
+.probe { position: absolute; top: 0; left: 0; width: var(--size); height: 1px; visibility: hidden; pointer-events: none; }
+.gutter { position: sticky; left: 0; z-index: 3; width: var(--gutter); height: 100%; background: var(--bg-surface); border-right: 1px solid var(--border-subtle); }
+.corner { position: sticky; top: 0; z-index: 1; height: var(--head); background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); }
 .hourLabel { position: absolute; left: 10px; transform: translateY(-50%); font: 500 11px/normal var(--font-sans); color: var(--text-secondary); }
-.day { position: relative; border-left: 1px solid var(--border-subtle); }
+.weekBlock { position: absolute; top: 0; left: 0; width: calc(7 * var(--size)); height: 100%; will-change: transform; }
+.weekHead { position: sticky; top: 0; z-index: 2; height: var(--head); background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); }
+.heads { display: grid; grid-template-columns: repeat(7, var(--size)); height: 40px; }
+.dayHead { appearance: none; display: flex; align-items: center; min-width: 0; padding: 0 10px; border: 0; border-left: 1px solid var(--border-subtle); background: transparent; font: 600 13px/normal var(--font-sans); color: var(--text-primary); text-align: left; cursor: pointer; white-space: nowrap; }
+.dayHead:hover { background: var(--bg-hover); }
+.headToday { color: var(--text-accent); }
+.headOn { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.days { display: grid; grid-template-columns: repeat(7, var(--size)); }
+.day { position: relative; border-left: 1px solid var(--border-subtle); scroll-snap-align: start; }
 .dayToday { background: var(--bg-accent); }
-.dayHead { height: 40px; display: flex; align-items: center; padding: 0 10px; font: 600 13px/normal var(--font-sans); color: var(--text-primary); background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); }
-.dayLink { gap: 6px; color: var(--text-secondary); }
-.dayLink:hover { color: var(--text-primary); background: var(--bg-hover); }
-.dayCount { min-width: 18px; padding: 0 5px; border-radius: var(--radius-full); background: var(--bg-sunken); font: 600 11px/18px var(--font-sans); text-align: center; }
-.lines { position: absolute; inset: var(--head) 0 0 0; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour) - 1px), var(--border-subtle) calc(var(--hour) - 1px), var(--border-subtle) var(--hour)); }
+.lines { position: absolute; inset: 12px 0 0; pointer-events: none; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hour) - 1px), var(--border-subtle) calc(var(--hour) - 1px), var(--border-subtle) var(--hour)); }
 .dayToday .lines { opacity: 0.35; }
 
 .class {
@@ -89,14 +105,53 @@
 
 /* A day off: the column is hatched and names the reason. */
 .dayOff {
-  position: absolute; inset: var(--head) 0 0; display: grid; place-items: center; pointer-events: none;
+  position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
   background: repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--border-subtle) 45%, transparent) 10px 11px);
 }
 .dayOff span { font: 600 13px/1.3 var(--font-sans); color: var(--text-secondary); text-align: center; padding: 6px 10px; border-radius: var(--radius-full); background: var(--bg-surface); border: 1.5px solid var(--border-subtle); max-width: 90%; }
 
 /* The calendar over the week: all-day bars under the day heads (exam weeks, holidays, registration). */
-.lanes { position: absolute; top: 43px; left: 56px; right: 0; display: grid; grid-template-columns: repeat(var(--days), minmax(0, 1fr)); grid-auto-rows: 22px; row-gap: 4px; z-index: 1; pointer-events: none; }
-.laneItem { pointer-events: auto; display: flex; align-items: center; margin: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lanes { display: grid; grid-template-columns: repeat(7, var(--size)); grid-auto-rows: 22px; row-gap: 4px; padding-top: 3px; }
+.laneItem { display: flex; align-items: center; margin: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* A deadline due inside the hours shown: a line at the due time, its name under it. */
 .marker { position: absolute; left: 0; right: 0; height: 2px; background: var(--rating-mid); z-index: 2; }
 .marker > span { position: absolute; top: 4px; left: 4px; right: 4px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Week | Month switch. */
+.views { display: flex; align-items: center; gap: var(--space-1); }
+button.navBtn { appearance: none; cursor: pointer; }
+
+/* Month: the same weeks as an endless column of rows. */
+.monthScroll { --row: 120px; height: 100%; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; scroll-snap-type: y proximity; scroll-padding-top: 31px; scrollbar-width: thin; }
+.monthScroll > :first-child { position: sticky; top: 0; z-index: 3; }
+.monthTrack { position: relative; height: calc(var(--span) * var(--row)); }
+.rowProbe { position: absolute; top: 0; left: 0; width: 1px; height: var(--row); visibility: hidden; pointer-events: none; }
+.monthTrack > .monthRow { position: absolute; top: 0; left: 0; right: 0; height: var(--row); border-bottom: 1.5px solid var(--border-subtle); scroll-snap-align: start; will-change: transform; }
+.monthTrack > .monthRow > [role="gridcell"] { min-height: 0; height: var(--row); overflow: hidden; gap: 4px; }
+.cellOn { box-shadow: inset 0 0 0 2px var(--border-accent); }
+.chip { appearance: none; display: block; width: calc(100% - 4px); padding: 3px 6px; border: 1.25px solid var(--border-accent); border-radius: 6px; font: 600 11px/1.3 var(--font-sans); color: var(--text-primary); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.chip.classOn { border-width: 2px; border-color: var(--border-strong); box-shadow: 0 2px 0 var(--shadow-key); }
+.moreBtn { appearance: none; border: 0; background: none; text-align: left; cursor: pointer; }
+
+/* The lesson in the inspector. */
+.inspector { height: 100dvh; overflow-y: auto; }
+.live { margin: 0; color: var(--rating-low); font: 600 13px/normal var(--font-sans); }
+.fact { align-items: flex-start; }
+.fact > span { display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.was { color: var(--text-secondary); }
+.block { display: flex; flex-direction: column; gap: 6px; }
+.topic { font: 600 14px/1.35 var(--font-sans); color: var(--text-primary); }
+.note { font: 400 13px/1.4 var(--font-sans); color: var(--text-secondary); }
+.att { display: flex; align-items: center; gap: var(--space-2); }
+.att > :first-child { flex: 1; }
+.attMark { padding: 2px 10px; border-radius: var(--radius-full); border: 1.5px solid var(--border-subtle); font: 600 12px/18px var(--font-sans); }
+.attOk { background: var(--tint-moss); border-color: var(--school-medicine); }
+.attLate { background: var(--tint-mustard); border-color: var(--rating-mid); }
+.attBad { background: var(--tint-rust); border-color: var(--bg-danger); }
+.attNone { background: var(--bg-sunken); color: var(--text-secondary); }
+.grade { font: 600 15px/normal var(--font-sans); }
+.homework { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1.5px solid var(--border-subtle); border-radius: 10px; }
+.homework:hover { background: var(--bg-hover); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.monthTrack [role="gridcell"] > * { flex-shrink: 0; }
+.monthTrack [role="gridcell"] > a, .monthTrack [role="gridcell"] > span:not([aria-hidden]) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

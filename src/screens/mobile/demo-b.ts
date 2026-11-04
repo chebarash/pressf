@@ -4,7 +4,8 @@
  * synced LMS account. Never used for real visitors.
  */
 import type { FileType } from "@/core/files";
-import type { CourseView, FileItem, FileView, MyCoursesView, NextSemesterView, RateQueueView, TimetableView, UploadsView } from "./views";
+import type { SchedulePage } from "@/server/views";
+import type { CourseView, FileItem, FileView, MyCoursesView, NextSemesterView, RateQueueView, UploadsView } from "./views";
 
 const sync = { syncedAt: "2026-11-02T04:00:00.000Z", stale: false, lmsDown: false, signInAgain: false };
 
@@ -13,33 +14,49 @@ const file = (id: string, title: string, type: FileType, week: number | null, da
   date: "2026-11-02T05:00:00.000Z", dateLabel, from, lessonId: null, size: 1_200_000, href: `/f/${id}`,
 });
 
-export function timetableDemo(demo: string): TimetableView {
+/** Timetable demo (3.1–3.7): five weeks around Monday 2 Nov 2026 of a weekly pattern, in the page's shape. */
+export function timetableDemo(demo: string): SchedulePage {
   const day = demo === "free" ? "2026-11-06" : demo === "holiday" ? "2026-12-08" : "2026-11-02";
-  const cls = (key: string, time: string, endTime: string, name: string, code: string, teacher: string, room: string, status: "done" | "now" | "next" | "later", changedFrom: string | null = null) => ({
-    key, courseId: code, code, name, kind: "lecture" as const, start: `${day}T${time}:00+05:00`, end: `${day}T${endTime}:00+05:00`, time, endTime, room,
-    teacher: { id: teacher, name: teacher }, changedFrom, lessonIds: [], status,
-    lesson: key === "calc" ? "Lecture 15" : null,
-    materials: key === "calc" ? [file("l15", "Lecture 15 slides", "lecture", 8, "2 Nov"), file("pp", "Practice problems", "notes", 8, "2 Nov")] : [],
-    absences: key === "calc" ? { missed: 9, left: 6, limit: 15, status: "ok" as never, line: "" } : null,
-  });
   const running = demo === "running";
-  const classes = demo === "free" || demo === "holiday" ? [] : [
-    cls("calc", "10:00", "11:20", "Calculus 1", "MATH111", "Gonçalo Pinto", "B-204", running ? "now" : "next"),
-    cls("phys", "13:00", "14:20", "Physics 1", "PHYS101", "Emily Carter", "A-108", running ? "next" : "later", demo === "room" ? "B-110" : null),
-    cls("cs", "15:00", "16:20", "Computer Science 1", "CS100", "William Rodriguez", "C-112", "later"),
+  const pattern: Array<[number, string, string, string, string, string, string]> = [
+    [0, "10:00", "11:20", "Calculus 1", "MATH111", "Gonçalo Pinto", "B-204"],
+    [0, "13:00", "14:20", "Physics 1", "PHYS101", "Emily Carter", "A-108"],
+    [0, "15:00", "16:20", "Computer Science 1", "CS100", "William Rodriguez", "C-112"],
+    [2, "10:00", "11:20", "Calculus 1", "MATH111", "Gonçalo Pinto", "B-204"],
+    [3, "13:00", "14:20", "Physics 1", "PHYS101", "Emily Carter", "A-108"],
   ];
+  const codes = ["CS100", "MATH111", "PHYS101"];
   const monday = day === "2026-12-08" ? "2026-12-07" : "2026-11-02";
-  const labels = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-  return {
-    sync, day, weekLabel: "Week 8, midterm exams",
-    week: labels.map((label, i) => {
-      const d = `${monday.slice(0, 8)}${String(Number(monday.slice(8)) + i).padStart(2, "0")}`;
-      return { day: d, label, date: d, selected: d === day, today: i === 0, classes: 3 };
-    }),
-    classes,
-    holiday: demo === "holiday" ? { date: day, name: "Constitution Day" } : null,
-    nextClass: classes.length ? null : { label: demo === "holiday" ? "Wednesday 10:00" : "Monday 10:00", class: { ...cls("calc", "10:00", "11:20", "Calculus 1", "MATH111", "Gonçalo Pinto", "B-204", "later"), start: demo === "holiday" ? "2026-12-09T10:00:00+05:00" : "2026-11-09T10:00:00+05:00" } },
-  };
+  const add = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+  const month = (d: string) => new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
+  const weeks = [-2, -1, 0, 1, 2].map((w) => {
+    const mon = add(monday, w * 7);
+    return {
+      monday: mon, label: w === 0 ? "Week 8, midterm exams" : null, note: null, events: [],
+      days: Array.from({ length: 7 }, (_, i) => {
+        const d = add(mon, i);
+        const off = i === 6 ? "Weekend" : demo === "holiday" && d === "2026-12-08" ? "Holiday · Constitution Day" : null;
+        const classes = off || (demo === "free" && d === day) ? [] : pattern.filter((p) => p[0] === i).map(([, time, endTime, name, code, teacher, room], n) => {
+          const first = d === monday && n === 0;
+          return {
+            key: `${code}@${d}T${time}`, courseId: code, code, name, kind: "lecture" as const, start: `${d}T${time}:00+05:00`, end: `${d}T${endTime}:00+05:00`, time, endTime, room,
+            teacher: { id: teacher, name: teacher }, changedFrom: demo === "room" && code === "PHYS101" && d === monday ? "B-110" : null, lessonIds: [],
+            status: (d < monday ? "done" : d > monday ? "later" : first ? (running ? "now" : "next") : "later") as "done" | "now" | "next" | "later",
+            day: d, from: Number(time.slice(0, 2)) * 60 + Number(time.slice(3)), to: Number(endTime.slice(0, 2)) * 60 + Number(endTime.slice(3)), tone: codes.indexOf(code),
+            lesson: {
+              lessonId: null, title: first ? "Lecture 15" : null, description: null, syllabus: first ? "Week 8 · Derivatives" : null, type: "Lecture",
+              attendance: d < "2026-11-02" ? { mark: "present" as const, label: "Present", viaQr: false } : { mark: "upcoming" as const, label: "Not marked yet", viaQr: false },
+              grade: null, homework: [],
+              files: first ? [file("l15", "Lecture 15 slides", "lecture", 8, "2 Nov"), file("pp", "Practice problems", "notes", 8, "2 Nov")] : [],
+              absences: code === "MATH111" ? { missed: 9, left: 6, limit: 15, status: "ok" as never, line: "" } : null, lmsHref: null,
+            },
+          };
+        });
+        return { day: d, weekday: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i], date: `${Number(d.slice(8))} ${month(d)}`, off, classes };
+      }),
+    };
+  });
+  return { view: "week", day, today: "2026-11-02", weeks, coming: [], subscribe: { google: "#", personal: false }, feed: null, signedIn: true, sync: null };
 }
 
 export function coursesDemo(demo: string): MyCoursesView {

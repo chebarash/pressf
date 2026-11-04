@@ -4,7 +4,7 @@ import * as adapt from "@/screens/desktop/adapt";
 import { rateScreen } from "@/screens/mobile/load";
 import { feedMeta } from "@/screens/mobile/parts/FeedRow";
 import { rateHrefFor } from "@/server/views/professor";
-import type { ClassView, FeedView, FileView, ProfessorView, RateQueueView, TimetableView } from "@/server/views";
+import type { FeedView, FileView, ProfessorView, RateQueueView } from "@/server/views";
 
 const at = (day: string, time = "12:00") => new Date(`${day}T${time}:00+05:00`);
 
@@ -88,30 +88,6 @@ describe("editing a rating opens on the saved answers (4.12, D5)", () => {
     expect(open?.item.courseId).toBe("c9");
     expect(open?.draft).toBeNull();
     expect(rateScreen(queue, "c9").open).toBeNull();
-  });
-});
-
-const cls = (key: string, day: string, time: string, over: Partial<ClassView> = {}): ClassView =>
-  ({ key, courseId: key, code: "MATH111", name: "Calculus 1", kind: "lecture", start: at(day, time).toISOString(), end: new Date(at(day, time).getTime() + 80 * 60_000).toISOString(), time, endTime: "11:20", room: "B-204", teacher: null, status: "later", changedFrom: null, lessonIds: [], ...over }) as ClassView;
-
-describe("desktop timetable shows the whole week (D3)", () => {
-  const week = ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"];
-  const v = {
-    sync: {} as TimetableView["sync"], day: "2026-11-02", weekLabel: "Midterm exams", holiday: null, nextClass: null,
-    week: week.map((d, i) => ({ day: d, label: ["Mon", "Tue", "Wed", "Thu", "Fri"][i], date: `${2 + i} Nov`, selected: i === 0, today: i === 0, classes: 1 })),
-    classes: [{ ...cls("a", "2026-11-02", "10:00"), lesson: "Lecture 15", materials: [], absences: { missed: 9, limit: 15, left: 6 } }],
-    weekClasses: [cls("a", "2026-11-02", "10:00"), cls("b", "2026-11-05", "10:00", { kind: "exam", endTime: "12:00" }), cls("c", "2026-11-08", "10:00")],
-  } as unknown as TimetableView;
-
-  it("places every weekday class, with the selected day's details", () => {
-    const d = adapt.timetable(v, at("2026-11-02", "09:35"));
-    expect(d.classes.map((c) => [c.id, c.day])).toEqual([["a", 0], ["b", 3]]);
-    expect(d.classes[0].tags).toEqual(["MATH111", "Lecture 15"]);
-    expect(d.classes[0].absences?.left).toBe("6 left");
-    expect(d.classes[1].title).toBe("Calculus 1 · MIDTERM");
-    expect(d.classes[1].meta).toBe("10:00–12:00 · B-204");
-    expect(d.days.every((x) => x.loaded)).toBe(true);
-    expect(d.selected).toBe("a");
   });
 });
 
