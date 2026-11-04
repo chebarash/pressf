@@ -94,3 +94,12 @@ describe("room comparisons ignore the building format", () => {
     expect(sameRoom("MATH 306", "UCA 306")).toBe(false);
   });
 });
+
+import { feedRange } from "@/server/calendar-feed";
+describe("the Google Calendar feed covers the whole semester", () => {
+  it("starts at the term's first week and reaches its last", () => {
+    const r = feedRange("2026-11-04");
+    expect(r.from).toBe("2026-08-31");
+    expect(r.to >= "2026-12-31").toBe(true);
+  });
+});
