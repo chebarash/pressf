@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/server/covers/source", async (original) => ({
   ...(await original<typeof import("@/server/covers/source")>()),
-  fileSource: async (id: string) => ({ id }),
+  fileSource: async (id: string) => ({ id, downloadName: `${id}.pdf`, meta: { title: id } }),
   deliverUrl: async (src: { id: string }) => `https://bucket.test/${src.id}.pdf`,
 }));
 
@@ -62,7 +62,7 @@ describe("POST /api/telegram/send-file", () => {
     expect(await response.json()).toEqual({ ok: true });
     expect(sent).toEqual([{ method: "sendDocument", chat: String(chat), document: "https://bucket.test/SF1.pdf" }]);
     const keys = (await db().select().from(telegramFiles)).map((r) => [r.key.replace(/^cover\d+:/, ""), r.fileId]);
-    expect(keys).toEqual([["lms:SF1:1", "tg-file-1"]]);
+    expect(keys).toEqual([["n2:lms:SF1:1", "tg-file-1"]]);
 
     // Another student gets the cached file id: no upload.
     const other = await student();
