@@ -1,7 +1,5 @@
 /* D6 Progress (4245:17756, dark 4245:29582). */
 .main { padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); display: flex; flex-direction: column; gap: var(--page-gap); max-width: var(--page-max); }
-.title { font: 400 var(--page-title)/1.04 var(--font-serif); margin: 0; }
-.sub { font: 500 15px/normal var(--font-sans); color: var(--text-secondary); }
 
 /* KPIs: 1.5px cards, radius 18, Key/SM, 16 padding, 6 apart. */
 .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
@@ -105,7 +103,6 @@
 .rate:hover { background: color-mix(in srgb, var(--tint-mustard-strong) 88%, var(--text-primary)); }
 .rateTitle { font: 400 26px/1.08 var(--font-serif); margin: 0; }
 .rateLine { font: 500 13px/normal var(--font-sans); }
-.back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; font: 600 13px/normal var(--font-sans); color: var(--text-accent); }
 
 /* Earlier semester rows open that semester's results. */
 .semLink { color: var(--text-primary); border-radius: 8px; margin-inline: -8px; padding: 4px 8px; }
@@ -128,3 +125,12 @@
 .curriculum { flex-direction: row; align-items: center; justify-content: space-between; color: var(--text-primary); }
 .curriculum:hover { background: var(--bg-hover); }
 .curriculumText { display: flex; flex-direction: column; gap: 6px; }
+
+/* Narrow windows (page container, shell.css): tiles two by two, the bottom cards
+   stacked, the tables keep their columns and scroll sideways inside their card. */
+@container page (max-width: 900px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bottom { grid-template-columns: minmax(0, 1fr); }
+  .table, .classes { overflow-x: auto; }
+  .table > *, .classList, .classesHead { min-width: 720px; }
+}

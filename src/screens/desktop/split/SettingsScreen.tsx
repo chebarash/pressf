@@ -7,6 +7,7 @@ import { setTheme } from "@/platform/PlatformProvider";
 import { FeedLayers } from "@/screens/mobile/mc/FeedLayers";
 import { RESET_CALENDAR_TEXT } from "@/screens/mobile/mc/format";
 import { signOutWithConfirm } from "@/ui/shell/signOut";
+import { PageHead } from "@/ui/shell/PageHeader";
 import { Button, Switch } from "@/ui/components";
 import { openShortcuts } from "../global/bus";
 import type { SettingsData } from "../model";
@@ -74,7 +75,7 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
 
   return (
     <main data-desktop-screen className={cx(css.screen, x.main)}>
-      <h1 className={x.title}>Settings</h1>
+      <PageHead title="Settings" />
       <div className={x.cols}>
         <div className={x.stack}>
           <section className={x.box}>

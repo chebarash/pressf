@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import type { TodayView } from "@/server/views";
 import { Banner } from "@/ui/components";
+import { PageHead } from "@/ui/shell/PageHeader";
 import * as adapt from "./adapt";
 import type { TodayData } from "./model";
 import { ButtonLink, CardHead, CourseCard, css, cx, FeedLink, FileRow, Hint } from "./parts";
@@ -22,11 +23,7 @@ export function TodayScreen({ data, actions }: { data: TodayData; actions?: Toda
   const dismiss = data.rate?.term && actions?.dismissRating ? actions.dismissRating.bind(null, data.rate.term) : undefined;
   return (
     <main data-desktop-screen className={cx(css.screen, t.main)}>
-      <header className={t.header}>
-        <p className={t.greeting}>{data.greeting}</p>
-        <h1 className={t.title}>{data.title}</h1>
-        <p className={t.dateLine}>{data.dateLine}</p>
-      </header>
+      <PageHead title={data.title} sub={`${data.greeting} · ${data.dateLine}`} />
 
       {data.banner && (
         <Banner tone={data.banner.tone} action={data.banner.action ?? undefined}>

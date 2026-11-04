@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { countAudience, scheduleBroadcast, sendTestBroadcast } from "@/app/admin/actions";
 import { inQuietHours, nextSendable, type Audience } from "@/server/admin/rules";
 import type { broadcastsPage } from "@/server/admin/views";
-import { Btn, Label, cx, s } from "./ui";
+import { Btn, Head, Label, cx, s } from "./ui";
 import { useKeys } from "./useKeys";
 import type { SortColumns } from "@/core/sort";
 import { SortHeader, useSortedRows } from "@/ui/table/Sort";
@@ -89,7 +89,7 @@ export function Broadcasts({ data }: { data: BroadcastsData }) {
   return (
     <>
       <section className={cx(s.main, s.mainFixed)} style={{ width: 600 }}>
-        <h1 className={s.h1}>New broadcast</h1>
+        <Head title="New broadcast" />
         <Label>WHO</Label>
         <div className={s.wrap}>
           <button type="button" className={cx(s.chip, everyone && s.chipInverse)} onClick={() => (setAudience({}), setCourse(""))}>Everyone</button>

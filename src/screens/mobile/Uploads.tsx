@@ -23,7 +23,7 @@ export default function Uploads({ data }: { data: UploadsView }) {
   const sub = data.live ? `${data.live} live · opened ${n.format(data.opens)} ${data.opens === 1 ? "time" : "times"}. Thank you.` : data.items.length ? "Waiting for review — the bot will tell you." : "Exams, notes and mocks you share help the next cohort.";
   return (
     <div className={cx(b.screen, s.body)}>
-      <h1 className={s.title}>My uploads</h1>
+      <h1 className={`${s.title} pf-m-title`}>My uploads</h1>
       <p className={s.sub}>{sub}</p>
       <>
         {data.items.map((u) => {

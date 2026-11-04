@@ -3,6 +3,7 @@
  * Styles: admin.module.css, tokens only.
  */
 import type { ComponentProps, ReactNode } from "react";
+import { PageHead } from "@/ui/shell/PageHeader";
 import s from "./admin.module.css";
 
 export const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean).join(" ");
@@ -37,11 +38,11 @@ export const KV = ({ k, children, tone, top, wide }: { k: ReactNode; children: R
 
 export const Radio = ({ on }: { on: boolean }) => <span aria-hidden className={cx(s.radio, on && s.radioOn)} />;
 
-export const Head = ({ title, sub }: { title: ReactNode; sub?: ReactNode }) => (
-  <div className={s.head}>
-    <h1 className={s.h1}>{title}</h1>
-    {sub != null && <p className={s.sub}>{sub}</p>}
-  </div>
+/** The page header standard (PageHead), the same as every student page. */
+export const Head = ({ title, sub, children }: { title: ReactNode; sub?: ReactNode; children?: ReactNode }) => (
+  <PageHead title={title} sub={sub ?? undefined}>
+    {children}
+  </PageHead>
 );
 
 export { s };

@@ -11,7 +11,7 @@ import c from "./mc/screens.module.css";
 export default function Settings({ data }: { data: ProfileView }) {
   const alertsOn = Object.values(data.alerts).some(Boolean);
   return (
-    <Screen className={s.noTopBar}>
+    <Screen>
       <div className={s.body} style={{ paddingBottom: 32 }}>
         <h1 className={cx(s.title, "t-mobile-title")}>Profile</h1>
         <div className={c.me}>

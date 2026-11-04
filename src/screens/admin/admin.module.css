@@ -182,21 +182,20 @@ select.chip { appearance: none; font-family: var(--font-sans); padding-right: va
 .error { font-size: 13px; font-weight: 600; color: var(--bg-danger); }
 
 /* Type */
-.h1 { font-family: var(--font-serif); font-size: 44px; line-height: 1.04; font-weight: 400; margin: 0; white-space: nowrap; }
-.h1Col { font-family: var(--font-serif); font-size: 40px; line-height: 1.04; font-weight: 400; margin: 0; white-space: nowrap; }
 .h2 { font-family: var(--font-serif); font-size: 30px; line-height: 1.04; font-weight: 400; margin: 0; }
 .h3 { font-family: var(--font-serif); font-size: 26px; line-height: 1.08; font-weight: 400; margin: 0; }
 .h4 { font-family: var(--font-serif); font-size: 24px; line-height: 1.08; font-weight: 400; margin: 0; }
 .h5 { font-family: var(--font-serif); font-size: 22px; line-height: 1.08; font-weight: 400; margin: 0; }
 .cardName { font-family: var(--font-serif); font-size: 20px; line-height: 1.15; font-weight: 400; }
 .warmText { font-size: 13px; font-weight: 500; color: var(--text-primary); }
-.head { display: flex; flex-direction: column; gap: 6px; }
 .sub { font-size: 14px; color: var(--text-secondary); margin: 0; }
 
 /* Layout regions */
-.main { flex: 1 0 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); overflow-y: auto; }
+.main { --flow-gap: var(--space-4); flex: 1 0 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); overflow-y: auto; }
 .mainFixed { flex: 0 0 auto; }
 .column { flex-shrink: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-5) var(--space-4); border-right: 1.5px solid var(--border-subtle); overflow-y: auto; }
+/* A list column that opens the page (Uploads): its title keeps the page offsets. */
+.columnPage { --flow-gap: var(--space-2); padding: var(--page-pad-top) var(--space-4) var(--space-5) var(--page-pad-x); }
 .inspector { display: flex; flex-direction: column; gap: 14px; padding: var(--space-5) 20px; border-left: 1.5px solid var(--border-subtle); overflow-y: auto; }
 .detail { flex: 1 0 0; min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 28px; border-left: 1.5px solid var(--border-subtle); overflow-y: auto; }
 .detailNarrow { padding: 28px var(--space-5); }

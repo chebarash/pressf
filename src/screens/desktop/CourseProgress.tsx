@@ -1,8 +1,8 @@
-import Link from "next/link";
 import type { CourseProgressView } from "@/server/views";
+import { PageHead } from "@/ui/shell/PageHeader";
 import * as adapt from "./adapt";
 import type { ClassState, CourseProgressData } from "./model";
-import { css, cx, Icon } from "./parts";
+import { css, cx } from "./parts";
 import { ClassLegend, DOT, ProgressTable } from "./Progress";
 import g from "./progress.module.css";
 
@@ -17,11 +17,7 @@ export function CourseProgressScreen({ data }: { data: CourseProgressData }) {
   const states = (Object.keys(data.counts) as ClassState[]).filter((s) => data.counts[s] > 0);
   return (
     <main data-desktop-screen className={cx(css.screen, g.main)}>
-      <Link prefetch href="/progress" className={g.back} data-key="Escape">
-        <Icon name="chevron-left" size={14} /> Progress
-      </Link>
-      <h1 className={g.title}>{data.course.name}</h1>
-      <p className={g.sub}>{[data.course.code, data.course.term, data.course.teacher].filter(Boolean).join(" · ")}</p>
+      <PageHead title={data.course.name} sub={[data.course.code, data.course.term, data.course.teacher].filter(Boolean).join(" · ")} back={{ href: "/progress", label: "Progress" }} />
       <ProgressTable rows={[{ ...data.row, href: data.course.href }]} open={data.row.id} />
 
       <section className={cx(css.card, g.classes)} aria-label="Class by class">

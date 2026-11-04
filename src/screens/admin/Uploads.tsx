@@ -8,7 +8,7 @@ import { REJECT_REASONS, rejectMessage, UPLOAD_TYPES, type RejectReason } from "
 import { EmptyState } from "@/ui/components";
 import { hideLiveUpload, publishUpload, rejectUpload } from "@/app/admin/actions";
 import type { uploadsPage } from "@/server/admin/views";
-import { Btn, Chip, KV, Label, Radio, cx, s } from "./ui";
+import { Btn, Chip, Head, KV, Label, Radio, cx, s } from "./ui";
 import { AdminToast, type Note } from "./Toast";
 import { useKeys } from "./useKeys";
 import { sortEntries } from "@/core/sort";
@@ -96,8 +96,8 @@ export function Uploads({ data }: { data: UploadsData }) {
 
   return (
     <>
-      <section className={s.column} style={{ width: 340, gap: items.length === 0 ? 12 : undefined }} aria-label="Queue">
-        <h1 className={s.h1Col}>Uploads</h1>
+      <section className={cx(s.column, s.columnPage)} style={{ width: 340, gap: items.length === 0 ? 12 : undefined }} aria-label="Queue">
+        <Head title="Uploads" />
         <div className={s.tabs}>
           {(Object.keys(TAB_LABEL) as Array<keyof typeof TAB_LABEL>).map((t) => (
             <Link key={t} href={`/admin/uploads?${new URLSearchParams({ tab: t, ...sortEntries(data.sort) })}`} className={cx(s.chip, t === data.tab && s.chipInverse)} prefetch>

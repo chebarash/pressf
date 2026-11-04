@@ -14,7 +14,7 @@ export type CourseListPane = { terms: CoursesData["terms"]; courses: CoursesData
  * keeps the list and says why.
  */
 export default function DesktopCourses({ data, list, course }: { data: MyCoursesView; list?: CourseListPane | null; course?: CourseView | null }) {
-  if (course && list) return <CourseLayout data={{ ...adapt.course(course), myCourses: list.courses, terms: list.terms }} />;
+  if (course && list) return <CourseLayout data={{ ...adapt.course(course), myCourses: list.courses, terms: list.terms }} open={false} />;
   const base = adapt.myCourses(data);
   return <CoursesScreen data={list ? { ...base, terms: list.terms, courses: list.courses, cards: [] } : base} />;
 }

@@ -5,6 +5,7 @@ import type { ClassState, ProgressData, ProgressRow } from "./model";
 import { css, cx, Empty, Hint, Icon } from "./parts";
 import { SortableRows, type SortableColumn } from "@/ui/table/Sort";
 import { CountUp } from "@/ui/components/CountUp";
+import { PageHead } from "@/ui/shell/PageHeader";
 import g from "./progress.module.css";
 
 /** D6 Progress — tiles, one table for every course (J/K, Enter opens), GPA by semester, rating nudge. */
@@ -18,7 +19,7 @@ const num = (n: number | null) => (n == null ? <span className={g.dash}>—</spa
 export function ProgressScreen({ data }: { data: ProgressData }) {
   return (
     <main data-desktop-screen className={cx(css.screen, g.main)}>
-      <h1 className={g.title}>Progress</h1>
+      <PageHead title="Progress" />
 
       <section className={g.tiles}>
         {data.gpa && (

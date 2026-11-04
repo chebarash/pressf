@@ -3,6 +3,7 @@ import { MoreMentions } from "@/screens/shared/MoreMentions";
 import { Fragment } from "react";
 import type { ProfessorView } from "@/server/views";
 import { RatingSummary } from "@/ui/components";
+import { PageHead } from "@/ui/shell/PageHeader";
 import * as adapt from "./adapt";
 import type { ProfessorData } from "./model";
 import { css, cx, Face, Hint, KeyTo, MentionCard, Pct } from "./parts";
@@ -19,20 +20,20 @@ export default function DesktopProfessor({ data }: { data: ProfessorView }) {
 export function ProfessorScreen({ data }: { data: ProfessorData }) {
   return (
     <main data-desktop-screen className={cx(css.screen, p.main)}>
-      <nav className={p.crumbs} aria-label="Breadcrumb">
-        {data.crumbs.map((c, i) => (
-          <Fragment key={c.label}>
-            {i > 0 && <span>/</span>}
-            {c.href ? <Link prefetch href={c.href}>{c.label}</Link> : <span>{c.label}</span>}
-          </Fragment>
-        ))}
-      </nav>
+      <PageHead title={data.name} sub={data.title}>
+        <nav className={p.crumbs} aria-label="Breadcrumb">
+          {data.crumbs.map((c, i) => (
+            <Fragment key={c.label}>
+              {i > 0 && <span>/</span>}
+              {c.href ? <Link prefetch href={c.href}>{c.label}</Link> : <span>{c.label}</span>}
+            </Fragment>
+          ))}
+        </nav>
+      </PageHead>
 
       <section className={p.hero}>
         <Face src={data.face} size={96} />
         <div className={p.who}>
-          <h1 className={p.name}>{data.name}</h1>
-          <p className={p.title}>{data.title}</p>
           {data.contact.length > 0 && (
             <p className={p.contact}>
               {data.contact.map((c, i) => (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Chip } from "@/ui/components";
+import { PageHead } from "@/ui/shell/PageHeader";
 import x from "../lists.module.css";
 import type { ProfessorsData } from "../model";
 import { css, cx, Face, Hint, Icon, Tag } from "../parts";
@@ -30,14 +31,13 @@ export function ProfessorsScreen({ data }: { data: ProfessorsData }) {
   };
   return (
     <main data-desktop-screen className={cx(css.screen, x.main)}>
-      <header className={x.head}>
-        <h1 className={x.title}>Professors</h1>
+      <PageHead title="Professors">
         <label className={x.filter}>
           <Icon name="search" size={16} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter by name, department or course" aria-label="Filter professors" data-key="/" />
           <Hint>/ to filter</Hint>
         </label>
-      </header>
+      </PageHead>
       {data.schools.length > 1 && (
         <div className={css.chips}>
           <Chip size="s" label="All" selected={!school} onClick={() => pickSchool(null)} />

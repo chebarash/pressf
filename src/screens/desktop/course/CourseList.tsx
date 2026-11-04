@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { PageHead } from "@/ui/shell/PageHeader";
 import type { CourseListItem, CoursesData } from "../model";
 import { css, cx, Hint, Icon, Pct } from "../parts";
 import c from "./course.module.css";
@@ -13,7 +14,7 @@ export function CourseList({ courses, terms, current }: { courses: CourseListIte
   const shown = needle ? courses.filter((x) => `${x.code} ${x.name}`.toLowerCase().includes(needle)) : courses;
   return (
     <nav className={c.list} aria-label="Your courses">
-      <h1 className={c.listTitle}>Courses</h1>
+      <PageHead title="Courses" />
       <label className={c.filter}>
         <Icon name="search" size={14} />
         <input

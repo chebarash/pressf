@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { CourseData } from "../model";
 import { Disclosure, RatingSummary } from "@/ui/components";
 import { TabPill } from "@/ui/components/TabPill";
+import { PageHead } from "@/ui/shell/PageHeader";
 import { Syllabus } from "@/screens/mobile/parts/CourseParts";
 import { Button, ButtonLink, css, cx, Empty, Face, FileRow, Hint, Icon, KeyTo, MentionCard, RatingStrip, Score, shareHref, Tag } from "../parts";
 import c from "./course.module.css";
@@ -14,10 +15,10 @@ import { TermPicker } from "./TermPicker";
 export type CourseTab = "overview" | "files" | "anonymous";
 
 /** List · detail · inspector. The File screen swaps the inspector for the preview. */
-export function CourseLayout({ data, aside, tab = "overview" }: { data: CourseData; aside?: ReactNode; tab?: CourseTab }) {
+export function CourseLayout({ data, aside, tab = "overview", open = true }: { data: CourseData; aside?: ReactNode; tab?: CourseTab; /** The URL named this course (false on /courses, which shows the first one): a one-pane window shows the list instead. */ open?: boolean }) {
   const withList = !!data.myCourses;
   return (
-    <div data-desktop-screen className={cx(css.screen, c.layout, !!aside && withList && c.layoutFile, !withList && c.layoutNoList)}>
+    <div data-desktop-screen data-open={open || !withList || undefined} className={cx(css.screen, c.layout, !!aside && withList && c.layoutFile, !withList && c.layoutNoList)}>
       {withList && <CourseList courses={data.myCourses!} terms={data.terms} current={data.code} />}
       <CourseDetail data={data} tab={tab} />
       {aside ?? <CourseInspector data={data} />}
@@ -37,17 +38,28 @@ function CourseDetail({ data, tab }: { data: CourseData; tab: CourseTab }) {
   const overviewHref = keep(`/c/${encodeURIComponent(data.code)}`);
   return (
     <main className={c.detail}>
+      <PageHead
+        title={data.name}
+        sub={
+          <span className={c.tags}>
+            <Tag>{data.code}</Tag>
+            {data.kind && <Tag tone="neutral">{data.kind}</Tag>}
+          </span>
+        }
+      >
+        {!data.context && (
+          <a href={shareHref(`/c/${encodeURIComponent(data.code)}`, data.name)} className={c.shareLink} target="_blank" rel="noopener">
+            <Icon name="send" size={16} /> Share
+          </a>
+        )}
+        {/* One pane at a time on a narrow window: the way back to the list. */}
+        {data.myCourses && (
+          <Link prefetch href="/courses" className={cx("pf-head__back", c.narrowOnly)}>
+            <span aria-hidden>‹</span> Courses
+          </Link>
+        )}
+      </PageHead>
       <header className={c.head}>
-        <div className={c.tags}>
-          <Tag>{data.code}</Tag>
-          {data.kind && <Tag tone="neutral">{data.kind}</Tag>}
-          {!data.context && (
-            <a href={shareHref(`/c/${encodeURIComponent(data.code)}`, data.name)} className={c.shareLink} target="_blank" rel="noopener">
-              <Icon name="send" size={16} /> Share
-            </a>
-          )}
-        </div>
-        <h1 className={c.name}>{data.name}</h1>
         {data.context ? (
           <Link prefetch href={`/c/${data.code}`} className={c.more}>
             Open the course <Icon name="chevron-right" size={18} />

@@ -21,7 +21,7 @@ export default function Schools({ data, schoolId }: { data: SchoolsView; schoolI
   return (
     <Screen>
       <div className={cx(s.body, s.tight)}>
-        <h1 className={s.title54}>{school?.name ?? "Schools"}</h1>
+        <h1 className={`${s.title54} pf-m-title`}>{school?.name ?? "Schools"}</h1>
         <p className={cx(s.p0, s.t14, s.soft)}>{line}</p>
         {items.length ? (
           items.map((i) => (

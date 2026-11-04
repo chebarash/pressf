@@ -23,7 +23,7 @@ export default function Assignments({ data }: { data: AssignmentsView }) {
   return (
     <Screen>
       <div className={cx(s.body, s.tight)}>
-        <h1 className={s.title54}>Assignments</h1>
+        <h1 className={`${s.title54} pf-m-title`}>Assignments</h1>
         {data.state.lmsDown ? (
           <Banner tone="warning" action={{ label: "Retry", href: "?retry=1" }}>
             LMS isn&apos;t answering. Assignments are from {since(data.state.syncedAt)}.

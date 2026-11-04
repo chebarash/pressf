@@ -13,6 +13,11 @@
 .bar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; padding: 0; font: 400 20px/normal var(--font-sans); color: var(--text-primary); }
 .count { font: 500 13px/normal var(--font-sans); color: var(--text-secondary); white-space: nowrap; }
 .body { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; align-items: start; }
+/* The preview drops under the results when the page is narrow. */
+@container page (max-width: 1100px) {
+  .body { grid-template-columns: minmax(0, 1fr); }
+  .preview { position: static; }
+}
 .results { display: flex; flex-direction: column; gap: 10px; }
 .label { font: 600 11px/normal var(--font-sans); text-transform: uppercase; color: var(--text-secondary); padding-top: 6px; }
 .item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-surface); border: 1.5px solid var(--border-subtle); border-radius: 10px; color: var(--text-primary); }

@@ -542,7 +542,7 @@ export const CLASS_STATE_LABEL: Record<M.ClassState, string> = { attended: "Atte
 export function notifications(v: V.NotificationsView): M.NotificationsData {
   const items = v.sections.flatMap((s) => s.items.map((i) => feedItem(i, s.title)));
   if (v.open && !items.some((i) => i.id === v.open!.id)) items.unshift(feedItem(v.open, "Today"));
-  return { unread: v.unread, items, open: v.open?.id ?? items[0]?.id ?? null };
+  return { unread: v.unread, items, open: v.open?.id ?? items[0]?.id ?? null, named: !!v.open };
 }
 
 /* ---------- Timetable: Week and Month (Calendar merged into Timetable) ---------- */
