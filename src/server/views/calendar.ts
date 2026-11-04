@@ -1,6 +1,6 @@
 import { googleSubscribeUrl } from "@/core/ics";
 import { SITE_URL } from "@/core/links";
-import { HOLIDAYS, nextHoliday, WEEKS, type WeekKind } from "@/core/semester";
+import { HOLIDAYS, nextHoliday, throughSaturday, WEEKS, type WeekKind } from "@/core/semester";
 import { addDays, clock, localDay, shortDate, weekdayName } from "@/core/time";
 import { classesBetween } from "./classes";
 import { deadlines, semesterPhases } from "./shared";
@@ -61,8 +61,10 @@ function phases(kinds: WeekKind[], from: string, to: string) {
   const out: Array<{ kind: WeekKind; starts: string; ends: string }> = [];
   for (const w of WEEKS.filter((x) => kinds.includes(x.kind))) {
     const last = out.at(-1);
-    if (last && last.kind === w.kind && w.starts <= addDays(last.ends, 3)) last.ends = w.ends;
-    else out.push({ kind: w.kind, starts: w.starts, ends: w.ends });
+    // Exam weeks run through Saturday, like the exam windows that hide the week's classes.
+    const ends = EXAM_KINDS.includes(w.kind) ? throughSaturday(w.ends) : w.ends;
+    if (last && last.kind === w.kind && w.starts <= addDays(last.ends, 3)) last.ends = ends;
+    else out.push({ kind: w.kind, starts: w.starts, ends });
   }
   return out.filter((p) => p.ends >= from && p.starts <= to);
 }

@@ -11,3 +11,12 @@ describe("calendar.ics", () => {
     expect(ics.match(/BEGIN:VEVENT/g)?.length).toBeGreaterThan(10);
   });
 });
+
+describe("exam weeks in the timetable", () => {
+  it("run through Saturday, like the exam window", async () => {
+    const { academicEvents } = await import("@/server/views/calendar");
+    const events = await academicEvents(new Set(["exams"]), "2026-11-01", "2026-11-10");
+    const midterm = events.find((e) => e.key.startsWith("phase:midterm"));
+    expect(midterm).toMatchObject({ day: "2026-11-02", endDay: "2026-11-07" });
+  });
+});
