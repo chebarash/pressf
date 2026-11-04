@@ -80,12 +80,13 @@ const ALL: CalendarLayer[] = LAYERS.map((l) => l.id);
 export const isDay = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`));
 export const mondayOf = (day: string) => addDays(day, -((localWeekday(dayStart(day)) + 6) % 7));
 
-/** Upcoming events from today, soonest first; each once. */
-export function comingUp(events: CalendarEvent[], today: string, count = COMING): CalendarEvent[] {
+/** Upcoming events from today, soonest first; each once. A timed event leaves once it is over (this morning's exam, a passed deadline). */
+export function comingUp(events: CalendarEvent[], today: string, count = COMING, now?: Date): CalendarEvent[] {
   const seen = new Set<string>();
   const out: CalendarEvent[] = [];
   for (const e of events) {
     if (e.endDay < today || e.layer === "classes" || seen.has(e.key)) continue;
+    if (now && e.ends && Date.parse(e.ends) <= now.getTime()) continue;
     seen.add(e.key);
     out.push(e);
   }
@@ -180,7 +181,7 @@ export async function schedule(userId: string | null, opts: { view: TimetableMod
     day,
     today,
     weeks,
-    coming: comingUp(cal.days.flatMap((d) => d.events), today),
+    coming: comingUp(cal.days.flatMap((d) => d.events), today, undefined, now),
     signedIn: !!student,
     sync: student?.state ?? null,
   };
