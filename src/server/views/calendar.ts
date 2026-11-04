@@ -1,6 +1,6 @@
 import { googleSubscribeUrl } from "@/core/ics";
 import { SITE_URL } from "@/core/links";
-import { HOLIDAYS, nextHoliday, WEEKS, type WeekKind } from "@/core/semester";
+import { HOLIDAYS, nextHoliday, throughSaturday, WEEKS, type WeekKind } from "@/core/semester";
 import { addDays, clock, localDay, shortDate, weekdayName } from "@/core/time";
 import { classesBetween } from "./classes";
 import { deadlines, semesterPhases } from "./shared";
@@ -28,6 +28,8 @@ export type CalendarEvent = {
   endDay: string;
   time: string | null;
   href: string | null;
+  /** When a timed event is over (an exam's end, a deadline), ISO; Coming up drops it after that. */
+  ends?: string;
 };
 
 export type CalendarView = {
@@ -61,8 +63,10 @@ function phases(kinds: WeekKind[], from: string, to: string) {
   const out: Array<{ kind: WeekKind; starts: string; ends: string }> = [];
   for (const w of WEEKS.filter((x) => kinds.includes(x.kind))) {
     const last = out.at(-1);
-    if (last && last.kind === w.kind && w.starts <= addDays(last.ends, 3)) last.ends = w.ends;
-    else out.push({ kind: w.kind, starts: w.starts, ends: w.ends });
+    // Exam weeks run through Saturday, like the exam windows that hide the week's classes.
+    const ends = EXAM_KINDS.includes(w.kind) ? throughSaturday(w.ends) : w.ends;
+    if (last && last.kind === w.kind && w.starts <= addDays(last.ends, 3)) last.ends = ends;
+    else out.push({ kind: w.kind, starts: w.starts, ends });
   }
   return out.filter((p) => p.ends >= from && p.starts <= to);
 }
@@ -87,14 +91,14 @@ export async function calendar(viewer: Viewer, layers?: CalendarLayer[], now = n
       if (c.kind !== "exam" || !on.has("exams")) continue;
       events.push({
         key: `class:${c.key}`, layer: "exams", title: `${c.name} ${c.exam?.kind ?? "exam"}`,
-        sub: [LAYER_LABEL.exams, c.time, c.room].filter(Boolean).join(" · "), day, endDay: day, time: c.time, href: c.code ? `/c/${c.code}` : null,
+        sub: [LAYER_LABEL.exams, c.time, c.room].filter(Boolean).join(" · "), day, endDay: day, time: c.time, href: c.code ? `/c/${c.code}` : null, ends: c.end,
       });
     }
     if (on.has("deadlines")) {
       for (const d of deadlines(student.sync.homework)) {
         const day = localDay(d.due);
         if (day < from || day > to || (d.status !== "todo" && d.status !== "in-progress")) continue;
-        events.push({ key: `deadline:${d.id}`, layer: "deadlines", title: d.title, sub: `Deadline · ${d.course} · ${clock(d.due)}`, day, endDay: day, time: clock(d.due), href: "/progress/assignments" });
+        events.push({ key: `deadline:${d.id}`, layer: "deadlines", title: d.title, sub: `Deadline · ${d.course} · ${clock(d.due)}`, day, endDay: day, time: clock(d.due), href: "/progress/assignments", ends: d.due.toISOString() });
       }
     }
   }

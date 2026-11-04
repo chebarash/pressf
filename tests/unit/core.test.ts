@@ -360,6 +360,8 @@ describe("uploads, roles, people, grades, deadlines", () => {
     // hero.study: first_name given, sur_name family, last_name patronymic.
     expect(displayName({ first_name_en: "GONÇALO", last_name_en: "", sur_name_en: "pinto" })).toBe("Gonçalo Pinto");
     expect(displayName({ first_name_en: "Vohid", last_name_en: "Akmalovich", sur_name_en: "Kholov" })).toBe("Vohid Kholov");
+    expect(displayName({ first_name_en: "Prof. 2 Selim", sur_name_en: "Temizer" })).toBe("Selim Temizer");
+    expect(displayName({ first_name_en: "Dr Aziz", sur_name_en: "Tursunov" })).toBe("Aziz Tursunov");
     expect(displayName({ first_name_en: "Ann", last_name_en: "Lee", sur_name_en: "" })).toBe("Ann Lee");
     expect(shortName("Shamsiddin Abdurakhimov")).toBe("Shamsiddin A.");
     expect(initials("Aziz Tursunov")).toBe("AT");
@@ -384,5 +386,14 @@ describe("uploads, roles, people, grades, deadlines", () => {
     expect(list.map((d) => d.title)).toEqual(["Lab 6", "Risk plan"]);
     const d = deadline({ id: 9, time: t("2026-11-05T12:00:00"), status_name: "Not ready" })!;
     expect(remindersDue(d, at("2026-11-03T12:01:00"), at("2026-11-03T11:00:00"))).toEqual([48]);
+  });
+});
+
+describe("dated labels", () => {
+  it("adds the year only for another year", async () => {
+    const { datedLabel } = await import("@/core/time");
+    const now = new Date("2026-11-04T12:00:00Z");
+    expect(datedLabel("2026-11-08", now)).toBe("8 Nov");
+    expect(datedLabel("2025-11-08", now)).toBe("8 Nov 2025");
   });
 });
