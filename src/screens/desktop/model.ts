@@ -324,6 +324,8 @@ export type SettingsData = {
   alerts: Array<{ id: string; title: string; note: string; on: boolean }>;
   /** "In Google Calendar": the layers the student's Google Calendar feed carries. */
   feed?: Array<{ id: string; label: string; on: boolean }>;
+  /** Settings → Calendar: Google's add-by-URL page for the student's own feed. */
+  calendar?: { google: string } | null;
   credit: string;
 };
 

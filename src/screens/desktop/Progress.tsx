@@ -5,6 +5,7 @@ import type { ClassState, ProgressData, ProgressRow } from "./model";
 import { css, cx, Empty, Hint, Icon } from "./parts";
 import { SortableRows, type SortableColumn } from "@/ui/table/Sort";
 import { CountUp } from "@/ui/components/CountUp";
+import { ScreenHint } from "@/ui/shell/Hints";
 import { PageHead } from "@/ui/shell/PageHeader";
 import g from "./progress.module.css";
 
@@ -20,6 +21,7 @@ export function ProgressScreen({ data }: { data: ProgressData }) {
   return (
     <main data-desktop-screen className={cx(css.screen, g.main)}>
       <PageHead title="Progress" />
+      <ScreenHint screen="progress" ctx={{ desktop: true }} />
 
       <section className={g.tiles}>
         {data.gpa && (

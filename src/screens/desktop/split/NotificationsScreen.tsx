@@ -5,6 +5,7 @@ import { useMemo, useOptimistic, useState, useTransition } from "react";
 import type { FeedItemVM, NotificationsData } from "../model";
 import n from "../notifications.module.css";
 import { FeedMark, FileRow } from "@/ui/components";
+import { ScreenHint } from "@/ui/shell/Hints";
 import { PageHead } from "@/ui/shell/PageHeader";
 import { Button, ButtonLink, css, cx, Empty, FeedRow, Hint, type FeedKind } from "../parts";
 
@@ -75,6 +76,7 @@ export function NotificationsScreen({ data, actions }: { data: NotificationsData
             <Hint>⇧R read all</Hint>
           </button>
         </PageHead>
+        <ScreenHint screen="notifications" ctx={{ desktop: true }} />
         <div className={css.chips} role="tablist" aria-label="Filter">
           {FILTERS.map((f) => (
             <button key={f.id} type="button" role="tab" aria-selected={filter === f.id} className={cx(css.chip, filter === f.id && css.chipOn)} onClick={() => setFilter(f.id)}>

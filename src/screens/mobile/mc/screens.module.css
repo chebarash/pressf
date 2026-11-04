@@ -48,8 +48,11 @@
 .holidays { background: var(--moss-500); }
 .registration { background: var(--plum-500); }
 .wrapLine { line-height: 1.32; }
-.subscribe { align-self: flex-start; padding-bottom: 5px; }
-.subscribeHint { margin: -8px 0 0; font-size: 12px; line-height: 1.32; color: var(--text-secondary); }
+/* Settings → Calendar (8.1): the Google Calendar feed, its layers, the reset and the refresh note. */
+.calendarSection { display: flex; flex-direction: column; gap: 10px; scroll-margin-top: 16px; }
+.calendarSection h2 { margin: 0; }
+.settingAction { color: var(--text-accent); font-weight: 600; }
+.calendarNote { margin: 0; font-size: 12px; line-height: 1.4; color: var(--text-secondary); }
 /* "In Google Calendar": a compact list of switches, the feed's own settings. */
 .feedLayers { display: flex; flex-direction: column; border: 1.5px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface); overflow: hidden; }
 .feedTitle { margin: 0; padding: 10px var(--space-4) 4px; font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }

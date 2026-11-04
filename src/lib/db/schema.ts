@@ -485,6 +485,8 @@ export const userState = pgTable("user_state", {
   userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
   alerts: jsonb("alerts").$type<Record<string, boolean>>().notNull().default({}),
   snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull().default({}),
+  /** "First time here" hints the student dismissed (id → when), src/core/hints.ts. */
+  hints: jsonb("hints").$type<Record<string, string>>().notNull().default({}),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

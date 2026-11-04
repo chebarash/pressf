@@ -12,7 +12,7 @@ const cls = (day: string, time: string, over: Partial<ScheduleClass> = {}): Sche
   ({
     key: `101@${at(day, time).toISOString()}`, courseId: "101", code: "MATH111", name: "Calculus 1", kind: "lecture", start: at(day, time).toISOString(), end: new Date(at(day, time).getTime() + 80 * 60_000).toISOString(),
     time, endTime: "11:20", room: "B-204", teacher: null, status: "later", changedFrom: null, lessonIds: [], day, from: Number(time.slice(0, 2)) * 60, to: Number(time.slice(0, 2)) * 60 + 80, tone: 0,
-    lesson: { lessonId: null, title: null, description: null, syllabus: null, type: "Lecture", attendance: { mark: "upcoming", label: "Not marked yet", viaQr: false }, grade: null, files: [], homework: [], absences: null, lmsHref: null },
+    lesson: { lessonId: null, title: null, description: null, syllabus: null, type: "Lecture", attendance: { mark: "upcoming", label: "Not marked yet", viaQr: false }, grade: null, files: [], homework: [], absences: null },
     ...over,
   }) as ScheduleClass;
 

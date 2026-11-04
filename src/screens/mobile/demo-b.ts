@@ -48,7 +48,7 @@ export function timetableDemo(demo: string): SchedulePage {
               attendance: d < "2026-11-02" ? { mark: "present" as const, label: "Present", viaQr: false } : { mark: "upcoming" as const, label: "Not marked yet", viaQr: false },
               grade: null, homework: [],
               files: first ? [file("l15", "Lecture 15 slides", "lecture", 8, "2 Nov"), file("pp", "Practice problems", "notes", 8, "2 Nov")] : [],
-              absences: code === "MATH111" ? { missed: 9, left: 6, limit: 15, status: "ok" as never, line: "" } : null, lmsHref: null,
+              absences: code === "MATH111" ? { missed: 9, left: 6, limit: 15, status: "ok" as never, line: "" } : null,
             },
           };
         });
@@ -56,7 +56,7 @@ export function timetableDemo(demo: string): SchedulePage {
       }),
     };
   });
-  return { view: "week", day, today: "2026-11-02", weeks, coming: [], subscribe: { google: "#", personal: false }, feed: null, signedIn: true, sync: null };
+  return { view: "week", day, today: "2026-11-02", weeks, coming: [], signedIn: true, sync: null };
 }
 
 export function coursesDemo(demo: string): MyCoursesView {

@@ -2,10 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Assignments from "@/screens/mobile/Assignments";
 import CourseProgress from "@/screens/mobile/CourseProgress";
-import Calendar from "@/screens/mobile/Calendar";
 import Alerts from "@/screens/mobile/Alerts";
 import Curriculum from "@/screens/mobile/Curriculum";
-import { assignmentsDemo, CALENDAR, courseProgressDemo, curriculumDemo, myRatingsDemo, PROFESSOR, professorsDemo, profileDemo, PROGRESS, RECENT, schoolsDemo, SEARCH } from "@/screens/mobile/mc/demo";
+import { assignmentsDemo, courseProgressDemo, curriculumDemo, myRatingsDemo, PROFESSOR, professorsDemo, profileDemo, PROGRESS, RECENT, schoolsDemo, SEARCH } from "@/screens/mobile/mc/demo";
 import MyRatings from "@/screens/mobile/MyRatings";
 import Settings from "@/screens/mobile/Settings";
 import Professors from "@/screens/mobile/Professors";
@@ -26,9 +25,6 @@ const STATES: Record<string, () => React.ReactNode> = {
   ...Object.fromEntries(Object.entries(PROGRESS).map(([k, v]) => [k, () => <Progress data={v()} />])),
   "5.2": () => <CourseProgress data={courseProgressDemo()} behind={PROGRESS["5.1"]()} />,
   "5.4": () => <Assignments data={assignmentsDemo()} />,
-  "6.1": () => <Calendar data={CALENDAR["6.1"]()} />,
-  "6.2": () => <Calendar data={CALENDAR["6.2"]()} />,
-  "6.3": () => <Calendar data={CALENDAR["6.1"]()} subscribed />,
   ...Object.fromEntries(Object.entries(SEARCH).map(([k, v]) => [k, () => <Search data={v()} />])),
   ...Object.fromEntries(Object.entries(PROFESSOR).map(([k, v]) => [k, () => <Professor data={v()} />])),
   "7.6": () => <Curriculum data={curriculumDemo()} base="/programs/p2/curriculum" year={1} course="MATH111" />,

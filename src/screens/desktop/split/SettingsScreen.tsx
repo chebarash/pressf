@@ -5,7 +5,8 @@ import { useOptimistic, useState, useSyncExternalStore, useTransition } from "re
 import { confirm } from "@/platform/client";
 import { setTheme } from "@/platform/PlatformProvider";
 import { FeedLayers } from "@/screens/mobile/mc/FeedLayers";
-import { RESET_CALENDAR_TEXT } from "@/screens/mobile/mc/format";
+import { useAddToGoogle, useCalendarAnchor } from "@/screens/mobile/mc/CalendarView";
+import { CALENDAR_NOTE, RESET_CALENDAR_TEXT } from "@/screens/mobile/mc/format";
 import { signOutWithConfirm } from "@/ui/shell/signOut";
 import { PageHead } from "@/ui/shell/PageHeader";
 import { Button, Switch } from "@/ui/components";
@@ -66,7 +67,8 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
     if (!ok) return;
     startReset(async () => {
       const res = await actions!.resetCalendar!().catch(() => ({ ok: false }));
-      setResetNote(res.ok ? "Done. Add the calendar again from Timetable" : "Could not reset. Try again");
+      setResetNote(res.ok ? "Done. Add it to Google Calendar again with the new link" : "Could not reset. Try again");
+      if (res.ok) router.refresh();
     });
   };
   const signOut = async () => {
@@ -124,6 +126,8 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
             </button>
           </section>
 
+          <CalendarBox data={data} resetting={resetting} resetNote={resetNote} onReset={actions?.resetCalendar ? resetCalendar : null} />
+
           <section className={x.box}>
             <h2 className={x.boxTitle}>Account actions</h2>
             <button type="button" className={x.row} onClick={signOut}>
@@ -132,14 +136,6 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
                 <span>Press F forgets your LMS password; your ratings stay</span>
               </span>
             </button>
-            {actions?.resetCalendar && (
-              <button type="button" className={x.row} onClick={resetCalendar} disabled={resetting}>
-                <span className={x.text}>
-                  <b>Reset calendar link</b>
-                  <span aria-live="polite">{resetNote ?? "Your Google Calendar link stops working; add it again from Timetable"}</span>
-                </span>
-              </button>
-            )}
             <a className={x.row} href="/me/delete">
               <span className={x.text}>
                 <b>Delete my data</b>
@@ -149,38 +145,72 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
           </section>
         </div>
 
-        <section className={x.box}>
-          <h2 className={x.boxTitle}>Alerts in Telegram</h2>
-          <div className={x.alerts}>
-              {alerts.map((a) => (
-                <Switch
-                  key={a.id}
-                  className={x.alertRow}
-                  size="sm"
-                  label={a.title}
-                  description={a.note}
-                  checked={a.on}
-                  onChange={(e) => {
-                    const on = e.currentTarget.checked;
-                    start(async () => {
-                      setAlerts({ id: a.id, on });
-                      await actions?.setAlert?.(a.id, on);
-                    });
-                  }}
-                />
-              ))}
-          </div>
-        </section>
-
-        {data.feed && (
+        <div className={x.stack}>
           <section className={x.box}>
-            <h2 className={x.boxTitle}>In Google Calendar</h2>
-            {/* The Google Calendar feed's own settings; Timetable on the site always shows everything. */}
-            <FeedLayers layers={data.feed} size="sm" bare className={x.alerts} rowClassName={x.alertRow} />
+            <h2 className={x.boxTitle}>Alerts in Telegram</h2>
+            <div className={x.alerts}>
+                {alerts.map((a) => (
+                  <Switch
+                    key={a.id}
+                    className={x.alertRow}
+                    size="sm"
+                    label={a.title}
+                    description={a.note}
+                    checked={a.on}
+                    onChange={(e) => {
+                      const on = e.currentTarget.checked;
+                      start(async () => {
+                        setAlerts({ id: a.id, on });
+                        await actions?.setAlert?.(a.id, on);
+                      });
+                    }}
+                  />
+                ))}
+            </div>
           </section>
-        )}
+
+        </div>
       </div>
       <p className={x.credit}>{data.credit}</p>
     </main>
+  );
+}
+
+/**
+ * Settings → Calendar (D13): everything about the Google Calendar feed in one
+ * place. Timetable shows everything on the site and only links here.
+ */
+function CalendarBox({ data, resetting, resetNote, onReset }: { data: SettingsData; resetting: boolean; resetNote: string | null; onReset: (() => void) | null }) {
+  useCalendarAnchor();
+  const { add } = useAddToGoogle(data.calendar?.google ?? "");
+  return (
+    <section id="calendar" className={cx(x.box, x.anchor)} aria-labelledby="calendar-title">
+      <h2 id="calendar-title" className={x.boxTitle}>
+        Calendar
+      </h2>
+      {data.calendar && (
+        <div className={x.row}>
+          <span className={x.text}>
+            <b>Google Calendar</b>
+            <span>{CALENDAR_NOTE}</span>
+          </span>
+          <Button label="Add to Google Calendar" variant="secondary" size="s" onClick={add} />
+        </div>
+      )}
+      {data.feed && (
+        <>
+          <p className={x.sub}>In Google Calendar</p>
+          <FeedLayers layers={data.feed} size="sm" bare className={x.alerts} rowClassName={x.alertRow} />
+        </>
+      )}
+      {onReset && (
+        <button type="button" className={x.row} onClick={onReset} disabled={resetting}>
+          <span className={x.text}>
+            <b>Reset link</b>
+            <span aria-live="polite">{resetNote ?? "The Google Calendar you added stops updating; add it again with the new link"}</span>
+          </span>
+        </button>
+      )}
+    </section>
   );
 }

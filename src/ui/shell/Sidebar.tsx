@@ -6,7 +6,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { modLabel } from "@/platform/keys";
 import { setTheme } from "@/platform/PlatformProvider";
 import { Icon } from "./icons";
-import { isActive, NAV } from "./nav";
+import { NAV, navActive } from "./nav";
 import type { QrData } from "./qr";
 import { LiveInviteQr } from "./LiveInviteQr";
 
@@ -52,7 +52,7 @@ export function Sidebar({ user, unread = 0, nextLabel = "Feb", inviteQr, onSearc
   }, []);
 
   const item = (n: (typeof NAV)[number]) => {
-    const active = isActive(n.href, pathname);
+    const active = navActive(n, pathname);
     return (
       <Link key={n.href} href={n.href} prefetch className="sh-nav-item" aria-current={active ? "page" : undefined}>
         <Icon name={n.icon} size={18} />
