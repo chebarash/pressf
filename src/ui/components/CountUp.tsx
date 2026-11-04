@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { appHydrated, reducedMotion } from "@/ui/motion";
 
 const DURATION = 400;
@@ -30,10 +30,13 @@ export function CountUp({ value, id = value }: { value: string; id?: string }) {
   const [animate] = useState(() => appHydrated && !!parts && !counted.has(key) && !reducedMotion());
   const ref = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
+  // Before paint: the markup always holds the final value (server and client
+  // agree, so a late-hydrating boundary never mismatches); the count starts here.
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!animate || !parts || !el) return;
     counted.add(key);
+    el.textContent = show(parts, 0);
     const start = performance.now();
     let frame = requestAnimationFrame(function tick(now) {
       const t = Math.min(1, (now - start) / DURATION);
@@ -49,7 +52,7 @@ export function CountUp({ value, id = value }: { value: string; id?: string }) {
 
   return (
     <span ref={ref} key={key}>
-      {animate && parts ? show(parts, 0) : value}
+      {value}
     </span>
   );
 }
