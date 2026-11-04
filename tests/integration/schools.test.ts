@@ -25,11 +25,14 @@ describe("schools and programs", () => {
       { id: "p2", name: "Cyber Security", departmentId: "11" },
       { id: "p3", name: "Applied Mathematics", departmentId: "12" },
       { id: "p4", name: "Mechatronics", departmentId: "13" },
+      { id: "p5", name: "Economics and Data Science", departmentId: "13" },
+      { id: "p6", name: "Pedagogy", departmentId: "1" },
     ]);
     const v = await schools();
     const names = v.schools.map((s) => s.name);
     expect(names).toEqual(["School of Computing", "School of Humanities, Natural and Social Sciences", "Other programs"]);
     expect(v.schools.find((s) => s.name === "School of Computing")?.programs.map((p) => p.name)).toEqual(["Cyber Security", "Software Engineering"]);
+    expect(v.schools.find((s) => s.name.startsWith("School of Humanities"))?.programs.map((p) => p.name)).toEqual(["Applied Mathematics", "Economics and Data Science", "Pedagogy"]);
     expect(new Set(v.schools.map((s) => s.id)).size).toBe(v.schools.length);
   });
 });
