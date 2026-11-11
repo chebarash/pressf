@@ -27,7 +27,7 @@ export type SignInMode = "first" | "again";
  * MainButton; on desktop a keycap button. After a first sign-in the student
  * goes through the first sync (1.7), later straight back to `next`.
  */
-export function SignInForm({ mode = "first", desktop, next = "/", email: initialEmail = "", onGuest }: { mode?: SignInMode; desktop?: boolean; next?: string; email?: string; onGuest?: () => void }) {
+export function SignInForm({ mode = "first", desktop, next = "/", email: initialEmail = "", onGuest, guestHref = "/" }: { mode?: SignInMode; desktop?: boolean; next?: string; email?: string; onGuest?: () => void; /** Desktop "browse courses as a guest": the guest home, or a section of it when the form sits on that page. */ guestHref?: string }) {
   const router = useRouter();
   const id = useId();
   const [email, setEmail] = useState(initialEmail);
@@ -106,7 +106,7 @@ export function SignInForm({ mode = "first", desktop, next = "/", email: initial
               {busy ? <span className="sh-spinner" aria-label="Signing in" /> : label}
             </button>
           </div>
-          <p className="sh-signin__guest">or <Link href="/" className="sh-link">browse courses as a guest <Icon name="arrow-right" size={12} /></Link></p>
+          <p className="sh-signin__guest">or <Link href={guestHref} className="sh-link">browse courses as a guest <Icon name="arrow-right" size={12} /></Link></p>
           <p className="sh-sheet__fine">Wrong password shows under the field; if hero.study is down we say so and keep what you typed.</p>
         </>
       ) : (
