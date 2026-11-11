@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { between, classByKey, dayIndex, dayAt, monthLayout, mondayOf, switchView, weekLayout, type Weeks } from "@/screens/shared/schedule/model";
 import { scheduleQuery } from "@/screens/shared/schedule/store";
 import type { CalendarEvent, ScheduleClass, ScheduleWeek } from "@/server/views";
-import { attendanceOf, gradebookEntry, homeworkFor, syllabusTopic } from "@/server/views/lessons";
+import { attendanceOf, genericLessonName, gradebookEntries, gradebookEntry, homeworkFor, syllabusTopic } from "@/server/views/lessons";
 import { comingUp } from "@/server/views/schedule";
 
 const ev = (e: Partial<CalendarEvent> & Pick<CalendarEvent, "key" | "layer" | "day">): CalendarEvent => ({ title: e.key, sub: "", endDay: e.day, time: null, href: null, ...e });
@@ -100,11 +100,21 @@ describe("the lesson panel picks that dated lesson's facts", () => {
     { lesson_name: "Tutorial № 13", status: 2, at: unix(at("2026-10-26", "14:00")) },
   ];
 
-  it("matches the gradebook by lesson id, else by date and time", () => {
-    expect(gradebookEntry(events, { start: at("2026-10-28", "10:00").toISOString(), lessonIds: ["L14"] })?.lesson_name).toBe("Lecture № 14");
-    expect(gradebookEntry(events, { start: at("2026-10-26", "10:00").toISOString(), lessonIds: [] })?.lesson_name).toBe("Lecture № 13");
-    expect(gradebookEntry(events, { start: at("2026-10-26", "14:00").toISOString(), lessonIds: [] })?.lesson_name).toBe("Tutorial № 13");
-    expect(gradebookEntry(events, { start: at("2026-10-27", "10:00").toISOString(), lessonIds: [] })).toBeNull();
+  it("matches the gradebook by time, never by a mismatched lesson id", () => {
+    const blk = (day: string, from: string, to: string, lessonIds: string[] = []) => ({ start: at(day, from).toISOString(), end: at(day, to).toISOString(), lessonIds });
+    expect(gradebookEntry(events, blk("2026-10-28", "10:00", "10:55", ["L14"]))?.lesson_name).toBe("Lecture № 14");
+    expect(gradebookEntry(events, blk("2026-10-26", "10:00", "10:55"))?.lesson_name).toBe("Lecture № 13");
+    expect(gradebookEntry(events, blk("2026-10-26", "14:00", "14:55"))?.lesson_name).toBe("Tutorial № 13");
+    expect(gradebookEntry(events, blk("2026-10-27", "10:00", "10:55"))).toBeNull();
+    // The gradebook's own lesson_id points at another day's lesson: time wins.
+    expect(gradebookEntry(events, blk("2026-10-26", "10:00", "10:55", ["L14"]))?.lesson_name).toBe("Lecture № 13");
+    // A two-hour block takes both hours' entries.
+    expect(gradebookEntries(events, blk("2026-10-26", "10:00", "14:55")).map((e) => e.lesson_name)).toEqual(["Lecture № 13", "Tutorial № 13"]);
+  });
+
+  it("never shows the LMS numbering as a topic", () => {
+    expect(["Lecture № 15", "Laboratory № 11", "Tutorial 2", "lab #3"].every(genericLessonName)).toBe(true);
+    expect(genericLessonName("Week 6 Slides of lectures 11 and 12")).toBe(false);
   });
 
   it("reads the mark, and says 'Not marked yet' for today and later", () => {

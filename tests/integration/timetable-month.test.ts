@@ -126,13 +126,13 @@ describe("the lesson panel is about that dated lesson", () => {
   it("a dated lesson: its LMS name, attendance and mark from the gradebook, its files, the syllabus week", async () => {
     const [w] = await scheduleWeeks(userId, "2026-11-02", 1, NOW);
     const c = w.days[0].classes[0];
-    expect(c.lesson).toMatchObject({ lessonId: "L15", title: "Lecture 15", syllabus: "Week 8 · Derivatives", type: "Lecture", grade: "8" });
+    expect(c.lesson).toMatchObject({ lessonId: "L15", title: null, number: "Lecture 15", syllabus: "Week 8 · Derivatives", type: "Lecture", grade: "8" });
     expect(c.lesson).not.toHaveProperty("lmsHref");
     expect(c.lesson.attendance).toEqual({ mark: "late", label: "Late", viaQr: false });
     expect(c.lesson.files.map((f) => f.id)).toEqual(["F1"]);
     expect(c.lesson.absences).toMatchObject({ missed: 9, left: 6 });
     const p = lessonPanel(c);
-    expect(p.tags).toEqual(["MATH111", "Lecture"]);
+    expect(p.tags).toEqual(["MATH111", "Lecture 15"]);
     expect(p.when).toBe("Mon 2 Nov · 10:00–11:20");
     expect(p.attendance).toEqual({ label: "Late", tone: "late", qr: false });
   });
@@ -142,7 +142,8 @@ describe("the lesson panel is about that dated lesson", () => {
     const wed = w.days[2].classes.find((c) => c.code === "MATH111")!;
     expect(wed.lessonIds).toEqual([]);
     expect(wed.lesson.attendance.mark).toBe("absent");
-    expect(wed.lesson.title).toBe("Lecture 14");
+    expect(wed.lesson.title).toBeNull();
+    expect(wed.lesson.number).toBe("Lecture 14");
     expect(wed.lesson.syllabus).toBe("Week 7 · Limits");
   });
 
