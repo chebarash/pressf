@@ -17,7 +17,7 @@ export type LessonPanel = {
   /** The earlier room when the LMS moved the class. */
   roomWas: string | null;
   teacher: string | null;
-  /** The LMS lesson's name ("Lecture № 15") and description, and the syllabus topic of that week. */
+  /** The teacher's own lesson title and description, and the syllabus topic of that week. */
   topic: { title: string | null; description: string | null; syllabus: string | null };
   attendance: { label: string; tone: "ok" | "late" | "bad" | "none"; qr: boolean } | null;
   absences: { line: string; left: string } | null;
@@ -38,7 +38,8 @@ export function lessonPanel(c: ScheduleClass): LessonPanel {
   const marks = l.attendance;
   const tone = marks.mark === "present" ? "ok" : marks.mark === "late" ? "late" : marks.mark === "absent" ? "bad" : "none";
   return {
-    tags: [c.code, l.type].filter(Boolean),
+    // "Tutorial 12" (the LMS numbering) where it is known, else the type.
+    tags: [c.code, l.number && l.type && l.number.toLowerCase().startsWith(l.type.toLowerCase().slice(0, 3)) ? `${l.type} ${l.number.match(/\d+/)?.[0] ?? ""}`.trim() : l.type].filter(Boolean),
     title: c.name,
     live: c.status === "now" ? `Now · until ${c.endTime}` : null,
     when: `${dateLine(c.start)} · ${c.time}–${c.endTime}`,
