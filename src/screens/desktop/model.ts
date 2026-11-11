@@ -1,3 +1,5 @@
+import type { FeedAlarms } from "@/core/calendar-text";
+import type { SubscribeLinks } from "@/core/ics";
 /**
  * Display shapes the desktop screens draw. Each screen takes its view model from
  * src/server/views as `data` and maps it here with ./adapt, so the layout code
@@ -322,10 +324,12 @@ export type SettingsData = {
   lms: { line: string };
   telegram: { linked: boolean; line: string; href: string };
   alerts: Array<{ id: string; title: string; note: string; on: boolean }>;
-  /** "In Google Calendar": the layers the student's Google Calendar feed carries. */
+  /** "In your calendar": the layers the student's calendar feed carries. */
   feed?: Array<{ id: string; label: string; on: boolean }>;
-  /** Settings → Calendar: Google's add-by-URL page for the student's own feed. */
-  calendar?: { google: string } | null;
+  /** "Reminders in your calendar" (VALARM). */
+  alarms?: FeedAlarms;
+  /** Settings → Calendar: each app's subscribe link for the student's own feed. */
+  calendar?: SubscribeLinks | null;
   credit: string;
 };
 

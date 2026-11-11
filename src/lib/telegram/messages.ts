@@ -237,6 +237,20 @@ export const examTomorrow = (a: { course: string; courseCode: string; exam: stri
   };
 };
 
+/**
+ * Evening before a quiz, project… from the course syllabus: "Tomorrow: Quiz 2
+ * in Deep Learning (10%, from the syllabus)"; "inferred from the syllabus" when
+ * the syllabus gives only the week. `when` is "Tomorrow" or "This week".
+ */
+export const syllabusMilestone = (a: { when: "Tomorrow" | "This week"; title: string; course: string; courseCode?: string | null; weight?: string | null; inferred: boolean; note?: string | null }): BotMessage => ({
+  text: card(syllabusMilestoneTitle(a), a.note),
+  keyboard: a.courseCode ? open("Open course", { to: "course", code: a.courseCode }) : open("See timetable", { to: "timetable" }),
+});
+
+/** The title line of a syllabus milestone alert, the same in the feed. */
+export const syllabusMilestoneTitle = (a: { when: "Tomorrow" | "This week"; title: string; course: string; weight?: string | null; inferred: boolean }) =>
+  `${a.when}: ${a.title} in ${a.course} (${[a.weight, a.inferred ? "inferred from the syllabus" : "from the syllabus"].filter(Boolean).join(", ")})`;
+
 /** An hour before an exam. */
 export const examSoon = (a: { course: string; exam: string; time: string; room?: string | null }): BotMessage => ({
   text: card(`${a.course} ${a.exam} at ${a.time}`, [a.room, "Good luck"].filter(Boolean).join(" · ")),

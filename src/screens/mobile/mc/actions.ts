@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { DEFAULT_ALERTS, type AlertSettings } from "@/core/notifications";
 import { getUser } from "@/lib/auth";
 import { deleteAccount } from "@/server/account";
-import { calendarFeed, feedLayersOf, resetCalendarFeed, saveFeedLayers } from "@/server/calendar-feed";
+import { cleanAlarms, type FeedAlarms } from "@/core/calendar-text";
+import { calendarFeed, feedLayersOf, resetCalendarFeed, saveFeedAlarms, saveFeedLayers } from "@/server/calendar-feed";
 import { setAlerts } from "@/server/feed";
 import { syncNowFor, type ManualSync } from "@/server/sync/manual";
 import { invalidateRating } from "@/server/views";
@@ -55,6 +56,19 @@ export async function setFeedLayer(layer: string, on: boolean): Promise<string[]
   const current = feedLayersOf((await calendarFeed(user.id)).layers);
   const next = on ? [...current, layer] : current.filter((l) => l !== layer);
   const saved = await saveFeedLayers(user.id, next);
+  revalidatePath("/me");
+  return saved;
+}
+
+/** "Reminders in your calendar": minutes before classes (0, 15, 30, 60) and exam reminders on/off. */
+export async function setFeedAlarms(change: Partial<FeedAlarms>): Promise<FeedAlarms | null> {
+  const user = await getUser();
+  if (!user || !change || typeof change !== "object") return null;
+  const clean = cleanAlarms(change);
+  const next: Partial<FeedAlarms> = {};
+  if ("classes" in change) next.classes = clean.classes;
+  if ("exams" in change) next.exams = clean.exams;
+  const saved = await saveFeedAlarms(user.id, next);
   revalidatePath("/me");
   return saved;
 }

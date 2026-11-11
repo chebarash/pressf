@@ -23,6 +23,7 @@ const EVERY_DAY: Row[] = [
 const SEMESTER: Row[] = [
   { key: "registration", label: "Registration and add/drop", hint: "Cohort selection, add/drop windows" },
   { key: "exams", label: "Exams", hint: "Week before and evening before" },
+  { key: "syllabus", label: "Syllabus quizzes and deadlines", hint: "Evening before, from your course syllabi" },
   { key: "rating", label: "Rating reminders", hint: "After final grades, up to 3 times" },
 ];
 

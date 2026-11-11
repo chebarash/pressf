@@ -5,7 +5,8 @@ import { useOptimistic, useState, useSyncExternalStore, useTransition } from "re
 import { confirm } from "@/platform/client";
 import { setTheme } from "@/platform/PlatformProvider";
 import { FeedLayers } from "@/screens/mobile/mc/FeedLayers";
-import { useAddToGoogle, useCalendarAnchor } from "@/screens/mobile/mc/CalendarView";
+import { useCalendarAnchor } from "@/screens/mobile/mc/CalendarView";
+import { FeedReminders, SubscribeButtons } from "@/screens/mobile/mc/Subscribe";
 import { CALENDAR_NOTE, RESET_CALENDAR_TEXT } from "@/screens/mobile/mc/format";
 import { signOutWithConfirm } from "@/ui/shell/signOut";
 import { PageHead } from "@/ui/shell/PageHeader";
@@ -67,7 +68,7 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
     if (!ok) return;
     startReset(async () => {
       const res = await actions!.resetCalendar!().catch(() => ({ ok: false }));
-      setResetNote(res.ok ? "Done. Add it to Google Calendar again with the new link" : "Could not reset. Try again");
+      setResetNote(res.ok ? "Done. Add it to your calendar again with the new link" : "Could not reset. Try again");
       if (res.ok) router.refresh();
     });
   };
@@ -182,32 +183,25 @@ export function SettingsScreen({ data, actions }: { data: SettingsData; actions?
  */
 function CalendarBox({ data, resetting, resetNote, onReset }: { data: SettingsData; resetting: boolean; resetNote: string | null; onReset: (() => void) | null }) {
   useCalendarAnchor();
-  const { add } = useAddToGoogle(data.calendar?.google ?? "");
   return (
     <section id="calendar" className={cx(x.box, x.anchor)} aria-labelledby="calendar-title">
       <h2 id="calendar-title" className={x.boxTitle}>
         Calendar
       </h2>
-      {data.calendar && (
-        <div className={x.row}>
-          <span className={x.text}>
-            <b>Google Calendar</b>
-            <span>{CALENDAR_NOTE}</span>
-          </span>
-          <Button label="Add to Google Calendar" variant="secondary" size="s" onClick={add} />
-        </div>
-      )}
+      {data.calendar && <SubscribeButtons links={data.calendar} variant="desktop" />}
       {data.feed && (
         <>
-          <p className={x.sub}>In Google Calendar</p>
+          <p className={x.sub}>In your calendar</p>
           <FeedLayers layers={data.feed} size="sm" bare className={x.alerts} rowClassName={x.alertRow} />
         </>
       )}
+      {data.alarms && <FeedReminders alarms={data.alarms} variant="desktop" />}
+      <p className={cx(x.sub, x.calendarNote)}>{CALENDAR_NOTE}</p>
       {onReset && (
         <button type="button" className={x.row} onClick={onReset} disabled={resetting}>
           <span className={x.text}>
             <b>Reset link</b>
-            <span aria-live="polite">{resetNote ?? "The Google Calendar you added stops updating; add it again with the new link"}</span>
+            <span aria-live="polite">{resetNote ?? "The calendar you added stops updating; add it again with the new link"}</span>
           </span>
         </button>
       )}

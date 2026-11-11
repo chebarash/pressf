@@ -6,6 +6,7 @@ import { addDays, classMeta, classTitle, clampIndex, dayAt, dayIndex, dayOf, hou
 import { ScheduleProvider, useSchedule } from "@/screens/shared/schedule/store";
 import { useNowMinutes } from "@/screens/shared/schedule/now";
 import { useTrack } from "@/screens/shared/schedule/useTrack";
+import { MilestoneMark } from "@/screens/shared/schedule/MilestoneMark";
 import type { SchedulePage, ScheduleClass } from "@/server/views";
 import { css, cx } from "../parts";
 import t from "../timetable.module.css";
@@ -187,6 +188,7 @@ function WeekStrip() {
                             >
                               <span className={t.classTitle}>{classTitle(c)}</span>
                               <span className={t.classMeta}>{classMeta(c)}</span>
+                              <MilestoneMark c={c} />
                             </button>
                           ))}
                         </div>

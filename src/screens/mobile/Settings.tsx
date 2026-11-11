@@ -36,8 +36,8 @@ export default function Settings({ data }: { data: ProfileView }) {
           <HomeScreenRows />
         </div>
 
-        {/* Everything about the Google Calendar feed; Timetable on the site always shows everything and only links here. */}
-        <CalendarSection google={data.calendar?.google ?? null} feed={data.feed} />
+        {/* Everything about the calendar feed; Timetable on the site always shows everything and only links here. */}
+        <CalendarSection links={data.calendar} feed={data.feed} alarms={data.alarms} />
 
         <div className={c.group}>
           <Link href="/me/ratings" prefetch className={c.setting}>

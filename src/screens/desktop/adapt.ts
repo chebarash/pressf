@@ -552,6 +552,7 @@ const ALERTS: Array<{ id: keyof V.ProfileView["alerts"]; title: string; note: st
   { id: "rating", title: "Rating reminders", note: "When a semester's grades are in" },
   { id: "registration", title: "Registration and add/drop", note: "Cohort selection, add/drop windows" },
   { id: "exams", title: "Exams", note: "Week before and evening before" },
+  { id: "syllabus", title: "Syllabus quizzes and deadlines", note: "Evening before, from your course syllabi" },
   { id: "anonymous", title: "Replies on Anonymous", note: "Your posts only" },
 ];
 
@@ -562,6 +563,7 @@ export function profile(v: V.ProfileView): M.SettingsData {
     telegram: { linked: v.telegramLinked, line: v.telegramLinked ? "Linked — alerts and QR check-in live there" : "Not linked — alerts and QR check-in live there", href: "/link" },
     alerts: ALERTS.map((a) => ({ ...a, on: !!v.alerts[a.id] })),
     feed: v.feed,
+    alarms: v.alarms,
     calendar: v.calendar,
     credit: "Made with love by chebarash · issues or ideas? Reach out on Telegram.",
   };

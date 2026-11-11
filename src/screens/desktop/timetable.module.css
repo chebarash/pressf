@@ -176,3 +176,7 @@ button.navBtn { appearance: none; cursor: pointer; }
 @container page (max-width: 760px) {
   .strip { --size: calc((100cqw - var(--gutter)) / 4); }
 }
+
+/* A syllabus milestone on this lesson: the mustard of the class mark; dashed when the day is inferred. */
+.milestone { padding-left: 8px; border-left: 3px solid var(--rating-mid); }
+.milestone[data-likely] { border-left-style: dashed; }

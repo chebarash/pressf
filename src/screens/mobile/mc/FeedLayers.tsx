@@ -8,7 +8,7 @@ import c from "./screens.module.css";
 export type FeedLayer = { id: string; label: string; on: boolean };
 
 /**
- * "In Google Calendar": what the student's Google Calendar feed carries, one
+ * "In your calendar": what the student's calendar feed carries, one
  * switch per layer (all on until changed). Beside "Add to Google Calendar" and
  * in Settings, phone and desktop. The site's Timetable always shows everything.
  * `bare`: just the switches, for a box that has its own title (desktop Settings).
@@ -34,8 +34,8 @@ export function FeedLayers({ layers, size = "md", bare = false, className, rowCl
   ));
   if (bare) return <div className={className}>{rows}</div>;
   return (
-    <section className={[c.feedLayers, className].filter(Boolean).join(" ")} aria-label="In Google Calendar">
-      <p className={c.feedTitle}>In Google Calendar</p>
+    <section className={[c.feedLayers, className].filter(Boolean).join(" ")} aria-label="In your calendar">
+      <p className={c.feedTitle}>In your calendar</p>
       {rows}
     </section>
   );

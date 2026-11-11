@@ -1,9 +1,11 @@
 import { dayInfo } from "@/core/semester";
 import { addDays, clock, dayStart, localDay, localMinutes, localWeekday, shortDate } from "@/core/time";
 import { examWeekNote, examWindowList } from "@/server/exams";
-import { academicEvents, calendar, LAYERS, type CalendarEvent, type CalendarLayer } from "./calendar";
+import type { SubscribeLinks } from "@/core/ics";
+import { academicEvents, calendar, LAYERS, publicSubscription, type CalendarEvent, type CalendarLayer } from "./calendar";
 import { classesBetween, type ClassView } from "./classes";
 import { lessonInfos, type LessonInfo } from "./lessons";
+import { byClass, milestoneEvent, termMilestones, termSpan, type ClassMilestone, type PlacedMilestone } from "./milestones";
 import { DAY_ABBR, deadlines } from "./shared";
 import { loadStudent, type Student, type SyncState } from "./student";
 import { dayOff } from "./timetable";
@@ -31,6 +33,8 @@ export type ScheduleClass = ClassView & {
   tone: number;
   /** That dated lesson: topic, attendance, files, homework, grade. */
   lesson: LessonInfo;
+  /** Quizzes, projects… the course syllabus puts on this class ("Quiz 2 · 10% · from the syllabus"). */
+  milestones?: ClassMilestone[];
 };
 
 export type ScheduleDay = {
@@ -68,6 +72,8 @@ export type SchedulePage = {
   coming: CalendarEvent[];
   signedIn: boolean;
   sync: SyncState | null;
+  /** Guests: "Subscribe in your calendar" for the public academic calendar (students have theirs in Settings → Calendar). */
+  subscribe?: SubscribeLinks | null;
 };
 
 const COMING = 6;
@@ -131,7 +137,13 @@ export async function scheduleWeeks(userId: string | null, from: string, count: 
     eventsBetween(student, first, last),
     examWindowList().catch(() => []),
   ]);
-  const infos = student ? await lessonInfos(student, classes, now) : new Map<string, LessonInfo>();
+  const [infos, milestones] = await Promise.all([
+    student ? lessonInfos(student, classes, now) : Promise.resolve(new Map<string, LessonInfo>()),
+    student ? milestonesAcross(student, first, last, now) : Promise.resolve([] as PlacedMilestone[]),
+  ]);
+  const onClass = byClass(milestones);
+  // Milestones with no class of their own (a project due in week 12) show as all-day events.
+  const loose = milestones.filter((m) => !m.classKey).map(milestoneEvent);
   const tone = toneOf(student);
   const byDay = new Map<string, ScheduleClass[]>();
   for (const c of classes) {
@@ -139,7 +151,7 @@ export async function scheduleWeeks(userId: string | null, from: string, count: 
     const day = localDay(start);
     const info = infos.get(c.key);
     if (!info) continue;
-    byDay.set(day, [...(byDay.get(day) ?? []), { ...c, day, from: localMinutes(start), to: localMinutes(new Date(c.end)), tone: tone(c), lesson: info }]);
+    byDay.set(day, [...(byDay.get(day) ?? []), { ...c, day, from: localMinutes(start), to: localMinutes(new Date(c.end)), tone: tone(c), lesson: info, milestones: onClass.get(c.key) ?? [] }]);
   }
   return Array.from({ length: n }, (_, w) => {
     const monday = addDays(first, w * 7);
@@ -153,9 +165,21 @@ export async function scheduleWeeks(userId: string | null, from: string, count: 
       label: dayInfo(dayStart(monday)).label,
       note: examWeekNote(windows, monday) ?? examWeekNote(windows, addDays(monday, 2)),
       days,
-      events: events.filter((e) => e.day <= sunday && e.endDay >= monday),
+      events: [...events, ...loose].filter((e) => e.day <= sunday && e.endDay >= monday),
     };
   });
+}
+
+/** The syllabus milestones of every term [from, to] touches (usually one). A failure never breaks the timetable. */
+async function milestonesAcross(student: Student, from: string, to: string, now: Date): Promise<PlacedMilestone[]> {
+  const starts = [...new Set([termSpan(from)?.from, termSpan(to)?.from].filter((x): x is string => !!x))];
+  try {
+    const all = (await Promise.all(starts.map((d) => termMilestones(student, d, now)))).flat();
+    return all.filter((m) => m.endDay >= from && m.day <= to);
+  } catch (error) {
+    console.error("syllabus milestones failed", error instanceof Error ? error.message : error);
+    return [];
+  }
 }
 
 /** The Mondays a view opens with: the selected week and two each side (the month's weeks with one each side). */
@@ -175,14 +199,19 @@ export async function schedule(userId: string | null, opts: { view: TimetableMod
   const student = userId ? await loadStudent(userId) : null;
   if (userId && !student) return null;
   const open = openingWeeks(opts.view, day);
-  const [weeks, cal] = await Promise.all([scheduleWeeks(userId, open.from, open.count, now, student), calendar(userId ? { userId } : null, ALL, now)]);
+  const [weeks, cal, coming] = await Promise.all([
+    scheduleWeeks(userId, open.from, open.count, now, student),
+    calendar(userId ? { userId } : null, ALL, now),
+    student ? milestonesAcross(student, today, addDays(today, 60), now) : Promise.resolve([] as PlacedMilestone[]),
+  ]);
   return {
     view: opts.view,
     day,
     today,
     weeks,
-    coming: comingUp(cal.days.flatMap((d) => d.events), today, undefined, now),
+    coming: comingUp([...cal.days.flatMap((d) => d.events), ...coming.map(milestoneEvent)], today, undefined, now),
     signedIn: !!student,
     sync: student?.state ?? null,
+    ...(student ? {} : { subscribe: publicSubscription }),
   };
 }
