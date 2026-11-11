@@ -41,6 +41,19 @@ export type Student = {
 const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
 const newest = (...xs: Array<string | null>) => xs.filter((x): x is string => !!x).sort().at(-1) ?? null;
 
+/** Homework of the student's own courses only (by subject id, else by name). With no courses known yet, everything. */
+export function ownHomework<T extends { subject?: string | { name?: string; id?: string | number } }>(list: T[], courses: Array<{ id: string; name: string }>): T[] {
+  if (!courses.length) return list;
+  const ids = new Set(courses.map((c) => String(c.id)));
+  const names = new Set(courses.map((c) => c.name.trim().toLowerCase().replace(/\s+/g, " ")));
+  return list.filter((h) => {
+    const s = h.subject;
+    if (s && typeof s === "object" && s.id !== undefined && ids.has(String(s.id))) return true;
+    const name = (typeof s === "string" ? s : s?.name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+    return !!name && names.has(name);
+  });
+}
+
 export async function loadStudent(userId: string, opts: { refresh?: boolean } = {}): Promise<Student | null> {
   const [row] = await db()
     .select({
@@ -61,6 +74,9 @@ export async function loadStudent(userId: string, opts: { refresh?: boolean } = 
 
   const stored = row.snapshot?.[SNAPSHOT_KEY] as Partial<SyncSnapshot> | undefined;
   const sync = stored ? normalizeSnapshot(stored) : emptySnapshot();
+  // The LMS homework list also carries other programmes' courses (Ergonomics,
+  // Solid Mechanics…): keep only work for courses the student actually takes.
+  sync.homework = ownHomework(sync.homework, sync.courses.map((c) => ({ id: c.subjectId, name: c.name })));
   // Snapshots written before dates were normalised hold LMS raw values (unix numbers…).
   sync.semesters = (sync.semesters ?? []).map((m) => ({ ...m, starts: lmsDay(m.starts), ends: lmsDay(m.ends) }));
   const account: AccountState = row.status ?? "none";

@@ -111,3 +111,13 @@ describe("downloaded files carry the title shown on the site", () => {
     expect(downloadName(cleanTitle("Week_5_L910_v5.pdf", o), "Deep Learning", "pdf", "pdf")).toBe("Lectures 9–10 — Deep Learning.pdf");
   });
 });
+
+import { ownHomework } from "@/server/views/student";
+describe("assignments come from the student's own courses only", () => {
+  it("keeps homework of taken courses, by subject id or name", () => {
+    const list = [{ subject: { id: 906, name: "Deep Learning" } }, { subject: "Ergonomics" }, { subject: "theory of  computation" }, { subject: { name: "Computational Solid and Fluid Mechanics" } }];
+    const mine = ownHomework(list, [{ id: "906", name: "Deep Learning" }, { id: "908", name: "Theory of Computation" }]);
+    expect(mine).toHaveLength(2);
+    expect(ownHomework(list, [])).toHaveLength(4);
+  });
+});

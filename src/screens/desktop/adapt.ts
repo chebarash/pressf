@@ -2,6 +2,7 @@
  * View model (src/server/views) → what the desktop frames draw (./model).
  * Pure functions: no fetching, no React. One per screen.
  */
+import { GRADUATION_ECTS } from "@/core/semester";
 import { CLASS_KIND_LABEL } from "@/core/agenda";
 import { fileList } from "@/core/files";
 import { COURSE_TAG_ORDER } from "@/core/ratings";
@@ -609,7 +610,8 @@ export function initialFrom(a: NonNullable<V.RatedItem["answers"]>): NonNullable
 export function curriculum(v: V.CurriculumView): M.CurriculumData {
   return {
     program: v.program?.name ?? "Curriculum",
-    line: join(v.years.length > 0 && plural(v.years.length, "year"), v.years.reduce((n, y) => n + y.terms.reduce((a, t) => a + t.courses.reduce((e, c) => e + (c.ects ?? 0), 0), 0), 0) + " ECTS"),
+    // The degree total from the Academic Regulations, not a sum of listed courses (electives counted twice).
+    line: join(v.years.length > 0 && plural(v.years.length, "year"), `${GRADUATION_ECTS} ECTS to graduate`),
     programs: v.programs.map((p) => ({ id: p.id, name: p.name, href: `/programs/${p.id}/curriculum`, on: p.id === v.program?.id })),
     years: v.years.map((y) => ({
       label: `Year ${y.year}`,
