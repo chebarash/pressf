@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { GUEST, notificationsFixture, qrFixture, TODAY_STATES } from "@/screens/mobile/fixtures";
 import MobileNotifications from "@/screens/mobile/Notifications";
 import DesktopNotifications from "@/screens/desktop/Notifications";
+import DesktopToday from "@/screens/desktop/Today";
+import DesktopGuestHome from "@/screens/desktop/GuestHome";
 import MobileQr from "@/screens/mobile/Qr";
 import type { QrResult } from "@/screens/mobile/parts/QrFlow";
 import MobileToday from "@/screens/mobile/Today";
@@ -14,7 +16,7 @@ import { HomeScreenPreview } from "./HomeScreenPreview";
 
 /**
  * Dev-only preview of every Figma state of Today, Notifications and QR on
- * fixtures: /screens/today?state=2.3-over (add &theme=dark).
+ * fixtures: /screens/today?state=2.3-over (add &theme=dark; &desktop=1 for D1 and the desktop guest home).
  */
 
 const QR: Record<string, QrResult | "shortcut" | undefined> = {
@@ -27,11 +29,11 @@ const QR: Record<string, QrResult | "shortcut" | undefined> = {
   "10.9-offline": { kind: "offline" },
 };
 
-type Props = { searchParams: Promise<{ state?: string; theme?: string }> };
+type Props = { searchParams: Promise<{ state?: string; theme?: string; desktop?: string }> };
 
 export default async function Preview({ searchParams }: Props) {
   if (process.env.NODE_ENV === "production") notFound();
-  const { state, theme } = await searchParams;
+  const { state, theme, desktop } = await searchParams;
   const themeScript = theme ? <script dangerouslySetInnerHTML={{ __html: `document.documentElement.dataset.theme=${JSON.stringify(theme === "dark" ? "dark" : "light")}` }} /> : null;
 
   const framed = (screen: React.ReactNode) => (
@@ -40,6 +42,9 @@ export default async function Preview({ searchParams }: Props) {
       <Shell>{screen}</Shell>
     </>
   );
+  // Desktop Today (D1) on the same fixtures: add &desktop=1 in a desktop browser.
+  if (desktop && state && state in TODAY_STATES) return framed(<DesktopToday data={TODAY_STATES[state as keyof typeof TODAY_STATES]()} />);
+  if (desktop && state === "1.2-guest") return framed(<DesktopGuestHome data={GUEST} />);
   if (state && state in TODAY_STATES) return framed(<MobileToday data={TODAY_STATES[state as keyof typeof TODAY_STATES]()} />);
   if (state === "1.1-loading") return framed(<Loading />);
   if (state === "1.9-home-screen") return framed(<><MobileToday data={TODAY_STATES["2.1-morning"]()} /><HomeScreenPreview /></>);
