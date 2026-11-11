@@ -1,12 +1,25 @@
 .main { padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); display: flex; flex-direction: column; gap: var(--page-gap); max-width: var(--page-max); }
 
-/* Bento: wide column 736 + side 360 at 1440; the wide one gives way down to 1280,
-   then the side column drops under it (page container, shell.css breakpoints). */
-.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 0.49fr); gap: var(--space-4); align-items: stretch; }
+/* Bento (Figma D1): a wide column and a 360 side column, each stacking its own
+   cards, so a short card never leaves a hole beside a tall one. The side column
+   narrows a little in a smaller window (rail at ≤1100) and drops under 900. */
+.bento { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 32%, 376px); gap: var(--space-4); align-items: start; }
+.col { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
 @container page (max-width: 900px) {
-  .row { grid-template-columns: minmax(0, 1fr); }
+  /* One column: the cards interleave in reading order instead of column by column. */
+  .bento { display: flex; flex-direction: column; align-items: stretch; }
+  .col { display: contents; }
+  .next { order: 1; }
+  .day { order: 2; }
+  .feed { order: 3; }
+  .dueCard { order: 4; }
+  .exam { order: 5; }
+  .courses { order: 6; }
+  .rate { order: 7; }
 }
-.side { display: flex; flex-direction: column; gap: var(--space-4); }
+/* Desktop status line: the text and its action on one row. */
+.banner { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) 20px; }
+.banner > :last-child:not(p) { flex: none; }
 
 /* Next class */
 /* Label, title and time line read as one block; materials and the button sit below with room. */
@@ -16,6 +29,10 @@
 .next .actions { margin-top: auto; padding-top: var(--space-3); }
 .nextLabel { display: flex; align-items: center; gap: var(--space-2); font: 600 12px/normal var(--font-sans); color: var(--text-accent); text-transform: uppercase; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bg-accent); flex: none; }
+/* Nothing next: a calm card on the page colour, not the accent tint. */
+.free { background: var(--bg-surface); }
+.dotFree { background: var(--border-subtle); }
+.free .nextLine { color: var(--text-secondary); font-weight: 400; }
 .nextTitle { font: 400 56px/1.04 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); margin: 0; }
 .nextLine { font: 500 16px/normal var(--font-sans); color: var(--text-primary); }
 .materials { display: flex; gap: 10px; }
@@ -46,6 +63,10 @@ a.slot:hover .slotTitle { text-decoration: underline; text-underline-offset: 3px
 .dueStatus { font: 600 12px/normal var(--font-sans); color: var(--text-secondary); }
 .late { color: var(--rating-low); }
 .quiet { font: 400 13px/1.4 var(--font-sans); color: var(--text-secondary); }
+/* Feed empty (D18 all read): one quiet line with a check, not a stretched blank card. */
+.caught { display: flex; align-items: center; gap: var(--space-3); font: 400 14px/1.4 var(--font-sans); color: var(--text-secondary); }
+.caught b { font-weight: 600; color: var(--text-primary); }
+.caughtIcon { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border: 1.5px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--tint-moss); color: var(--text-primary); }
 /* D15 notification skeletons (4229:14091). */
 .skel { height: 56px; border-radius: var(--radius-md); background: var(--bg-sunken); }
 .loading { font: 500 12px/normal var(--font-sans); color: var(--text-secondary); }
@@ -59,9 +80,13 @@ a.slot:hover .slotTitle { text-decoration: underline; text-underline-offset: 3px
 
 /* My courses */
 .courses { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; flex: 1; }
+/* Two cards a row (Figma), up to four; one a row on a very narrow page. */
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@container page (max-width: 600px) {
+  .cards { grid-template-columns: minmax(0, 1fr); }
+}
 /* Rate */
-.rate { background: var(--tint-mustard-strong); justify-content: space-between; color: var(--text-primary); }
+.rate { background: var(--tint-mustard-strong); color: var(--text-primary); }
 .rateEyebrow { font: 600 11px/normal var(--font-sans); text-transform: uppercase; }
 .rateTitle { font: 400 32px/1.04 var(--font-serif); letter-spacing: -0.01em; margin: 0; }
 .rateText { font: 400 13px/normal var(--font-sans); }

@@ -5,8 +5,12 @@
 .screen :where(*, *::before, *::after) { box-sizing: border-box; }
 .screen :where(p, h1, h2, h3, h4, ul, ol, li, figure, dl, dd) { margin: 0; padding: 0; }
 .screen :where(ul, ol) { list-style: none; }
-.screen :where(a) { color: inherit; text-decoration: none; }
-.screen :where(button, input, select, textarea) { font: inherit; color: inherit; }
+/* Colour resets carry no weight (:where), so a kit Button's own text colour wins:
+   white on the teal key in light, as in Figma, not the inherited ink. */
+.screen :where(a) { text-decoration: none; }
+:where(.screen a) { color: inherit; }
+.screen :where(button, input, select, textarea) { font: inherit; }
+:where(.screen button, .screen input, .screen select, .screen textarea) { color: inherit; }
 .screen :where(kbd) { font-family: var(--font-sans); }
 
 .contents { display: contents; }

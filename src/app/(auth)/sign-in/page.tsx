@@ -46,7 +46,7 @@ export default async function SignIn({ searchParams }: Props) {
             <li>Press F for good teachers</li>
           </ul>
         </div>
-        <p className="sh-welcome__foot">Built by a NewUU student, approved by the university. Not affiliated with hero.study.</p>
+        <p className="sh-welcome__foot">Built by a NewUU student. Not affiliated with hero.study.</p>
       </section>
       <section className="sh-welcome__form">
         <div className="sh-welcome__card">

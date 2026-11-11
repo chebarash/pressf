@@ -1,0 +1,92 @@
+/* Desktop guest home: the D10 welcome inside the app frame, then the 1.2 guest content. Tokens only. */
+.main { padding: var(--page-pad-top) var(--page-pad-x) var(--page-pad-bottom); display: flex; flex-direction: column; gap: var(--space-6); max-width: var(--page-max); }
+
+/* D10 pitch on the teal panel, the sign-in card beside it. */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-7) var(--space-7) var(--space-7) 56px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  background: var(--tint-teal);
+  box-shadow: var(--shadow-key-lg);
+}
+.pitch { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; min-width: 0; }
+.title { margin: 0; font: 400 clamp(48px, 4.6vw, 72px)/0.95 var(--font-serif); letter-spacing: -0.01em; color: var(--text-primary); }
+.lede { max-width: 60ch; font: 400 18px/1.4 var(--font-sans); color: var(--text-secondary); }
+.foot { margin-top: var(--space-3); font: 500 13px/normal var(--font-sans); color: var(--text-secondary); }
+.hero .card { width: 100%; justify-self: end; }
+/* Icon-rail window (~1024): the card narrows, the pitch keeps its side. */
+@container page (max-width: 1000px) {
+  .hero { grid-template-columns: minmax(0, 1fr) minmax(300px, 340px); padding: 40px; gap: var(--space-6); }
+  .hero .card { padding: var(--space-5) 22px 20px; }
+}
+@container page (max-width: 760px) {
+  .hero { grid-template-columns: minmax(0, 1fr); }
+  .hero .card { justify-self: start; max-width: 460px; }
+}
+@container page (max-width: 600px) {
+  .hero { padding: var(--space-5); }
+}
+
+/* Most searched beside fresh files (the D1 bento proportions), schools under them. */
+.browse { display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, 36%, 420px); gap: var(--space-4); align-items: start; scroll-margin-top: var(--space-5); }
+.browse > :only-child { grid-column: 1 / -1; }
+/* Files need ~340 for their meta line; narrower, they go under the courses. */
+@container page (max-width: 1000px) {
+  .browse { grid-template-columns: minmax(0, 1fr); }
+}
+.popular { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@container page (max-width: 600px) {
+  .cards { grid-template-columns: minmax(0, 1fr); }
+}
+.files { gap: 12px; }
+.fileList { display: flex; flex-direction: column; gap: 10px; }
+.note { font: 400 13px/1.4 var(--font-sans); color: var(--text-secondary); }
+
+.schoolsSection { display: flex; flex-direction: column; gap: 12px; }
+/* Five schools: one row on a wide page, then three and two. */
+.schools { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+/* Narrower: three over two, both rows full width (six tracks, the last two span three). */
+@container page (max-width: 1100px) {
+  .schools { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .school { grid-column: span 2; }
+  .school:nth-child(4):nth-last-child(2), .school:nth-child(5):nth-last-child(1) { grid-column: span 3; }
+}
+@container page (max-width: 640px) {
+  .schools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .school, .school:nth-child(4):nth-last-child(2), .school:nth-child(5):nth-last-child(1) { grid-column: auto; }
+}
+/* SchoolCard (1.2): head at the top, programmes and the arrow at the bottom; a keycap that lifts on hover. */
+.school {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 160px;
+  padding: var(--space-4);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-key-lg);
+  color: var(--text-primary);
+  transition: transform var(--motion-fast) var(--ease-gentle), box-shadow var(--motion-fast) var(--ease-gentle);
+}
+@media (hover: hover) {
+  .school:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--shadow-key); }
+}
+.school:active { transform: translateY(4px); box-shadow: none; }
+.school:focus-visible { outline: 2px solid var(--border-accent); outline-offset: 2px; }
+.schoolHead { display: flex; flex-direction: column; gap: var(--space-1); }
+.schoolOf { font: 600 11px/normal var(--font-sans); text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-secondary); }
+.schoolName { font: 400 26px/1.04 var(--font-serif); letter-spacing: -0.01em; }
+.schoolFoot { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); }
+.schoolFoot svg { flex: none; }
+.programs { font: 400 13px/1.35 var(--font-sans); color: var(--text-secondary); }
+.teal { background: var(--school-computing-soft); }
+.rust { background: var(--school-engineering-soft); }
+.mustard { background: var(--school-management-soft); }
+.plum { background: var(--school-humanities-soft); }
+.moss { background: var(--school-medicine-soft); }

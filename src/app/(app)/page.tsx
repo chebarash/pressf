@@ -2,10 +2,10 @@ import { getUser } from "@/lib/auth";
 import { getPlatform, isMobile } from "@/platform/server";
 import * as views from "@/server/views";
 import { dismissRating } from "@/screens/mobile/actions";
+import DesktopGuestHome from "@/screens/desktop/GuestHome";
 import DesktopToday from "@/screens/desktop/Today";
 import MobileToday from "@/screens/mobile/Today";
 import type { TodayData } from "@/screens/mobile/today/types";
-import { GuestHero } from "@/ui/shell/GuestHero";
 import { retry, type SearchParams } from "@/screens/mobile/mc/route";
 
 /** Guests get the public home (Figma 1.2): popular courses, fresh files and schools, in one cached read. */
@@ -18,6 +18,6 @@ export default async function TodayPage({ searchParams }: { searchParams: Search
   await retry(user?.id, sp);
   const data: TodayData = (user && (await views.today(user.id))) || (await guest());
   if (isMobile(platform)) return <MobileToday data={data} />;
-  // Desktop Today takes the student view only; guests get the public hero.
-  return "guest" in data ? <GuestHero /> : <DesktopToday data={data} actions={{ dismissRating }} />;
+  // Guests get the D10 welcome with the public guest content under it.
+  return "guest" in data ? <DesktopGuestHome data={data} /> : <DesktopToday data={data} actions={{ dismissRating }} />;
 }
