@@ -64,7 +64,11 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 24, cache: npm }
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # Ubuntu's package mirrors fail now and then; retry, then fall back to the
+      # browser alone (the runner image already has Chrome's system libraries).
+      - run: |
+          for i in 1 2 3; do npx playwright install --with-deps chromium && exit 0; sleep 20; done
+          npx playwright install chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()
