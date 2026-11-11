@@ -1,4 +1,5 @@
 import { attendance, attendanceEvents, attendanceLine, type AttendanceEvent, type AttendanceStatus, type Mark } from "@/core/attendance";
+import { GRADUATION_ECTS } from "@/core/semester";
 import { semesterGpa, tier } from "@/core/grades";
 import { DAY_MS, shortDate, weekdayName } from "@/core/time";
 import { termName, type SyncedCourse } from "@/server/sync/types";
@@ -112,7 +113,7 @@ export async function progress(userId: string, now = new Date()): Promise<Progre
     state: student.state,
     gpa: profile?.gpa ?? null,
     ectsEarned: profile?.ectsEarned ?? null,
-    ectsTotal: profile?.ectsTotal ?? null,
+    ectsTotal: GRADUATION_ECTS,
     semesterNumber: semesterNumber(student) || profile?.semesters.length || null,
     currentTerm: queue.currentTerm,
     currentGpa,
@@ -236,7 +237,7 @@ export async function termResults(userId: string, segment: string, now = new Dat
     gpa: gpaOf(synced?.id ?? null, term),
     overallGpa: profile?.gpa ?? null,
     ectsEarned: profile?.ectsEarned ?? null,
-    ectsTotal: profile?.ectsTotal ?? null,
+    ectsTotal: GRADUATION_ECTS,
     ects: courses.length && courses.every((c) => c.ects !== null) ? courses.reduce((n, c) => n + (c.ects ?? 0), 0) : null,
     courses,
     passed: courses.filter((c) => c.passed).length,

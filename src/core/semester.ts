@@ -148,3 +148,10 @@ export function termMatches(term: string, segment: string) {
   const slug = termSlug(raw);
   return slug !== "" && termSlug(term) === slug;
 }
+
+/**
+ * ECTS needed for a bachelor's degree: NewUU Academic Regulations, Chapter 32
+ * ("a minimum of 240 ECTS credits or the number specified in the Program
+ * Handbook"). The LMS's own `ects_all` is the plan entered so far, not this.
+ */
+export const GRADUATION_ECTS = 240;
