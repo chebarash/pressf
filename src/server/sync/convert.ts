@@ -6,6 +6,7 @@ import { remindersDue, type Deadline } from "@/core/deadlines";
 import { changedGrades, passedFinal } from "@/core/grades";
 import { lessonLabel } from "@/core/feed-marks";
 import { fileList } from "@/core/files";
+import { milestoneId, weightLabel, type Milestone } from "@/core/milestones";
 import { path } from "@/core/links";
 import { fromLms, type AlertSettings, type FeedItem, type LmsNotification } from "@/core/notifications";
 import { addDays, clock, localDay, shortDate, weekdayName } from "@/core/time";
@@ -347,4 +348,37 @@ export function fileAlert(course: { id: string; code: string; name: string }, fi
     },
     message: msg.newFiles({ course: course.name, courseCode: course.code, week, files: files.map((f) => f.title) }),
   };
+}
+
+/**
+ * Syllabus milestones (src/core/milestones.ts) due tomorrow, for the evening
+ * before: "Tomorrow: Quiz 2 in Deep Learning (10%, from the syllabus)", or
+ * "inferred from the syllabus" when only the week is known. One that spans a
+ * week with no class (a project due in week 12) is "This week" on the evening
+ * before that week. `skip`: class keys that already have their own reminder
+ * (exams from the university sheet). The feed id is the milestone's, so each
+ * is stored and sent once.
+ */
+export function milestoneAlerts(list: Array<Milestone & { courseName?: string }>, today: string, now: Date, skip: ReadonlySet<string> = new Set()): Alert[] {
+  const tomorrow = addDays(today, 1);
+  const out: Alert[] = [];
+  for (const m of list) {
+    if (m.day !== tomorrow || (m.classKey && skip.has(m.classKey))) continue;
+    const when = m.day === m.endDay ? "Tomorrow" : "This week";
+    const inferred = m.certainty === "inferred";
+    const course = m.courseName || m.courseCode;
+    const weight = weightLabel(m);
+    const note = inferred ? (m.classKey ? "The syllabus gives the week, not the day: likely this class." : "The syllabus gives the week, not the day.") : null;
+    out.push({
+      setting: "syllabus",
+      item: {
+        id: `${milestoneId(m)}:eve`, kind: "deadline",
+        title: msg.syllabusMilestoneTitle({ when, title: m.title, course, weight, inferred }),
+        body: [note, m.source ? `Syllabus: ${m.source}` : null].filter(Boolean).join(" · ") || undefined,
+        courseName: course, at: now, read: false, href: path(m.courseCode ? { to: "course", code: m.courseCode } : { to: "timetable" }),
+      },
+      message: msg.syllabusMilestone({ when, title: m.title, course, courseCode: m.courseCode || null, weight, inferred, note }),
+    });
+  }
+  return out;
 }

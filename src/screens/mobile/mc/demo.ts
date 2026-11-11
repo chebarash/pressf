@@ -1,6 +1,8 @@
 import type {
   AssignmentsView, CalendarEvent, CalendarLayer, CalendarView, CourseProgressView, CurriculumView, DeadlineView, ProfessorRow, ProfessorsView, ProfessorView, ProfileView, ProgressCourse, ProgressView, SchoolsView, SearchView,
 } from "@/server/views";
+import { DEFAULT_ALARMS } from "@/core/calendar-text";
+import { subscribeLinks } from "@/core/ics";
 import { DEFAULT_ALERTS } from "@/core/notifications";
 import type { RateQueueView } from "@/screens/mobile/views";
 
@@ -94,7 +96,7 @@ export const assignmentsDemo = (): AssignmentsView => ({
 
 const ev = (key: string, layer: CalendarLayer, title: string, sub: string, day: string): CalendarEvent => ({ key, layer, title, sub, day, endDay: day, time: null, href: null });
 const LAYER_LIST: Array<{ id: CalendarLayer; label: string }> = [
-  { id: "classes", label: "Classes" }, { id: "exams", label: "Exams" }, { id: "deadlines", label: "Deadlines" }, { id: "holidays", label: "Holidays" }, { id: "registration", label: "Registration" },
+  { id: "classes", label: "Classes" }, { id: "exams", label: "Exams" }, { id: "deadlines", label: "Deadlines" }, { id: "holidays", label: "Holidays" }, { id: "registration", label: "Registration" }, { id: "syllabus", label: "Syllabus quizzes" },
 ];
 
 const calendarBase: CalendarView = {
@@ -109,7 +111,7 @@ const calendarBase: CalendarView = {
     { day: "2027-01-11", label: "11–15 Jan", today: false, events: [ev("fe", "exams", "Final exams", "Exam · Your times appear when the LMS publishes them", "2027-01-11")] },
   ],
   empty: null,
-  subscribe: { google: "https://calendar.google.com/calendar/render?cid=webcal%3A%2F%2Fpressf.chebarash.uz%2Fcalendar.ics", personal: false },
+  subscribe: { ...subscribeLinks("https://pressf.chebarash.uz/calendar.ics", "NewUU academic calendar"), personal: false },
 };
 
 export const SEARCH: Record<string, () => SearchView> = {
@@ -238,7 +240,8 @@ export const profileDemo = (): ProfileView => ({
   ratings: { count: 6, waiting: 2 },
   uploads: { count: 0, live: 0 },
   feed: LAYER_LIST.map((l) => ({ ...l, on: true })),
-  calendar: { google: "https://calendar.google.com/calendar/r?cid=webcal://pressf.chebarash.uz/calendar/feed/demo.ics" },
+  alarms: DEFAULT_ALARMS,
+  calendar: subscribeLinks("https://pressf.chebarash.uz/calendar/feed/demo.ics", "Press F · Shamsiddin"),
 });
 
 const rateItem = (courseId: string, name: string, term: string) => ({ courseId, code: courseId, name, term, teachers: [], href: `/rate/${courseId}` });

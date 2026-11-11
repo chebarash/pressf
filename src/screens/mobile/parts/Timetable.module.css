@@ -161,3 +161,7 @@ a.eventRow { cursor: pointer; }
 .mark_late { background: var(--tint-mustard); border-color: var(--rating-mid); }
 .mark_bad { background: var(--tint-rust); border-color: var(--bg-danger); }
 .mark_none { background: var(--bg-sunken); }
+
+/* A syllabus milestone on this lesson: the mustard of the class mark; dashed when the day is inferred. */
+.milestone { padding-left: 8px; border-left: 3px solid var(--rating-mid); }
+.milestone[data-likely] { border-left-style: dashed; }

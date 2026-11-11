@@ -5,7 +5,9 @@ import { ago, shortDate } from "@/core/time";
 import { REJECT_REASONS, type RejectReason, type UploadStatus } from "@/core/uploads";
 import { db } from "@/lib/db";
 import { lmsCourses, uploads } from "@/lib/db/schema";
-import { calendarFeed, feedSettings, personalSubscription } from "@/server/calendar-feed";
+import type { FeedAlarms } from "@/core/calendar-text";
+import type { SubscribeLinks } from "@/core/ics";
+import { calendarFeed, feedOptions, personalSubscription } from "@/server/calendar-feed";
 import { roleOf } from "@/server/identity";
 import type { Role } from "@/core/roles";
 import { rateQueueFor } from "./rate";
@@ -27,10 +29,12 @@ export type ProfileView = {
   sync: SyncState & { label: string | null };
   ratings: { count: number; waiting: number };
   uploads: { count: number; live: number };
-  /** "In Google Calendar": what the student's Google Calendar feed carries. */
+  /** Settings → Calendar: the layers the student's calendar feed carries. */
   feed: Array<{ id: string; label: string; on: boolean }>;
-  /** Settings → Calendar: Google's add-by-URL page for the student's own feed; null when this server can't sign one. */
-  calendar: { google: string } | null;
+  /** Settings → Calendar: "Reminders in your calendar" (VALARM). */
+  alarms: FeedAlarms;
+  /** Settings → Calendar: each app's subscribe link for the student's own feed; null when this server can't sign one. */
+  calendar: SubscribeLinks | null;
 };
 
 export async function profile(userId: string, now = new Date()): Promise<ProfileView | null> {
@@ -40,8 +44,8 @@ export async function profile(userId: string, now = new Date()): Promise<Profile
     rateQueueFor(student, now),
     roleOf(userId),
     db().select({ status: uploads.status }).from(uploads).where(eq(uploads.uploaderId, userId)),
-    feedSettings(userId),
-    calendarFeed(userId).then((f) => personalSubscription(f.token)).catch(() => null),
+    feedOptions(userId),
+    calendarFeed(userId).then((f) => personalSubscription(f.token, student.cache?.profile?.name)).catch(() => null),
   ]);
   const name = student.cache?.profile?.name ?? student.email;
   return {
@@ -55,8 +59,9 @@ export async function profile(userId: string, now = new Date()): Promise<Profile
     sync: { ...student.state, label: student.state.syncedAt ? ago(new Date(student.state.syncedAt), now) : null },
     ratings: { count: queue.rated.length, waiting: queue.waiting.length },
     uploads: { count: mine.length, live: mine.filter((u) => u.status === "live").length },
-    feed,
-    calendar: subscription ? { google: subscription.google } : null,
+    feed: feed.layers,
+    alarms: feed.alarms,
+    calendar: subscription,
   };
 }
 

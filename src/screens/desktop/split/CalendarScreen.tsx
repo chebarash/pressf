@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { MilestoneMark } from "@/screens/shared/schedule/MilestoneMark";
 import { addDays, classTitle, clampIndex, dayAt, firstOfMonth, monthKey, monthLabel, mondayAt, monthLayout, shiftMonth, SPAN_WEEKS, toneName, weekIndex } from "@/screens/shared/schedule/model";
 import { useSchedule } from "@/screens/shared/schedule/store";
 import { useTrack } from "@/screens/shared/schedule/useTrack";
@@ -119,7 +120,9 @@ function WeekRow({ week, base, month }: { week: number; base: number; month: str
                   title={`${classTitle(it.c)} · ${it.c.time}${it.c.room ? ` · ${it.c.room}` : ""}`}
                   data-nav-item
                 >
-                  {it.c.time} {classTitle(it.c)}
+                  {/* A syllabus quiz takes the time's place: the chip is too narrow for both (the time stays in its title). */}
+                  {it.c.milestones?.length ? <MilestoneMark c={it.c} inline compact /> : `${it.c.time} `}
+                  {classTitle(it.c)}
                 </button>
               ) : (
                 <EventChip key={it.e!.key} e={it.e!} />

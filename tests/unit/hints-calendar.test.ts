@@ -107,20 +107,22 @@ describe("Timetable: no Google block, no Open in LMS, one calendar hint", () => 
   });
 });
 
-describe("Settings → Calendar holds everything about the Google Calendar feed", () => {
+describe("Settings → Calendar holds everything about the calendar feed", () => {
   const data = profileDemo();
-  it("desktop: Add to Google Calendar, the layer switches, Reset link and the refresh note in one section", () => {
+  const TEXTS = ["Subscribe in your calendar", "Add to Google Calendar", "up to about a day", "Other calendars", "In your calendar", "Syllabus quizzes", "Reminders in your calendar", "15 min", "Exams and syllabus quizzes", "Event notifications", "calendar.google.com/calendar/r/settings", "Reset link", "Classes", "Holidays"];
+  it("desktop: subscribe in any calendar, the layer switches, the reminders, Reset link in one section", () => {
     const html = render(createElement(SettingsScreen, { data: adapt.profile(data), actions: { resetCalendar: async () => ({ ok: true }) } }));
     const section = html.slice(html.indexOf('id="calendar"'));
     expect(html).toContain('id="calendar"');
-    for (const text of ["Add to Google Calendar", "In Google Calendar", "Reset link", "up to about a day", "Classes", "Holidays"]) expect(section).toContain(text);
+    for (const text of TEXTS) expect(section).toContain(text);
+    expect(section).not.toContain("In Google Calendar");
   });
 
   it("phone: the same in its Calendar section", () => {
     const html = render(createElement(PhoneSettings, { data }));
     const section = html.slice(html.indexOf('id="calendar"'));
     expect(html).toContain('id="calendar"');
-    for (const text of ["Google Calendar", "In Google Calendar", "Reset link", "up to about a day"]) expect(section).toContain(text);
+    for (const text of TEXTS) expect(section).toContain(text);
   });
 });
 

@@ -4,6 +4,7 @@ const refresh = vi.hoisted(() => ({ scheduleRefresh: vi.fn() }));
 vi.mock("@/server/sync/refresh", () => refresh);
 
 import { eq } from "drizzle-orm";
+import { GET as apple } from "@/app/calendar/apple/route";
 import { GET } from "@/app/calendar/feed/[token]/route";
 import { db } from "@/lib/db";
 import { calendarFeeds } from "@/lib/db/schema";
@@ -13,7 +14,7 @@ import { resetDb } from "../fixtures/db";
 import { NOW, seedStudent } from "../fixtures/student";
 
 let userId: string;
-const ALL = ["classes", "exams", "deadlines", "holidays", "registration"];
+const ALL = ["classes", "exams", "deadlines", "holidays", "registration", "syllabus"];
 
 beforeEach(async () => {
   await resetDb();
@@ -53,8 +54,22 @@ describe("calendar feed token", () => {
     expect(next).not.toBe(old);
     expect(await feedOwner(old)).toBeNull();
     expect((await get(`${old}.ics`)).status).toBe(404);
-    expect(await feedOwner(next)).toEqual({ userId, layers: ["holidays"] });
+    expect(await feedOwner(next)).toEqual({ userId, layers: ["holidays"], alarms: { classes: 15, exams: true } });
     expect((await calendarFeed(userId)).token).toBe(next);
+  });
+
+  it("subscribes in every calendar app; Apple from Telegram through our own redirect to webcal://", async () => {
+    const { token } = await calendarFeed(userId);
+    const s = personalSubscription(token, "Shamsiddin Abdurakhimov");
+    expect(s.apple).toBe(`webcal://pressf.chebarash.uz/calendar/feed/${token}.ics`);
+    expect(s.outlook).toBe(`https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(`https://pressf.chebarash.uz/calendar/feed/${token}.ics`)}&name=${encodeURIComponent("Press F · Shamsiddin")}`);
+    expect(s.appleHttps).toBe(`https://pressf.chebarash.uz/calendar/apple?feed=${token}`);
+    const res = await apple(new Request(`https://pressf.test/calendar/apple?feed=${token}`));
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(`webcal://pressf.chebarash.uz/calendar/feed/${token}.ics`);
+    expect((await apple(new Request("https://pressf.test/calendar/apple"))).headers.get("location")).toBe("webcal://pressf.chebarash.uz/calendar.ics");
+    // Never anywhere else.
+    expect((await apple(new Request("https://pressf.test/calendar/apple?feed=evil.com/x"))).status).toBe(404);
   });
 
   it("dies with the account", async () => {
@@ -112,7 +127,8 @@ describe("calendar feed content", () => {
     expect(field(calc, "SUMMARY")).toBe("Calculus 1 · Lecture");
     expect(field(calc, "DTEND")).toBe("20261102T062000Z");
     expect(field(calc, "LOCATION")).toBe("B-204");
-    expect(field(calc, "DESCRIPTION")).toBe("MATH111 · Lecture\\nRoom B-204\\nGonçalo Pinto");
+    // The lesson's file as a link to its Press F page (never a storage URL: those expire).
+    expect(field(calc, "DESCRIPTION")).toBe("MATH111 · Lecture\\nRoom B-204\\nGonçalo Pinto\\nFiles:\\n• Midterm review slides: https://pressf.chebarash.uz/f/F1");
     // Tuesday's Physics comes from the weekly pattern (outside the synced window), 13:00 Tashkent = 08:00Z.
     expect(list.some((e) => field(e, "DTSTART") === "20261103T080000Z" && field(e, "SUMMARY")?.startsWith("Physics 1"))).toBe(true);
     // Rest of the term's class weeks: not the winter break, not past the last Fall teaching week.
@@ -159,7 +175,7 @@ describe("calendar feed content", () => {
     const summaries = events(await feed(null)).map((e) => field(e, "SUMMARY"));
     expect(summaries.some((s) => s?.startsWith("Calculus 1 ·"))).toBe(false);
     expect(summaries).toContain("Constitution Day");
-    expect((await feedOwner((await calendarFeed(userId)).token))?.layers).toEqual(["exams", "deadlines", "holidays", "registration"]);
+    expect((await feedOwner((await calendarFeed(userId)).token))?.layers).toEqual(["exams", "deadlines", "holidays", "registration", "syllabus"]);
   });
 
   it("keeps UIDs stable between polls and unique within a feed", async () => {

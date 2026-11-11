@@ -6,6 +6,7 @@ import { lessonPanel } from "@/screens/shared/schedule/lesson";
 import { classByKey } from "@/screens/shared/schedule/model";
 import { useSchedule } from "@/screens/shared/schedule/store";
 import type { CalendarEvent, CalendarLayer, ScheduleClass } from "@/server/views";
+import { SubscribeButtons } from "@/screens/mobile/mc/Subscribe";
 import { Tab } from "@/ui/components";
 import { ScreenHint } from "@/ui/shell/Hints";
 import { PageHead } from "@/ui/shell/PageHeader";
@@ -21,7 +22,8 @@ import t from "../timetable.module.css";
  * Settings → Calendar; Timetable only offers it once, as a hint.
  */
 
-export const KIND: Record<CalendarLayer, CalendarKind> = { classes: "class", exams: "exam", deadlines: "deadline", holidays: "holiday", registration: "registration" };
+// Syllabus milestones read like deadlines (mustard).
+export const KIND: Record<CalendarLayer, CalendarKind> = { classes: "class", exams: "exam", deadlines: "deadline", holidays: "holiday", registration: "registration", syllabus: "deadline" };
 export const LOOK: Record<CalendarKind, string> = { week: k.week_, class: k.class_, deadline: k.deadline, exam: k.exam, registration: k.registration, holiday: k.holiday };
 export const BAR: Record<CalendarKind, string> = { week: "var(--school-humanities)", class: "var(--bg-accent)", deadline: "var(--rating-mid)", exam: "var(--bg-danger)", registration: "var(--school-humanities)", holiday: "var(--school-medicine)" };
 
@@ -126,9 +128,14 @@ export function LessonInspector({ c, onClose }: { c: ScheduleClass; onClose: () 
       {p.teacher && <Fact icon={<Icon name="users" size={16} />}>{p.teacher}</Fact>}
       {p.exam && <Fact icon={<Icon name="calendar" size={16} />}>{p.exam}</Fact>}
 
-      {(p.topic.title || p.topic.description || p.topic.syllabus) && (
+      {(p.topic.title || p.topic.description || p.topic.syllabus || p.milestones.length > 0) && (
         <section className={t.block} aria-label="This lesson">
           <p className={t.label}>This lesson</p>
+          {p.milestones.map((m) => (
+            <p key={m.id} className={cx(t.topic, t.milestone)} data-likely={m.likely || undefined}>
+              {m.line}
+            </p>
+          ))}
           {p.topic.title && <p className={t.topic}>{p.topic.title}</p>}
           {p.topic.description && <p className={t.note}>{p.topic.description}</p>}
           {p.topic.syllabus && <p className={t.note}>Syllabus: {p.topic.syllabus}</p>}
@@ -204,7 +211,7 @@ export function ComingUp({ className }: { className?: string }) {
       <h2 className={k.comingTitle}>Coming up</h2>
       {!page.coming.length && <p className={k.itemMeta}>Nothing coming up.</p>}
       {page.coming.map((c) => (
-        <div key={c.key} className={k.item}>
+        <div key={c.key} className={k.item} data-layer={c.layer}>
           <span className={k.bar} style={{ background: BAR[KIND[c.layer]] }} />
           <span>
             <p className={k.itemTitle}>{c.title}</p>
@@ -212,6 +219,7 @@ export function ComingUp({ className }: { className?: string }) {
           </span>
         </div>
       ))}
+      {!page.signedIn && page.subscribe ? <SubscribeButtons links={page.subscribe} personal={false} /> : null}
     </section>
   );
 }

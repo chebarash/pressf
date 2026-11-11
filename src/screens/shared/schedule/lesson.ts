@@ -24,6 +24,8 @@ export type LessonPanel = {
   grade: string | null;
   exam: string | null;
   homework: Array<{ id: string; title: string; meta: string }>;
+  /** From the course syllabus: "Quiz 2 · 10% · from the syllabus (likely this lesson)". */
+  milestones: Array<{ id: string; line: string; likely: boolean }>;
   files: ScheduleClass["lesson"]["files"];
   courseHref: string | null;
 };
@@ -54,6 +56,25 @@ export function lessonPanel(c: ScheduleClass): LessonPanel {
     exam: c.exam?.note ?? null,
     homework: l.homework.map((h) => ({ id: h.id, title: h.title, meta: [`Due ${clockOf(h.due)}`, h.status, h.grade !== null ? `${h.grade} points` : null].filter(Boolean).join(" · ") })),
     files: l.files,
+    milestones: (c.milestones ?? []).map((m) => ({ id: m.id, line: m.line, likely: m.certainty === "inferred" })),
     courseHref: c.code ? `/c/${c.code}` : null,
+  };
+}
+
+/** A milestone kind in one short word, for Month's narrow chips. */
+const SHORT: Record<string, string> = { quiz: "Quiz", assignment: "Due", project: "Project", presentation: "Talk", midterm: "Midterm", final: "Final", "lab-report": "Lab", other: "Due" };
+
+/**
+ * The small mark on a class block (Week, Day and Month alike): the first
+ * milestone's title, the rest counted; `compact`, its kind in one word.
+ */
+export function classMark(c: Pick<ScheduleClass, "milestones">, compact = false): { text: string; title: string; likely: boolean } | null {
+  const list = c.milestones ?? [];
+  if (!list.length) return null;
+  const first = compact ? SHORT[list[0].kind] ?? "Due" : list[0].title;
+  return {
+    text: list.length > 1 ? `${first} +${list.length - 1}` : first,
+    title: list.map((m) => m.line).join("\n"),
+    likely: list.every((m) => m.certainty === "inferred"),
   };
 }

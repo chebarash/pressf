@@ -1,4 +1,4 @@
-import { googleSubscribeUrl } from "@/core/ics";
+import { subscribeLinks, type SubscribeLinks } from "@/core/ics";
 import { SITE_URL } from "@/core/links";
 import { HOLIDAYS, nextHoliday, throughSaturday, WEEKS, type WeekKind } from "@/core/semester";
 import { addDays, clock, localDay, shortDate, weekdayName } from "@/core/time";
@@ -9,13 +9,15 @@ import type { Viewer } from "./courses";
 
 /** Calendar (Figma 6.1–6.3): classes, exams, deadlines, holidays and registration as layers. */
 
-export type CalendarLayer = "classes" | "exams" | "deadlines" | "holidays" | "registration";
+export type CalendarLayer = "classes" | "exams" | "deadlines" | "holidays" | "registration" | "syllabus";
 export const LAYERS: Array<{ id: CalendarLayer; label: string }> = [
   { id: "classes", label: "Classes" },
   { id: "exams", label: "Exams" },
   { id: "deadlines", label: "Deadlines" },
   { id: "holidays", label: "Holidays" },
   { id: "registration", label: "Registration" },
+  // Quizzes, projects… from the course syllabi, placed on the student's classes (src/core/milestones.ts).
+  { id: "syllabus", label: "Syllabus quizzes" },
 ];
 
 export type CalendarEvent = {
@@ -38,14 +40,14 @@ export type CalendarView = {
   days: Array<{ day: string; label: string; today: boolean; events: CalendarEvent[] }>;
   /** Nothing in the chosen layers (Figma 6.2). */
   empty: { text: string } | null;
-  /** "Add to Google Calendar": Google's add-by-URL page for the feed; `personal` when it is the student's own feed. */
-  subscribe: { google: string; personal: boolean };
+  /** "Subscribe in your calendar": each app's add-by-URL link for the feed; `personal` when it is the student's own feed. */
+  subscribe: SubscribeLinks & { personal: boolean };
 };
 
 /** Guests subscribe to the public academic calendar (/calendar.ics); students get their own feed (server/calendar-feed). */
-const publicSubscription = { google: googleSubscribeUrl(`${SITE_URL}/calendar.ics`), personal: false };
+export const publicSubscription = { ...subscribeLinks(`${SITE_URL}/calendar.ics`, "NewUU academic calendar", `${SITE_URL}/calendar/apple`), personal: false };
 
-const LAYER_LABEL: Record<CalendarLayer, string> = { classes: "Class", exams: "Exam", deadlines: "Deadline", holidays: "Holiday", registration: "Registration" };
+const LAYER_LABEL: Record<CalendarLayer, string> = { classes: "Class", exams: "Exam", deadlines: "Deadline", holidays: "Holiday", registration: "Registration", syllabus: "Syllabus" };
 const EXAM_KINDS: WeekKind[] = ["midterm", "final", "resit_exam"];
 const REG_KINDS: WeekKind[] = ["registration", "resit_registration"];
 const PHASE_TITLE: Partial<Record<WeekKind, string>> = { midterm: "Midterm exams", final: "Final exams", resit_exam: "Resit exams", registration: "Course registration", resit_registration: "Resit registration" };

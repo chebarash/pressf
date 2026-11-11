@@ -10,7 +10,8 @@ import { classesBetween, type ClassView } from "@/server/views/classes";
 import { rateQueueFor } from "@/server/views/rate";
 import { deadlines, semesterPhases } from "@/server/views/shared";
 import { loadStudent, type Student } from "@/server/views/student";
-import { deadlineAlerts } from "./convert";
+import { deadlineAlerts, milestoneAlerts } from "./convert";
+import { termMilestones } from "@/server/views/milestones";
 import { deliver, remind, saveSent, sentKeys, type Recipient } from "./deliver";
 import * as msg from "@/lib/telegram/messages";
 import type { BotMessage } from "@/lib/telegram/api";
@@ -19,7 +20,8 @@ import type { BotMessage } from "@/lib/telegram/api";
  * Time-based alerts, run every few minutes from cron: the 07:30 digest on
  * school days, 15 minutes before a class, the QR nudge 5 minutes into one,
  * deadlines 48 h and 3 h before, exams (Friday before the week, evening
- * before each) and the rating ask (after grades, every 3 days, at most 3 times).
+ * before each), syllabus quizzes and deadlines (the evening before) and the
+ * rating ask (after grades, every 3 days, at most 3 times).
  * Each goes out once per key; everything reads the stored snapshot only.
  */
 
@@ -91,6 +93,17 @@ export async function runReminders(userId: string, now = new Date()): Promise<Re
     for (const c of classes.filter((x) => x.kind === "exam" && localDay(new Date(x.start)) === addDays(day, 1))) {
       const kind = c.exam?.kind ?? (/final/i.test(c.name) || phase?.kind === "final" ? "final" : /mid/i.test(c.name) || phase?.kind === "midterm" ? "midterm" : "exam");
       await go(`exam:${c.key}`, "exams", msg.examTomorrow({ course: c.name, courseCode: c.code, exam: kind, time: c.time, room: c.room }));
+    }
+  }
+
+  // Syllabus quizzes, projects…: the evening before (feed items, so they show in the app too; once each).
+  if (minutes >= 18 * 60 && minutes < 21 * 60 && to.alerts.syllabus !== false) {
+    try {
+      const exams = new Set(classes.filter((c) => c.kind === "exam").map((c) => c.key));
+      const due = milestoneAlerts(await termMilestones(student, addDays(day, 1), now), day, now, exams);
+      if (due.length) count += (await deliver(to, due, now)).sent;
+    } catch (error) {
+      console.error("syllabus reminders failed", error instanceof Error ? error.message : error);
     }
   }
 

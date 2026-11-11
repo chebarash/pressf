@@ -39,7 +39,7 @@ export const HINTS: HintDef[] = [
   {
     id: "timetable-google",
     screen: "timetable",
-    text: "Get your timetable in Google Calendar.",
+    text: "Get your timetable in your calendar.",
     action: () => ({ label: "Set up", href: "/me#calendar" }),
     when: (c) => c.signedIn,
   },

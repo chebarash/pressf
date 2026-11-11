@@ -23,10 +23,10 @@ export function trendDelta(points: TrendPoint[]): string | null {
 /** Figma uses lower case inside a line: "Next: Quiz 6 · tomorrow 09:00". */
 export const lowerDay = (label: string) => label.replace(/^(Today|Tomorrow)\b/, (w) => w.toLowerCase());
 
-/** Settings → Calendar: what the Google Calendar feed is, and how often it updates. */
-export const CALENDAR_NOTE = "Your own calendar in Google, with the layers you turn on under In Google Calendar. Google refreshes subscribed calendars on its own schedule, so a change can take up to about a day to show there.";
+/** Settings → Calendar: what the calendar feed is. Each app's own refresh time is under its button. */
+export const CALENDAR_NOTE = "Your own calendar, with the layers you turn on under In your calendar. Classes carry the syllabus topic, quizzes from the syllabus and the lesson's files.";
 
-export const RESET_CALENDAR_TEXT = "The Google Calendar you added from Press F stops updating. Add it again from Settings → Calendar with the new link.";
+export const RESET_CALENDAR_TEXT = "The calendar you added from Press F stops updating. Add it again from Settings → Calendar with the new link.";
 
 const SCHOOL_TONES: Array<[RegExp, "computing" | "engineering" | "management" | "humanities" | "medicine"]> = [
   [/comput|software|cyber|data|informat|\bai\b/i, "computing"],

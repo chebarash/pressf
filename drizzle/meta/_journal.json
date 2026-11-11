@@ -246,6 +246,13 @@
       "when": 1793795335287,
       "tag": "0034_hints",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794400599377,
+      "tag": "0035_feed_alarms_syllabus",
+      "breakpoints": true
     }
   ]
 }

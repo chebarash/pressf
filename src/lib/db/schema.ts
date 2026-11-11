@@ -509,6 +509,8 @@ export const calendarFeeds = pgTable("calendar_feeds", {
   nonce: text("nonce").notNull(),
   hash: text("hash").notNull().unique(),
   layers: jsonb("layers").$type<string[]>(),
+  /** "Reminders in Google" (VALARM): minutes before classes, exams on/off; null = the defaults (15 min, exams on). */
+  alarms: jsonb("alarms").$type<{ classes?: number; exams?: boolean }>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

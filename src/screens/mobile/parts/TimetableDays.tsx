@@ -4,6 +4,8 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, use
 import Link from "next/link";
 import { addDays, between, classByKey, dayAt, dayIndex, dayOf, mondayAt, monthKey, monthLabel, shiftMonth, SPAN_DAYS, SPAN_WEEKS, toneName, weekIndex, weekTitle, type Weeks } from "@/screens/shared/schedule/model";
 import { lessonPanel } from "@/screens/shared/schedule/lesson";
+import { MilestoneMark } from "@/screens/shared/schedule/MilestoneMark";
+import { SubscribeButtons } from "@/screens/mobile/mc/Subscribe";
 import { clock, useNowMinutes } from "@/screens/shared/schedule/now";
 import { useSchedule } from "@/screens/shared/schedule/store";
 import { useTrack } from "@/screens/shared/schedule/useTrack";
@@ -40,6 +42,7 @@ export function PhoneTimetable({ title }: { title: React.ReactNode }) {
         {st.view === "week" ? <WeekSub /> : null}
       </header>
       <ScreenHint screen="timetable" ctx={{ desktop: false }} className={s.hint} />
+      {!st.page.signedIn && st.page.subscribe ? <SubscribeButtons links={st.page.subscribe} personal={false} /> : null}
       {st.view === "week" ? <DayPager /> : <MonthOverview />}
       <LessonSheet />
     </>
@@ -73,13 +76,14 @@ const AROUND = 2;
 const SMOOTH_DAYS = 7;
 
 /** Colour classes for a calendar layer's stripe or dot. */
-const LAYER: Record<CalendarLayer, string> = { classes: s.l_classes, exams: s.l_exams, deadlines: s.l_deadlines, holidays: s.l_holidays, registration: s.l_registration };
+const LAYER: Record<CalendarLayer, string> = { classes: s.l_classes, exams: s.l_exams, deadlines: s.l_deadlines, holidays: s.l_holidays, registration: s.l_registration, syllabus: s.l_deadlines };
 const TONE = (c: ScheduleClass) => s[`tone_${toneName(c)}`];
 
 /** Up to three dots for a day: its classes in their course colours, then its events in theirs. */
 function dotsOf(weeks: Weeks, day: string): string[] {
   const { classes, events } = between(weeks, day, day);
-  const out = [...classes.map(TONE), ...events.filter((e) => e.layer !== "holidays").map((e) => LAYER[e.layer])];
+  // A class with a syllabus quiz adds a mustard dot, like the all-day milestones.
+  const out = [...classes.map(TONE), ...(classes.some((c) => c.milestones?.length) ? [LAYER.syllabus] : []), ...events.filter((e) => e.layer !== "holidays").map((e) => LAYER[e.layer])];
   return out.slice(0, 3);
 }
 
@@ -313,6 +317,7 @@ export function ClassRow({ c }: { c: ScheduleClass }) {
       <span className={s.body}>
         <span className={s.subject}>{c.kind === "exam" ? `${c.name} · ${c.lesson.type}` : c.name}</span>
         {details ? <span className={s.details}>{details}</span> : null}
+        <MilestoneMark c={c} />
       </span>
       {live === "now" ? <Tag tone="dark">Now</Tag> : live === "next" ? <Tag tone="neutral">Next</Tag> : null}
     </button>
@@ -557,9 +562,14 @@ function LessonSheetOf({ c }: { c: ScheduleClass }) {
         </p>
       ) : null}
       {p.exam ? <p className={s.fact}>{p.exam}</p> : null}
-      {p.topic.title || p.topic.description || p.topic.syllabus ? (
+      {p.topic.title || p.topic.description || p.topic.syllabus || p.milestones.length ? (
         <div className={s.block}>
           <p className={b.label}>This lesson</p>
+          {p.milestones.map((m) => (
+            <p key={m.id} className={cx(s.topic, s.milestone)} data-likely={m.likely || undefined}>
+              {m.line}
+            </p>
+          ))}
           {p.topic.title ? <p className={s.topic}>{p.topic.title}</p> : null}
           {p.topic.description ? <p className={s.eventSub}>{p.topic.description}</p> : null}
           {p.topic.syllabus ? <p className={s.eventSub}>Syllabus: {p.topic.syllabus}</p> : null}

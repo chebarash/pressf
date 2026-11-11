@@ -313,9 +313,9 @@ export async function uploadViaBot(courseCode: string): Promise<"sent" | "link" 
 }
 
 /** External sites leave through Telegram's browser; a new tab elsewhere. */
-export function openLink(url: string) {
+export function openLink(url: string, opts: { tryInstantView?: boolean } = {}) {
   const app = webApp();
-  if (app) return app.openLink(url, { try_instant_view: true });
+  if (app) return app.openLink(url, { try_instant_view: opts.tryInstantView ?? true });
   window.open(url, "_blank", "noopener");
 }
 
