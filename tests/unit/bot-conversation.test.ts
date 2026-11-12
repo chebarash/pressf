@@ -144,7 +144,7 @@ describe("message builders", () => {
     expect(m.sentForReview().text).toBe("<b>Sent for review ✓</b>\nA moderator checks it, usually within a day.");
     const live = m.fileLive("Midterm exam, Fall 2025", "Calculus 1", "MATH111");
     expect(live.text).toBe("<b>Your file is live 🎉</b>\nMidterm exam, Fall 2025 · Calculus 1 — marked 'From students'. Thanks, it helps the next cohort.");
-    expect(button(live)).toEqual({ text: "Open in Calculus 1", web_app: { url: "https://pressf.test/c/MATH111/files" } });
+    expect(button(live)).toEqual({ text: "Open in Calculus 1", web_app: { url: "https://pressf.test/c/MATH111/files" }, style: "primary" });
     expect(m.notAccepted("Physics 1 notes", "it's the official lecture slides").keyboard!.inline_keyboard).toEqual([[{ text: "Got it", callback_data: "ok" }]]);
   });
   it("formats the admin's message with the right button", () => {
@@ -172,8 +172,20 @@ describe("message builders", () => {
       .toBe("<b>LMS · Quiz 6 opens tomorrow at 09:00</b>\nCalculus 1 · Gonçalo Pinto asks to confirm you've read it");
     expect(m.deadline({ title: "Assignment 3", course: "Software Project Management", due: "23:59", hoursLeft: 3, submitted: false }).text)
       .toBe("<b>Due in 3 hours: Assignment 3</b>\nSoftware Project Management · 23:59 · not submitted yet");
-    expect(button(m.classStarted({ course: "Physics 1" }))).toEqual({ text: "Scan QR", web_app: { url: "https://pressf.test/qr" } });
+    expect(button(m.classStarted({ course: "Physics 1" }))).toEqual({ text: "Scan QR", web_app: { url: "https://pressf.test/qr" }, style: "primary" });
     expect(m.roomChange({ when: "tomorrow", course: "Physics 1", room: "A-108", time: "13:00" }).text).toBe("<b>Room change for tomorrow</b>\nPhysics 1 moved to A-108 at 13:00");
+  });
+  it("adds live times, a rich digest and grade, and confetti on a high mark", () => {
+    const due = new Date("2026-11-02T18:59:00Z");
+    expect(m.deadline({ title: "Lab 6", course: "Databases", due: "23:59", dueAt: due, hoursLeft: 3 }).text)
+      .toBe(`<b>Due <tg-time unix="${due.getTime() / 1000}" format="r">in 3 hours</tg-time>: Lab 6</b>\nDatabases · 23:59`);
+    expect(m.classSoon({ course: "Calculus 1", room: "B-204", start: due }).text).toBe(`<b>Calculus 1 <tg-time unix="${due.getTime() / 1000}" format="r">in 15 minutes</tg-time></b>\nB-204`);
+    const digest = m.morningDigest({ classes: [{ time: "10:00", course: "Calculus 1", room: "B-204", topic: "Week 8 · Derivatives", marks: ["Quiz 2 · 10% · likely today"] }, { time: "13:00", course: "A<B", room: null }] });
+    expect(digest.rich).toBe("<p><b>Today: 2 classes</b></p><table compact><tr><td>10:00</td><td>Calculus 1</td><td>B-204</td></tr><tr><td>13:00</td><td>A&lt;B</td><td></td></tr></table><blockquote expandable><b>Calculus 1</b><br/>Week 8 · Derivatives<br/>🟡 Quiz 2 · 10% · likely today</blockquote>");
+    const high = m.newGrade({ grade: 18, max: 20, course: "Calculus 1", item: "quiz 1", average: 84 });
+    expect(high.rich).toBe("<p><b>New grade in Calculus 1</b></p><table compact><tr><td>Quiz 1</td><td>🟢 18 / 20</td></tr><tr><td>Average now</td><td>84</td></tr></table>");
+    expect(high.effect).toBeTruthy();
+    expect(m.newGrade({ grade: 7, max: 20, course: "Calculus 1", item: "Quiz 2" }).effect).toBeUndefined();
   });
   it("words the semester alerts as designed (9.3)", () => {
     expect(m.semesterStarts({ term: "Spring 2027", date: "Monday 9 Feb", courses: 5, firstClass: "Mon 10:00" }).text)

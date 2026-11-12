@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 
-export type InlineButton = { text: string; callback_data?: string; url?: string; web_app?: { url: string } };
+/** `style` colours the button (Bot API 9.4): blue for the main action, green, red. */
+export type InlineButton = { text: string; callback_data?: string; url?: string; web_app?: { url: string }; style?: "primary" | "success" | "danger" };
 
 export type InlineKeyboard = {
   inline_keyboard: InlineButton[][];
@@ -104,10 +105,51 @@ export const sendMessage = (chatId: number | string, text: string, replyMarkup?:
     reply_markup: replyMarkup,
   });
 
-/** A ready message from one of the builders in ./messages. */
-export type BotMessage = { text: string; keyboard?: InlineKeyboard };
+/**
+ * A ready message from one of the builders in ./messages. `rich` is the same
+ * message as a rich message (tables, collapsible blocks; Bot API 10.1), sent
+ * instead of `text` where Telegram takes it; `effect` is a message effect id
+ * (private chats only).
+ */
+export type BotMessage = { text: string; keyboard?: InlineKeyboard; rich?: string; effect?: string };
 
-export const send = (chatId: number | string, message: BotMessage) => sendMessage(chatId, message.text, message.keyboard);
+export const sendRichMessage = (chatId: number | string, html: string, replyMarkup?: InlineKeyboard, effect?: string) =>
+  call<TelegramMessage>("sendRichMessage", { chat_id: chatId, rich_message: { html }, reply_markup: replyMarkup, message_effect_id: effect });
+
+/** Sends the rich version when there is one, falling back to plain HTML text if Telegram refuses it. */
+export async function send(chatId: number | string, message: BotMessage) {
+  if (message.rich) {
+    try {
+      return await sendRichMessage(chatId, message.rich, message.keyboard, message.effect);
+    } catch (error) {
+      console.error("Rich message refused, sending text", error instanceof Error ? error.message : error);
+    }
+  }
+  if (message.effect) {
+    try {
+      return await call<TelegramMessage>("sendMessage", { chat_id: chatId, text: message.text, parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup: message.keyboard, message_effect_id: message.effect });
+    } catch {
+      // An unknown effect id: send it plain.
+    }
+  }
+  return sendMessage(chatId, message.text, message.keyboard);
+}
+
+/* ───────────── widgets (Bot API 10.4; private chats only) ───────────── */
+
+/** An HTML widget in the chat; its code is fixed, `chat_data` (≤1024 bytes) is what the bot updates. */
+export const sendWidget = (chatId: number | string, a: { html: string; chatData: string; height?: number; keyboard?: InlineKeyboard }) =>
+  call<TelegramMessage>("sendWidget", { chat_id: chatId, html: a.html, chat_data: a.chatData, height: a.height, reply_markup: a.keyboard, disable_notification: true });
+
+export const editWidgetData = (chatId: number | string, messageId: number, chatData: string) =>
+  call<TelegramMessage | true>("editMessageWidgetData", { chat_id: chatId, message_id: messageId, chat_data: chatData });
+
+export const pinMessage = (chatId: number | string, messageId: number) =>
+  call<boolean>("pinChatMessage", { chat_id: chatId, message_id: messageId, disable_notification: true });
+
+export const unpinMessage = (chatId: number | string, messageId: number) => call<boolean>("unpinChatMessage", { chat_id: chatId, message_id: messageId });
+
+export const deleteMessage = (chatId: number | string, messageId: number) => call<boolean>("deleteMessage", { chat_id: chatId, message_id: messageId });
 
 export const editMessage = (chatId: number | string, messageId: number, text: string, replyMarkup?: InlineKeyboard) =>
   call<TelegramMessage | true>("editMessageText", {
