@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { CLASS_ALARM_CHOICES, type FeedAlarms } from "@/core/calendar-text";
 import type { SubscribeApp, SubscribeLinks } from "@/core/ics";
 import { openLink, webApp } from "@/platform/client";
@@ -29,20 +29,8 @@ export const APP_NOTE: Record<SubscribeApp, string> = {
 };
 const OTHER_NOTE = "Any app that subscribes to an iCal/ICS link.";
 
-type Platform = "apple" | "android" | "other";
-const noop = () => () => {};
-function platformNow(): Platform {
-  const tg = webApp()?.platform ?? "";
-  if (/^(ios|macos)$/.test(tg)) return "apple";
-  if (tg === "android") return "android";
-  const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod|Macintosh/.test(ua)) return "apple";
-  if (/Android/.test(ua)) return "android";
-  return "other";
-}
-
-/** The apps in the order this viewer sees them: their platform's own first. */
-export const appOrder = (platform: Platform): SubscribeApp[] => (platform === "apple" ? ["apple", "google", "outlook", "office"] : ["google", "apple", "outlook", "office"]);
+/** The apps in the order everyone sees them: Google first (the main button), on every device. */
+export const APP_ORDER: SubscribeApp[] = ["google", "apple", "outlook", "office"];
 
 /** Where a button goes: in Telegram an https page for Apple (opened in Safari), else each app's own link. */
 export function appLink(links: SubscribeLinks, app: SubscribeApp, inTelegram: boolean) {
@@ -61,8 +49,6 @@ function useToast() {
 }
 
 export function SubscribeButtons({ links, variant = "phone", personal = true }: { links: SubscribeLinks; variant?: "phone" | "desktop"; personal?: boolean }) {
-  const platform = useSyncExternalStore(noop, platformNow, () => "other" as Platform);
-  const order = appOrder(platform);
   const dismiss = useDismissHint();
   const [toast, setToast] = useToast();
 
@@ -86,7 +72,7 @@ export function SubscribeButtons({ links, variant = "phone", personal = true }: 
     if (personal) dismiss("timetable-google");
   };
 
-  const [first, ...rest] = order;
+  const [first, ...rest] = APP_ORDER;
   return (
     <div className={[c.box, variant === "desktop" && c.desktop].filter(Boolean).join(" ")}>
       <p className={c.title}>Subscribe in your calendar</p>
