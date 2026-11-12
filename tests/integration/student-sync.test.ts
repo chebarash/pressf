@@ -52,7 +52,16 @@ function lmsReturns(over: { gradebook?: object; notes?: object[] } = {}) {
 }
 
 const texts = () => tg.send.mock.calls.map((c) => (c[1] as { text: string }).text);
-const sentTitles = () => texts().map((t) => t.split("\n")[0].replace(/<[^>]+>/g, ""));
+/** A message as read in the chat: without its HTML tags (stripped until none are left). */
+const plain = (t: string) => {
+  let prev;
+  do {
+    prev = t;
+    t = t.replace(/<[^<>]*>/g, "");
+  } while (t !== prev);
+  return t;
+};
+const sentTitles = () => texts().map((t) => plain(t.split("\n")[0]));
 
 beforeEach(async () => {
   await resetDb();
@@ -189,7 +198,7 @@ describe("reminders", () => {
 
   it("reminds 15 minutes before a class, then to scan the QR", async () => {
     await runReminders(userId, at("2026-11-02T04:47:00Z")); // 09:47
-    expect(texts().map((t) => t.replace(/<[^>]+>/g, ""))).toEqual(["Calculus 1 in 15 minutes\nB-204 · Gonçalo Pinto · Midterm review slides is up"]);
+    expect(texts().map(plain)).toEqual(["Calculus 1 in 15 minutes\nB-204 · Gonçalo Pinto · Midterm review slides is up"]);
     expect(texts()[0]).toContain(`<tg-time unix="${Date.parse("2026-11-02T05:00:00Z") / 1000}" format="r">`);
     tg.send.mockClear();
     await runReminders(userId, at("2026-11-02T05:06:00Z")); // 10:06
