@@ -3,7 +3,7 @@ import { lessonLabel, markTier, type MarkTier } from "@/core/feed-marks";
 import { TYPE_LABEL, type FileType } from "@/core/files";
 import { path, type Target } from "@/core/links";
 import type { BotMessage, InlineButton, InlineKeyboard } from "./api";
-import { card, esc } from "./html";
+import { card, esc, tgTime } from "./html";
 import { appButton } from "./links";
 
 /**
@@ -14,8 +14,8 @@ import { appButton } from "./links";
 
 export type { BotMessage };
 
-/** A button that opens a Press F screen inside Telegram. */
-export const openButton = (label: string, target: Target): InlineButton => appButton(label, path(target));
+/** A button that opens a Press F screen inside Telegram: the main action, so blue. */
+export const openButton = (label: string, target: Target): InlineButton => ({ ...appButton(label, path(target)), style: "primary" });
 
 const one = (button: InlineButton): InlineKeyboard => ({ inline_keyboard: [[button]] });
 const open = (label: string, target: Target) => one(openButton(label, target));
@@ -88,24 +88,51 @@ export const noCourseFound = (query: string): BotMessage => ({ text: card(`Nothi
 
 /* ───────────── alerts: every day (9.2) ───────────── */
 
-/** 07:30 · morning digest, school days only. */
-export function morningDigest(a: { classes: Array<{ time: string; course: string; room?: string | null }>; due?: string | null }): BotMessage {
+export type DigestClass = {
+  time: string;
+  course: string;
+  room?: string | null;
+  /** The teacher's lesson title or the syllabus topic of the week ("Week 10 · Integration testing"). */
+  topic?: string | null;
+  /** Syllabus quizzes and deadlines on this class ("Quiz 2 · 10% · likely today"). */
+  marks?: string[];
+};
+
+/**
+ * 07:30 · morning digest, school days only. The rich version is a table of
+ * the classes, then a collapsed block per class with its topic and quizzes.
+ */
+export function morningDigest(a: { classes: DigestClass[]; due?: string | null }): BotMessage {
   const n = a.classes.length;
+  const title = `Today: ${n} ${n === 1 ? "class" : "classes"}`;
   const lines = a.classes.map((c) => [`${c.time} ${c.course}`, c.room].filter(Boolean).join(" · "));
-  return { text: card(`Today: ${n} ${n === 1 ? "class" : "classes"}`, ...lines, a.due && `Due tonight: ${a.due}`), keyboard: open("Open Today", { to: "today" }) };
+  const rows = a.classes.map((c) => `<tr><td>${esc(c.time)}</td><td>${esc(c.course)}</td><td>${esc(c.room ?? "")}</td></tr>`).join("");
+  const details = a.classes
+    .filter((c) => c.topic || c.marks?.length)
+    .map((c) => `<blockquote expandable><b>${esc(c.course)}</b>${[c.topic, ...(c.marks ?? []).map((m) => `🟡 ${m}`)].filter(Boolean).map((l) => `<br/>${esc(l!)}`).join("")}</blockquote>`)
+    .join("");
+  const rich = `<p><b>${esc(title)}</b></p><table compact>${rows}</table>${details}${a.due ? `<p>Due tonight: ${esc(a.due)}</p>` : ""}`;
+  return { text: card(title, ...lines, a.due && `Due tonight: ${a.due}`), rich, keyboard: open("Open Today", { to: "today" }) };
 }
 
-/** 15 min before each class. */
-export const classSoon = (a: { course: string; courseCode?: string; room?: string | null; teacher?: string | null; note?: string | null; minutes?: number }): BotMessage => ({
-  text: card(`${a.course} in ${a.minutes ?? 15} minutes`, [a.room, a.teacher, a.note].filter(Boolean).join(" · ")),
-  keyboard: open("Open class", a.courseCode ? { to: "course", code: a.courseCode } : { to: "timetable" }),
-});
+/** 15 min before each class; with `start`, "in 15 minutes" counts down in the chat. */
+export const classSoon = (a: { course: string; courseCode?: string; room?: string | null; teacher?: string | null; note?: string | null; minutes?: number; start?: Date }): BotMessage => {
+  const inMinutes = `in ${a.minutes ?? 15} minutes`;
+  const line = esc([a.room, a.teacher, a.note].filter(Boolean).join(" · "));
+  return {
+    text: `<b>${esc(a.course)} ${a.start ? tgTime(a.start, "r", inMinutes) : inMinutes}</b>${line ? `\n${line}` : ""}`,
+    keyboard: open("Open class", a.courseCode ? { to: "course", code: a.courseCode } : { to: "timetable" }),
+  };
+};
 
 /** 5 min after a class starts, if not checked in. */
 export const classStarted = (a: { course: string }): BotMessage => ({
   text: card(`${a.course} has started`, "Scan the QR on the screen to check in"),
   keyboard: open("Scan QR", { to: "qr" }),
 });
+
+/** Telegram's 🎉 message effect. */
+const CONFETTI = "5046509860389126442";
 
 /** The app's colours in a chat: tier of a grade, mark of a class. */
 const TIER_DOT: Record<MarkTier, string> = { high: "🟢", mid: "🟡", low: "🔴" };
@@ -141,8 +168,14 @@ export const newGrade = (a: { grade: number | string; course: string; courseId?:
   const score = Number(a.grade);
   const dot = Number.isFinite(score) ? `${TIER_DOT[markTier(score, a.max ?? null)]} ` : "";
   const what = a.item.trim() ? `${a.item.trim()[0].toUpperCase()}${a.item.trim().slice(1)}: ` : "";
+  const high = Number.isFinite(score) && markTier(score, a.max ?? null) === "high";
+  const label = a.item.trim() ? `${a.item.trim()[0].toUpperCase()}${a.item.trim().slice(1)}` : "Grade";
+  const rows = [[label, `${dot}${a.grade}${a.max ? ` / ${a.max}` : ""}`], ...(a.average != null ? [["Average now", String(a.average)]] : [])];
   return {
     text: card(`New grade in ${a.course}`, `${dot}${what}${a.grade}${a.max ? ` / ${a.max}` : ""}`, a.average != null && `Average now ${a.average}`),
+    rich: `<p><b>${esc(`New grade in ${a.course}`)}</b></p><table compact>${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("")}</table>`,
+    // 🎉 on a high mark.
+    effect: high ? CONFETTI : undefined,
     keyboard: open("See progress", { to: "progress", courseId: a.courseId }),
   };
 };
@@ -172,11 +205,12 @@ export const announcement = (a: { title: string; course: string; teacher?: strin
   keyboard: open("Read", { to: "notifications", id: a.id }),
 });
 
-/** 48 h and 3 h before a deadline. */
-export const deadline = (a: { title: string; course: string; due: string; hoursLeft: number; submitted?: boolean; target?: Target }): BotMessage => {
+/** 48 h and 3 h before a deadline; with `dueAt`, "in 3 hours" keeps counting down in the chat. */
+export const deadline = (a: { title: string; course: string; due: string; dueAt?: Date; hoursLeft: number; submitted?: boolean; target?: Target }): BotMessage => {
   const when = a.hoursLeft >= 24 ? `${Math.round(a.hoursLeft / 24)} ${Math.round(a.hoursLeft / 24) === 1 ? "day" : "days"}` : `${a.hoursLeft} ${a.hoursLeft === 1 ? "hour" : "hours"}`;
+  const line = esc([a.course, a.due, a.submitted === false && "not submitted yet"].filter(Boolean).join(" · "));
   return {
-    text: card(`Due in ${when}: ${a.title}`, [a.course, a.due, a.submitted === false && "not submitted yet"].filter(Boolean).join(" · ")),
+    text: `<b>Due ${a.dueAt ? tgTime(a.dueAt, "r", `in ${when}`) : `in ${when}`}: ${esc(a.title)}</b>\n${line}`,
     keyboard: open("Open assignment", a.target ?? { to: "timetable", view: "month" }),
   };
 };

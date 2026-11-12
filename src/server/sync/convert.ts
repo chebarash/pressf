@@ -329,7 +329,7 @@ export function deadlineAlerts(list: Deadline[], now: Date, lastRun: Date): Aler
       remindersDue(d, now, lastRun).map((h) => ({
         setting: "deadline" as const,
         item: { id: `deadline:${d.id}:${h}`, kind: "deadline" as const, title: `${d.title} is due ${h >= 24 ? `in ${Math.round(h / 24)} days` : `in ${h} hours`}`, body: `${d.course} · ${weekdayName(d.due)} ${clock(d.due)}`, at: now, read: false, href: path({ to: "progress" }) },
-        message: msg.deadline({ title: d.title, course: d.course, due: clock(d.due), hoursLeft: h, submitted: d.status === "todo" ? false : undefined, target: { to: "progress" } }),
+        message: msg.deadline({ title: d.title, course: d.course, due: clock(d.due), dueAt: d.due, hoursLeft: h, submitted: d.status === "todo" ? false : undefined, target: { to: "progress" } }),
       })),
     );
 }

@@ -240,7 +240,7 @@ describe("review outcome", () => {
     expect(await notifyUploader(upload.id, message)).toBe(true);
     expect(sent[0].body.chat_id).toBe("7");
     expect(String(sent[0].body.text)).toMatch(/^<b>Your file is live 🎉<\/b>\nMidterm exam, Fall 2026 · Calculus 1/);
-    expect(JSON.parse(JSON.stringify(sent[0].body.reply_markup)).inline_keyboard[0][0]).toEqual({ text: "Open in Calculus 1", web_app: { url: "https://pressf.test/c/MATH111/files" } });
+    expect(JSON.parse(JSON.stringify(sent[0].body.reply_markup)).inline_keyboard[0][0]).toEqual({ text: "Open in Calculus 1", web_app: { url: "https://pressf.test/c/MATH111/files" }, style: "primary" });
   });
   it("says Got it under a rejection and clears the button when pressed", async () => {
     const user = await linkUser();

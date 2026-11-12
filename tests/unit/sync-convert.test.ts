@@ -27,7 +27,7 @@ describe("alerts use the shared bot wording (Figma 9.2, 9.3)", () => {
   it("deadline 3 h before", () => {
     const due = new Date("2026-11-02T18:59:00Z");
     const alerts = deadlineAlerts([{ id: "3", course: "Software Project Management", title: "Assignment 3", due, status: "todo", grade: null }], new Date(due.getTime() - 3 * 3600_000 + 60_000), new Date(due.getTime() - 3 * 3600_000 - 60_000));
-    expect(alerts.map((a) => [a.item.id, a.message.text])).toEqual([["deadline:3:3", "<b>Due in 3 hours: Assignment 3</b>\nSoftware Project Management · 23:59 · not submitted yet"]]);
+    expect(alerts.map((a) => [a.item.id, a.message.text])).toEqual([["deadline:3:3", `<b>Due <tg-time unix="${due.getTime() / 1000}" format="r">in 3 hours</tg-time>: Assignment 3</b>\nSoftware Project Management · 23:59 · not submitted yet`]]);
   });
 
   it("new files bundled per course", () => {

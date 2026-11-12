@@ -11,7 +11,9 @@ import { rateQueueFor } from "@/server/views/rate";
 import { deadlines, semesterPhases } from "@/server/views/shared";
 import { loadStudent, type Student } from "@/server/views/student";
 import { deadlineAlerts, milestoneAlerts } from "./convert";
-import { termMilestones } from "@/server/views/milestones";
+import { byClass, termMilestones, type ClassMilestone } from "@/server/views/milestones";
+import { lessonInfos, type LessonInfo } from "@/server/views/lessons";
+import { syncWidget } from "./widget";
 import { deliver, remind, saveSent, sentKeys, type Recipient } from "./deliver";
 import * as msg from "@/lib/telegram/messages";
 import type { BotMessage } from "@/lib/telegram/api";
@@ -51,6 +53,16 @@ export async function runReminders(userId: string, now = new Date()): Promise<Re
   const go = async (key: string, setting: Parameters<typeof remind>[3], message: BotMessage) => {
     if (await remind(to, sent, key, setting, message, now)) count++;
   };
+  // Lesson topics and syllabus quizzes for the digest and the widget; never worth failing a reminder over.
+  const lessonsOf = (list: ClassView[]) => lessonInfos(student, list, now).catch(() => new Map<string, LessonInfo>());
+  const milestonesOf = async (list: ClassView[]) => {
+    try {
+      const all = byClass(await termMilestones(student, day, now));
+      return new Map([...all].filter(([key]) => list.some((c) => c.key === key)));
+    } catch {
+      return new Map<string, ClassMilestone[]>();
+    }
+  };
 
   const classes = await classesBetween(student, day, addDays(day, 7), now);
   const todays = classes.filter((c) => localDay(new Date(c.start)) === day);
@@ -59,7 +71,23 @@ export async function runReminders(userId: string, now = new Date()): Promise<Re
   const work = deadlines(student.sync.homework).filter((d) => d.status === "todo" || d.status === "in-progress");
   if (minutes >= DIGEST_FROM && minutes < DIGEST_UNTIL && dayInfo(now).studyDay && todays.length) {
     const tonight = work.filter((d) => localDay(d.due) === day && d.due > now).map((d) => ({ course: d.course, title: d.title, time: clock(d.due) }));
-    await go(`digest:${day}`, "digest", msg.morningDigest({ classes: todays.map((c) => ({ time: c.time, course: c.name, room: c.room })), due: tonight.map((d) => `${d.course} ${d.title.charAt(0).toLowerCase()}${d.title.slice(1)}, ${d.time}`).join("; ") || null }));
+    if (!sent[`digest:${day}`]) {
+      const infos = await lessonsOf(todays);
+      const marks = await milestonesOf(todays);
+      const rows = todays.map((c) => {
+        const info = infos.get(c.key);
+        return { time: c.time, course: c.name, room: c.room, topic: info?.title ?? info?.syllabus ?? null, marks: (marks.get(c.key) ?? []).map((m) => m.line) };
+      });
+      await go(`digest:${day}`, "digest", msg.morningDigest({ classes: rows, due: tonight.map((d) => `${d.course} ${d.title.charAt(0).toLowerCase()}${d.title.slice(1)}, ${d.time}`).join("; ") || null }));
+    }
+  }
+
+  // The pinned "Today" widget: sent in the digest window, its data kept current after.
+  try {
+    const shown = classes.filter((c) => localDay(new Date(c.start)) <= addDays(day, 7));
+    await syncWidget({ to, classes: shown, infos: await lessonsOf(shown), work, now, maySend: minutes >= DIGEST_FROM && minutes < 21 * 60 });
+  } catch (error) {
+    console.error("Today widget failed", error instanceof Error ? error.message : error);
   }
 
   // 15 minutes before each class, with this class's new materials if any.
@@ -69,7 +97,7 @@ export async function runReminders(userId: string, now = new Date()): Promise<Re
   for (const c of soon) {
     const files = materials.filter((m) => c.lessonIds.includes(m.lessonId ?? ""));
     const note = files.length === 1 ? `${describeFile(files[0].name, { courseCode: c.code, courseName: c.name }).title} is up` : files.length > 1 ? `${files.length} files are up` : null;
-    await go(`class:${c.key}`, "classReminder", msg.classSoon({ course: c.name, courseCode: c.code || undefined, room: c.room, teacher: c.teacher?.name ?? null, note }));
+    await go(`class:${c.key}`, "classReminder", msg.classSoon({ course: c.name, courseCode: c.code || undefined, room: c.room, teacher: c.teacher?.name ?? null, note, start: new Date(c.start) }));
   }
 
   // 5 minutes into a class, if not checked in yet.
