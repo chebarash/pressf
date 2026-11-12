@@ -16,7 +16,7 @@ const { TimetableScreen } = await import("@/screens/desktop/split/TimetableScree
 const { default: PhoneTimetable } = await import("@/screens/mobile/Timetable");
 const { timetableDemo } = await import("@/screens/mobile/demo-b");
 const { classMark, lessonPanel } = await import("@/screens/shared/schedule/lesson");
-const { appLink, appOrder } = await import("@/screens/mobile/mc/Subscribe");
+const { appLink, APP_ORDER } = await import("@/screens/mobile/mc/Subscribe");
 
 const SITE = "https://pressf.chebarash.uz";
 const quiz = { title: "Quiz 2", weight: 10, of: 1, certainty: "inferred" as const };
@@ -94,10 +94,8 @@ describe("Subscribe in your calendar: each app's link", () => {
     expect(subscribeLinks(feed.replace("https://", "webcal://"), "x").feed).toBe(feed);
   });
 
-  it("the viewer's own app first; Apple through Safari inside Telegram", () => {
-    expect(appOrder("apple")[0]).toBe("apple");
-    expect(appOrder("android")[0]).toBe("google");
-    expect(appOrder("other")).toEqual(["google", "apple", "outlook", "office"]);
+  it("Google first on every device; Apple through Safari inside Telegram", () => {
+    expect(APP_ORDER).toEqual(["google", "apple", "outlook", "office"]);
     expect(appLink(links, "apple", false)).toBe(links.apple);
     expect(appLink(links, "apple", true)).toBe("https://pressf.chebarash.uz/calendar/apple?feed=abc");
     expect(appLink(links, "outlook", true)).toBe(links.outlook);
