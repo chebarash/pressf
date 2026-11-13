@@ -21,6 +21,9 @@ export type Target =
   | { to: "next"; code?: string }
   | { to: "qr" }
   | { to: "uploads" }
+  | { to: "professors" }
+  /** Settings → Alerts (what the bot sends, the pinned Today card). */
+  | { to: "alerts" }
   | { to: "link"; token: string };
 
 const slug = (s: string) => s.replace(/[^A-Za-z0-9_-]/g, "");
@@ -44,6 +47,8 @@ export function path(t: Target): string {
     case "next": return t.code ? `/c/${slug(t.code)}` : "/programs/mine/curriculum";
     case "qr": return "/qr";
     case "uploads": return "/me/uploads";
+    case "professors": return "/professors";
+    case "alerts": return "/me/alerts";
     case "link": return `/link/${slug(t.token)}`;
   }
 }
@@ -83,7 +88,7 @@ export function parseStartParam(p: string | null | undefined): Target {
     case "upload": return { to: "uploads" };
     // "calendar" is the old Calendar section's code, still in sent messages.
     case "month": case "calendar": return { to: "timetable", view: "month" };
-    case "timetable": case "courses": case "progress": case "rate": case "next": case "qr": case "uploads": case "today":
+    case "timetable": case "courses": case "progress": case "rate": case "next": case "qr": case "uploads": case "today": case "professors": case "alerts":
       return { to: prefix } as Target;
     default: return { to: "today" };
   }

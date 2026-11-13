@@ -161,17 +161,21 @@ export function TelegramBridge() {
       const start = parseStartParam(app.initDataUnsafe?.start_param);
       let handled = false;
       try { handled = sessionStorage.getItem("pf_start") === "1"; sessionStorage.setItem("pf_start", "1"); } catch { /* storage blocked */ }
-      if (!handled && start.to !== "today") {
-        const target = pathFor(start);
-        if (target !== pathRef.current) router.replace(target);
-      }
 
       // Signed-in session from the linked Telegram account, without blocking paint.
-      if (!signedIn && app.initData && start.to !== "link") {
-        signIn("telegram", { initData: app.initData, redirect: false })
-          .then((result) => { if (result?.ok && !result.error) router.refresh(); })
-          .catch(() => { /* stays a guest */ });
-      }
+      // The start link waits for it: opened first, a members-only page would bounce
+      // a linked student to the sign-in sheet before the session existed.
+      const silent = !signedIn && app.initData && start.to !== "link"
+        ? signIn("telegram", { initData: app.initData, redirect: false }).then((r) => !!r?.ok && !r.error).catch(() => false)
+        : Promise.resolve(false);
+      void silent.then((ok) => {
+        if (cancelled) return;
+        const target = !handled && start.to !== "today" ? pathFor(start) : null;
+        if (target && target !== pathRef.current) return router.replace(target);
+        // Bounced to sign-in before the session existed: go where it was headed.
+        if (ok && location.pathname === "/sign-in") return router.replace(signInNext(location.search));
+        if (ok) router.refresh();
+      });
 
       // The server picked the frame from the user agent before the cookie existed.
       if (kind !== "telegram") router.refresh();
@@ -208,6 +212,12 @@ export function TelegramBridge() {
   }, [pathname]);
 
   return null;
+}
+
+/** The same-site page a /sign-in URL was headed to (`?next=`), else Today. */
+export function signInNext(search: string): string {
+  const next = new URLSearchParams(search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
 
 /** Pathnames visited in this Mini App session, oldest first. */

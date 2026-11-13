@@ -297,6 +297,7 @@ describe("links", () => {
   const targets: Target[] = [
     { to: "course", code: "MATH111" }, { to: "file", id: "8812" }, { to: "professor", id: "4512" },
     { to: "rate", courseId: "77" }, { to: "next", code: "MATH211" }, { to: "link", token: "abc-DEF_1" }, { to: "qr" }, { to: "notifications" },
+    { to: "professors" }, { to: "alerts" }, { to: "progress" }, { to: "courses" },
   ];
   it.each(targets)("round-trips $to through startapp", (t) => {
     const p = startParam(t);
